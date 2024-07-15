@@ -1,0 +1,1 @@
+Infrastructure for this project is on AWS and is managed by terraform
