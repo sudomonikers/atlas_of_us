@@ -1,13 +1,27 @@
 import { Routes } from '@angular/router';
-import { ThreeCubeComponent } from './three-cube/three-cube.component';
+import { KnowledgeGraphComponent } from './knowledge-graph/knowledge-graph.component';
+import { ProfileComponent } from './profile/profile.component';
+import { UserComponent } from './user/user.component';
 export const routes: Routes = [
     {
         path: '',
-        component: ThreeCubeComponent
+        component: KnowledgeGraphComponent
+    },
+    {
+        path: 'knowledge-graph',
+        component: KnowledgeGraphComponent
+    },
+    {
+        path: 'profile',
+        component: ProfileComponent
+    },
+    {
+        path: 'user',
+        component: UserComponent
     },
     {
         path: '**',
         redirectTo: '',
         pathMatch: 'full'
-    }
+    },
 ];
