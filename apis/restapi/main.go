@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"restapi/database"
 	"restapi/router"
@@ -13,18 +14,22 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-
 	ctx := context.Background()
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
+
+	err := godotenv.Load()
+	if err != nil {
+		logger.Warn("Warning: .env file not found, relying on environment variables")
+	}
+
 	db := database.NewNeo4jDatabase()
 
-	//gin.SetMode(gin.ReleaseMode)
-	gin.SetMode(gin.DebugMode)
+	ginMode := os.Getenv("GIN_MODE")
+	if ginMode == "" {
+		ginMode = gin.DebugMode // Default to DebugMode if not set
+	}
+	gin.SetMode(ginMode)
 
 	r := router.NewRouter(logger, db, &ctx)
 
