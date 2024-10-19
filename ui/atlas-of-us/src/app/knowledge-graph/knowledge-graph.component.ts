@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { SharedComponentsModule } from '../shared-components/shared-components.module';
+
 import { Scene, PerspectiveCamera, WebGLRenderer, CubeTextureLoader } from 'three';
 import {BoxGeometry, MeshBasicMaterial, Mesh, LineBasicMaterial, Vector3, BufferGeometry, Line} from 'three';
 import { OrbitControls } from 'three-stdlib';
@@ -27,16 +29,32 @@ export class KnowledgeGraphComponent implements OnInit {
   controls: OrbitControls;
   nodes: AnimatedMesh[] = [];
 
-  constructor() {
+  constructor(private http: HttpClient) {
     this.scene = new Scene();
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.renderer = new WebGLRenderer({ antialias: true});
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.animate = this.animate.bind(this);
-
   }
 
   ngOnInit(): void {
+    this.http.get("http://localhost:8001/api/v1/kg/match-all").subscribe((res: any) => {
+      console.log(res)
+
+      for (let i = 0; i < res.length; i++) {
+        const node = res[i];
+        const position = this.calculatePosition(node, i);
+        console.log(position)
+        this.createNode(position.x, position.y, position.z); // Create a node at the calculated position
+      
+        // Create a relationship with the previous node if it exists
+        if (i > 0) {
+          this.createRelationship(this.nodes[i - 1], this.nodes[i]);
+        }
+      }
+    })
+
+
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
     this.controls.update();
@@ -55,10 +73,6 @@ export class KnowledgeGraphComponent implements OnInit {
     this.scene.background = texture;
 
     this.camera.position.z = 1;
-
-    this.createNode(0, 0, 0); // Example: create a node at the origin
-    this.createNode(2, 2, 2); // Example: create a node at position (2, 2, 2)
-    this.createRelationship(this.nodes[0], this.nodes[1]); // Create a relationship between the two nodes
 
     this.animate();
     this.renderer.setAnimationLoop(this.animate);
@@ -83,6 +97,19 @@ export class KnowledgeGraphComponent implements OnInit {
     }
     this.nodes.push(cube);
     this.scene.add(cube);
+  }
+
+  // Assuming you have a method to calculate the position based on relationships
+  calculatePosition(node: AnimatedMesh, index: number): { x: number, y: number, z: number } {
+    // Placeholder for force-directed layout calculation
+    // You can implement a more sophisticated algorithm here
+    const angle = (index / this.nodes.length) * Math.PI * 2;
+    const radius = 10; // Arbitrary radius for spacing
+    return {
+      x: radius * Math.cos(index),
+      y: radius * Math.sin(index),
+      z: (index % 2 === 0) ? index : -index // Alternate z positions for variety
+    };
   }
 
   createRelationship(from: AnimatedMesh, to: AnimatedMesh) {
