@@ -43,6 +43,9 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 	knowledge_graph := v1.Group("kg")
 	{
 		knowledge_graph.GET("match-all", handlers.MatchAll)
+		knowledge_graph.GET("match-domain/:domainName", handlers.MatchDomain)
+		knowledge_graph.GET("match-domain/:domainName/:numDescendants", handlers.MatchDescendants)
+
 	}
 
 	return r
