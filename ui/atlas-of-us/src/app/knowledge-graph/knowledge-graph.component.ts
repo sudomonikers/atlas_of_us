@@ -38,7 +38,7 @@ export class KnowledgeGraphComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.http.get("http://localhost:8001/api/v1/kg/match-all").subscribe((res: any) => {
+    this.http.get("http://localhost:8001/api/v1/kg/match-domain/Individual Possibilities/3").subscribe((res: any) => {
       console.log(res)
 
       for (let i = 0; i < res.length; i++) {
