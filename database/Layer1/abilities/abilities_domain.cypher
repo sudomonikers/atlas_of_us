@@ -1,5 +1,6 @@
 // Ensure the 'Abilities' node exists or is created with the L1Domain label and description
 MERGE (a:L1Domain {name: 'Abilities'})
+SET a:Ability
 
 // Mental Abilities
 MERGE (ma:L1Domain {name: 'Mental Abilities'})

@@ -1,6 +1,7 @@
 // PERSONALITY SUBDOMAINS
 // Ensure the 'Personality' node exists or is created with the L1Domain label
 MERGE (p:L1Domain {name: 'Personality'})
+SET p:Personality
 
 // Ensure subdomain nodes exist or are created, add the PersonalitySubdomain label if missing, and create relationships
 // Openness

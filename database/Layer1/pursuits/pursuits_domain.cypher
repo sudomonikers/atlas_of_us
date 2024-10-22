@@ -1,6 +1,7 @@
 // PURSUITS SUBDOMAINS
 // Ensure the 'Pursuits' node exists or is created with the L1Domain label and description
 MERGE (p:L1Domain {name: 'Pursuits'})
+SET p:Pursuit
 
 // Ensure subdomain nodes exist or are created, add the Pursuit label if missing, and create relationships with descriptions
 // Hobbies
