@@ -58,10 +58,13 @@ func MatchDescendants(c *gin.Context) {
 	}
 
 	result, err := appCtx.NEO4J.ExecuteQuery(fmt.Sprintf(`
-        MATCH (n:'%s')
-		OPTIONAL MATCH (n)-[r*0..%s]->(descendant)
-		RETURN n, collect(distinct r), collect(distinct descendant)
-	`, c.Param("domainName"), c.Param("numDescendants")), map[string]any{})
+		MATCH (n:L1Domain {name: "%s"})
+		OPTIONAL MATCH (n)-[r:HAS_SUBDOMAIN|HAS_ATTRIBUTE*0..%s]->(descendant)
+		WITH n, r, descendant
+		UNWIND r AS rel
+		WITH n, collect(distinct rel) AS relationships, collect(distinct descendant) AS children
+		RETURN n AS node, relationships, children
+	`, c.Param("nodeName"), c.Param("numDescendants")), map[string]any{})
 
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
