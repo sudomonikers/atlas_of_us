@@ -4,19 +4,24 @@ import { Line, LineProps } from '@react-three/drei';
 import { Html } from '@react-three/drei';
 import { Neo4JObject } from '../shared/interfaces/Neo4J.interface';
 
-// Context to manage global hover state
+// Context to manage global hover and active state
 export const StarNetworkContext = React.createContext<{
-  hoveredStars: Set<number>;
-  setHoveredStar: (id: number, isHovered: boolean) => void;
+  hoveredStars: Set<string>;
+  activeStars: Set<string>;
+  setHoveredStar: (id: string, isHovered: boolean) => void;
+  toggleActiveStar: (id: string) => void;
 }>({
   hoveredStars: new Set(),
-  setHoveredStar: () => {}
+  activeStars: new Set(),
+  setHoveredStar: () => {},
+  toggleActiveStar: () => {}
 });
 
 export const StarNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [hoveredStars, setHoveredStars] = React.useState<Set<number>>(new Set());
+  const [hoveredStars, setHoveredStars] = React.useState<Set<string>>(new Set());
+  const [activeStars, setActiveStars] = React.useState<Set<string>>(new Set());
 
-  const setHoveredStar = (id: number, isHovered: boolean) => {
+  const setHoveredStar = (id: string, isHovered: boolean) => {
     setHoveredStars(prev => {
       const updated = new Set(prev);
       isHovered ? updated.add(id) : updated.delete(id);
@@ -24,8 +29,16 @@ export const StarNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
+  const toggleActiveStar = (id: string) => {
+    setActiveStars(prev => {
+      const updated = new Set(prev);
+      updated.has(id) ? updated.delete(id) : updated.add(id);
+      return updated;
+    });
+  };
+
   return (
-    <StarNetworkContext.Provider value={{ hoveredStars, setHoveredStar }}>
+    <StarNetworkContext.Provider value={{ hoveredStars, activeStars, setHoveredStar, toggleActiveStar }}>
       {children}
     </StarNetworkContext.Provider>
   );
@@ -35,20 +48,24 @@ export const Star: React.FC<MeshProps & { node: Neo4JObject }> = ({
   node, 
   ...props 
 }) => {
-  const { hoveredStars, setHoveredStar } = React.useContext(StarNetworkContext);
-  const isHovered = hoveredStars.has(node.Id);
+  const { hoveredStars, activeStars, setHoveredStar, toggleActiveStar } = React.useContext(StarNetworkContext);
+  const isHovered = hoveredStars.has(node.ElementId);
+  const isActive = activeStars.has(node.ElementId);
+
+  const isTangentiallyActive = React.useMemo(() => hoveredStars.has(node.ElementId) || activeStars.has(node.ElementId), [hoveredStars, activeStars, node.ElementId]);
 
   return (
     <mesh 
       {...props}
-      onPointerOver={() => setHoveredStar(node.Id, true)}
-      onPointerOut={() => setHoveredStar(node.Id, false)}
+      onPointerOver={() => setHoveredStar(node.ElementId, true)}
+      onPointerOut={() => setHoveredStar(node.ElementId, false)}
+      onClick={() => toggleActiveStar(node.ElementId)}
     >
       <dodecahedronGeometry args={[0.5, 0]} />
       <meshStandardMaterial 
-        color={isHovered ? 'hotpink' : 'orange'} 
+        color={isHovered || isActive || isTangentiallyActive ? 'hotpink' : 'orange'} 
       />
-      {isHovered && (
+      {(isHovered || isActive || isTangentiallyActive) && (
         <Html 
           position={[0, 1, 0]} 
           style={{
@@ -68,24 +85,28 @@ export const Star: React.FC<MeshProps & { node: Neo4JObject }> = ({
   );
 };
 
-export const StarRelationship: React.FC<LineProps & { fromId: number; toId: number }> = ({ 
+export const StarRelationship: React.FC<LineProps & { fromId: string; toId: string }> = ({ 
   fromId, 
   toId, 
   ...lineProps 
 }) => {
-  const { hoveredStars } = React.useContext(StarNetworkContext);
+  const { hoveredStars, activeStars } = React.useContext(StarNetworkContext);
 
   const isHighlighted = React.useMemo(() => 
-    hoveredStars.has(fromId) || hoveredStars.has(toId), 
-    [hoveredStars, fromId, toId]
+    hoveredStars.has(fromId) || hoveredStars.has(toId) || activeStars.has(fromId) || activeStars.has(toId), 
+    [hoveredStars, activeStars, fromId, toId]
   );
 
   return (
-    <Line
-      {...lineProps}
-      color={isHighlighted ? 'yellow' : 'cyan'}
-      lineWidth={isHighlighted ? 3 : 2}
-      dashed={false}
-    />
+    <>
+      {isHighlighted && (
+        <Line
+          {...lineProps}
+          color='yellow'
+          lineWidth={3}
+          dashed={false}
+        />
+      )}
+    </>
   );
 };

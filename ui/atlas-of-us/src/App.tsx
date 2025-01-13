@@ -13,12 +13,11 @@ import {
 import { 
   NodeAndDescendants,
 } from './shared/interfaces/NetworkResponse.interface';
-import { Neo4JObject } from './shared/interfaces/Neo4J.interface';
 
 
 export default function App() {
   const [graphData, setGraphData] = useState<Graph | null>(null);
-  const [nodePositions, setNodePositions] = useState<Map<number, Vector>>(new Map());
+  const [nodePositions, setNodePositions] = useState<Map<string, Vector>>(new Map());
 
   useEffect(() => {
     const graph = createGraph();
@@ -63,10 +62,10 @@ export default function App() {
         }
 
         // Store node positions
-        const positions = new Map<number, Vector>();
+        const positions = new Map<string, Vector>();
         graph.forEachNode((node) => {
           const pos = layout.getNodePosition(node.id);
-          positions.set(node.id as number, { x: pos.x, y: pos.y, z: pos.z as number });
+          positions.set(node.id as string, { x: pos.x, y: pos.y, z: pos.z as number });
         });
         
         setNodePositions(positions);
@@ -83,15 +82,13 @@ export default function App() {
     const nodes: JSX.Element[] = [];
     
     graphData.forEachNode((node) => {
-      const position = nodePositions.get(node.id as number);
+      const position = nodePositions.get(node.id as string);
       if (position) {
-        console.log(graphData.getNode(node.id));
-        const neo4jobj = graphData.getNode(node.id)?.data;
         nodes.push(
           <Star 
             key={node.id}
-            node={neo4jobj}
-            name={neo4jobj?.Props.name}
+            node={node.data}
+            name={node.data?.Props?.name}
             position={[position.x, position.y, position.z as number]}
             onClick={() => console.log('Clicked node:', node.data)}
           />
@@ -108,15 +105,15 @@ export default function App() {
     const links: JSX.Element[] = [];
     
     graphData.forEachLink((link) => {
-      const fromPos = nodePositions.get(link.fromId as number);
-      const toPos = nodePositions.get(link.toId as number);
+      const fromPos = nodePositions.get(link.fromId as string);
+      const toPos = nodePositions.get(link.toId as string);
       
       if (fromPos && toPos) {
         links.push(
           <StarRelationship
             key={`${link.fromId}-${link.toId}`}
-            fromId={+link.fromId}
-            toId={+link.toId}
+            fromId={link.fromId as string}
+            toId={link.toId as string}
             points={[
               fromPos.x, fromPos.y, fromPos.z as number,
               toPos.x, toPos.y, toPos.z as number
