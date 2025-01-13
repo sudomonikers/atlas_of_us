@@ -1,21 +1,169 @@
-import { useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useEffect, useState, useMemo } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import axios from 'axios';
 import createGraph, { Graph } from 'ngraph.graph';
 import createLayout, { Vector } from 'ngraph.forcelayout';
+import { NodeAndDescendants } from './shared/interfaces/NetworkResponse.interface';
+import womanImage from './assets/woman.jpg';
 
-import { 
-  Star, 
-  StarRelationship, 
-  StarNetworkProvider 
-} from './three-components/Star';
-import { 
-  NodeAndDescendants,
-} from './shared/interfaces/NetworkResponse.interface';
+// Image processing utility
+const processImage = async (
+  imageUrl: string,
+  numPoints: number,
+  threshold = 128
+): Promise<Array<{ x: number; y: number; z: number }>> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
 
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+      const edgePixels = [];
 
+      // Collect dark pixels
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+          
+          if (brightness < threshold) {
+            edgePixels.push({ x, y });
+          }
+        }
+      }
+
+      // Select points based on desired number
+      const step = Math.max(1, Math.floor(edgePixels.length / numPoints));
+      const selectedPoints = [];
+      
+      for (let i = 0; i < edgePixels.length && selectedPoints.length < numPoints; i += step) {
+        const randomOffset = Math.floor(Math.random() * step);
+        const pixel = edgePixels[Math.min(i + randomOffset, edgePixels.length - 1)];
+        selectedPoints.push(pixel);
+      }
+
+      // Normalize coordinates to THREE.js space
+      const scale = 20;
+      const aspectRatio = canvas.width / canvas.height;
+      
+      const normalizedPoints = selectedPoints.map(point => ({
+          x: (point.x / canvas.width - 0.5) * scale * aspectRatio,
+          y: -(point.y / canvas.height - 0.5) * scale,
+          z: 0
+      }));
+
+      resolve(normalizedPoints);
+    };
+    img.src = imageUrl;
+  });
+};
+
+// Star component
+const Star = ({ position, name }: { position: [number, number, number]; name: string }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <mesh
+      position={position}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
+      <sphereGeometry args={[hovered ? 0.3 : 0.2, 32, 32]} />
+      <meshStandardMaterial
+        color={hovered ? 0xccccff : 0xffffff}
+        transparent
+        opacity={0.8}
+      />
+    </mesh>
+  );
+};
+
+// Line component
+const Line = ({ start, end }: { start: [number, number, number]; end: [number, number, number] }) => {
+  const points = [start, end].map(p => ({ x: p[0], y: p[1], z: p[2] }));
+  
+  return (
+    <line>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={points.length}
+          array={new Float32Array(points.flatMap(p => [p.x, p.y, p.z]))}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <lineBasicMaterial color={0x4444ff} transparent opacity={0.2} />
+    </line>
+  );
+};
+
+// Constellation component
+const Constellation = ({ nodes }: { nodes: NodeAndDescendants[] }) => {
+  const [starPositions, setStarPositions] = useState<Array<{ x: number; y: number; z: number }>>([]);
+  const [lines, setLines] = useState<Array<{ start: [number, number, number]; end: [number, number, number] }>>([]);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        console.log('hello', nodes)
+        const positions = await processImage(womanImage, nodes[0].Values[2].length, 128);
+        console.log(positions)
+        setStarPositions(positions);
+
+        // Create lines between nearby stars
+        const newLines = [];
+        const maxDistance = 3;
+
+        for (let i = 0; i < positions.length; i++) {
+          for (let j = i + 1; j < positions.length; j++) {
+            const dx = positions[i].x - positions[j].x;
+            const dy = positions[i].y - positions[j].y;
+            const dz = positions[i].z - positions[j].z;
+            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (distance < maxDistance) {
+              newLines.push({
+                start: [positions[i].x, positions[i].y, positions[i].z] as [number, number, number],
+                end: [positions[j].x, positions[j].y, positions[j].z] as [number, number, number]
+              });
+            }
+          }
+        }
+        setLines(newLines);
+      } catch (error) {
+        console.error('Error processing image:', error);
+      }
+    };
+
+    loadImage();
+  }, [nodes]);
+
+  return (
+    <group>
+      {starPositions.map((pos, index) => (
+        <Star
+          key={`star-${index}`}
+          position={[pos.x, pos.y, pos.z]}//@ts-ignore
+          name={nodes[index]?.name || `Star ${index}`}
+        />
+      ))}
+      {/* {lines.map((line, index) => (
+        <Line key={`line-${index}`} start={line.start} end={line.end} />
+      ))} */}
+    </group>
+  );
+};
+
+// Main App component
 export default function App() {
+  const [nodes, setNodes] = useState<NodeAndDescendants[]>([]);
   const [graphData, setGraphData] = useState<Graph | null>(null);
   const [nodePositions, setNodePositions] = useState<Map<string, Vector>>(new Map());
 
@@ -27,119 +175,34 @@ export default function App() {
         'http://localhost:8001/api/v1/kg/match-node/Individual Possibilities/3',
       )
       .then((response) => {
-        const data = response.data[0];
+        function extendArray<T>(arr: T[], targetLength: number): T[] {
+          const originalLength = arr.length;
+          if (originalLength === 0) return arr;
         
-        // Add root node
-        graph.addNode(data.Values[0].ElementId, data.Values[0]);
+          while (arr.length < targetLength) {
+            const itemsToAdd = Math.min(originalLength, targetLength - arr.length);
+            arr.push(...arr.slice(0, itemsToAdd));
+          }
         
-        // Add other nodes
-        data.Values[2].forEach((node) => {
-          graph.addNode(node.ElementId, node);
-        });
-        
-        // Create relationships
-        data.Values[1].forEach((relationship) => {
-          graph.addLink(
-            relationship.StartElementId, 
-            relationship.EndElementId, 
-            relationship
-          );
-        });
-        
-        // Create and run layout
-        const layout = createLayout(graph, {
-          dimensions: 3,
-          springLength: 50, // Increase to spread nodes more
-          springCoefficient: 0.0005, // Lower to reduce clustering
-          gravity: -0.1, // Slight negative gravity to push nodes apart
-          theta: 1,
-          dragCoefficient: 0.02,
-        });
-        
-        // Run more iterations for better layout
-        for (let i = 0; i < 100; ++i) {
-          layout.step();
+          return arr;
         }
 
-        // Store node positions
-        const positions = new Map<string, Vector>();
-        graph.forEachNode((node) => {
-          const pos = layout.getNodePosition(node.id);
-          positions.set(node.id as string, { x: pos.x, y: pos.y, z: pos.z as number });
-        });
-        
-        setNodePositions(positions);
-        setGraphData(graph);
+        response.data[0].Values[2] = extendArray(response.data[0].Values[2], 800)
+        setNodes(response.data);
+        console.log(response);
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
       });
   }, []);
 
-  const renderNodes = () => {
-    if (!graphData) return null;
-    
-    const nodes: JSX.Element[] = [];
-    
-    graphData.forEachNode((node) => {
-      const position = nodePositions.get(node.id as string);
-      if (position) {
-        nodes.push(
-          <Star 
-            key={node.id}
-            node={node.data}
-            name={node.data?.Props?.name}
-            position={[position.x, position.y, position.z as number]}
-            onClick={() => console.log('Clicked node:', node.data)}
-          />
-        );
-      }
-    });
-    
-    return nodes;
-  };
-
-  const renderLinks = () => {
-    if (!graphData) return null;
-    
-    const links: JSX.Element[] = [];
-    
-    graphData.forEachLink((link) => {
-      const fromPos = nodePositions.get(link.fromId as string);
-      const toPos = nodePositions.get(link.toId as string);
-      
-      if (fromPos && toPos) {
-        links.push(
-          <StarRelationship
-            key={`${link.fromId}-${link.toId}`}
-            fromId={link.fromId as string}
-            toId={link.toId as string}
-            points={[
-              fromPos.x, fromPos.y, fromPos.z as number,
-              toPos.x, toPos.y, toPos.z as number
-            ]}
-          />
-        );
-      }
-    });
-    
-    return links;
-  };
-
   return (
     <Canvas style={{ height: '100vh', width: '100vw' }}>
+      <color attach="background" args={[0x000011]} />
       <ambientLight intensity={0.6} />
       <pointLight position={[10, 10, 10]} intensity={1.2} />
       <OrbitControls />
-      
-      <StarNetworkProvider>
-      {graphData ? (
-          <>
-            {renderNodes()}
-            {renderLinks()}
-          </>
-        ) : null}
-      </StarNetworkProvider>
+      {nodes.length > 0 && <Constellation nodes={nodes} />}
     </Canvas>
   );
 }
