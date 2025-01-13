@@ -1,9 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { useEffect, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import axios from 'axios';
-import createGraph, { Graph } from 'ngraph.graph';
-import createLayout, { Vector } from 'ngraph.forcelayout';
 import { NodeAndDescendants } from './shared/interfaces/NetworkResponse.interface';
 import womanImage from './assets/woman.jpg';
 
@@ -164,12 +162,8 @@ const Constellation = ({ nodes }: { nodes: NodeAndDescendants[] }) => {
 // Main App component
 export default function App() {
   const [nodes, setNodes] = useState<NodeAndDescendants[]>([]);
-  const [graphData, setGraphData] = useState<Graph | null>(null);
-  const [nodePositions, setNodePositions] = useState<Map<string, Vector>>(new Map());
 
   useEffect(() => {
-    const graph = createGraph();
-    
     axios
       .get<NodeAndDescendants[]>(
         'http://localhost:8001/api/v1/kg/match-node/Individual Possibilities/3',
