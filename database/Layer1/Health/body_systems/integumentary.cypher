@@ -133,15 +133,15 @@ MERGE (epidermis)-[:CONTAINS]->(merkel)
 
 // Sample Conditions
 MERGE (psoriasis {name: 'Psoriasis'})
-SET psoriasis:Condition,
+SET psoriasis:Condition:Health,
     psoriasis.description = 'Chronic condition causing rapid skin cell buildup'
 
 MERGE (melanoma {name: 'Melanoma'})
-SET melanoma:Condition,
+SET melanoma:Condition:Health,
     melanoma.description = 'Serious form of skin cancer developing from melanocytes'
 
 MERGE (eczema {name: 'Eczema'})
-SET eczema:Condition,
+SET eczema:Condition:Health,
     eczema.description = 'Inflammatory condition causing itchy, inflamed skin'
 
 // Connect conditions

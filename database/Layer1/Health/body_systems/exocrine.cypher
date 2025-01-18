@@ -111,15 +111,15 @@ MERGE (salivaryGlands)-[:CONTAINS]->(myoepithelialTissue)
 
 // Sample Conditions
 MERGE (hyperhidrosis {name: 'Hyperhidrosis'})
-SET hyperhidrosis:Condition,
+SET hyperhidrosis:Condition:Health,
     hyperhidrosis.description = 'Excessive sweating beyond normal thermoregulatory needs'
 
 MERGE (xerostomia {name: 'Xerostomia'})
-SET xerostomia:Condition,
+SET xerostomia:Condition:Health,
     xerostomia.description = 'Abnormal dryness of the mouth due to reduced saliva production'
 
 MERGE (acne {name: 'Acne'})
-SET acne:Condition,
+SET acne:Condition:Health,
     acne.description = 'Skin condition involving blocked sebaceous glands'
 
 // Connect conditions

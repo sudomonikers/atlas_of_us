@@ -95,17 +95,17 @@ MERGE (respiratory)-[:HAS_MEASUREMENT]->(oxygenSaturation)
 
 // Example Conditions/Variations
 MERGE (asthma {name: 'Asthma'})
-SET asthma:Condition, asthma.description = 'Chronic condition causing airway inflammation and narrowing',
+SET asthma:Condition:Health, asthma.description = 'Chronic condition causing airway inflammation and narrowing',
     asthma.affects = 'airways',
     asthma.symptoms = ['wheezing', 'shortness of breath', 'chest tightness']
 
 MERGE (emphysema {name: 'Emphysema'})
-SET emphysema:Condition, emphysema.description = 'Condition where alveoli are damaged, reducing gas exchange capacity',
+SET emphysema:Condition:Health, emphysema.description = 'Condition where alveoli are damaged, reducing gas exchange capacity',
     emphysema.affects = 'alveoli',
     emphysema.type = 'chronic obstructive pulmonary disease'
 
 MERGE (pneumonia {name: 'Pneumonia'})
-SET pneumonia:Condition, pneumonia.description = 'Infection causing inflammation of the air sacs in the lungs',
+SET pneumonia:Condition:Health, pneumonia.description = 'Infection causing inflammation of the air sacs in the lungs',
     pneumonia.affects = 'alveoli',
     pneumonia.types = ['bacterial', 'viral', 'fungal']
 

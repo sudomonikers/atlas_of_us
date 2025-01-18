@@ -80,15 +80,15 @@ MERGE (immune)-[:CONTAINS]->(tonsils)
 
 // Example Conditions/Variations
 MERGE (autoimmune {name: 'Autoimmune Disease'})
-SET autoimmune:Condition, autoimmune.description = 'Condition where immune system attacks healthy body tissues',
+SET autoimmune:Condition:Health, autoimmune.description = 'Condition where immune system attacks healthy body tissues',
     autoimmune.types = ['rheumatoid arthritis', 'lupus', 'multiple sclerosis']
 
 MERGE (immunodeficiency {name: 'Immunodeficiency'})
-SET immunodeficiency:Condition, immunodeficiency.description = 'Weakened immune system unable to fight infections effectively',
+SET immunodeficiency:Condition:Health, immunodeficiency.description = 'Weakened immune system unable to fight infections effectively',
     immunodeficiency.types = ['primary', 'acquired']
 
 MERGE (hypersensitivity {name: 'Hypersensitivity'})
-SET hypersensitivity:Condition, hypersensitivity.description = 'Exaggerated immune response to normally harmless substances',
+SET hypersensitivity:Condition:Health, hypersensitivity.description = 'Exaggerated immune response to normally harmless substances',
     hypersensitivity.types = ['allergies', 'asthma', 'eczema']
 
 // Connect conditions to system

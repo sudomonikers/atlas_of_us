@@ -83,17 +83,17 @@ MERGE (nervous)-[:CONTAINS]->(myelin)
 
 // Example Conditions/Variations
 MERGE (ms {name: 'Multiple Sclerosis'})
-SET ms:Condition, ms.description = 'Autoimmune condition affecting myelin in the central nervous system',
+SET ms:Condition:Health, ms.description = 'Autoimmune condition affecting myelin in the central nervous system',
     ms.affects = 'CNS',
     ms.symptoms = ['vision problems', 'muscle weakness', 'coordination difficulties']
 
 MERGE (epilepsy {name: 'Epilepsy'})
-SET epilepsy:Condition, epilepsy.description = 'Neurological disorder characterized by recurrent seizures',
+SET epilepsy:Condition:Health, epilepsy.description = 'Neurological disorder characterized by recurrent seizures',
     epilepsy.affects = 'brain',
     epilepsy.types = ['focal', 'generalized']
 
 MERGE (parkinsons {name: 'Parkinson\'s Disease'})
-SET parkinsons:Condition, parkinsons.description = 'Progressive nervous system disorder affecting movement',
+SET parkinsons:Condition:Health, parkinsons.description = 'Progressive nervous system disorder affecting movement',
     parkinsons.affects = 'brain',
     parkinsons.symptoms = ['tremor', 'stiffness', 'balance problems']
 

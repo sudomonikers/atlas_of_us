@@ -67,16 +67,16 @@ MERGE (urethra)-[:CONTAINS]->(transitional)
 
 // Example Conditions
 MERGE (ckd {name: 'Chronic Kidney Disease'})
-SET ckd:Condition, ckd.description = 'Progressive loss of kidney function over time',
+SET ckd:Condition:Health, ckd.description = 'Progressive loss of kidney function over time',
     ckd.affects = 'kidneys',
     ckd.stages = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5']
 
 MERGE (stones {name: 'Kidney Stones'})
-SET stones:Condition, stones.description = 'Solid deposits that form in the kidneys',
+SET stones:Condition:Health, stones.description = 'Solid deposits that form in the kidneys',
     stones.types = ['calcium', 'uric acid', 'struvite', 'cystine']
 
 MERGE (uti {name: 'Urinary Tract Infection'})
-SET uti:Condition, uti.description = 'Infection in any part of the urinary system',
+SET uti:Condition:Health, uti.description = 'Infection in any part of the urinary system',
     uti.types = ['bladder infection', 'kidney infection', 'urethra infection']
 
 // Connect conditions to structures

@@ -74,15 +74,15 @@ MERGE (penis)-[:CONTAINS]->(erectileTissue)
 
 // Example Conditions/Variations (three examples as requested)
 MERGE (endometriosis {name: 'Endometriosis'})
-SET endometriosis:Condition, endometriosis.description = 'Growth of endometrial tissue outside the uterus',
+SET endometriosis:Condition:Health, endometriosis.description = 'Growth of endometrial tissue outside the uterus',
     endometriosis.affects = 'reproductive organs and surrounding tissues'
 
 MERGE (pcos {name: 'Polycystic Ovary Syndrome'})
-SET pcos:Condition, pcos.description = 'Hormonal disorder causing enlarged ovaries with small cysts',
+SET pcos:Condition:Health, pcos.description = 'Hormonal disorder causing enlarged ovaries with small cysts',
     pcos.affects = 'ovaries and hormonal balance'
 
 MERGE (prostatitis {name: 'Prostatitis'})
-SET prostatitis:Condition, prostatitis.description = 'Inflammation of the prostate gland',
+SET prostatitis:Condition:Health, prostatitis.description = 'Inflammation of the prostate gland',
     prostatitis.types = ['acute', 'chronic']
 
 // Connect conditions to appropriate structures

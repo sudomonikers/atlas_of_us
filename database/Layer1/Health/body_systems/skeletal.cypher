@@ -83,17 +83,17 @@ MERGE (synovialJoint)-[:CONTAINS]->(ligaments)
 
 // Example Conditions/Variations
 MERGE (osteoporosis {name: 'Osteoporosis'})
-SET osteoporosis:Condition, osteoporosis.description = 'Progressive bone disease characterized by decreased bone density',
+SET osteoporosis:Condition:Health, osteoporosis.description = 'Progressive bone disease characterized by decreased bone density',
     osteoporosis.affects = 'system-wide',
     osteoporosis.measurements = ['bone density']
 
 MERGE (scoliosis {name: 'Scoliosis'})
-SET scoliosis:Condition, scoliosis.description = 'Abnormal lateral curvature of the spine',
+SET scoliosis:Condition:Health, scoliosis.description = 'Abnormal lateral curvature of the spine',
     scoliosis.affects = 'vertebral column',
     scoliosis.measurements = ['Cobb angle']
 
 MERGE (osteoarthritis {name: 'Osteoarthritis'})
-SET osteoarthritis:Condition, osteoarthritis.description = 'Degenerative joint disease causing cartilage breakdown',
+SET osteoarthritis:Condition:Health, osteoarthritis.description = 'Degenerative joint disease causing cartilage breakdown',
     osteoarthritis.affects = 'synovial joints',
     osteoarthritis.types = ['primary', 'secondary']
 

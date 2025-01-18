@@ -86,16 +86,16 @@ MERGE (muscular)-[:HAS_MEASUREMENT]->(muscleFlexibility)
 
 // Conditions/Variations (three examples as requested)
 MERGE (muscleDystrophy {name: 'Muscular Dystrophy'})
-SET muscleDystrophy:Condition, muscleDystrophy.description = 'Group of genetic diseases causing progressive muscle weakness',
+SET muscleDystrophy:Condition:Health, muscleDystrophy.description = 'Group of genetic diseases causing progressive muscle weakness',
     muscleDystrophy.affects = 'skeletal muscles primarily',
     muscleDystrophy.types = ['Duchenne', 'Becker', 'Limb-girdle']
 
 MERGE (fibromyalgia {name: 'Fibromyalgia'})
-SET fibromyalgia:Condition, fibromyalgia.description = 'Chronic condition causing widespread muscle pain and tenderness',
+SET fibromyalgia:Condition:Health, fibromyalgia.description = 'Chronic condition causing widespread muscle pain and tenderness',
     fibromyalgia.affects = 'multiple muscle groups'
 
 MERGE (rhabdomyolysis {name: 'Rhabdomyolysis'})
-SET rhabdomyolysis:Condition, rhabdomyolysis.description = 'Serious condition where damaged muscle tissue breaks down rapidly',
+SET rhabdomyolysis:Condition:Health, rhabdomyolysis.description = 'Serious condition where damaged muscle tissue breaks down rapidly',
     rhabdomyolysis.affects = 'any skeletal muscle'
 
 // Connect conditions
