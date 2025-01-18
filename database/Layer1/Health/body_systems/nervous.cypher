@@ -104,12 +104,12 @@ MERGE (brain)-[:CAN_HAVE]->(parkinsons)
 
 // Create measurable properties
 MERGE (brainWaves {name: 'Brain Waves'})
-SET brainWaves:Measurement, brainWaves.description = 'Electrical activity patterns in the brain',
+SET brainWaves:Measurement:Health, brainWaves.description = 'Electrical activity patterns in the brain',
     brainWaves.units = 'Hz',
     brainWaves.types = ['alpha', 'beta', 'theta', 'delta']
 
 MERGE (nerveConduction {name: 'Nerve Conduction'})
-SET nerveConduction:Measurement, nerveConduction.description = 'Speed of electrical impulse transmission through nerves',
+SET nerveConduction:Measurement:Health, nerveConduction.description = 'Speed of electrical impulse transmission through nerves',
     nerveConduction.units = 'm/s',
     nerveConduction.normalRange = '50-60'
 

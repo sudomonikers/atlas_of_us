@@ -53,13 +53,13 @@ MERGE (skeletal)-[:CONTAINS]->(lowerBody)
 
 // Specific Muscles (examples)
 MERGE (biceps {name: 'Biceps Brachii'})
-SET biceps:Muscle, biceps.description = 'Two-headed muscle on front of upper arm responsible for forearm flexion'
+SET biceps:Muscle:Health, biceps.description = 'Two-headed muscle on front of upper arm responsible for forearm flexion'
 
 MERGE (quadriceps {name: 'Quadriceps Femoris'})
-SET quadriceps:Muscle, quadriceps.description = 'Four-headed muscle group on front of thigh responsible for knee extension'
+SET quadriceps:Muscle:Health, quadriceps.description = 'Four-headed muscle group on front of thigh responsible for knee extension'
 
 MERGE (abdominals {name: 'Rectus Abdominis'})
-SET abdominals:Muscle, abdominals.description = 'Paired muscle running vertically along front of abdomen'
+SET abdominals:Muscle:Health, abdominals.description = 'Paired muscle running vertically along front of abdomen'
 
 // Connect specific muscles
 MERGE (upperBody)-[:CONTAINS]->(biceps)
@@ -68,15 +68,15 @@ MERGE (core)-[:CONTAINS]->(abdominals)
 
 // Muscle Properties
 MERGE (muscleStrength {name: 'Muscle Strength'})
-SET muscleStrength:Measurement, muscleStrength.description = 'Maximum force a muscle can generate',
+SET muscleStrength:Measurement:Health, muscleStrength.description = 'Maximum force a muscle can generate',
     muscleStrength.units = 'Newtons'
 
 MERGE (muscleEndurance {name: 'Muscle Endurance'})
-SET muscleEndurance:Measurement, muscleEndurance.description = 'Ability of muscle to sustain repeated contractions',
+SET muscleEndurance:Measurement:Health, muscleEndurance.description = 'Ability of muscle to sustain repeated contractions',
     muscleEndurance.units = 'Time/Repetitions'
 
 MERGE (muscleFlexibility {name: 'Muscle Flexibility'})
-SET muscleFlexibility:Measurement, muscleFlexibility.description = 'Range of motion at a joint determined by muscle elasticity',
+SET muscleFlexibility:Measurement:Health, muscleFlexibility.description = 'Range of motion at a joint determined by muscle elasticity',
     muscleFlexibility.units = 'Degrees'
 
 // Connect properties

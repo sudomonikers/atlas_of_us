@@ -4,10 +4,10 @@ SET repro:System, repro.description = 'Biological system responsible for reprodu
 
 // Create separate male and female system components
 MERGE (male {name: 'Male Reproductive System'})
-SET male:System, male.description = 'Male-specific reproductive organs and structures'
+SET male:System:Health, male.description = 'Male-specific reproductive organs and structures'
 
 MERGE (female {name: 'Female Reproductive System'})
-SET female:System, female.description = 'Female-specific reproductive organs and structures'
+SET female:System:Health, female.description = 'Female-specific reproductive organs and structures'
 
 MERGE (repro)-[:CONTAINS]->(male)
 MERGE (repro)-[:CONTAINS]->(female)
@@ -92,7 +92,7 @@ MERGE (prostate)-[:CAN_HAVE]->(prostatitis)
 
 // Measurable Properties
 MERGE (hormoneLevel {name: 'Hormone Levels'})
-SET hormoneLevel:Measurement, hormoneLevel.description = 'Concentration of reproductive hormones in blood',
+SET hormoneLevel:Measurement:Health, hormoneLevel.description = 'Concentration of reproductive hormones in blood',
     hormoneLevel.units = 'ng/mL',
     hormoneLevel.measuredHormones = ['testosterone', 'estrogen', 'progesterone']
 

@@ -158,17 +158,17 @@ MERGE (blood)-[:CAN_HAVE]->(hemophilia)
 
 // Create measurable properties
 MERGE (bloodPressure {name: 'Blood Pressure'})
-SET bloodPressure:Measurement:Health, bloodPressure.description = 'Force of blood against vessel walls',
+SET bloodPressure:Measurement:Health:Health, bloodPressure.description = 'Force of blood against vessel walls',
     bloodPressure.units = 'mmHg',
     bloodPressure.normalRange = '90/60 - 120/80'
 
 MERGE (heartRate {name: 'Heart Rate'})
-SET heartRate:Measurement:Health, heartRate.description = 'Number of heartbeats per minute',
+SET heartRate:Measurement:Health:Health, heartRate.description = 'Number of heartbeats per minute',
     heartRate.units = 'bpm',
     heartRate.normalRange = '60-100'
 
 MERGE (ejectionFraction {name: 'Ejection Fraction'})
-SET ejectionFraction:Measurement:Health, ejectionFraction.description = 'Percentage of blood pumped out of ventricles with each contraction',
+SET ejectionFraction:Measurement:Health:Health, ejectionFraction.description = 'Percentage of blood pumped out of ventricles with each contraction',
     ejectionFraction.units = 'percentage',
     ejectionFraction.normalRange = '55-70'
 

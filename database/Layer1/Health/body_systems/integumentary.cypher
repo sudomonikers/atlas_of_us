@@ -151,17 +151,17 @@ MERGE (skin)-[:CAN_HAVE]->(eczema)
 
 // Measurements
 MERGE (skinThickness {name: 'Skin Thickness'})
-SET skinThickness:Measurement,
+SET skinThickness:Measurement:Health,
     skinThickness.description = 'Thickness of skin layers',
     skinThickness.units = 'mm'
 
 MERGE (melaninLevel {name: 'Melanin Level'})
-SET melaninLevel:Measurement,
+SET melaninLevel:Measurement:Health,
     melaninLevel.description = 'Amount of melanin pigment in skin',
     melaninLevel.units = 'arbitrary units'
 
 MERGE (hydrationLevel {name: 'Hydration Level'})
-SET hydrationLevel:Measurement,
+SET hydrationLevel:Measurement:Health,
     hydrationLevel.description = 'Water content of skin',
     hydrationLevel.units = 'percentage'
 

@@ -129,12 +129,12 @@ MERGE (sebaceousGlands)-[:CAN_HAVE]->(acne)
 
 // Measurements
 MERGE (secretionRate {name: 'Secretion Rate'})
-SET secretionRate:Measurement,
+SET secretionRate:Measurement:Health,
     secretionRate.description = 'Volume of secretion produced per unit time',
     secretionRate.units = 'mL/min'
 
 MERGE (secretionPH {name: 'Secretion pH'})
-SET secretionPH:Measurement,
+SET secretionPH:Measurement:Health,
     secretionPH.description = 'Acid-base balance of secretions',
     secretionPH.units = 'pH'
 

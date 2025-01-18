@@ -104,12 +104,12 @@ MERGE (synovialJoint)-[:CAN_HAVE]->(osteoarthritis)
 
 // Measurements
 MERGE (boneDensity {name: 'Bone Density'})
-SET boneDensity:Measurement, boneDensity.description = 'Measure of bone mineral content',
+SET boneDensity:Measurement:Health, boneDensity.description = 'Measure of bone mineral content',
     boneDensity.units = 'g/cm²',
     boneDensity.normalRange = 'T-score between +1 and -1'
 
 MERGE (jointRange {name: 'Joint Range of Motion'})
-SET jointRange:Measurement, jointRange.description = 'Maximum movement range of a joint',
+SET jointRange:Measurement:Health, jointRange.description = 'Maximum movement range of a joint',
     jointRange.units = 'degrees',
     jointRange.normalRange = 'varies by joint'
 

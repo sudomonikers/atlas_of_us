@@ -142,7 +142,7 @@ SET connectiveTissue:Tissue:Health,
 
 // Temporal Properties Node
 MERGE (temporalPatterns {name: 'Temporal Patterns'})
-SET temporalPatterns:Properties,
+SET temporalPatterns:Properties:Health,
     temporalPatterns.circadian = 'Daily rhythms',
     temporalPatterns.ultradian = 'Multiple cycles per day',
     temporalPatterns.infradian = 'Cycles longer than a day',
@@ -234,14 +234,14 @@ MERGE (adrenal)-[:CAN_HAVE]->(cushings)
 
 // Measurements with temporal aspects
 MERGE (hormoneLevel {name: 'Hormone Level'})
-SET hormoneLevel:Measurement,
+SET hormoneLevel:Measurement:Health,
     hormoneLevel.description = 'Concentration of specific hormones in blood',
     hormoneLevel.units = 'varies by hormone',
     hormoneLevel.samplingFrequency = 'Depends on hormone and condition',
     hormoneLevel.timeFactors = ['Time of day', 'Fasting status', 'Recent activity']
 
 MERGE (bloodGlucose {name: 'Blood Glucose'})
-SET bloodGlucose:Measurement,
+SET bloodGlucose:Measurement:Health,
     bloodGlucose.description = 'Level of glucose in blood',
     bloodGlucose.units = 'mg/dL',
     bloodGlucose.normalRange = '70-99 mg/dL (fasting)',

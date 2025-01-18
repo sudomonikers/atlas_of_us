@@ -86,17 +86,17 @@ MERGE (renal)-[:CAN_HAVE]->(uti)
 
 // Measurable Properties
 MERGE (gfr {name: 'Glomerular Filtration Rate'})
-SET gfr:Measurement, gfr.description = 'Amount of blood filtered by kidneys per minute',
+SET gfr:Measurement:Health, gfr.description = 'Amount of blood filtered by kidneys per minute',
     gfr.units = 'mL/min/1.73m²',
     gfr.normalRange = '90-120'
 
 MERGE (creatinine {name: 'Creatinine Level'})
-SET creatinine:Measurement, creatinine.description = 'Waste product level in blood indicating kidney function',
+SET creatinine:Measurement:Health, creatinine.description = 'Waste product level in blood indicating kidney function',
     creatinine.units = 'mg/dL',
     creatinine.normalRange = '0.7-1.3'
 
 MERGE (urineOutput {name: 'Urine Output'})
-SET urineOutput:Measurement, urineOutput.description = 'Volume of urine produced per day',
+SET urineOutput:Measurement:Health, urineOutput.description = 'Volume of urine produced per day',
     urineOutput.units = 'mL/day',
     urineOutput.normalRange = '800-2000'
 

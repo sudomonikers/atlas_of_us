@@ -98,12 +98,12 @@ MERGE (immune)-[:CAN_HAVE]->(hypersensitivity)
 
 // Measurable Properties
 MERGE (wbc_count {name: 'White Blood Cell Count'})
-SET wbc_count:Measurement, wbc_count.description = 'Number of white blood cells per microliter of blood',
+SET wbc_count:Measurement:Health, wbc_count.description = 'Number of white blood cells per microliter of blood',
     wbc_count.units = 'cells/μL',
     wbc_count.normalRange = '4,500-11,000'
 
 MERGE (antibody_levels {name: 'Antibody Levels'})
-SET antibody_levels:Measurement, antibody_levels.description = 'Concentration of specific antibodies in blood',
+SET antibody_levels:Measurement:Health, antibody_levels.description = 'Concentration of specific antibodies in blood',
     antibody_levels.units = 'titers',
     antibody_levels.normalRange = 'varies by antibody type'
 

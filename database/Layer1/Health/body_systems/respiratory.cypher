@@ -74,17 +74,17 @@ MERGE (bronchioles)-[:CONTAINS]->(smoothMuscle)
 
 // Measurements
 MERGE (respiratoryRate {name: 'Respiratory Rate'})
-SET respiratoryRate:Measurement, respiratoryRate.description = 'Number of breaths taken per minute',
+SET respiratoryRate:Measurement:Health, respiratoryRate.description = 'Number of breaths taken per minute',
     respiratoryRate.units = 'breaths per minute',
     respiratoryRate.normalRange = '12-20'
 
 MERGE (tidalVolume {name: 'Tidal Volume'})
-SET tidalVolume:Measurement, tidalVolume.description = 'Amount of air moved in and out of lungs during normal breathing',
+SET tidalVolume:Measurement:Health, tidalVolume.description = 'Amount of air moved in and out of lungs during normal breathing',
     tidalVolume.units = 'mL',
     tidalVolume.normalRange = '4-8 mL/kg'
 
 MERGE (oxygenSaturation {name: 'Oxygen Saturation'})
-SET oxygenSaturation:Measurement, oxygenSaturation.description = 'Percentage of oxygen-saturated hemoglobin relative to total hemoglobin in blood',
+SET oxygenSaturation:Measurement:Health, oxygenSaturation.description = 'Percentage of oxygen-saturated hemoglobin relative to total hemoglobin in blood',
     oxygenSaturation.units = 'percentage',
     oxygenSaturation.normalRange = '95-100'
 

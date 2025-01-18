@@ -147,12 +147,12 @@ MERGE (digestive)-[:CAN_HAVE]->(crohns)
 
 // Measurements
 MERGE (ph {name: 'pH Level'})
-SET ph:Measurement,
+SET ph:Measurement:Health,
     ph.description = 'Measure of acidity in digestive tract',
     ph.normalRange = 'varies by location'
 
 MERGE (transitTime {name: 'Transit Time'})
-SET transitTime:Measurement,
+SET transitTime:Measurement:Health,
     transitTime.description = 'Time taken for food to pass through digestive system',
     transitTime.normalRange = '24-72 hours'
 
