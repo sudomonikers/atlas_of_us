@@ -5,82 +5,82 @@ SET exocrine:System,
 
 // Major Gland Categories
 MERGE (sweatGlands {name: 'Sweat Glands'})
-SET sweatGlands:Organ,
+SET sweatGlands:Organ:Health,
     sweatGlands.description = 'Glands in skin that produce and secrete sweat for temperature regulation and waste removal'
 
 MERGE (salivaryGlands {name: 'Salivary Glands'})
-SET salivaryGlands:Organ,
+SET salivaryGlands:Organ:Health,
     salivaryGlands.description = 'Glands that produce and secrete saliva for digestion and oral health'
 
 MERGE (mammaryGlands {name: 'Mammary Glands'})
-SET mammaryGlands:Organ,
+SET mammaryGlands:Organ:Health,
     mammaryGlands.description = 'Specialized glands that produce and secrete milk'
 
 MERGE (digestiveGlands {name: 'Digestive Glands'})
-SET digestiveGlands:Organ,
+SET digestiveGlands:Organ:Health,
     digestiveGlands.description = 'Glands that secrete substances for digestion'
 
 MERGE (mucousGlands {name: 'Mucous Glands'})
-SET mucousGlands:Organ,
+SET mucousGlands:Organ:Health,
     mucousGlands.description = 'Glands that produce and secrete mucus throughout various body systems'
 
 MERGE (sebaceousGlands {name: 'Sebaceous Glands'})
-SET sebaceousGlands:Organ,
+SET sebaceousGlands:Organ:Health,
     sebaceousGlands.description = 'Glands that produce and secrete sebum to lubricate and protect skin and hair'
 
 // Specific Gland Types
 MERGE (eccrineGlands {name: 'Eccrine Sweat Glands'})
-SET eccrineGlands:Structure,
+SET eccrineGlands:Structure:Health,
     eccrineGlands.description = 'Primary sweat glands distributed throughout the body'
 
 MERGE (apocrineGlands {name: 'Apocrine Sweat Glands'})
-SET apocrineGlands:Structure,
+SET apocrineGlands:Structure:Health,
     apocrineGlands.description = 'Specialized sweat glands in armpits and groin areas'
 
 MERGE (parotidGlands {name: 'Parotid Glands'})
-SET parotidGlands:Structure,
+SET parotidGlands:Structure:Health,
     parotidGlands.description = 'Largest salivary glands located in front of ears'
 
 MERGE (submandibularGlands {name: 'Submandibular Glands'})
-SET submandibularGlands:Structure,
+SET submandibularGlands:Structure:Health,
     submandibularGlands.description = 'Salivary glands located beneath the floor of mouth'
 
 MERGE (sublingualGlands {name: 'Sublingual Glands'})
-SET sublingualGlands:Structure,
+SET sublingualGlands:Structure:Health,
     sublingualGlands.description = 'Smallest of the major salivary glands located under the tongue'
 
 // Secretory Components
 MERGE (saliva {name: 'Saliva'})
-SET saliva:Component,
+SET saliva:Component:Health,
     saliva.description = 'Fluid containing enzymes and lubricants for digestion and oral health'
 
 MERGE (sweat {name: 'Sweat'})
-SET sweat:Component,
+SET sweat:Component:Health,
     sweat.description = 'Watery fluid containing salts and waste products'
 
 MERGE (sebum {name: 'Sebum'})
-SET sebum:Component,
+SET sebum:Component:Health,
     sebum.description = 'Oily substance that lubricates and waterproofs skin and hair'
 
 MERGE (mucus {name: 'Mucus'})
-SET mucus:Component,
+SET mucus:Component:Health,
     mucus.description = 'Sticky fluid that traps particles and moistens surfaces'
 
 MERGE (milk {name: 'Breast Milk'})
-SET milk:Component,
+SET milk:Component:Health,
     milk.description = 'Nutrient-rich fluid produced by mammary glands'
 
 // Tissues
 MERGE (secretoryEpithelium {name: 'Secretory Epithelium'})
-SET secretoryEpithelium:Tissue,
+SET secretoryEpithelium:Tissue:Health,
     secretoryEpithelium.description = 'Specialized tissue that produces secretions'
 
 MERGE (ductTissue {name: 'Duct Tissue'})
-SET ductTissue:Tissue,
+SET ductTissue:Tissue:Health,
     ductTissue.description = 'Tissue forming channels for secretion transport'
 
 MERGE (myoepithelialTissue {name: 'Myoepithelial Tissue'})
-SET myoepithelialTissue:Tissue,
+SET myoepithelialTissue:Tissue:Health,
     myoepithelialTissue.description = 'Contractile tissue that helps expel secretions'
 
 // Connect structures to organs

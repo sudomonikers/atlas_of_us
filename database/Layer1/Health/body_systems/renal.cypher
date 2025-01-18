@@ -4,16 +4,16 @@ SET renal:System, renal.description = 'System responsible for filtering blood, m
 
 // Major Organs and Structures
 MERGE (kidneys {name: 'Kidneys'})
-SET kidneys:Organ, kidneys.description = 'Pair of bean-shaped organs that filter blood and produce urine'
+SET kidneys:Organ:Health, kidneys.description = 'Pair of bean-shaped organs that filter blood and produce urine'
 
 MERGE (ureters {name: 'Ureters'})
-SET ureters:Structure, ureters.description = 'Pair of tubes that carry urine from kidneys to bladder'
+SET ureters:Structure:Health, ureters.description = 'Pair of tubes that carry urine from kidneys to bladder'
 
 MERGE (bladder {name: 'Urinary Bladder'})
-SET bladder:Organ, bladder.description = 'Muscular sac that stores urine until elimination'
+SET bladder:Organ:Health, bladder.description = 'Muscular sac that stores urine until elimination'
 
 MERGE (urethra {name: 'Urethra'})
-SET urethra:Structure, urethra.description = 'Tube that carries urine from bladder to outside the body'
+SET urethra:Structure:Health, urethra.description = 'Tube that carries urine from bladder to outside the body'
 
 // Connect major structures to system
 MERGE (renal)-[:CONTAINS]->(kidneys)
@@ -23,25 +23,25 @@ MERGE (renal)-[:CONTAINS]->(urethra)
 
 // Kidney Components
 MERGE (cortex {name: 'Renal Cortex'})
-SET cortex:Structure, cortex.description = 'Outer region of kidney containing most nephrons'
+SET cortex:Structure:Health, cortex.description = 'Outer region of kidney containing most nephrons'
 
 MERGE (medulla {name: 'Renal Medulla'})
-SET medulla:Structure, medulla.description = 'Inner region of kidney containing loop of Henle and collecting ducts'
+SET medulla:Structure:Health, medulla.description = 'Inner region of kidney containing loop of Henle and collecting ducts'
 
 MERGE (nephron {name: 'Nephron'})
-SET nephron:Structure, nephron.description = 'Basic structural and functional unit of kidney responsible for blood filtration'
+SET nephron:Structure:Health, nephron.description = 'Basic structural and functional unit of kidney responsible for blood filtration'
 
 MERGE (glomerulus {name: 'Glomerulus'})
-SET glomerulus:Structure, glomerulus.description = 'Cluster of capillaries in nephron where initial blood filtration occurs'
+SET glomerulus:Structure:Health, glomerulus.description = 'Cluster of capillaries in nephron where initial blood filtration occurs'
 
 MERGE (bowman {name: 'Bowmans Capsule'})
-SET bowman:Structure, bowman.description = 'Cup-shaped structure surrounding glomerulus that collects filtered fluid'
+SET bowman:Structure:Health, bowman.description = 'Cup-shaped structure surrounding glomerulus that collects filtered fluid'
 
 MERGE (tubules {name: 'Renal Tubules'})
-SET tubules:Structure, tubules.description = 'Series of tubes in nephron where filtered fluid is processed into urine'
+SET tubules:Structure:Health, tubules.description = 'Series of tubes in nephron where filtered fluid is processed into urine'
 
 MERGE (collecting {name: 'Collecting Ducts'})
-SET collecting:Structure, collecting.description = 'Tubes that gather processed fluid from multiple nephrons and transport it to renal pelvis'
+SET collecting:Structure:Health, collecting.description = 'Tubes that gather processed fluid from multiple nephrons and transport it to renal pelvis'
 
 // Connect kidney components
 MERGE (kidneys)-[:CONTAINS]->(cortex)
@@ -54,10 +54,10 @@ MERGE (kidneys)-[:CONTAINS]->(collecting)
 
 // Tissues
 MERGE (transitional {name: 'Transitional Epithelium'})
-SET transitional:Tissue, transitional.description = 'Specialized epithelial tissue that can stretch and contract, lines urinary tract'
+SET transitional:Tissue:Health, transitional.description = 'Specialized epithelial tissue that can stretch and contract, lines urinary tract'
 
 MERGE (renalMuscle {name: 'Detrusor Muscle'})
-SET renalMuscle:Tissue, renalMuscle.description = 'Smooth muscle tissue in bladder wall that contracts during urination'
+SET renalMuscle:Tissue:Health, renalMuscle.description = 'Smooth muscle tissue in bladder wall that contracts during urination'
 
 // Connect tissues to structures
 MERGE (bladder)-[:CONTAINS]->(transitional)

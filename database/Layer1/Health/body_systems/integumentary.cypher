@@ -5,96 +5,96 @@ SET integumentary:System,
 
 // Main Components
 MERGE (skin {name: 'Skin'})
-SET skin:Organ,
+SET skin:Organ:Health,
     skin.description = 'Largest organ of the body, providing protection, sensation, and temperature regulation'
 
 MERGE (hair {name: 'Hair'})
-SET hair:Structure,
+SET hair:Structure:Health,
     hair.description = 'Keratinized protein filaments growing from follicles in skin'
 
 MERGE (nails {name: 'Nails'})
-SET nails:Structure,
+SET nails:Structure:Health,
     nails.description = 'Protective plates of hardened keratin at fingertips and toes'
 
 // Skin Layers
 MERGE (epidermis {name: 'Epidermis'})
-SET epidermis:Structure,
+SET epidermis:Structure:Health,
     epidermis.description = 'Outermost layer of skin providing barrier protection'
 
 MERGE (dermis {name: 'Dermis'})
-SET dermis:Structure,
+SET dermis:Structure:Health,
     dermis.description = 'Middle layer containing blood vessels, nerves, and various skin structures'
 
 MERGE (hypodermis {name: 'Hypodermis'})
-SET hypodermis:Structure,
+SET hypodermis:Structure:Health,
     hypodermis.description = 'Deepest layer composed mainly of adipose tissue'
 
 // Epidermal Layers
 MERGE (stratumCorneum {name: 'Stratum Corneum'})
-SET stratumCorneum:Tissue,
+SET stratumCorneum:Tissue:Health,
     stratumCorneum.description = 'Outermost layer of dead, keratinized cells'
 
 MERGE (stratumLucidum {name: 'Stratum Lucidum'})
-SET stratumLucidum:Tissue,
+SET stratumLucidum:Tissue:Health,
     stratumLucidum.description = 'Clear layer present in thick skin of palms and soles'
 
 MERGE (stratumGranulosum {name: 'Stratum Granulosum'})
-SET stratumGranulosum:Tissue,
+SET stratumGranulosum:Tissue:Health,
     stratumGranulosum.description = 'Layer containing keratin-producing granules'
 
 MERGE (stratumSpinosum {name: 'Stratum Spinosum'})
-SET stratumSpinosum:Tissue,
+SET stratumSpinosum:Tissue:Health,
     stratumSpinosum.description = 'Layer of spiny cells providing skin strength'
 
 MERGE (stratumBasale {name: 'Stratum Basale'})
-SET stratumBasale:Tissue,
+SET stratumBasale:Tissue:Health,
     stratumBasale.description = 'Bottom layer where new skin cells are produced'
 
 // Dermal Components
 MERGE (papillaryDermis {name: 'Papillary Dermis'})
-SET papillaryDermis:Tissue,
+SET papillaryDermis:Tissue:Health,
     papillaryDermis.description = 'Upper dermal layer with papillae projecting into epidermis'
 
 MERGE (reticularDermis {name: 'Reticular Dermis'})
-SET reticularDermis:Tissue,
+SET reticularDermis:Tissue:Health,
     reticularDermis.description = 'Lower dermal layer containing dense irregular connective tissue'
 
 // Specialized Structures
 MERGE (hairFollicle {name: 'Hair Follicle'})
-SET hairFollicle:Structure,
+SET hairFollicle:Structure:Health,
     hairFollicle.description = 'Structure in skin from which hair grows'
 
 MERGE (sebaceousGland {name: 'Sebaceous Gland'})
-SET sebaceousGland:Structure,
+SET sebaceousGland:Structure:Health,
     sebaceousGland.description = 'Oil-producing gland usually connected to hair follicles'
 
 MERGE (sweatGland {name: 'Sweat Gland'})
-SET sweatGland:Structure,
+SET sweatGland:Structure:Health,
     sweatGland.description = 'Gland producing sweat for temperature regulation'
 
 MERGE (nailMatrix {name: 'Nail Matrix'})
-SET nailMatrix:Structure,
+SET nailMatrix:Structure:Health,
     nailMatrix.description = 'Tissue that produces nail cells'
 
 MERGE (nailPlate {name: 'Nail Plate'})
-SET nailPlate:Structure,
+SET nailPlate:Structure:Health,
     nailPlate.description = 'Visible part of nail made of keratin'
 
 // Cellular Components
 MERGE (keratinocytes {name: 'Keratinocytes'})
-SET keratinocytes:Component,
+SET keratinocytes:Component:Health,
     keratinocytes.description = 'Main cells of epidermis producing keratin'
 
 MERGE (melanocytes {name: 'Melanocytes'})
-SET melanocytes:Component,
+SET melanocytes:Component:Health,
     melanocytes.description = 'Cells producing melanin pigment'
 
 MERGE (langerhans {name: 'Langerhans Cells'})
-SET langerhans:Component,
+SET langerhans:Component:Health,
     langerhans.description = 'Immune cells in epidermis'
 
 MERGE (merkel {name: 'Merkel Cells'})
-SET merkel:Component,
+SET merkel:Component:Health,
     merkel.description = 'Touch receptor cells in epidermis'
 
 // Connect structures hierarchically

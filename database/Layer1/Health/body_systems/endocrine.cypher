@@ -5,138 +5,138 @@ SET endocrine:System,
 
 // Major Glands
 MERGE (pituitary {name: 'Pituitary Gland'})
-SET pituitary:Organ,
+SET pituitary:Organ:Health,
     pituitary.description = 'Master gland that controls other endocrine glands through hormone secretion'
 
 MERGE (hypothalamus {name: 'Hypothalamus'})
-SET hypothalamus:Organ,
+SET hypothalamus:Organ:Health,
     hypothalamus.description = 'Brain region that controls pituitary gland and maintains homeostasis'
 
 MERGE (thyroid {name: 'Thyroid Gland'})
-SET thyroid:Organ,
+SET thyroid:Organ:Health,
     thyroid.description = 'Butterfly-shaped gland in neck that regulates metabolism and growth'
 
 MERGE (parathyroid {name: 'Parathyroid Glands'})
-SET parathyroid:Organ,
+SET parathyroid:Organ:Health,
     parathyroid.description = 'Four small glands behind thyroid that regulate calcium levels'
 
 MERGE (adrenal {name: 'Adrenal Glands'})
-SET adrenal:Organ,
+SET adrenal:Organ:Health,
     adrenal.description = 'Glands atop kidneys that produce stress hormones and regulate metabolism'
 
 MERGE (pancreas {name: 'Pancreas'})
-SET pancreas:Organ,
+SET pancreas:Organ:Health,
     pancreas.description = 'Organ producing hormones for blood sugar regulation and digestive enzymes'
 
 MERGE (gonads {name: 'Gonads'})
-SET gonads:Organ,
+SET gonads:Organ:Health,
     gonads.description = 'Sex organs (ovaries/testes) that produce reproductive hormones'
 
 MERGE (thymus {name: 'Thymus'})
-SET thymus:Organ,
+SET thymus:Organ:Health,
     thymus.description = 'Gland that produces T-lymphocytes and hormones for immune system development'
 
 MERGE (pineal {name: 'Pineal Gland'})
-SET pineal:Organ,
+SET pineal:Organ:Health,
     pineal.description = 'Brain gland that produces melatonin and regulates sleep-wake cycles'
 
 // Pituitary Components
 MERGE (anteriorPituitary {name: 'Anterior Pituitary'})
-SET anteriorPituitary:Structure,
+SET anteriorPituitary:Structure:Health,
     anteriorPituitary.description = 'Front portion of pituitary that produces multiple crucial hormones'
 
 MERGE (posteriorPituitary {name: 'Posterior Pituitary'})
-SET posteriorPituitary:Structure,
+SET posteriorPituitary:Structure:Health,
     posteriorPituitary.description = 'Back portion of pituitary that stores and releases hormones'
 
 // Adrenal Components
 MERGE (adrenalCortex {name: 'Adrenal Cortex'})
-SET adrenalCortex:Structure,
+SET adrenalCortex:Structure:Health,
     adrenalCortex.description = 'Outer region of adrenal gland producing steroid hormones'
 
 MERGE (adrenalMedulla {name: 'Adrenal Medulla'})
-SET adrenalMedulla:Structure,
+SET adrenalMedulla:Structure:Health,
     adrenalMedulla.description = 'Inner region of adrenal gland producing adrenaline and noradrenaline'
 
 // Pancreatic Components
 MERGE (isletsLangerhans {name: 'Islets of Langerhans'})
-SET isletsLangerhans:Structure,
+SET isletsLangerhans:Structure:Health,
     isletsLangerhans.description = 'Clusters of hormone-producing cells in pancreas'
 
 // Expanded Hormone List
 MERGE (gh {name: 'Growth Hormone'})
-SET gh:Component, gh.type = 'Hormone',
+SET gh:Component:Health, gh.type = 'Hormone',
     gh.description = 'Promotes growth and cell reproduction',
     gh.circadianPattern = 'Pulsatile, peaks during sleep',
     gh.halfLife = '15-20 minutes'
 
 MERGE (tsh {name: 'Thyroid Stimulating Hormone'})
-SET tsh:Component, tsh.type = 'Hormone',
+SET tsh:Component:Health, tsh.type = 'Hormone',
     tsh.description = 'Controls thyroid gland function',
     tsh.circadianPattern = 'Peaks at night',
     tsh.halfLife = '60 minutes'
 
 MERGE (acth {name: 'Adrenocorticotropic Hormone'})
-SET acth:Component, acth.type = 'Hormone',
+SET acth:Component:Health, acth.type = 'Hormone',
     acth.description = 'Stimulates cortisol production',
     acth.circadianPattern = 'Peaks in early morning',
     acth.halfLife = '10 minutes'
 
 MERGE (crh {name: 'Corticotropin-Releasing Hormone'})
-SET crh:Component, crh.type = 'Hormone',
+SET crh:Component:Health, crh.type = 'Hormone',
     crh.description = 'Stimulates ACTH release',
     crh.circadianPattern = 'Follows ACTH pattern',
     crh.halfLife = '30 minutes'
 
 MERGE (trh {name: 'Thyrotropin-Releasing Hormone'})
-SET trh:Component, trh.type = 'Hormone',
+SET trh:Component:Health, trh.type = 'Hormone',
     trh.description = 'Stimulates TSH release',
     trh.circadianPattern = 'Pulsatile',
     trh.halfLife = '5 minutes'
 
 MERGE (insulin {name: 'Insulin'})
-SET insulin:Component, insulin.type = 'Hormone',
+SET insulin:Component:Health, insulin.type = 'Hormone',
     insulin.description = 'Reduces blood glucose levels',
     insulin.circadianPattern = 'Meal-dependent',
     insulin.halfLife = '5-6 minutes'
 
 MERGE (glucagon {name: 'Glucagon'})
-SET glucagon:Component, glucagon.type = 'Hormone',
+SET glucagon:Component:Health, glucagon.type = 'Hormone',
     glucagon.description = 'Increases blood glucose levels',
     glucagon.circadianPattern = 'Counter-regulatory to insulin',
     glucagon.halfLife = '3-6 minutes'
 
 MERGE (cortisol {name: 'Cortisol'})
-SET cortisol:Component, cortisol.type = 'Hormone',
+SET cortisol:Component:Health, cortisol.type = 'Hormone',
     cortisol.description = 'Stress hormone affecting metabolism and immune response',
     cortisol.circadianPattern = 'Peaks in early morning',
     cortisol.halfLife = '60-90 minutes'
 
 MERGE (thyroxine {name: 'Thyroxine'})
-SET thyroxine:Component, thyroxine.type = 'Hormone',
+SET thyroxine:Component:Health, thyroxine.type = 'Hormone',
     thyroxine.description = 'Regulates metabolism and development',
     thyroxine.circadianPattern = 'Relatively stable',
     thyroxine.halfLife = '7 days'
 
 MERGE (melatonin {name: 'Melatonin'})
-SET melatonin:Component, melatonin.type = 'Hormone',
+SET melatonin:Component:Health, melatonin.type = 'Hormone',
     melatonin.description = 'Regulates sleep-wake cycle',
     melatonin.circadianPattern = 'Peaks at night',
     melatonin.halfLife = '40-50 minutes'
 
 // Expanded Tissue Types
 MERGE (endocrineGlandularTissue {name: 'Endocrine Glandular Tissue'})
-SET endocrineGlandularTissue:Tissue,
+SET endocrineGlandularTissue:Tissue:Health,
     endocrineGlandularTissue.description = 'Specialized tissue that produces hormones',
     endocrineGlandularTissue.cellTypes = ['Chief cells', 'Chromaffin cells', 'Beta cells']
 
 MERGE (neuroendocrineTissue {name: 'Neuroendocrine Tissue'})
-SET neuroendocrineTissue:Tissue,
+SET neuroendocrineTissue:Tissue:Health,
     neuroendocrineTissue.description = 'Tissue that combines neural and hormonal signaling',
     neuroendocrineTissue.cellTypes = ['Neurosecretory cells', 'Peptidergic neurons']
 
 MERGE (connectiveTissue {name: 'Connective Tissue'})
-SET connectiveTissue:Tissue,
+SET connectiveTissue:Tissue:Health,
     connectiveTissue.description = 'Supporting tissue that provides structure and blood supply',
     connectiveTissue.cellTypes = ['Fibroblasts', 'Blood vessels', 'Immune cells']
 

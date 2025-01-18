@@ -4,13 +4,13 @@ SET muscular:System, muscular.description = 'System responsible for movement, po
 
 // Major Muscle Types
 MERGE (skeletal {name: 'Skeletal Muscles'})
-SET skeletal:Structure, skeletal.description = 'Voluntary muscles attached to bones that enable movement and maintain posture'
+SET skeletal:Structure:Health, skeletal.description = 'Voluntary muscles attached to bones that enable movement and maintain posture'
 
 MERGE (smooth {name: 'Smooth Muscles'})
-SET smooth:Structure, smooth.description = 'Involuntary muscles found in internal organs and blood vessels'
+SET smooth:Structure:Health, smooth.description = 'Involuntary muscles found in internal organs and blood vessels'
 
 MERGE (cardiac {name: 'Cardiac Muscles'})
-SET cardiac:Structure, cardiac.description = 'Specialized heart muscle tissue with properties of both skeletal and smooth muscle'
+SET cardiac:Structure:Health, cardiac.description = 'Specialized heart muscle tissue with properties of both skeletal and smooth muscle'
 
 // Connect muscle types to system
 MERGE (muscular)-[:CONTAINS]->(skeletal)
@@ -19,16 +19,16 @@ MERGE (muscular)-[:CONTAINS]->(cardiac)
 
 // Skeletal Muscle Components
 MERGE (myofibrils {name: 'Myofibrils'})
-SET myofibrils:Component, myofibrils.description = 'Cylindrical units within muscle fibers containing contractile proteins'
+SET myofibrils:Component:Health, myofibrils.description = 'Cylindrical units within muscle fibers containing contractile proteins'
 
 MERGE (sarcomere {name: 'Sarcomere'})
-SET sarcomere:Component, sarcomere.description = 'Basic functional unit of muscle contraction containing actin and myosin filaments'
+SET sarcomere:Component:Health, sarcomere.description = 'Basic functional unit of muscle contraction containing actin and myosin filaments'
 
 MERGE (fascia {name: 'Fascia'})
-SET fascia:Tissue, fascia.description = 'Connective tissue that surrounds and separates muscles'
+SET fascia:Tissue:Health, fascia.description = 'Connective tissue that surrounds and separates muscles'
 
 MERGE (tendon {name: 'Tendons'})
-SET tendon:Tissue, tendon.description = 'Dense connective tissue that attaches muscles to bones'
+SET tendon:Tissue:Health, tendon.description = 'Dense connective tissue that attaches muscles to bones'
 
 // Connect components
 MERGE (skeletal)-[:CONTAINS]->(myofibrils)
@@ -38,13 +38,13 @@ MERGE (skeletal)-[:CONTAINS]->(tendon)
 
 // Major Muscle Groups
 MERGE (upperBody {name: 'Upper Body Muscles'})
-SET upperBody:Structure, upperBody.description = 'Muscle groups of the arms, shoulders, chest, and upper back'
+SET upperBody:Structure:Health, upperBody.description = 'Muscle groups of the arms, shoulders, chest, and upper back'
 
 MERGE (core {name: 'Core Muscles'})
-SET core:Structure, core.description = 'Muscles of the abdomen, lower back, and pelvis that stabilize the spine'
+SET core:Structure:Health, core.description = 'Muscles of the abdomen, lower back, and pelvis that stabilize the spine'
 
 MERGE (lowerBody {name: 'Lower Body Muscles'})
-SET lowerBody:Structure, lowerBody.description = 'Muscle groups of the legs, hips, and feet'
+SET lowerBody:Structure:Health, lowerBody.description = 'Muscle groups of the legs, hips, and feet'
 
 // Connect muscle groups
 MERGE (skeletal)-[:CONTAINS]->(upperBody)

@@ -14,35 +14,35 @@ MERGE (repro)-[:CONTAINS]->(female)
 
 // Male Organs and Structures
 MERGE (testes {name: 'Testes'})
-SET testes:Organ, testes.description = 'Paired male gonads that produce sperm and testosterone'
+SET testes:Organ:Health, testes.description = 'Paired male gonads that produce sperm and testosterone'
 
 MERGE (epididymis {name: 'Epididymis'})
-SET epididymis:Structure, epididymis.description = 'Highly coiled tubular structure where sperm mature and are stored'
+SET epididymis:Structure:Health, epididymis.description = 'Highly coiled tubular structure where sperm mature and are stored'
 
 MERGE (vasD {name: 'Vas Deferens'})
-SET vasD:Structure, vasD.description = 'Muscular tubes that transport sperm from epididymis to urethra'
+SET vasD:Structure:Health, vasD.description = 'Muscular tubes that transport sperm from epididymis to urethra'
 
 MERGE (prostate {name: 'Prostate Gland'})
-SET prostate:Organ, prostate.description = 'Gland that produces components of seminal fluid'
+SET prostate:Organ:Health, prostate.description = 'Gland that produces components of seminal fluid'
 
 MERGE (penis {name: 'Penis'})
-SET penis:Organ, penis.description = 'Male copulatory organ containing erectile tissue and urethra'
+SET penis:Organ:Health, penis.description = 'Male copulatory organ containing erectile tissue and urethra'
 
 // Female Organs and Structures
 MERGE (ovaries {name: 'Ovaries'})
-SET ovaries:Organ, ovaries.description = 'Paired female gonads that produce eggs and hormones'
+SET ovaries:Organ:Health, ovaries.description = 'Paired female gonads that produce eggs and hormones'
 
 MERGE (fallopian {name: 'Fallopian Tubes'})
-SET fallopian:Structure, fallopian.description = 'Tubes that transport eggs from ovaries to uterus'
+SET fallopian:Structure:Health, fallopian.description = 'Tubes that transport eggs from ovaries to uterus'
 
 MERGE (uterus {name: 'Uterus'})
-SET uterus:Organ, uterus.description = 'Muscular organ where fetal development occurs'
+SET uterus:Organ:Health, uterus.description = 'Muscular organ where fetal development occurs'
 
 MERGE (cervix {name: 'Cervix'})
-SET cervix:Structure, cervix.description = 'Lower portion of uterus that connects to vagina'
+SET cervix:Structure:Health, cervix.description = 'Lower portion of uterus that connects to vagina'
 
 MERGE (vagina {name: 'Vagina'})
-SET vagina:Organ, vagina.description = 'Female copulatory organ and birth canal'
+SET vagina:Organ:Health, vagina.description = 'Female copulatory organ and birth canal'
 
 // Connect organs to their respective systems
 MERGE (male)-[:CONTAINS]->(testes)
@@ -59,13 +59,13 @@ MERGE (female)-[:CONTAINS]->(vagina)
 
 // Tissues
 MERGE (endometrium {name: 'Endometrium'})
-SET endometrium:Tissue, endometrium.description = 'Inner lining of the uterus that changes throughout menstrual cycle'
+SET endometrium:Tissue:Health, endometrium.description = 'Inner lining of the uterus that changes throughout menstrual cycle'
 
 MERGE (myometrium {name: 'Myometrium'})
-SET myometrium:Tissue, myometrium.description = 'Muscular wall of the uterus'
+SET myometrium:Tissue:Health, myometrium.description = 'Muscular wall of the uterus'
 
 MERGE (erectileTissue {name: 'Erectile Tissue'})
-SET erectileTissue:Tissue, erectileTissue.description = 'Specialized tissue that can become engorged with blood'
+SET erectileTissue:Tissue:Health, erectileTissue.description = 'Specialized tissue that can become engorged with blood'
 
 // Connect tissues to organs
 MERGE (uterus)-[:CONTAINS]->(endometrium)

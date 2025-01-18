@@ -4,16 +4,16 @@ SET respiratory:System, respiratory.description = 'System responsible for gas ex
 
 // Major Organs and Structures
 MERGE (lungs {name: 'Lungs'})
-SET lungs:Organ, lungs.description = 'Pair of organs responsible for gas exchange, consisting of millions of tiny air sacs called alveoli'
+SET lungs:Organ:Health, lungs.description = 'Pair of organs responsible for gas exchange, consisting of millions of tiny air sacs called alveoli'
 
 MERGE (upperAirway {name: 'Upper Airway'})
-SET upperAirway:Structure, upperAirway.description = 'Series of passages in the nose, mouth, and throat that filter, warm, and humidify incoming air'
+SET upperAirway:Structure:Health, upperAirway.description = 'Series of passages in the nose, mouth, and throat that filter, warm, and humidify incoming air'
 
 MERGE (lowerAirway {name: 'Lower Airway'})
-SET lowerAirway:Structure, lowerAirway.description = 'Airways below the larynx including the trachea, bronchi, and bronchioles'
+SET lowerAirway:Structure:Health, lowerAirway.description = 'Airways below the larynx including the trachea, bronchi, and bronchioles'
 
 MERGE (diaphragm {name: 'Diaphragm'})
-SET diaphragm:Organ, diaphragm.description = 'Primary muscle of respiration that contracts and relaxes to facilitate breathing'
+SET diaphragm:Organ:Health, diaphragm.description = 'Primary muscle of respiration that contracts and relaxes to facilitate breathing'
 
 // Connect major structures to system
 MERGE (respiratory)-[:CONTAINS]->(lungs)
@@ -23,13 +23,13 @@ MERGE (respiratory)-[:CONTAINS]->(diaphragm)
 
 // Upper Airway Components
 MERGE (nasalCavity {name: 'Nasal Cavity'})
-SET nasalCavity:Structure, nasalCavity.description = 'Air passage behind the nose containing structures that filter, warm, and humidify air'
+SET nasalCavity:Structure:Health, nasalCavity.description = 'Air passage behind the nose containing structures that filter, warm, and humidify air'
 
 MERGE (pharynx {name: 'Pharynx'})
-SET pharynx:Structure, pharynx.description = 'Throat region that connects nasal and oral cavities to larynx'
+SET pharynx:Structure:Health, pharynx.description = 'Throat region that connects nasal and oral cavities to larynx'
 
 MERGE (larynx {name: 'Larynx'})
-SET larynx:Structure, larynx.description = 'Voice box containing vocal cords and protecting the entrance to lower airways'
+SET larynx:Structure:Health, larynx.description = 'Voice box containing vocal cords and protecting the entrance to lower airways'
 
 // Connect upper airway components
 MERGE (upperAirway)-[:CONTAINS]->(nasalCavity)
@@ -38,16 +38,16 @@ MERGE (upperAirway)-[:CONTAINS]->(larynx)
 
 // Lower Airway Components
 MERGE (trachea {name: 'Trachea'})
-SET trachea:Structure, trachea.description = 'Windpipe connecting larynx to bronchi, reinforced with cartilage rings'
+SET trachea:Structure:Health, trachea.description = 'Windpipe connecting larynx to bronchi, reinforced with cartilage rings'
 
 MERGE (bronchi {name: 'Bronchi'})
-SET bronchi:Structure, bronchi.description = 'Large airways that branch from trachea into each lung'
+SET bronchi:Structure:Health, bronchi.description = 'Large airways that branch from trachea into each lung'
 
 MERGE (bronchioles {name: 'Bronchioles'})
-SET bronchioles:Structure, bronchioles.description = 'Smaller airways that branch from bronchi and end in alveoli'
+SET bronchioles:Structure:Health, bronchioles.description = 'Smaller airways that branch from bronchi and end in alveoli'
 
 MERGE (alveoli {name: 'Alveoli'})
-SET alveoli:Structure, alveoli.description = 'Tiny air sacs where gas exchange occurs between air and blood'
+SET alveoli:Structure:Health, alveoli.description = 'Tiny air sacs where gas exchange occurs between air and blood'
 
 // Connect lower airway components
 MERGE (lowerAirway)-[:CONTAINS]->(trachea)
@@ -57,13 +57,13 @@ MERGE (lungs)-[:CONTAINS]->(alveoli)
 
 // Tissues
 MERGE (respiratoryMembrane {name: 'Respiratory Membrane'})
-SET respiratoryMembrane:Tissue, respiratoryMembrane.description = 'Thin tissue layer in alveoli where gas exchange occurs'
+SET respiratoryMembrane:Tissue:Health, respiratoryMembrane.description = 'Thin tissue layer in alveoli where gas exchange occurs'
 
 MERGE (cilliatedEpithelium {name: 'Cilliated Epithelium'})
-SET cilliatedEpithelium:Tissue, cilliatedEpithelium.description = 'Specialized tissue with hair-like projections that move mucus and trapped particles up and out of airways'
+SET cilliatedEpithelium:Tissue:Health, cilliatedEpithelium.description = 'Specialized tissue with hair-like projections that move mucus and trapped particles up and out of airways'
 
 MERGE (smoothMuscle {name: 'Airway Smooth Muscle'})
-SET smoothMuscle:Tissue, smoothMuscle.description = 'Muscle tissue that can constrict or dilate airways to control airflow'
+SET smoothMuscle:Tissue:Health, smoothMuscle.description = 'Muscle tissue that can constrict or dilate airways to control airflow'
 
 // Connect tissues to structures
 MERGE (alveoli)-[:CONTAINS]->(respiratoryMembrane)

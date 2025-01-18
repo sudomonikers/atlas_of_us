@@ -4,10 +4,10 @@ SET skeletal:System, skeletal.description = 'Framework of bones and connective t
 
 // Major Bone Categories
 MERGE (axialSkeleton {name: 'Axial Skeleton'})
-SET axialSkeleton:Structure, axialSkeleton.description = 'Central core of skeleton including skull, vertebral column, and rib cage'
+SET axialSkeleton:Structure:Health, axialSkeleton.description = 'Central core of skeleton including skull, vertebral column, and rib cage'
 
 MERGE (appendicularSkeleton {name: 'Appendicular Skeleton'})
-SET appendicularSkeleton:Structure, appendicularSkeleton.description = 'Bones of upper and lower limbs, shoulder girdle, and pelvic girdle'
+SET appendicularSkeleton:Structure:Health, appendicularSkeleton.description = 'Bones of upper and lower limbs, shoulder girdle, and pelvic girdle'
 
 // Connect major categories to system
 MERGE (skeletal)-[:CONTAINS]->(axialSkeleton)
@@ -15,13 +15,13 @@ MERGE (skeletal)-[:CONTAINS]->(appendicularSkeleton)
 
 // Axial Skeleton Components
 MERGE (skull {name: 'Skull'})
-SET skull:Structure, skull.description = 'Bony framework of the head consisting of cranial and facial bones'
+SET skull:Structure:Health, skull.description = 'Bony framework of the head consisting of cranial and facial bones'
 
 MERGE (vertebralColumn {name: 'Vertebral Column'})
-SET vertebralColumn:Structure, vertebralColumn.description = 'Series of vertebrae forming the spinal column, protecting the spinal cord'
+SET vertebralColumn:Structure:Health, vertebralColumn.description = 'Series of vertebrae forming the spinal column, protecting the spinal cord'
 
 MERGE (ribCage {name: 'Rib Cage'})
-SET ribCage:Structure, ribCage.description = 'Protective cage formed by ribs, sternum, and thoracic vertebrae'
+SET ribCage:Structure:Health, ribCage.description = 'Protective cage formed by ribs, sternum, and thoracic vertebrae'
 
 // Connect axial components
 MERGE (axialSkeleton)-[:CONTAINS]->(skull)
@@ -30,16 +30,16 @@ MERGE (axialSkeleton)-[:CONTAINS]->(ribCage)
 
 // Appendicular Skeleton Components
 MERGE (upperLimbs {name: 'Upper Limbs'})
-SET upperLimbs:Structure, upperLimbs.description = 'Arms, including humerus, radius, ulna, and hand bones'
+SET upperLimbs:Structure:Health, upperLimbs.description = 'Arms, including humerus, radius, ulna, and hand bones'
 
 MERGE (lowerLimbs {name: 'Lower Limbs'})
-SET lowerLimbs:Structure, lowerLimbs.description = 'Legs, including femur, tibia, fibula, and foot bones'
+SET lowerLimbs:Structure:Health, lowerLimbs.description = 'Legs, including femur, tibia, fibula, and foot bones'
 
 MERGE (shoulderGirdle {name: 'Shoulder Girdle'})
-SET shoulderGirdle:Structure, shoulderGirdle.description = 'Connects upper limbs to axial skeleton, includes clavicle and scapula'
+SET shoulderGirdle:Structure:Health, shoulderGirdle.description = 'Connects upper limbs to axial skeleton, includes clavicle and scapula'
 
 MERGE (pelvicGirdle {name: 'Pelvic Girdle'})
-SET pelvicGirdle:Structure, pelvicGirdle.description = 'Connects lower limbs to axial skeleton, formed by hip bones'
+SET pelvicGirdle:Structure:Health, pelvicGirdle.description = 'Connects lower limbs to axial skeleton, formed by hip bones'
 
 // Connect appendicular components
 MERGE (appendicularSkeleton)-[:CONTAINS]->(upperLimbs)
@@ -49,16 +49,16 @@ MERGE (appendicularSkeleton)-[:CONTAINS]->(pelvicGirdle)
 
 // Bone Tissue Components
 MERGE (compactBone {name: 'Compact Bone'})
-SET compactBone:Tissue, compactBone.description = 'Dense, solid bone tissue forming outer layer of bones'
+SET compactBone:Tissue:Health, compactBone.description = 'Dense, solid bone tissue forming outer layer of bones'
 
 MERGE (spongyBone {name: 'Spongy Bone'})
-SET spongyBone:Tissue, spongyBone.description = 'Lightweight, honeycomb-structured bone tissue containing red marrow'
+SET spongyBone:Tissue:Health, spongyBone.description = 'Lightweight, honeycomb-structured bone tissue containing red marrow'
 
 MERGE (periosteum {name: 'Periosteum'})
-SET periosteum:Tissue, periosteum.description = 'Tough membrane covering outer bone surface, containing nerves and blood vessels'
+SET periosteum:Tissue:Health, periosteum.description = 'Tough membrane covering outer bone surface, containing nerves and blood vessels'
 
 MERGE (boneMarrow {name: 'Bone Marrow'})
-SET boneMarrow:Tissue, boneMarrow.description = 'Soft tissue inside bones, responsible for blood cell production'
+SET boneMarrow:Tissue:Health, boneMarrow.description = 'Soft tissue inside bones, responsible for blood cell production'
 
 // Connect tissues to system
 MERGE (skeletal)-[:CONTAINS]->(compactBone)
@@ -68,13 +68,13 @@ MERGE (skeletal)-[:CONTAINS]->(boneMarrow)
 
 // Joint Components
 MERGE (synovialJoint {name: 'Synovial Joints'})
-SET synovialJoint:Structure, synovialJoint.description = 'Freely movable joints containing synovial fluid'
+SET synovialJoint:Structure:Health, synovialJoint.description = 'Freely movable joints containing synovial fluid'
 
 MERGE (cartilage {name: 'Articular Cartilage'})
-SET cartilage:Tissue, cartilage.description = 'Smooth tissue covering joint surfaces, reduces friction'
+SET cartilage:Tissue:Health, cartilage.description = 'Smooth tissue covering joint surfaces, reduces friction'
 
 MERGE (ligaments {name: 'Ligaments'})
-SET ligaments:Tissue, ligaments.description = 'Tough bands of connective tissue connecting bones at joints'
+SET ligaments:Tissue:Health, ligaments.description = 'Tough bands of connective tissue connecting bones at joints'
 
 // Connect joint components
 MERGE (skeletal)-[:CONTAINS]->(synovialJoint)
