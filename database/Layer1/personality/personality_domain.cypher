@@ -1,5 +1,5 @@
 // PERSONALITY SUBDOMAINS
-MERGE (p:Domain {name: 'Personality'})
+MERGE (p:CoreDomain {name: 'Personality'})
 SET p:Personality
 
 // Openness

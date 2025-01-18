@@ -1,0 +1,15 @@
+MERGE (h {name: 'Health'})
+WITH h
+
+MERGE (h)-[:HAS_SYSTEM]->(c {name: 'Cardiovascular System'})
+MERGE (h)-[:HAS_SYSTEM]->(d {name: 'Digestive System'})
+MERGE (h)-[:HAS_SYSTEM]->(endo {name: 'Endocrine System'})
+MERGE (h)-[:HAS_SYSTEM]->(exo {name: 'Exocrine System'})
+MERGE (h)-[:HAS_SYSTEM]->(i {name: 'Immune System'})
+MERGE (h)-[:HAS_SYSTEM]->(inte {name: 'Integumentary System'})
+MERGE (h)-[:HAS_SYSTEM]->(m {name: 'Muscular System'})
+MERGE (h)-[:HAS_SYSTEM]->(n {name: 'Nervous System'})
+MERGE (h)-[:HAS_SYSTEM]->(r {name: 'Renal System'})
+MERGE (h)-[:HAS_SYSTEM]->(rep {name: 'Reproductive System'})
+MERGE (h)-[:HAS_SYSTEM]->(res {name: 'Respiratory System'})
+MERGE (h)-[:HAS_SYSTEM]->(s {name: 'Skeletal System'})
