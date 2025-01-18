@@ -63,45 +63,128 @@ MERGE (isletsLangerhans {name: 'Islets of Langerhans'})
 SET isletsLangerhans:Structure,
     isletsLangerhans.description = 'Clusters of hormone-producing cells in pancreas'
 
-// Major Hormones (as Components)
+// Expanded Hormone List
 MERGE (gh {name: 'Growth Hormone'})
-SET gh:Component,
-    gh.description = 'Promotes growth and cell reproduction'
+SET gh:Component, gh.type = 'Hormone',
+    gh.description = 'Promotes growth and cell reproduction',
+    gh.circadianPattern = 'Pulsatile, peaks during sleep',
+    gh.halfLife = '15-20 minutes'
 
 MERGE (tsh {name: 'Thyroid Stimulating Hormone'})
-SET tsh:Component,
-    tsh.description = 'Controls thyroid gland function'
+SET tsh:Component, tsh.type = 'Hormone',
+    tsh.description = 'Controls thyroid gland function',
+    tsh.circadianPattern = 'Peaks at night',
+    tsh.halfLife = '60 minutes'
 
 MERGE (acth {name: 'Adrenocorticotropic Hormone'})
-SET acth:Component,
-    acth.description = 'Stimulates cortisol production'
+SET acth:Component, acth.type = 'Hormone',
+    acth.description = 'Stimulates cortisol production',
+    acth.circadianPattern = 'Peaks in early morning',
+    acth.halfLife = '10 minutes'
+
+MERGE (crh {name: 'Corticotropin-Releasing Hormone'})
+SET crh:Component, crh.type = 'Hormone',
+    crh.description = 'Stimulates ACTH release',
+    crh.circadianPattern = 'Follows ACTH pattern',
+    crh.halfLife = '30 minutes'
+
+MERGE (trh {name: 'Thyrotropin-Releasing Hormone'})
+SET trh:Component, trh.type = 'Hormone',
+    trh.description = 'Stimulates TSH release',
+    trh.circadianPattern = 'Pulsatile',
+    trh.halfLife = '5 minutes'
 
 MERGE (insulin {name: 'Insulin'})
-SET insulin:Component,
-    insulin.description = 'Reduces blood glucose levels'
+SET insulin:Component, insulin.type = 'Hormone',
+    insulin.description = 'Reduces blood glucose levels',
+    insulin.circadianPattern = 'Meal-dependent',
+    insulin.halfLife = '5-6 minutes'
 
 MERGE (glucagon {name: 'Glucagon'})
-SET glucagon:Component,
-    glucagon.description = 'Increases blood glucose levels'
+SET glucagon:Component, glucagon.type = 'Hormone',
+    glucagon.description = 'Increases blood glucose levels',
+    glucagon.circadianPattern = 'Counter-regulatory to insulin',
+    glucagon.halfLife = '3-6 minutes'
 
 MERGE (cortisol {name: 'Cortisol'})
-SET cortisol:Component,
-    cortisol.description = 'Stress hormone affecting metabolism and immune response'
+SET cortisol:Component, cortisol.type = 'Hormone',
+    cortisol.description = 'Stress hormone affecting metabolism and immune response',
+    cortisol.circadianPattern = 'Peaks in early morning',
+    cortisol.halfLife = '60-90 minutes'
 
 MERGE (thyroxine {name: 'Thyroxine'})
-SET thyroxine:Component,
-    thyroxine.description = 'Regulates metabolism and development'
+SET thyroxine:Component, thyroxine.type = 'Hormone',
+    thyroxine.description = 'Regulates metabolism and development',
+    thyroxine.circadianPattern = 'Relatively stable',
+    thyroxine.halfLife = '7 days'
 
-// Tissues
+MERGE (melatonin {name: 'Melatonin'})
+SET melatonin:Component, melatonin.type = 'Hormone',
+    melatonin.description = 'Regulates sleep-wake cycle',
+    melatonin.circadianPattern = 'Peaks at night',
+    melatonin.halfLife = '40-50 minutes'
+
+// Expanded Tissue Types
 MERGE (endocrineGlandularTissue {name: 'Endocrine Glandular Tissue'})
 SET endocrineGlandularTissue:Tissue,
-    endocrineGlandularTissue.description = 'Specialized tissue that produces hormones'
+    endocrineGlandularTissue.description = 'Specialized tissue that produces hormones',
+    endocrineGlandularTissue.cellTypes = ['Chief cells', 'Chromaffin cells', 'Beta cells']
 
 MERGE (neuroendocrineTissue {name: 'Neuroendocrine Tissue'})
 SET neuroendocrineTissue:Tissue,
-    neuroendocrineTissue.description = 'Tissue that combines neural and hormonal signaling'
+    neuroendocrineTissue.description = 'Tissue that combines neural and hormonal signaling',
+    neuroendocrineTissue.cellTypes = ['Neurosecretory cells', 'Peptidergic neurons']
 
-// Connect organs to system
+MERGE (connectiveTissue {name: 'Connective Tissue'})
+SET connectiveTissue:Tissue,
+    connectiveTissue.description = 'Supporting tissue that provides structure and blood supply',
+    connectiveTissue.cellTypes = ['Fibroblasts', 'Blood vessels', 'Immune cells']
+
+// Temporal Properties Node
+MERGE (temporalPatterns {name: 'Temporal Patterns'})
+SET temporalPatterns:Properties,
+    temporalPatterns.circadian = 'Daily rhythms',
+    temporalPatterns.ultradian = 'Multiple cycles per day',
+    temporalPatterns.infradian = 'Cycles longer than a day',
+    temporalPatterns.pulsatile = 'Episodic secretion'
+
+// Connect tissues to organs
+MERGE (pituitary)-[:COMPOSED_OF]->(endocrineGlandularTissue)
+MERGE (pituitary)-[:COMPOSED_OF]->(connectiveTissue)
+MERGE (hypothalamus)-[:COMPOSED_OF]->(neuroendocrineTissue)
+MERGE (thyroid)-[:COMPOSED_OF]->(endocrineGlandularTissue)
+MERGE (thyroid)-[:COMPOSED_OF]->(connectiveTissue)
+MERGE (parathyroid)-[:COMPOSED_OF]->(endocrineGlandularTissue)
+MERGE (adrenal)-[:COMPOSED_OF]->(endocrineGlandularTissue)
+MERGE (adrenal)-[:COMPOSED_OF]->(connectiveTissue)
+MERGE (pancreas)-[:COMPOSED_OF]->(endocrineGlandularTissue)
+MERGE (pancreas)-[:COMPOSED_OF]->(connectiveTissue)
+MERGE (gonads)-[:COMPOSED_OF]->(endocrineGlandularTissue)
+MERGE (gonads)-[:COMPOSED_OF]->(connectiveTissue)
+
+// Hormonal Feedback Loops
+MERGE (hypothalamus)-[:RELEASES]->(crh)
+MERGE (crh)-[:STIMULATES]->(acth)
+MERGE (acth)-[:STIMULATES]->(cortisol)
+MERGE (cortisol)-[:INHIBITS]->(crh)
+MERGE (cortisol)-[:INHIBITS]->(acth)
+
+MERGE (hypothalamus)-[:RELEASES]->(trh)
+MERGE (trh)-[:STIMULATES]->(tsh)
+MERGE (tsh)-[:STIMULATES]->(thyroxine)
+MERGE (thyroxine)-[:INHIBITS]->(trh)
+MERGE (thyroxine)-[:INHIBITS]->(tsh)
+
+MERGE (glucagon)-[:INHIBITS]->(insulin)
+MERGE (insulin)-[:INHIBITS]->(glucagon)
+
+// Temporal Relationships
+MERGE (gh)-[:FOLLOWS]->(temporalPatterns)
+MERGE (cortisol)-[:FOLLOWS]->(temporalPatterns)
+MERGE (melatonin)-[:FOLLOWS]->(temporalPatterns)
+MERGE (insulin)-[:FOLLOWS]->(temporalPatterns)
+
+// Original relationships maintained
 MERGE (endocrine)-[:CONTAINS]->(pituitary)
 MERGE (endocrine)-[:CONTAINS]->(hypothalamus)
 MERGE (endocrine)-[:CONTAINS]->(thyroid)
@@ -112,17 +195,12 @@ MERGE (endocrine)-[:CONTAINS]->(gonads)
 MERGE (endocrine)-[:CONTAINS]->(thymus)
 MERGE (endocrine)-[:CONTAINS]->(pineal)
 
-// Connect structures to organs
 MERGE (pituitary)-[:CONTAINS]->(anteriorPituitary)
 MERGE (pituitary)-[:CONTAINS]->(posteriorPituitary)
 MERGE (adrenal)-[:CONTAINS]->(adrenalCortex)
 MERGE (adrenal)-[:CONTAINS]->(adrenalMedulla)
 MERGE (pancreas)-[:CONTAINS]->(isletsLangerhans)
 
-//connect tissues to what they make up
-
-
-// Connect hormones to their source glands
 MERGE (anteriorPituitary)-[:PRODUCES]->(gh)
 MERGE (anteriorPituitary)-[:PRODUCES]->(tsh)
 MERGE (anteriorPituitary)-[:PRODUCES]->(acth)
@@ -130,37 +208,45 @@ MERGE (isletsLangerhans)-[:PRODUCES]->(insulin)
 MERGE (isletsLangerhans)-[:PRODUCES]->(glucagon)
 MERGE (adrenalCortex)-[:PRODUCES]->(cortisol)
 MERGE (thyroid)-[:PRODUCES]->(thyroxine)
+MERGE (pineal)-[:PRODUCES]->(melatonin)
 
-// Sample Conditions
+// Conditions maintained and expanded
 MERGE (diabetes {name: 'Diabetes Mellitus'})
-SET diabetes:Condition,
+SET diabetes:Condition:Health,
     diabetes.description = 'Condition affecting blood glucose regulation',
-    diabetes.types = ['Type 1', 'Type 2']
+    diabetes.types = ['Type 1', 'Type 2'],
+    diabetes.temporalFactors = ['Time of day', 'Meal timing', 'Exercise timing']
 
 MERGE (hypothyroidism {name: 'Hypothyroidism'})
-SET hypothyroidism:Condition,
-    hypothyroidism.description = 'Underactive thyroid gland'
+SET hypothyroidism:Condition:Health,
+    hypothyroidism.description = 'Underactive thyroid gland',
+    hypothyroidism.temporalFactors = ['Seasonal variation', 'Circadian rhythm disruption']
 
 MERGE (cushings {name: 'Cushing\'s Syndrome'})
-SET cushings:Condition,
-    cushings.description = 'Excessive cortisol levels'
+SET cushings:Condition:Health,
+    cushings.description = 'Excessive cortisol levels',
+    cushings.temporalFactors = ['Diurnal variation', 'Stress response timing']
 
 // Connect conditions
 MERGE (pancreas)-[:CAN_HAVE]->(diabetes)
 MERGE (thyroid)-[:CAN_HAVE]->(hypothyroidism)
 MERGE (adrenal)-[:CAN_HAVE]->(cushings)
 
-// Measurements
+// Measurements with temporal aspects
 MERGE (hormoneLevel {name: 'Hormone Level'})
 SET hormoneLevel:Measurement,
     hormoneLevel.description = 'Concentration of specific hormones in blood',
-    hormoneLevel.units = 'varies by hormone'
+    hormoneLevel.units = 'varies by hormone',
+    hormoneLevel.samplingFrequency = 'Depends on hormone and condition',
+    hormoneLevel.timeFactors = ['Time of day', 'Fasting status', 'Recent activity']
 
 MERGE (bloodGlucose {name: 'Blood Glucose'})
 SET bloodGlucose:Measurement,
     bloodGlucose.description = 'Level of glucose in blood',
     bloodGlucose.units = 'mg/dL',
-    bloodGlucose.normalRange = '70-99 mg/dL (fasting)'
+    bloodGlucose.normalRange = '70-99 mg/dL (fasting)',
+    bloodGlucose.samplingFrequency = 'Multiple times daily',
+    bloodGlucose.timeFactors = ['Meal timing', 'Exercise', 'Sleep schedule']
 
 // Connect measurements
 MERGE (endocrine)-[:HAS_MEASUREMENT]->(hormoneLevel)
