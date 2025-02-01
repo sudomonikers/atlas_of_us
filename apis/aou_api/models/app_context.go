@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"restapi/database"
+	"aou_api/database"
 )
 
 // AppContext holds shared resources like database

@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"aou_api/models"
 	"fmt"
 	"net/http"
-	"restapi/models"
 
 	"github.com/gin-gonic/gin"
 )

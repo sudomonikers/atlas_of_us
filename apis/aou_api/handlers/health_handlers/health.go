@@ -1,8 +1,8 @@
 package health_handlers
 
 import (
+	"aou_api/models"
 	"net/http"
-	"restapi/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +13,7 @@ func GetPersonality(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
+
 	result, err := appCtx.NEO4J.ExecuteQuery(`
 		MATCH (n)
 		OPTIONAL MATCH (n)-[r]->(m)

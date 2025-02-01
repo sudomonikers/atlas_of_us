@@ -1,4 +1,4 @@
-package personality_handlers
+package intrinsic_handlers
 
 import (
 	"aou_api/models"
@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetPersonality(c *gin.Context) {
+func GetIntrinsic(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"restapi/database"
-	"restapi/router"
+	"aou_api/database"
+	"aou_api/router"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"

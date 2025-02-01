@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"aou_api/auth"
 	"net/http"
-	"restapi/auth"
 	"strings"
 
 	"github.com/gin-gonic/gin"
