@@ -14,6 +14,11 @@ import (
 	"aou_api/database"
 	docs "aou_api/docs"
 	"aou_api/handlers"
+	"aou_api/handlers/health_handlers"
+	"aou_api/handlers/intrinsic_handlers"
+	"aou_api/handlers/knowledge_bases_handlers"
+	"aou_api/handlers/personality_handlers"
+	"aou_api/handlers/pursuits_handlers"
 	"aou_api/middleware"
 	"aou_api/models"
 )
@@ -24,27 +29,55 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 	r := gin.Default()
 	r.Use(models.ContextMiddleware(appCtx))
 	r.Use(middleware.Logger(logger))
-
-	if gin.Mode() == gin.ReleaseMode {
-		r.Use(middleware.Security())
-		// r.Use(middleware.Xss())
-		r.Use(middleware.Cors())
-		r.Use(middleware.RateLimiter(rate.Every(1*time.Minute), 60)) // 60 requests per minute
-	}
+	r.Use(middleware.Security())
+	r.Use(middleware.Cors())
+	r.Use(middleware.RateLimiter(rate.Every(1*time.Minute), 60)) // 60 requests per minute
 
 	docs.SwaggerInfo.BasePath = "/api"
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
 	baseRoutes := r.Group("/api")
 	{
 		baseRoutes.GET("/", auth.Healthcheck)
+		baseRoutes.POST("sign-up", auth.SignUp)
+		baseRoutes.POST("login", auth.Login)
 	}
 
-	knowledge_graph := baseRoutes.Group("graph")
+	secureRoutes := baseRoutes.Group("/secure")
+	secureRoutes.Use(middleware.JWTAuth())
 	{
-		knowledge_graph.GET("match-all", handlers.MatchAll)
-		knowledge_graph.GET("match-domain/:domainName", handlers.MatchDomain)
-		knowledge_graph.GET("match-node/:nodeName/:numDescendants", handlers.MatchDescendants)
+		knowledge_graph := secureRoutes.Group("graph")
+		{
+			knowledge_graph.GET("match-all", handlers.MatchAll)
+			knowledge_graph.GET("match-domain/:domainName", handlers.MatchDomain)
+			knowledge_graph.GET("match-node/:nodeName/:numDescendants", handlers.MatchDescendants)
 
+		}
+
+		pursuits := secureRoutes.Group(("pursuits"))
+		{
+			pursuits.GET("all-pursuits", pursuits_handlers.GetAllPursuitsNodes)
+		}
+
+		personality := secureRoutes.Group(("personality"))
+		{
+			personality.GET("all-personality", personality_handlers.GetAllPersonalityNodes)
+		}
+
+		knowledge_bases := secureRoutes.Group(("knowledge-bases"))
+		{
+			knowledge_bases.GET("all-knowledge-bases", knowledge_bases_handlers.GetAllKnowledgeBaseNodes)
+		}
+
+		intrinsic := secureRoutes.Group(("intrinsic"))
+		{
+			intrinsic.GET("all-intrinsic", intrinsic_handlers.GetAllIntrinsicNodes)
+		}
+
+		health := secureRoutes.Group(("health"))
+		{
+			health.GET("all-health", health_handlers.GetAllHealthNodes)
+		}
 	}
 
 	return r

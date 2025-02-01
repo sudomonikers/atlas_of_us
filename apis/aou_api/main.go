@@ -27,7 +27,7 @@ func main() {
 
 	ginMode := os.Getenv("GIN_MODE")
 	if ginMode == "" {
-		ginMode = gin.DebugMode // Default to DebugMode if not set
+		ginMode = gin.ReleaseMode // Default to ReleaseMode if not set so we have best security practices
 	}
 	gin.SetMode(ginMode)
 

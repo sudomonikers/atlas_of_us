@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetIntrinsic(c *gin.Context) {
+func GetAllIntrinsicNodes(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

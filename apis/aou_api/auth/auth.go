@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"aou_api/models"
 	"net/http"
 
 	"crypto/rand"
@@ -13,11 +14,147 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Healthcheck(g *gin.Context) {
-	g.JSON(http.StatusOK, "ok")
+// Healthcheck
+func Healthcheck(c *gin.Context) {
+	c.JSON(http.StatusOK, "ok")
 }
 
-// Claims struct to be encoded to JWT
+// LOGIN/SIGNUP ROUTES
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func Login(c *gin.Context) {
+	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	var loginReq LoginRequest
+	if err := c.ShouldBindJSON(&loginReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	//authenticate username/password combo here
+	result, err := appCtx.NEO4J.ExecuteQuery(`
+		MATCH (n:Person)
+		WHERE n.username = $username
+		RETURN n.password
+	`, map[string]any{
+		"username": loginReq.Username,
+	})
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+	if len(result) != 1 {
+		c.JSON(http.StatusNotAcceptable, gin.H{"error": "Username and password combo not found!"})
+		return
+	}
+
+	storedHashedPassword := result[0].Values[0].(string)
+	// Compare the stored hashed password with the provided password
+	err = bcrypt.CompareHashAndPassword([]byte(storedHashedPassword), []byte(loginReq.Password))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
+		return
+	}
+
+	token, err := GenerateToken(loginReq.Username)
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, token)
+}
+
+type SignUpRequest struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	PhoneNumber string `json:"phone"`
+	Email       string `json:"email"`
+}
+
+func SignUp(c *gin.Context) {
+	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	var signUpReq SignUpRequest
+	if err := c.ShouldBindJSON(&signUpReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	//check if username or phone number exists
+	result, err := appCtx.NEO4J.ExecuteQuery(`
+		MATCH (n:Person)
+		WHERE n.phone = $phone OR n.username = $username
+		RETURN n
+	`, map[string]any{
+		"username": signUpReq.Username,
+		"phone":    signUpReq.PhoneNumber,
+	})
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+	if len(result) > 0 {
+		c.JSON(http.StatusNotAcceptable, gin.H{"error": "Username or phone number already exists!"})
+		return
+	}
+
+	hashedPassword, err := HashPassword(signUpReq.Password)
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	_, err = appCtx.NEO4J.ExecuteQuery(`
+		CREATE (p:Person:L3 {
+			username: $username,
+			password: $password,
+			phone: $phone,
+			email: $email
+		})
+	`, map[string]any{
+		"username": signUpReq.Username,
+		"password": hashedPassword,
+		"phone":    signUpReq.PhoneNumber,
+		"email":    signUpReq.Email,
+	})
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	token, err := GenerateToken(signUpReq.Username)
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, token)
+}
+
+func GenerateKEY(g *gin.Context) {
+	token := GenerateRandomKey()
+	g.JSON(http.StatusOK, token)
+}
+
+// JWT FUNCS
 type Claims struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
