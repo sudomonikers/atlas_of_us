@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
@@ -88,43 +89,32 @@ func walkCypherFiles(dirPath string, driver neo4j.DriverWithContext, ctx context
 }
 
 func main() {
-	ctx := context.Background()
-	// URI examples: "neo4j://localhost", "neo4j+s://xxx.databases.neo4j.io"
-	dbUri := "neo4j://localhost"
-	dbUser := "neo4j"
-	dbPassword := "password"
-	dbBase := "neo4j"
-	driver, err := neo4j.NewDriverWithContext(
-		dbUri,
-		neo4j.BasicAuth(dbUser, dbPassword, ""))
-	if err != nil {
-		panic(err)
-	}
-	defer driver.Close(ctx)
+	var driver neo4j.DriverWithContext
+	var err error
 
+	dbUri := os.Getenv("NEO4J_URI")
+	dbUser := os.Getenv("NEO4J_USER")
+	dbPassword := os.Getenv("NEO4J_PASSWORD")
+	dbBase := "neo4j"
+	for i := 1; i <= 3; i++ {
+		driver, err = neo4j.NewDriverWithContext(
+			dbUri,
+			neo4j.BasicAuth(dbUser, dbPassword, ""))
+		if err == nil {
+			break
+		} else {
+			fmt.Println("Attempt %d: Failed to initialize database. Retrying...", i)
+			time.Sleep(3 * time.Second)
+		}
+	}
+
+	ctx := context.Background()
 	err = driver.VerifyConnectivity(ctx)
 	if err != nil {
-		panic(err)
+		fmt.Println("Failed to verify connectivity: %v", err)
 	}
+
 	fmt.Println("Connection established.")
-
-	result, err := neo4j.ExecuteQuery(
-		ctx,
-		driver,
-		"MATCH (n) RETURN n",
-		map[string]any{},
-		neo4j.EagerResultTransformer,
-		neo4j.ExecuteQueryWithDatabase(dbBase))
-	if err != nil {
-		fmt.Println("Error executing query:", err)
-		return
-	}
-
-	fmt.Println("Existing records: ", len(result.Records))
-	// Loop through results and do something with them
-	for _, record := range result.Records {
-		fmt.Println(record.AsMap())
-	}
 
 	//delete all records
 	fmt.Println("Deleting records...")

@@ -169,6 +169,7 @@ export default function App() {
         'http://localhost:8001/api/v1/kg/match-node/Individual Possibilities/3',
       )
       .then((response) => {
+        console.log(response)
         function extendArray<T>(arr: T[], targetLength: number): T[] {
           const originalLength = arr.length;
           if (originalLength === 0) return arr;
@@ -180,7 +181,7 @@ export default function App() {
         
           return arr;
         }
-
+        console.log(response)
         response.data[0].Values[2] = extendArray(response.data[0].Values[2], 800)
         setNodes(response.data);
         console.log(response);
