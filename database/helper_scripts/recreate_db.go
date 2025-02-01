@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
@@ -90,12 +91,17 @@ func walkCypherFiles(dirPath string, driver neo4j.DriverWithContext, ctx context
 
 func main() {
 	var driver neo4j.DriverWithContext
-	var err error
+
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Warning: .env file not found, relying on environment variables")
+	}
 
 	dbUri := os.Getenv("NEO4J_URI")
 	dbUser := os.Getenv("NEO4J_USER")
 	dbPassword := os.Getenv("NEO4J_PASSWORD")
-	dbBase := "neo4j"
+	dbBase := os.Getenv("NEO4J_DATABASE")
+
 	for i := 1; i <= 3; i++ {
 		driver, err = neo4j.NewDriverWithContext(
 			dbUri,
@@ -103,7 +109,7 @@ func main() {
 		if err == nil {
 			break
 		} else {
-			fmt.Println("Attempt %d: Failed to initialize database. Retrying...", i)
+			fmt.Printf("Attempt %d: Failed to initialize database with err %s. Retrying...", i, err)
 			time.Sleep(3 * time.Second)
 		}
 	}
@@ -111,7 +117,7 @@ func main() {
 	ctx := context.Background()
 	err = driver.VerifyConnectivity(ctx)
 	if err != nil {
-		fmt.Println("Failed to verify connectivity: %v", err)
+		fmt.Printf("Failed to verify connectivity: %v", err)
 	}
 
 	fmt.Println("Connection established.")
