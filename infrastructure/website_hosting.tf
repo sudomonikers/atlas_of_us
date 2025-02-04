@@ -1,7 +1,31 @@
 ###ROUTE 53
 # Create the hosted zone
+# Use existing domain registration (assuming domain is registered)
 resource "aws_route53_zone" "main" {
   name = local.website_name
+}
+
+# Create NS records to point to the hosted zone
+resource "aws_route53_record" "ns" {
+  allow_overwrite = true
+  name            = local.website_name
+  ttl             = 30
+  type            = "NS"
+  zone_id         = aws_route53_zone.main.zone_id
+
+  records = aws_route53_zone.main.name_servers
+}
+# Create SOA record
+resource "aws_route53_record" "soa" {
+  allow_overwrite = true
+  name            = local.website_name
+  type            = "SOA"
+  ttl             = 30
+  zone_id         = aws_route53_zone.main.zone_id
+
+  records = [
+    "${aws_route53_zone.main.name_servers[0]}. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+  ]
 }
 
 # Create A record for the domain pointing to CloudFront
@@ -28,6 +52,35 @@ resource "aws_route53_record" "website_aaaa" {
     zone_id                = aws_cloudfront_distribution.cdn.hosted_zone_id
     evaluate_target_health = false
   }
+}
+
+# Create MX records if needed for email
+resource "aws_route53_record" "mx" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = local.website_name
+  type    = "MX"
+  ttl     = 300
+
+  records = [
+    "0 ."  # Null MX record indicating no mail server
+  ]
+}
+
+# Create TXT record for domain verification
+resource "aws_route53_record" "txt" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = local.website_name
+  type    = "TXT"
+  ttl     = 300
+
+  records = [
+    "v=spf1 -all"  # SPF record indicating no mail servers
+  ]
+}
+
+# Output the name servers
+output "nameservers" {
+  value = aws_route53_zone.main.name_servers
 }
 
 ###S3 BUCKET
@@ -102,7 +155,7 @@ resource "aws_cloudfront_origin_access_identity" "oai" {
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
-  depends_on          = [aws_acm_certificate_validation.cert]
+  depends_on = [aws_acm_certificate_validation.cert]
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "CloudFront distribution for my S3 bucket"
