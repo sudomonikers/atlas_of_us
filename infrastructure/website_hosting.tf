@@ -66,16 +66,21 @@ resource "aws_route53_record" "mx" {
   ]
 }
 
-# Create TXT record for domain verification
-resource "aws_route53_record" "txt" {
+### TXT Records for Domain Ownership Verification
+resource "aws_route53_record" "txt_apex" {
+  name    = "_.${local.website_name}"
   zone_id = aws_route53_zone.main.zone_id
-  name    = local.website_name
+  ttl     = 900
   type    = "TXT"
-  ttl     = 300
+  records = ["${aws_cloudfront_distribution.cdn.domain_name}_cname.${local.website_name}"]
+}
 
-  records = [
-    "v=spf1 -all"  # SPF record indicating no mail servers
-  ]
+resource "aws_route53_record" "txt_wildcard" {
+  name    = "_*.${local.website_name}"
+  zone_id = aws_route53_zone.main.zone_id
+  ttl     = 900
+  type    = "TXT"
+  records = [aws_cloudfront_distribution.cdn.domain_name]
 }
 
 # Output the name servers
