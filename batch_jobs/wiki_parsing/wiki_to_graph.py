@@ -26,7 +26,7 @@ def run_inference_on_llama_cpp(data):
             },
             {
                 "role": "user",
-                "content": data['title']
+                "content": data['title'] + ' - ' + data['text'][:200] + '...'
             }
         ]
     }
@@ -72,15 +72,15 @@ if __name__ == '__main__':
         resp = ai_response['choices'][0]['message']['content']
         print(data['title'], resp)
         match True:
-            case _ if resp.startswith("KNOWLEDGE_BASE"):
+            case _ if resp.rstrip().endswith("KNOWLEDGE_BASE"):
                 dest = os.path.join("./is_kb", entry.name)
                 shutil.copy(entry.path, dest)
                 print("KNOWLEDGE_BASE - Copied file to ./is_kb")
-            case _ if resp.startswith("PURSUIT"):
+            case _ if resp.rstrip().endswith("PURSUIT"):
                 dest = os.path.join("./is_pursuit", entry.name)
                 shutil.copy(entry.path, dest)
                 print("PURSUIT - Copied file to ./is_pursuit")
-            case _ if resp.startswith("NEITHER"):
+            case _ if resp.rstrip().endswith("NEITHER"):
                 print("NEITHER - No action taken")
             case _:
                 print(f"Unexpected response: {resp}")

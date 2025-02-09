@@ -24,12 +24,12 @@ Your task is to respond with:
 - "PURSUIT" if the title represents a general activity or occupation
 - "NEITHER" if it fits neither category
 
-your response should be followed up with an explanation. So your response would look like:
-KNOWLEDGE_BASE - ...
+Your response should start with an explanation, then end with the corresponding key word. So your response would look like:
+... - KNOWLEDGE_BASE
 or
-PURSUIT - ...
+... - PURSUIT
 or 
-NEITHER - ...
+... - NEITHER
 
 Example classifications:
 Knowledge Base examples:
@@ -61,4 +61,4 @@ Neither examples:
 "Mona Lisa" -> "NEITHER"
 "COVID-19" -> "NEITHER"
 
-Please remember we ONLY want general things, nothing specific at all.
+Please remember we ONLY want general things, nothing specific at all. People are none of these things. And remember, many of these will be neither a knowledge base nor a pursuit, only classify something as one of those two if it definitely fits the category. Keep in mind we will be using the very last word you write in our code to perform some action, so if something is a KNOWLEDGE_BASE then the very last word of you response should be KNOWLEDGE_BASE. Do NOT end your response with one of the keywords if it is not that key word.
