@@ -95,51 +95,51 @@ MERGE (veins)-[:CONTAINS]->(elasticTissue)
 
 // Conditions/Variations at System Level
 MERGE (hypertension {name: 'Hypertension'})
-SET hypertension:Condition:Health:Health, hypertension.description = 'Chronic elevation of blood pressure above 130/80 mmHg',
+SET hypertension:Condition:Health, hypertension.description = 'Chronic elevation of blood pressure above 130/80 mmHg',
     hypertension.affects = 'system-wide',
     hypertension.measurements = ['systolic pressure', 'diastolic pressure']
 
 MERGE (hypotension {name: 'Hypotension'})
-SET hypotension:Condition:Health:Health, hypotension.description = 'Chronic low blood pressure below 90/60 mmHg',
+SET hypotension:Condition:Health, hypotension.description = 'Chronic low blood pressure below 90/60 mmHg',
     hypotension.affects = 'system-wide'
 
 // Heart Conditions
 MERGE (chd {name: 'Coronary Heart Disease'})
-SET chd:Condition:Health:Health, chd.description = 'Narrowing or blockage of coronary arteries due to atherosclerosis'
+SET chd:Condition:Health, chd.description = 'Narrowing or blockage of coronary arteries due to atherosclerosis'
 
 MERGE (arrhythmia {name: 'Cardiac Arrhythmia'})
-SET arrhythmia:Condition:Health:Health, arrhythmia.description = 'Abnormal heart rhythm due to electrical conduction problems',
+SET arrhythmia:Condition:Health, arrhythmia.description = 'Abnormal heart rhythm due to electrical conduction problems',
     arrhythmia.types = ['bradycardia', 'tachycardia', 'fibrillation']
 
 MERGE (heartFailure {name: 'Heart Failure'})
-SET heartFailure:Condition:Health:Health, heartFailure.description = 'Condition where heart cannot pump blood efficiently',
+SET heartFailure:Condition:Health, heartFailure.description = 'Condition where heart cannot pump blood efficiently',
     heartFailure.types = ['systolic', 'diastolic']
 
 MERGE (valveDisease {name: 'Valve Disease'})
-SET valveDisease:Condition:Health:Health, valveDisease.description = 'Dysfunction of heart valves affecting blood flow',
+SET valveDisease:Condition:Health, valveDisease.description = 'Dysfunction of heart valves affecting blood flow',
     valveDisease.types = ['stenosis', 'regurgitation']
 
 // Blood Vessel Conditions
 MERGE (atherosclerosis {name: 'Atherosclerosis'})
-SET atherosclerosis:Condition:Health:Health, atherosclerosis.description = 'Buildup of plaque inside artery walls'
+SET atherosclerosis:Condition:Health, atherosclerosis.description = 'Buildup of plaque inside artery walls'
 
 MERGE (varicoseVeins {name: 'Varicose Veins'})
-SET varicoseVeins:Condition:Health:Health, varicoseVeins.description = 'Enlarged and twisted veins, usually in legs'
+SET varicoseVeins:Condition:Health, varicoseVeins.description = 'Enlarged and twisted veins, usually in legs'
 
 MERGE (aneurysm {name: 'Aneurysm'})
-SET aneurysm:Condition:Health:Health, aneurysm.description = 'Dangerous bulging of vessel wall due to weakness'
+SET aneurysm:Condition:Health, aneurysm.description = 'Dangerous bulging of vessel wall due to weakness'
 
 // Blood Conditions
 MERGE (anemia {name: 'Anemia'})
-SET anemia:Condition:Health:Health, anemia.description = 'Insufficient red blood cells or hemoglobin',
+SET anemia:Condition:Health, anemia.description = 'Insufficient red blood cells or hemoglobin',
     anemia.types = ['iron-deficiency', 'sickle-cell', 'aplastic']
 
 MERGE (leukemia {name: 'Leukemia'})
-SET leukemia:Condition:Health:Health, leukemia.description = 'Cancer of blood-forming tissues',
+SET leukemia:Condition:Health, leukemia.description = 'Cancer of blood-forming tissues',
     leukemia.types = ['acute', 'chronic']
 
 MERGE (hemophilia {name: 'Hemophilia'})
-SET hemophilia:Condition:Health:Health, hemophilia.description = 'Inherited disorder affecting blood\'s ability to clot'
+SET hemophilia:Condition:Health, hemophilia.description = 'Inherited disorder affecting blood\'s ability to clot'
 
 // Connect conditions to appropriate structures
 MERGE (cardio)-[:CAN_HAVE]->(hypertension)
@@ -158,17 +158,17 @@ MERGE (blood)-[:CAN_HAVE]->(hemophilia)
 
 // Create measurable properties
 MERGE (bloodPressure {name: 'Blood Pressure'})
-SET bloodPressure:Measurement:Health:Health, bloodPressure.description = 'Force of blood against vessel walls',
+SET bloodPressure:Measurement:Health, bloodPressure.description = 'Force of blood against vessel walls',
     bloodPressure.units = 'mmHg',
     bloodPressure.normalRange = '90/60 - 120/80'
 
 MERGE (heartRate {name: 'Heart Rate'})
-SET heartRate:Measurement:Health:Health, heartRate.description = 'Number of heartbeats per minute',
+SET heartRate:Measurement:Health, heartRate.description = 'Number of heartbeats per minute',
     heartRate.units = 'bpm',
     heartRate.normalRange = '60-100'
 
 MERGE (ejectionFraction {name: 'Ejection Fraction'})
-SET ejectionFraction:Measurement:Health:Health, ejectionFraction.description = 'Percentage of blood pumped out of ventricles with each contraction',
+SET ejectionFraction:Measurement:Health, ejectionFraction.description = 'Percentage of blood pumped out of ventricles with each contraction',
     ejectionFraction.units = 'percentage',
     ejectionFraction.normalRange = '55-70'
 
