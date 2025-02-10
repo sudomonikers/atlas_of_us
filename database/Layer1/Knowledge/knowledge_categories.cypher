@@ -1,0 +1,10 @@
+MATCH (n:CoreDomain {name: 'Knowledge'})
+
+MERGE (s:Knowledge:L1 {name: 'Factual', description: 'Concrete, verifiable information and data'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Conceptual', description: 'Understanding of theories, models, and abstract frameworks'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Procedural', description: 'Understanding of how to perform tasks and processes'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Experiential', description: 'Understanding gained through direct experience and practice'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Cultural', description: 'Understanding of human societies, practices, and beliefs'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Systems', description: 'Understanding of complex interconnected systems and their behaviors'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Meta', description: 'Knowledge about knowledge itself and how to manage it'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Knowledge:L1 {name: 'Contextual', description: 'Understanding of when and where to apply different types of knowledge'})-[:IS_SUB_TYPE]->(n)

@@ -1,0 +1,11 @@
+MATCH (n:CoreDomain {name: 'Skills'})
+
+MERGE (s:Skills:L1 {name: 'Cognitive', description: 'Core mental capabilities for processing and analyzing information'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Communication', description: 'Abilities related to information exchange and expression'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Social', description: 'Capabilities for understanding and navigating human relationships'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Physical', description: 'Abilities related to physical movement and body control'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Creative', description: 'Abilities related to generating novel ideas and expressions'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Meta', description: 'Skills related to managing and improving other skills'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Practical', description: 'Concrete abilities needed for daily functioning'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Perceptual', description: 'Refined sensory abilities and discrimination'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Skills:L1 {name: 'Integrative', description: 'Complex abilities that emerge from combining multiple skill domains'})-[:IS_SUB_TYPE]->(n)

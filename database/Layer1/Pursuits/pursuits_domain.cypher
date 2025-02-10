@@ -1,0 +1,10 @@
+MATCH (n:CoreDomain {name: 'Pursuits'})
+
+MERGE (s:Pursuits:L1 {name: 'Social', description: 'Activities focused on building and maintaining relationships, engaging with communities, and participating in social interactions'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Professional', description: 'Activities related to career development, work responsibilities, and professional growth within chosen fields'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Physical', description: 'Activities involving bodily movement, exercise, sports, and physical wellness maintenance'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Leisure', description: 'Recreational activities pursued for enjoyment, relaxation, and personal satisfaction during free time'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Intellectual', description: 'Activities focused on learning, academic growth, critical thinking, and expanding mental capabilities'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Financial', description: 'Activities related to managing money, investments, budgeting, and building financial security'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Creative', description: 'Activities involving artistic expression, innovation, and the generation of original ideas or works'})-[:IS_SUB_TYPE]->(n)
+MERGE (s:Pursuits:L1 {name: 'Practical', description: 'Activities focused on maintaining daily life, solving everyday problems, and developing life skills'})-[:IS_SUB_TYPE]->(n)
