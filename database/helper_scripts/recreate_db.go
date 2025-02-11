@@ -118,6 +118,7 @@ func main() {
 	err = driver.VerifyConnectivity(ctx)
 	if err != nil {
 		fmt.Printf("Failed to verify connectivity: %v", err)
+		return
 	}
 
 	fmt.Println("Connection established.")
