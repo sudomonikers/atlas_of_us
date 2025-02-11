@@ -1,16 +1,16 @@
 MATCH (i {name: 'Intrinsic'})
 
 MERGE (h {name: 'Height'})
-SET h:Intrinsic:L1,
+SET h:Intrinsic:L1:Trait,
     h.description = 'Length of human from the bottom of the feet to the top of the head in cm.'
-MERGE (i)-[:HAS_TRAIT]->(h)
+MERGE (h)-[:IS_TRAIT_TYPE]->(i)
 
 MERGE (g {name: 'Gender'})
-SET g:Intrinsic:L1,
+SET g:Intrinsic:L1:Trait,
     g.description = 'Sex of the individual.'
-MERGE (i)-[:HAS_TRAIT]->(g)
+MERGE (g)-[:IS_TRAIT_TYPE]->(i)
 
 MERGE (b {name: 'Birthday'})
-SET b:Intrinsic:L1,
+SET b:Intrinsic:L1:Trait,
     b.description = 'Date of birth in YYYY-MM-DD format.'
-MERGE (i)-[:HAS_TRAIT]->(b)
+MERGE (b)-[:IS_TRAIT_TYPE]->(i)
