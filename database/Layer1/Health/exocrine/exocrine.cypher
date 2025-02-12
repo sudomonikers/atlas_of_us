@@ -1,143 +1,109 @@
 // Main System Node
-MERGE (exocrine {name: 'Exocrine System'})
-SET exocrine:System,
-    exocrine.description = 'System of glands that secrete substances through ducts to specific target locations'
+MATCH (exocrine {name: 'Exocrine System'})
 
 // Major Gland Categories
 MERGE (sweatGlands {name: 'Sweat Glands'})
-SET sweatGlands:Organ:Health,
+SET sweatGlands:L1:Health:Organ,
     sweatGlands.description = 'Glands in skin that produce and secrete sweat for temperature regulation and waste removal'
 
 MERGE (salivaryGlands {name: 'Salivary Glands'})
-SET salivaryGlands:Organ:Health,
+SET salivaryGlands:L1:Health:Organ,
     salivaryGlands.description = 'Glands that produce and secrete saliva for digestion and oral health'
 
 MERGE (mammaryGlands {name: 'Mammary Glands'})
-SET mammaryGlands:Organ:Health,
+SET mammaryGlands:L1:Health:Organ,
     mammaryGlands.description = 'Specialized glands that produce and secrete milk'
 
 MERGE (digestiveGlands {name: 'Digestive Glands'})
-SET digestiveGlands:Organ:Health,
+SET digestiveGlands:L1:Health:Organ,
     digestiveGlands.description = 'Glands that secrete substances for digestion'
 
 MERGE (mucousGlands {name: 'Mucous Glands'})
-SET mucousGlands:Organ:Health,
+SET mucousGlands:L1:Health:Organ,
     mucousGlands.description = 'Glands that produce and secrete mucus throughout various body systems'
 
 MERGE (sebaceousGlands {name: 'Sebaceous Glands'})
-SET sebaceousGlands:Organ:Health,
+SET sebaceousGlands:L1:Health:Organ,
     sebaceousGlands.description = 'Glands that produce and secrete sebum to lubricate and protect skin and hair'
+
+// Connect major glands to system
+MERGE (sweatGlands)-[:MAKES_UP]->(exocrine)
+MERGE (salivaryGlands)-[:MAKES_UP]->(exocrine)
+MERGE (mammaryGlands)-[:MAKES_UP]->(exocrine)
+MERGE (digestiveGlands)-[:MAKES_UP]->(exocrine)
+MERGE (mucousGlands)-[:MAKES_UP]->(exocrine)
+MERGE (sebaceousGlands)-[:MAKES_UP]->(exocrine)
 
 // Specific Gland Types
 MERGE (eccrineGlands {name: 'Eccrine Sweat Glands'})
-SET eccrineGlands:Structure:Health,
+SET eccrineGlands:L1:Health:Structure,
     eccrineGlands.description = 'Primary sweat glands distributed throughout the body'
 
 MERGE (apocrineGlands {name: 'Apocrine Sweat Glands'})
-SET apocrineGlands:Structure:Health,
+SET apocrineGlands:L1:Health:Structure,
     apocrineGlands.description = 'Specialized sweat glands in armpits and groin areas'
 
 MERGE (parotidGlands {name: 'Parotid Glands'})
-SET parotidGlands:Structure:Health,
+SET parotidGlands:L1:Health:Structure,
     parotidGlands.description = 'Largest salivary glands located in front of ears'
 
 MERGE (submandibularGlands {name: 'Submandibular Glands'})
-SET submandibularGlands:Structure:Health,
+SET submandibularGlands:L1:Health:Structure,
     submandibularGlands.description = 'Salivary glands located beneath the floor of mouth'
 
 MERGE (sublingualGlands {name: 'Sublingual Glands'})
-SET sublingualGlands:Structure:Health,
+SET sublingualGlands:L1:Health:Structure,
     sublingualGlands.description = 'Smallest of the major salivary glands located under the tongue'
+
+// Connect specific glands to major glands
+MERGE (eccrineGlands)-[:MAKES_UP]->(sweatGlands)
+MERGE (apocrineGlands)-[:MAKES_UP]->(sweatGlands)
+MERGE (parotidGlands)-[:MAKES_UP]->(salivaryGlands)
+MERGE (submandibularGlands)-[:MAKES_UP]->(salivaryGlands)
+MERGE (sublingualGlands)-[:MAKES_UP]->(salivaryGlands)
 
 // Secretory Components
 MERGE (saliva {name: 'Saliva'})
-SET saliva:Component:Health,
+SET saliva:L1:Health:Component,
     saliva.description = 'Fluid containing enzymes and lubricants for digestion and oral health'
 
 MERGE (sweat {name: 'Sweat'})
-SET sweat:Component:Health,
+SET sweat:L1:Health:Component,
     sweat.description = 'Watery fluid containing salts and waste products'
 
 MERGE (sebum {name: 'Sebum'})
-SET sebum:Component:Health,
+SET sebum:L1:Health:Component,
     sebum.description = 'Oily substance that lubricates and waterproofs skin and hair'
 
 MERGE (mucus {name: 'Mucus'})
-SET mucus:Component:Health,
+SET mucus:L1:Health:Component,
     mucus.description = 'Sticky fluid that traps particles and moistens surfaces'
 
 MERGE (milk {name: 'Breast Milk'})
-SET milk:Component:Health,
+SET milk:L1:Health:Component,
     milk.description = 'Nutrient-rich fluid produced by mammary glands'
+
+// Connect components to glands
+MERGE (saliva)-[:MAKES_UP]->(salivaryGlands)
+MERGE (sweat)-[:MAKES_UP]->(sweatGlands)
+MERGE (sebum)-[:MAKES_UP]->(sebaceousGlands)
+MERGE (mucus)-[:MAKES_UP]->(mucousGlands)
+MERGE (milk)-[:MAKES_UP]->(mammaryGlands)
 
 // Tissues
 MERGE (secretoryEpithelium {name: 'Secretory Epithelium'})
-SET secretoryEpithelium:Tissue:Health,
+SET secretoryEpithelium:L1:Health:Tissue,
     secretoryEpithelium.description = 'Specialized tissue that produces secretions'
 
 MERGE (ductTissue {name: 'Duct Tissue'})
-SET ductTissue:Tissue:Health,
+SET ductTissue:L1:Health:Tissue,
     ductTissue.description = 'Tissue forming channels for secretion transport'
 
 MERGE (myoepithelialTissue {name: 'Myoepithelial Tissue'})
-SET myoepithelialTissue:Tissue:Health,
+SET myoepithelialTissue:L1:Health:Tissue,
     myoepithelialTissue.description = 'Contractile tissue that helps expel secretions'
 
-// Connect structures to organs
-MERGE (exocrine)-[:CONTAINS]->(sweatGlands)
-MERGE (exocrine)-[:CONTAINS]->(salivaryGlands)
-MERGE (exocrine)-[:CONTAINS]->(mammaryGlands)
-MERGE (exocrine)-[:CONTAINS]->(digestiveGlands)
-MERGE (exocrine)-[:CONTAINS]->(mucousGlands)
-MERGE (exocrine)-[:CONTAINS]->(sebaceousGlands)
-
-MERGE (sweatGlands)-[:CONTAINS]->(eccrineGlands)
-MERGE (sweatGlands)-[:CONTAINS]->(apocrineGlands)
-MERGE (salivaryGlands)-[:CONTAINS]->(parotidGlands)
-MERGE (salivaryGlands)-[:CONTAINS]->(submandibularGlands)
-MERGE (salivaryGlands)-[:CONTAINS]->(sublingualGlands)
-
-// Connect secretions to glands
-MERGE (salivaryGlands)-[:PRODUCES]->(saliva)
-MERGE (sweatGlands)-[:PRODUCES]->(sweat)
-MERGE (sebaceousGlands)-[:PRODUCES]->(sebum)
-MERGE (mucousGlands)-[:PRODUCES]->(mucus)
-MERGE (mammaryGlands)-[:PRODUCES]->(milk)
-
 // Connect tissues to glands
-MERGE (salivaryGlands)-[:CONTAINS]->(secretoryEpithelium)
-MERGE (salivaryGlands)-[:CONTAINS]->(ductTissue)
-MERGE (salivaryGlands)-[:CONTAINS]->(myoepithelialTissue)
-
-// Sample Conditions
-MERGE (hyperhidrosis {name: 'Hyperhidrosis'})
-SET hyperhidrosis:Condition:Health,
-    hyperhidrosis.description = 'Excessive sweating beyond normal thermoregulatory needs'
-
-MERGE (xerostomia {name: 'Xerostomia'})
-SET xerostomia:Condition:Health,
-    xerostomia.description = 'Abnormal dryness of the mouth due to reduced saliva production'
-
-MERGE (acne {name: 'Acne'})
-SET acne:Condition:Health,
-    acne.description = 'Skin condition involving blocked sebaceous glands'
-
-// Connect conditions
-MERGE (sweatGlands)-[:CAN_HAVE]->(hyperhidrosis)
-MERGE (salivaryGlands)-[:CAN_HAVE]->(xerostomia)
-MERGE (sebaceousGlands)-[:CAN_HAVE]->(acne)
-
-// Measurements
-MERGE (secretionRate {name: 'Secretion Rate'})
-SET secretionRate:Measurement:Health,
-    secretionRate.description = 'Volume of secretion produced per unit time',
-    secretionRate.units = 'mL/min'
-
-MERGE (secretionPH {name: 'Secretion pH'})
-SET secretionPH:Measurement:Health,
-    secretionPH.description = 'Acid-base balance of secretions',
-    secretionPH.units = 'pH'
-
-// Connect measurements
-MERGE (exocrine)-[:HAS_MEASUREMENT]->(secretionRate)
-MERGE (exocrine)-[:HAS_MEASUREMENT]->(secretionPH)
+MERGE (secretoryEpithelium)-[:MAKES_UP]->(salivaryGlands)
+MERGE (ductTissue)-[:MAKES_UP]->(salivaryGlands)
+MERGE (myoepithelialTissue)-[:MAKES_UP]->(salivaryGlands)

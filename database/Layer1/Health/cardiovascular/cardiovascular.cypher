@@ -54,74 +54,52 @@ SET conductionSystem:L1:Structure:Health,
     conductionSystem.description = 'Electrical system that coordinates heart contractions'
 
 // Connect heart components
-MERGE (heart)-[:CONTAINS]->(leftAtrium)
-MERGE (heart)-[:CONTAINS]->(rightAtrium)
-MERGE (heart)-[:CONTAINS]->(leftVentricle)
-MERGE (heart)-[:CONTAINS]->(rightVentricle)
-MERGE (heart)-[:CONTAINS]->(heartValves)
-MERGE (heart)-[:CONTAINS]->(cardiacMuscle)
-MERGE (heart)-[:CONTAINS]->(conductionSystem)
+MERGE (leftAtrium)-[:MAKES_UP]->(heart)
+MERGE (rightAtrium)-[:MAKES_UP]->(heart)
+MERGE (leftVentricle)-[:MAKES_UP]->(heart)
+MERGE (rightVentricle)-[:MAKES_UP]->(heart)
+MERGE (heartValves)-[:MAKES_UP]->(heart)
+MERGE (cardiacMuscle)-[:MAKES_UP]->(heart)
+MERGE (conductionSystem)-[:MAKES_UP]->(heart)
 
 // Blood and its components
 MERGE (blood {name: 'Blood'})
-SET blood:Tissue:Health, blood.description = 'Fluid tissue that transports oxygen, nutrients, hormones, and waste throughout the body'
+SET blood:L1:Tissue:Health, blood.description = 'Fluid tissue that transports oxygen, nutrients, hormones, and waste throughout the body'
 
 MERGE (redCells {name: 'Red Blood Cells'})
-SET redCells:Component:Health, redCells.description = 'Blood cells responsible for oxygen transport'
+SET redCells:L1:Component:Health, redCells.description = 'Blood cells responsible for oxygen transport'
 
 MERGE (whiteCells {name: 'White Blood Cells'})
-SET whiteCells:Component:Health, whiteCells.description = 'Blood cells responsible for immune defense'
+SET whiteCells:L1:Component:Health, whiteCells.description = 'Blood cells responsible for immune defense'
 
 MERGE (platelets {name: 'Platelets'})
-SET platelets:Component:Health, platelets.description = 'Cell fragments essential for blood clotting'
+SET platelets:L1:Component:Health, platelets.description = 'Cell fragments essential for blood clotting'
 
 MERGE (plasma {name: 'Plasma'})
-SET plasma:Component:Health, plasma.description = 'Liquid component of blood that carries cells, proteins, and other substances'
+SET plasma:L1:Component:Health, plasma.description = 'Liquid component of blood that carries cells, proteins, and other substances'
 
 // Connect blood components
-MERGE (cardio)-[:CONTAINS]->(blood)
-MERGE (blood)-[:COMPOSED_OF]->(redCells)
-MERGE (blood)-[:COMPOSED_OF]->(whiteCells)
-MERGE (blood)-[:COMPOSED_OF]->(platelets)
-MERGE (blood)-[:COMPOSED_OF]->(plasma)
+MERGE (blood)-[:MAKES_UP]->(cardio)
+MERGE (redCells)-[:MAKES_UP]->(blood)
+MERGE (whiteCells)-[:MAKES_UP]->(blood)
+MERGE (platelets)-[:MAKES_UP]->(blood)
+MERGE (plasma)-[:MAKES_UP]->(blood)
 
 // Vessel Wall Tissues
 MERGE (endothelium {name: 'Endothelium'})
-SET endothelium:Tissue:Health, endothelium.description = 'Inner lining of blood vessels that regulates exchange and blood flow'
+SET endothelium:L1:Tissue:Health, endothelium.description = 'Inner lining of blood vessels that regulates exchange and blood flow'
 
 MERGE (smoothMuscle {name: 'Vascular Smooth Muscle'})
-SET smoothMuscle:Tissue:Health, smoothMuscle.description = 'Muscle tissue in vessel walls that controls vessel diameter'
+SET smoothMuscle:L1:Tissue:Health, smoothMuscle.description = 'Muscle tissue in vessel walls that controls vessel diameter'
 
 MERGE (elasticTissue {name: 'Elastic Tissue'})
-SET elasticTissue:Tissue:Health, elasticTissue.description = 'Flexible tissue in vessel walls that maintains blood pressure'
+SET elasticTissue:L1:Tissue:Health, elasticTissue.description = 'Flexible tissue in vessel walls that maintains blood pressure'
 
 // Connect vessel tissues to structures
-MERGE (arteries)-[:CONTAINS]->(endothelium)
-MERGE (arteries)-[:CONTAINS]->(smoothMuscle)
-MERGE (arteries)-[:CONTAINS]->(elasticTissue)
-MERGE (veins)-[:CONTAINS]->(endothelium)
-MERGE (veins)-[:CONTAINS]->(smoothMuscle)
-MERGE (veins)-[:CONTAINS]->(elasticTissue)
+MERGE (endothelium)-[:MAKES_UP]->(arteries)
+MERGE (smoothMuscle)-[:MAKES_UP]->(arteries)
+MERGE (elasticTissue)-[:MAKES_UP]->(arteries)
+MERGE (endothelium)-[:MAKES_UP]->(veins)
+MERGE (smoothMuscle)-[:MAKES_UP]->(veins)
+MERGE (elasticTissue)-[:MAKES_UP]->(veins)
 
-
-
-// Create measurable properties
-MERGE (bloodPressure {name: 'Blood Pressure'})
-SET bloodPressure:Measurement:Health, bloodPressure.description = 'Force of blood against vessel walls',
-    bloodPressure.units = 'mmHg',
-    bloodPressure.normalRange = '90/60 - 120/80'
-
-MERGE (heartRate {name: 'Heart Rate'})
-SET heartRate:Measurement:Health, heartRate.description = 'Number of heartbeats per minute',
-    heartRate.units = 'bpm',
-    heartRate.normalRange = '60-100'
-
-MERGE (ejectionFraction {name: 'Ejection Fraction'})
-SET ejectionFraction:Measurement:Health, ejectionFraction.description = 'Percentage of blood pumped out of ventricles with each contraction',
-    ejectionFraction.units = 'percentage',
-    ejectionFraction.normalRange = '55-70'
-
-// Connect measurements to appropriate structures
-MERGE (cardio)-[:HAS_MEASUREMENT]->(bloodPressure)
-MERGE (heart)-[:HAS_MEASUREMENT]->(heartRate)
-MERGE (heart)-[:HAS_MEASUREMENT]->(ejectionFraction)

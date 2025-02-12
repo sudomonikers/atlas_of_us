@@ -1,116 +1,76 @@
 // Main System Node
 MERGE (respiratory {name: 'Respiratory System'})
-SET respiratory:System, respiratory.description = 'System responsible for gas exchange between the body and external environment, primarily oxygen intake and carbon dioxide removal'
+SET respiratory:L1:Health:System,
+    respiratory.description = 'System responsible for gas exchange between the body and external environment, primarily oxygen intake and carbon dioxide removal'
 
 // Major Organs and Structures
 MERGE (lungs {name: 'Lungs'})
-SET lungs:Organ:Health, lungs.description = 'Pair of organs responsible for gas exchange, consisting of millions of tiny air sacs called alveoli'
+SET lungs:L1:Health:Organ,
+    lungs.description = 'Pair of organs responsible for gas exchange, consisting of millions of tiny air sacs called alveoli'
 
 MERGE (upperAirway {name: 'Upper Airway'})
-SET upperAirway:Structure:Health, upperAirway.description = 'Series of passages in the nose, mouth, and throat that filter, warm, and humidify incoming air'
+SET upperAirway:L1:Health:Structure,
+    upperAirway.description = 'Series of passages in the nose, mouth, and throat that filter, warm, and humidify incoming air'
 
 MERGE (lowerAirway {name: 'Lower Airway'})
-SET lowerAirway:Structure:Health, lowerAirway.description = 'Airways below the larynx including the trachea, bronchi, and bronchioles'
+SET lowerAirway:L1:Health:Structure,
+    lowerAirway.description = 'Airways below the larynx including the trachea, bronchi, and bronchioles'
 
 MERGE (diaphragm {name: 'Diaphragm'})
-SET diaphragm:Organ:Health, diaphragm.description = 'Primary muscle of respiration that contracts and relaxes to facilitate breathing'
+SET diaphragm:L1:Health:Organ,
+    diaphragm.description = 'Primary muscle of respiration that contracts and relaxes to facilitate breathing'
 
 // Connect major structures to system
-MERGE (respiratory)-[:CONTAINS]->(lungs)
-MERGE (respiratory)-[:CONTAINS]->(upperAirway)
-MERGE (respiratory)-[:CONTAINS]->(lowerAirway)
-MERGE (respiratory)-[:CONTAINS]->(diaphragm)
+MERGE (lungs)-[:MAKES_UP]->(respiratory)
+MERGE (upperAirway)-[:MAKES_UP]->(respiratory)
+MERGE (lowerAirway)-[:MAKES_UP]->(respiratory)
+MERGE (diaphragm)-[:MAKES_UP]->(respiratory)
 
 // Upper Airway Components
 MERGE (nasalCavity {name: 'Nasal Cavity'})
-SET nasalCavity:Structure:Health, nasalCavity.description = 'Air passage behind the nose containing structures that filter, warm, and humidify air'
+SET nasalCavity:L1:Health:Structure,
+    nasalCavity.description = 'Air passage behind the nose containing structures that filter, warm, and humidify air'
 
 MERGE (pharynx {name: 'Pharynx'})
-SET pharynx:Structure:Health, pharynx.description = 'Throat region that connects nasal and oral cavities to larynx'
+SET pharynx:L1:Health:Structure,
+    pharynx.description = 'Throat region that connects nasal and oral cavities to larynx'
 
 MERGE (larynx {name: 'Larynx'})
-SET larynx:Structure:Health, larynx.description = 'Voice box containing vocal cords and protecting the entrance to lower airways'
+SET larynx:L1:Health:Structure,
+    larynx.description = 'Voice box containing vocal cords and protecting the entrance to lower airways'
 
 // Connect upper airway components
-MERGE (upperAirway)-[:CONTAINS]->(nasalCavity)
-MERGE (upperAirway)-[:CONTAINS]->(pharynx)
-MERGE (upperAirway)-[:CONTAINS]->(larynx)
+MERGE (nasalCavity)-[:MAKES_UP]->(upperAirway)
+MERGE (pharynx)-[:MAKES_UP]->(upperAirway)
+MERGE (larynx)-[:MAKES_UP]->(upperAirway)
 
 // Lower Airway Components
 MERGE (trachea {name: 'Trachea'})
-SET trachea:Structure:Health, trachea.description = 'Windpipe connecting larynx to bronchi, reinforced with cartilage rings'
+SET trachea:L1:Health:Structure,
+    trachea.description = 'The main trunk of the respiratory system, extending from the larynx to the bronchi'
 
 MERGE (bronchi {name: 'Bronchi'})
-SET bronchi:Structure:Health, bronchi.description = 'Large airways that branch from trachea into each lung'
+SET bronchi:L1:Health:Structure,
+    bronchi.description = 'The two main branches of the trachea that lead into the lungs, providing a passageway for air'
 
 MERGE (bronchioles {name: 'Bronchioles'})
-SET bronchioles:Structure:Health, bronchioles.description = 'Smaller airways that branch from bronchi and end in alveoli'
-
-MERGE (alveoli {name: 'Alveoli'})
-SET alveoli:Structure:Health, alveoli.description = 'Tiny air sacs where gas exchange occurs between air and blood'
+SET bronchioles:L1:Health:Structure,
+    bronchioles.description = 'Small branches of the bronchi within the lungs that conduct air to the alveoli'
 
 // Connect lower airway components
-MERGE (lowerAirway)-[:CONTAINS]->(trachea)
-MERGE (lowerAirway)-[:CONTAINS]->(bronchi)
-MERGE (lowerAirway)-[:CONTAINS]->(bronchioles)
-MERGE (lungs)-[:CONTAINS]->(alveoli)
+MERGE (trachea)-[:MAKES_UP]->(lowerAirway)
+MERGE (bronchi)-[:MAKES_UP]->(lowerAirway)
+MERGE (bronchioles)-[:MAKES_UP]->(lowerAirway)
 
-// Tissues
-MERGE (respiratoryMembrane {name: 'Respiratory Membrane'})
-SET respiratoryMembrane:Tissue:Health, respiratoryMembrane.description = 'Thin tissue layer in alveoli where gas exchange occurs'
+// Lung Components
+MERGE (alveoli {name: 'Alveoli'})
+SET alveoli:L1:Health:Structure,
+    alveoli.description = 'Tiny air sacs in the lungs where gas exchange occurs'
 
-MERGE (cilliatedEpithelium {name: 'Cilliated Epithelium'})
-SET cilliatedEpithelium:Tissue:Health, cilliatedEpithelium.description = 'Specialized tissue with hair-like projections that move mucus and trapped particles up and out of airways'
+MERGE (pleura {name: 'Pleura'})
+SET pleura:L1:Health:Structure,
+    pleura.description = 'The double-layered membrane surrounding the lungs, protecting and lubricating them during breathing'
 
-MERGE (smoothMuscle {name: 'Airway Smooth Muscle'})
-SET smoothMuscle:Tissue:Health, smoothMuscle.description = 'Muscle tissue that can constrict or dilate airways to control airflow'
-
-// Connect tissues to structures
-MERGE (alveoli)-[:CONTAINS]->(respiratoryMembrane)
-MERGE (bronchi)-[:CONTAINS]->(cilliatedEpithelium)
-MERGE (bronchioles)-[:CONTAINS]->(cilliatedEpithelium)
-MERGE (bronchi)-[:CONTAINS]->(smoothMuscle)
-MERGE (bronchioles)-[:CONTAINS]->(smoothMuscle)
-
-// Measurements
-MERGE (respiratoryRate {name: 'Respiratory Rate'})
-SET respiratoryRate:Measurement:Health, respiratoryRate.description = 'Number of breaths taken per minute',
-    respiratoryRate.units = 'breaths per minute',
-    respiratoryRate.normalRange = '12-20'
-
-MERGE (tidalVolume {name: 'Tidal Volume'})
-SET tidalVolume:Measurement:Health, tidalVolume.description = 'Amount of air moved in and out of lungs during normal breathing',
-    tidalVolume.units = 'mL',
-    tidalVolume.normalRange = '4-8 mL/kg'
-
-MERGE (oxygenSaturation {name: 'Oxygen Saturation'})
-SET oxygenSaturation:Measurement:Health, oxygenSaturation.description = 'Percentage of oxygen-saturated hemoglobin relative to total hemoglobin in blood',
-    oxygenSaturation.units = 'percentage',
-    oxygenSaturation.normalRange = '95-100'
-
-// Connect measurements
-MERGE (respiratory)-[:HAS_MEASUREMENT]->(respiratoryRate)
-MERGE (lungs)-[:HAS_MEASUREMENT]->(tidalVolume)
-MERGE (respiratory)-[:HAS_MEASUREMENT]->(oxygenSaturation)
-
-// Example Conditions/Variations
-MERGE (asthma {name: 'Asthma'})
-SET asthma:Condition:Health, asthma.description = 'Chronic condition causing airway inflammation and narrowing',
-    asthma.affects = 'airways',
-    asthma.symptoms = ['wheezing', 'shortness of breath', 'chest tightness']
-
-MERGE (emphysema {name: 'Emphysema'})
-SET emphysema:Condition:Health, emphysema.description = 'Condition where alveoli are damaged, reducing gas exchange capacity',
-    emphysema.affects = 'alveoli',
-    emphysema.type = 'chronic obstructive pulmonary disease'
-
-MERGE (pneumonia {name: 'Pneumonia'})
-SET pneumonia:Condition:Health, pneumonia.description = 'Infection causing inflammation of the air sacs in the lungs',
-    pneumonia.affects = 'alveoli',
-    pneumonia.types = ['bacterial', 'viral', 'fungal']
-
-// Connect conditions to structures
-MERGE (bronchi)-[:CAN_HAVE]->(asthma)
-MERGE (bronchioles)-[:CAN_HAVE]->(asthma)
-MERGE (alveoli)-[:CAN_HAVE]->(emphysema)
-MERGE (lungs)-[:CAN_HAVE]->(pneumonia)
+// Connect lung components
+MERGE (alveoli)-[:MAKES_UP]->(lungs)
+MERGE (pleura)-[:MAKES_UP]->(lungs)
