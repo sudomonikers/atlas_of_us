@@ -4,10 +4,10 @@ body {
 }
 
 #three-container {
-  width: 100%; /* Example: 80% of the parent's width */
-  height: 500px; /* Example: Fixed height of 500 pixels */
-  /* Or, to make it take the full height of the viewport: */
-  /* height: 100vh; */
+  position: absolute;
+  width: 100%; 
+  top: 60px;
+  height: calc(100vh - 60px);
 }
 
 .atlas-nav {
@@ -15,6 +15,7 @@ body {
   overflow: hidden;
   position: fixed; /* Stick to the top */
   top: 0;
+  height: 60px;
   width: 100%;
   z-index: 1000; /* Ensure it's on top of other content */
 }
