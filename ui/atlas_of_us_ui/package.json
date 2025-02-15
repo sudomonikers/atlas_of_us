@@ -1,16 +1,21 @@
 {
-  "name": "ui",
+  "name": "atlas_of_us_ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "deploy": "npm run build && aws s3 sync dist/ s3://atlas-of-us-site",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tsconfig/svelte": "^5.0.4",
     "@types/three": "^0.173.0",
+    "svelte": "^5.19.6",
+    "svelte-check": "^4.1.4",
     "typescript": "~5.7.2",
     "vite": "^6.1.0"
   },
