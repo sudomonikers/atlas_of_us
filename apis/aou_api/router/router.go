@@ -51,7 +51,6 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 			knowledge_graph.GET("match-all", handlers.MatchAll)
 			knowledge_graph.GET("match-domain/:domainName", handlers.MatchDomain)
 			knowledge_graph.GET("match-node/:nodeName/:numDescendants", handlers.MatchDescendants)
-
 		}
 
 		pursuits := secureRoutes.Group(("pursuits"))

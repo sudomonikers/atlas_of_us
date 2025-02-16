@@ -15,9 +15,12 @@ func GetAllHealthNodes(c *gin.Context) {
 	}
 
 	result, err := appCtx.NEO4J.ExecuteQuery(`
-		MATCH (n)
-		OPTIONAL MATCH (n)-[r]->(m)
-		RETURN n, collect(r) as relationships
+		MATCH (n:Health)
+        OPTIONAL MATCH (n)-[r]->(m)
+        WITH collect(n) AS nodes, collect(r) AS relationships
+        UNWIND nodes AS node
+        UNWIND relationships AS relationship
+        RETURN collect(DISTINCT node) AS nodes, collect(DISTINCT relationship) AS relationships
 	`, map[string]any{})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
