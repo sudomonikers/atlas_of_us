@@ -10,17 +10,17 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
-	"aou_api/auth"
-	"aou_api/database"
 	docs "aou_api/docs"
-	"aou_api/handlers"
-	"aou_api/handlers/health_handlers"
-	"aou_api/handlers/intrinsic_handlers"
-	"aou_api/handlers/knowledge_bases_handlers"
-	"aou_api/handlers/personality_handlers"
-	"aou_api/handlers/pursuits_handlers"
-	"aou_api/middleware"
-	"aou_api/models"
+	"aou_api/src/auth"
+	"aou_api/src/database"
+	"aou_api/src/handlers"
+	"aou_api/src/handlers/health_handlers"
+	"aou_api/src/handlers/intrinsic_handlers"
+	"aou_api/src/handlers/knowledge_bases_handlers"
+	"aou_api/src/handlers/personality_handlers"
+	"aou_api/src/handlers/pursuits_handlers"
+	"aou_api/src/middleware"
+	"aou_api/src/models"
 )
 
 func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *gin.Engine {

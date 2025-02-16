@@ -1,13 +1,13 @@
-package knowledge_bases_handlers
+package pursuits_handlers
 
 import (
-	"aou_api/models"
+	"aou_api/src/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllKnowledgeBaseNodes(c *gin.Context) {
+func GetAllPursuitsNodes(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

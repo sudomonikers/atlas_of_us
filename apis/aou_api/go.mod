@@ -7,6 +7,8 @@ require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/araujo88/gin-gonic-xss-middleware v0.0.0-20221014023455-d89f16de6a7e // indirect
+	github.com/aws/aws-lambda-go v1.47.0 // indirect
+	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
@@ -32,9 +34,9 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/mailru/easyjson v0.7.6 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/microcosm-cc/bluemonday v1.0.21 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/neo4j/neo4j-go-driver/v5 v5.23.0 // indirect

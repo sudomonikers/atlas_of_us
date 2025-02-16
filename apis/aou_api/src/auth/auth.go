@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"aou_api/models"
+	"aou_api/src/models"
 	"net/http"
 
 	"crypto/rand"

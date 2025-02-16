@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"aou_api/models"
+	"aou_api/src/models"
 	"fmt"
 	"net/http"
 

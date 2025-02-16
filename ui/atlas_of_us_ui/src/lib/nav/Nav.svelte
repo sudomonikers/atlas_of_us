@@ -176,12 +176,6 @@
     left: 0;
     z-index: 1000;
   }
-
-  .route-container {
-    height: calc(100vh - 60px);
-    top: 60px;
-    position: absolute;
-  }
   body {
     display: flex;
     justify-content: center;

@@ -1,13 +1,13 @@
-package personality_handlers
+package knowledge_bases_handlers
 
 import (
-	"aou_api/models"
+	"aou_api/src/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllPersonalityNodes(c *gin.Context) {
+func GetAllKnowledgeBaseNodes(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -15,13 +15,10 @@ func GetAllPersonalityNodes(c *gin.Context) {
 	}
 
 	result, err := appCtx.NEO4J.ExecuteQuery(`
-        MATCH (n:Personality)
-        OPTIONAL MATCH (n)-[r]->(m)
-        WITH collect(n) AS nodes, collect(r) AS relationships
-        UNWIND nodes AS node
-        UNWIND relationships AS relationship
-        RETURN collect(DISTINCT node) AS nodes, collect(DISTINCT relationship) AS relationships
-    `, map[string]any{})
+		MATCH (n)
+		OPTIONAL MATCH (n)-[r]->(m)
+		RETURN n, collect(r) as relationships
+	`, map[string]any{})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"aou_api/auth"
+	"aou_api/src/auth"
 	"net/http"
 	"strings"
 

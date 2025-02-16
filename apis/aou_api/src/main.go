@@ -5,15 +5,21 @@ import (
 	"log"
 	"os"
 
-	"aou_api/database"
-	"aou_api/router"
+	"aou_api/src/database"
+	"aou_api/src/router"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
-func main() {
+var ginLambda *ginadapter.GinLambda
+
+func init() {
 	ctx := context.Background()
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
@@ -36,4 +42,15 @@ func main() {
 	if err := r.Run(":8001"); err != nil {
 		log.Fatal(err)
 	}
+
+	ginLambda = ginadapter.New(r)
+}
+
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// If no name is provided in the HTTP request body, throw an error
+	return ginLambda.ProxyWithContext(ctx, req)
+}
+
+func main() {
+	lambda.Start(Handler)
 }
