@@ -45,10 +45,10 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
 
 # Lambda function (without code)
 resource "aws_lambda_function" "api_lambda" {
-  filename      = "${path.module}/index.zip" # Placeholder empty zip
+  filename      = "${path.module}/bootsrap.zip" # Placeholder empty zip
   function_name = local.lambda_name
   role          = aws_iam_role.lambda_role.arn
-  handler       = "main"
+  handler       = "bootstrap"
   runtime       = "provided.al2023"
   architectures = ["arm64"]
   environment {

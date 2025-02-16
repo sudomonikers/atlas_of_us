@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"aou_api/src/database"
@@ -39,11 +38,11 @@ func init() {
 
 	r := router.NewRouter(logger, db, &ctx)
 
-	if err := r.Run(":8001"); err != nil {
-		log.Fatal(err)
+	if ginMode == gin.ReleaseMode {
+		ginLambda = ginadapter.New(r)
+	} else {
+		r.Run(":8001")
 	}
-
-	ginLambda = ginadapter.New(r)
 }
 
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {

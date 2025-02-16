@@ -8,7 +8,7 @@ ZIP_FILE="bootstrap.zip"
 # Build the Go application for Linux
 echo "Building Go Rest API..."
 mkdir -p bin
-GOOS="linux" GOARCH="amd64" go build -o bin/bootstrap ${GO_SRC_DIR}/*.go
+GOOS="linux" GOARCH="arm64" go build -o bin/bootstrap ${GO_SRC_DIR}/*.go
 
 # Create a zip archive of the binary
 echo "Creating zip archive..."
@@ -21,7 +21,7 @@ echo "Updating Lambda function code..."
 aws lambda update-function-code \
     --function-name ${LAMBDA_FUNCTION_NAME} \
     --zip-file fileb://${ZIP_FILE} \
-    --region ${AWS_REGION}
+    --region ${AWS_REGION} | cat
 
 echo "Lambda function updated successfully."
 
