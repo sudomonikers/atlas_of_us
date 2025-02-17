@@ -58,7 +58,7 @@ resource "aws_lambda_function" "api_lambda" {
       NEO4J_PASSWORD = local.NEO4J_PASSWORD
       NEO4J_DATABASE = local.NEO4J_DATABASE
       GIN_MODE       = "release"
-      ALLOWED_ORIGIN = local.website_name
+      ALLOWED_ORIGIN = "https://${local.website_name}"
       JWT_SECRET_KEY = local.JWT_SECRET_KEY
     }
   }
@@ -80,7 +80,7 @@ resource "aws_api_gateway_rest_api" "api" {
 resource "aws_api_gateway_resource" "resource" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "resource"
+  path_part   = "{proxy+}"
 }
 
 # API Gateway method
@@ -96,7 +96,7 @@ resource "aws_api_gateway_integration" "integration" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.resource.id
   http_method             = aws_api_gateway_method.method.http_method
-  integration_http_method = "ANY"
+  integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.api_lambda.invoke_arn
 }
@@ -121,7 +121,8 @@ resource "aws_iam_policy" "lambda_execution_policy" {
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
-          "logs:PutLogEvents"
+          "logs:PutLogEvents",
+          "lambda:InvokeFunction"
         ],
         Effect   = "Allow",
         Resource = "arn:aws:logs:*:*:*"
