@@ -2,7 +2,7 @@ import { API_BASE } from "../../environment";
 import type {
   Neo4jNode,
   Neo4jRelationship,
-} from "../pages/ThreeScene/node-response.interface";
+} from "../pages/Graph/node-response.interface";
 
 //service class for fetching data and mapping it for ui consumption
 export class HttpService {

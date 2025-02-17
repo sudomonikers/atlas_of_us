@@ -3,7 +3,6 @@
   import { slide } from "svelte/transition";
   import { route, Router, type Route } from "@mateothegreat/svelte5-router";
 
-  import ThreeScene from "../pages/ThreeScene/ThreeScene.svelte";
   import Profile from "../pages/Profile/Profile.svelte";
   import PageNotFound from "../pages/PageNotFound/PageNotFound.svelte";
   import Login from "../pages/Login/Login.svelte";
@@ -21,7 +20,7 @@
   const routes: Route[] = [
     {
       path: "^/$", //base path
-      component: ThreeScene,
+      component: Graph,
     },
     {
       path: ".+",
@@ -97,7 +96,7 @@
           use:route
           onclick={() => (menuOpen = false)}
           target="_blank"
-          href="/"
+          href="/Graph"
           data-text="Atlas Of Us">Atlas Of Us</a
         >
       </li>
@@ -117,15 +116,6 @@
           target="_blank"
           href="/Community"
           data-text="Community">Community</a
-        >
-      </li>
-      <li>
-        <a
-          use:route
-          onclick={() => (menuOpen = false)}
-          target="_blank"
-          href="/Graph"
-          data-text="Explore The Graph">Explore The Graph</a
         >
       </li>
       <li>
