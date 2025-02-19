@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 export interface Neo4jNode {
   Id: number;
   ElementId: string;
@@ -33,4 +35,12 @@ export interface NodeCoordinate {
 
 export interface Neo4jNodeWithMappedPositions extends Neo4jNode {
   coordinates: NodeCoordinate
+}
+
+interface NodeMesh extends THREE.Mesh {
+  graphData: Neo4jNodeWithMappedPositions;
+}
+
+interface RelationshipLine extends THREE.Line {
+  graphData: Neo4jRelationship;
 }
