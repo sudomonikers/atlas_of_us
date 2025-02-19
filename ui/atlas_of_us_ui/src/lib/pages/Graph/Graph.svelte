@@ -13,6 +13,7 @@
 
   import galaxyBackground from "../../../assets/galaxy.jpeg";
   import womanJpg from "../../../assets/woman.jpg";
+  import manPng from "../../../assets/3-muscular-man-csa-images.jpg"
 
   const http = new HttpService();
 
@@ -22,7 +23,6 @@
   let intrinsicsNodes: Neo4jApiResponse;
   let pursuitsNodes: Neo4jApiResponse;
   let skillsNodes: Neo4jApiResponse;
-  let positions: NodeCoordinate[];
 
   let container: HTMLDivElement;
   let scene: THREE.Scene;
@@ -34,6 +34,10 @@
   let resizeObserver: ResizeObserver;
   let loadedImage: HTMLImageElement;
   let loader: THREE.TextureLoader;
+
+  let instancedMesh: THREE.InstancedMesh;
+  const velocities: THREE.Vector3[] = [];
+  const boundarySize = 1500;
 
   //business logic which should be moved to a separate file probably
   async function loadL1Nodes() {
@@ -110,8 +114,9 @@
     });
   }
 
-  async function createParticleEffect(
+  async function createGraphConstellation(
     imagePoints: NodeCoordinate[],
+    sceneLocation: NodeCoordinate,
     graphData?: Neo4jApiResponse
   ): Promise<THREE.Points> {
     const width = loadedImage.width;
@@ -202,6 +207,24 @@
     // Create particle system
     const particleSystem = new THREE.Points(geometry, material);
 
+    // Add click event listener to the container
+    container.addEventListener("click", (event) => {
+      // Calculate mouse position in normalized device coordinates
+      const rect = container.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / container.offsetWidth) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / container.offsetHeight) * 2 + 1;
+
+      // Update the raycaster
+      raycaster.setFromCamera(mouse, camera);
+
+      // Check for intersections with the particle system
+      const intersects = raycaster.intersectObject(particleSystem);
+
+      if (intersects.length > 0) {
+        centerCameraOnMesh(camera, controls, particleSystem);
+      }
+    });
+
     // Store the particle data and image dimensions for later use
     particleSystem.userData = {
       particleData: particleData,
@@ -210,6 +233,7 @@
       imageHeight: height,
     };
 
+    particleSystem.position.set(sceneLocation.x, sceneLocation.y, sceneLocation.z);
     scene.add(particleSystem);
 
     // Adjust camera for the pixel coordinates
@@ -239,51 +263,58 @@
 
   async function mapGraphToImage() {
     const graphData = await loadL1Nodes();
-    const imagePoints = await processImage(womanJpg, 3250, 50);
-    await createParticleEffect(imagePoints, graphData.healthNodes);
-    renderer.setAnimationLoop(animate);
+    const imagePoints = await processImage(womanJpg, 1500, 50);
+    await createGraphConstellation(imagePoints, {x: 0, y: 0, z: -250},  graphData.healthNodes);
+
+    const imagePoints2 = await processImage(manPng, 1500, 50);
+    await createGraphConstellation(imagePoints2, {x: 0, y: 0, z: 250}, graphData.healthNodes);
   }
 
   function loadParticles() {
-    const particleCount = 2500;
-    const sphereGeometry = new THREE.SphereGeometry(2, 8, 8); // Radius, widthSegments, heightSegments
-    //const material = new THREE.MeshBasicMaterial({ color: 0xffffff }); // You can use other materials too
+    const particleCount = 350;
+    const sphereGeometry = new THREE.SphereGeometry(2, 8, 8);
     const material = new THREE.MeshBasicMaterial({ vertexColors: true });
 
-    const instancedMesh = new THREE.InstancedMesh(
+    instancedMesh = new THREE.InstancedMesh(
       sphereGeometry,
       material,
       particleCount
     );
 
-    // Set up dummy object to apply transformations
     const dummy = new THREE.Object3D();
-
-    // Set up colors
     const colors = new Float32Array(particleCount * 3);
 
+    // Initialize all positions relative to (0,0,0)
     for (let i = 0; i < particleCount; i++) {
-      // Random positions
-      dummy.position.x = (Math.random() - 0.5) * particleCount;
-      dummy.position.y = (Math.random() - 0.5) * particleCount;
-      dummy.position.z = (Math.random() - 0.5) * particleCount;
+      // Random positions within boundary
+      dummy.position.set(
+        (Math.random() - 0.5) * boundarySize * 2,
+        (Math.random() - 0.5) * boundarySize * 2,
+        (Math.random() - 0.5) * boundarySize * 2
+      );
 
-      // Optional: Random rotation
+      // Random velocities
+      const velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.25,
+        (Math.random() - 0.5) * 0.25,
+        (Math.random() - 0.5) * 0.25
+      );
+      velocity.multiplyScalar(0.3 + Math.random() * 0.3);
+      velocities.push(velocity);
+
       dummy.rotation.x = Math.random() * Math.PI * 2;
       dummy.rotation.y = Math.random() * Math.PI * 2;
       dummy.rotation.z = Math.random() * Math.PI * 2;
-
-      // Optional: Random scale (to vary sizes a bit)
-      dummy.scale.setScalar(Math.random() * 2 + 1); // Scale between 1 and 3
+      dummy.scale.setScalar(Math.random() * 2 + 1);
 
       dummy.updateMatrix();
       instancedMesh.setMatrixAt(i, dummy.matrix);
 
-      //Color logic
+      // Color logic
       const color = new THREE.Color();
-      const hue = Math.random() * 0.16 + 0.04; // Hue: 0.04 (yellow) to 0.2 (orange)
-      const saturation = Math.random() * 0.3 + 0.7; // Saturation: 0.7 to 1.0
-      const lightness = Math.random() * 0.4 + 0.6; // Lightness: 0.6 to 1.0
+      const hue = Math.random() * 0.16 + 0.04;
+      const saturation = Math.random() * 0.3 + 0.7;
+      const lightness = Math.random() * 0.4 + 0.6;
       color.setHSL(hue, saturation, lightness);
 
       colors[i * 3] = color.r;
@@ -294,10 +325,102 @@
     instancedMesh.instanceMatrix.needsUpdate = true;
     sphereGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
+    // Position the entire instancedMesh at the camera
+    instancedMesh.position.copy(camera.position);
     scene.add(instancedMesh);
   }
 
+  function updateParticles() {
+    const dummy = new THREE.Object3D();
+
+    // Update instancedMesh position to match camera
+    instancedMesh.position.copy(camera.position);
+
+    // Get each instance's matrix
+    for (let i = 0; i < velocities.length; i++) {
+      instancedMesh.getMatrixAt(i, dummy.matrix);
+      dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+
+      // Move based on velocity
+      dummy.position.add(velocities[i]);
+
+      // Wrap around relative to local position (since the whole mesh moves with camera)
+      if (dummy.position.x > boundarySize) dummy.position.x = -boundarySize;
+      if (dummy.position.x < -boundarySize) dummy.position.x = boundarySize;
+      if (dummy.position.y > boundarySize) dummy.position.y = -boundarySize;
+      if (dummy.position.y < -boundarySize) dummy.position.y = boundarySize;
+      if (dummy.position.z > boundarySize) dummy.position.z = -boundarySize;
+      if (dummy.position.z < -boundarySize) dummy.position.z = boundarySize;
+
+      // Update rotation
+      dummy.rotation.x += 0.002;
+      dummy.rotation.y += 0.002;
+
+      dummy.updateMatrix();
+      instancedMesh.setMatrixAt(i, dummy.matrix);
+    }
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+  }
+
+
+
+  
+
   //threejs scene specific things
+  function centerCameraOnMesh(
+    camera: THREE.PerspectiveCamera,
+    controls: OrbitControls,
+    object: THREE.Object3D
+  ) {
+    // Get the bounding box of the object
+    const bbox = new THREE.Box3().setFromObject(object);
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+
+    // Calculate the size of the bounding box
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+
+    // Calculate the distance needed to view the entire object
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+
+    // Create a new position for the camera
+    const targetPosition = new THREE.Vector3(
+      center.x,
+      center.y,
+      center.z + cameraZ * 1.1 // Add 10% padding
+    );
+
+    // Smoothly move the camera to the new position
+    const duration = 1000; // Duration in milliseconds
+    const startPosition = camera.position.clone();
+    const startTarget = controls.target.clone(); // Capture the starting target
+    const startTime = Date.now();
+
+    function updateCamera() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Use an easing function for smooth animation
+      const easeProgress = 1 - Math.cos((progress * Math.PI) / 2);
+
+      camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+      controls.target.lerpVectors(startTarget, center, easeProgress); // Animate the target
+
+      camera.lookAt(center);
+      controls.update();
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCamera);
+      }
+    }
+
+    updateCamera();
+  }
+
   function onMouseMove(event: MouseEvent) {
     // Calculate mouse position in normalized device coordinates
     const rect = container.getBoundingClientRect();
@@ -312,7 +435,9 @@
     }
   }
 
-  function animate() {
+  function animate(delta: number) {
+    updateParticles();
+
     raycaster.setFromCamera(mouse, camera);
 
     // Reset all point sizes and store currently hovered data
@@ -359,7 +484,7 @@
       }
     }
 
-    controls.update();
+    controls.update(delta);
     renderer.render(scene, camera);
   }
 
@@ -384,6 +509,13 @@
     controls.autoRotateSpeed = 0.025;
     controls.minPolarAngle = Math.PI / 3;
     controls.maxPolarAngle = Math.PI / 2;
+
+    //fly controls
+    // controls = new FlyControls(camera, renderer.domElement);
+    // controls.movementSpeed = 100;
+    // controls.rollSpeed = 0.5;
+    // controls.dragToLook = true;
+    // controls.autoForward = false;
 
     //raycaster for capturing mouse movement
     raycaster = new THREE.Raycaster();
@@ -418,6 +550,14 @@
     loadParticles();
 
     mapGraphToImage();
+
+    let lastTime = 0;
+    renderer.setAnimationLoop((time) => {
+      const delta = (time - lastTime) / 1000;
+      lastTime = time;
+
+      animate(delta);
+    });
 
     return () => {
       // Clean up resources
