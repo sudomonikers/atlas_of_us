@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 export interface Neo4jNode {
   Id: number;
@@ -27,6 +28,10 @@ export interface Neo4jApiResponse {
   relationships: Neo4jRelationship[];
 }
 
+export interface GraphData {
+  [key: string]: Neo4jApiResponse
+}
+
 export interface NodeCoordinate {
   x: number;
   y: number;
@@ -35,6 +40,18 @@ export interface NodeCoordinate {
 
 export interface Neo4jNodeWithMappedPositions extends Neo4jNode {
   coordinates: NodeCoordinate
+}
+
+export interface ThreeContext {
+  container: HTMLDivElement;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  renderer: THREE.WebGLRenderer;
+  controls: OrbitControls;
+  raycaster: THREE.Raycaster;
+  mouse: THREE.Vector2;
+  resizeObserver: ResizeObserver;
+  loader: THREE.TextureLoader;
 }
 
 interface NodeMesh extends THREE.Mesh {
