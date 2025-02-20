@@ -13,8 +13,6 @@
   } from "./graph-interfaces.interface";
 
   import galaxyBackground from "../../../assets/galaxy.jpeg";
-  import womanJpg from "../../../assets/woman.jpg";
-  import manPng from "../../../assets/3-muscular-man-csa-images.jpg"
 
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
@@ -31,7 +29,8 @@
     const graphData = await graphUtils.loadL1Nodes();
 
     {
-      const {image, points} = await graphUtils.processImage(womanJpg, 1500, 50);
+      const image = await http.getS3Object('atlas-of-us-general-bucket', 'woman.jpg');
+      const points = await graphUtils.processImage(image, 1500, 50);
       await graphUtils.createGraphConstellation(
         points, 
         {x: 0, y: 0, z: -250}, 
@@ -41,16 +40,16 @@
       );
     }
 
-    {
-      const {image, points} = await graphUtils.processImage(manPng, 1500, 50);
-      await graphUtils.createGraphConstellation(
-        points, 
-        {x: 0, y: 0, z: 250}, 
-        image, 
-        threeContext,
-        graphData.healthNodes
-      );
-    }
+    // {
+    //   const {image, points} = await graphUtils.processImage(manPng, 1500, 50);
+    //   await graphUtils.createGraphConstellation(
+    //     points, 
+    //     {x: 0, y: 0, z: 250}, 
+    //     image, 
+    //     threeContext,
+    //     graphData.healthNodes
+    //   );
+    // }
 
   }
 

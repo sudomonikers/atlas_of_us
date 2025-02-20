@@ -62,7 +62,7 @@ resource "aws_route53_record" "mx" {
   ttl     = 300
 
   records = [
-    "0 ."  # Null MX record indicating no mail server
+    "0 ." # Null MX record indicating no mail server
   ]
 }
 
@@ -90,7 +90,7 @@ output "nameservers" {
 
 ###S3 BUCKET
 resource "aws_s3_bucket" "bucket" {
-  bucket        = local.bucket_name
+  bucket        = local.ui_bucket_name
   force_destroy = true
 }
 
@@ -160,7 +160,7 @@ resource "aws_cloudfront_origin_access_identity" "oai" {
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
-  depends_on = [aws_acm_certificate_validation.cert]
+  depends_on          = [aws_acm_certificate_validation.cert]
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "CloudFront distribution for my S3 bucket"

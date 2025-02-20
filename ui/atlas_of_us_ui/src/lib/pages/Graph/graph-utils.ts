@@ -13,65 +13,51 @@ export class GraphUtils {
   constructor(private httpService: HttpService) {}
 
   async processImage(
-    imageUrl: string,
+    image: HTMLImageElement,
     numPoints: number,
     threshold: number
-  ): Promise<{
-    image: HTMLImageElement,
-    points: { x: number; y: number; z: number }[]
-  }> {
-    return new Promise((resolve) => {
-      const loadedImage = new Image();
-      loadedImage.crossOrigin = "Anonymous";
-      loadedImage.src = imageUrl;
+  ): Promise<{ x: number; y: number; z: number }[]> {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+    canvas.width = image.width;
+    canvas.height = image.height;
+    ctx.drawImage(image, 0, 0);
 
-      loadedImage.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d")!;
-        canvas.width = loadedImage.width;
-        canvas.height = loadedImage.height;
-        ctx.drawImage(loadedImage, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    const edgePixels = [];
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        const edgePixels = [];
+    // Collect dark pixels using original pixel coordinates
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const i = (y * canvas.width + x) * 4;
+        const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
 
-        // Collect dark pixels using original pixel coordinates
-        for (let y = 0; y < canvas.height; y++) {
-          for (let x = 0; x < canvas.width; x++) {
-            const i = (y * canvas.width + x) * 4;
-            const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
-
-            if (brightness < threshold) {
-              edgePixels.push({ x, y });
-            }
-          }
+        if (brightness < threshold) {
+          edgePixels.push({ x, y });
         }
+      }
+    }
 
-        let selectedPixels;
-        if (edgePixels.length > numPoints) {
-          selectedPixels = [];
-          for (let i = 0; i < numPoints; i++) {
-            const randomIndex = Math.floor(Math.random() * edgePixels.length);
-            selectedPixels.push(edgePixels[randomIndex]);
-          }
-        } else {
-          selectedPixels = edgePixels;
-        }
+    let selectedPixels;
+    if (edgePixels.length > numPoints) {
+      selectedPixels = [];
+      for (let i = 0; i < numPoints; i++) {
+        const randomIndex = Math.floor(Math.random() * edgePixels.length);
+        selectedPixels.push(edgePixels[randomIndex]);
+      }
+    } else {
+      selectedPixels = edgePixels;
+    }
 
-        // Keep original pixel coordinates but center at (0,0)
-        const points = selectedPixels.map((pixel) => ({
-          x: pixel.x - canvas.width / 2,
-          y: -(pixel.y - canvas.height / 2), // Flip Y for Three.js coordinate system
-          z: 0, // Set all points to z=0 plane initially
-        }));
+    // Keep original pixel coordinates but center at (0,0)
+    const points = selectedPixels.map((pixel) => ({
+      x: pixel.x - canvas.width / 2,
+      y: -(pixel.y - canvas.height / 2), // Flip Y for Three.js coordinate system
+      z: 0, // Set all points to z=0 plane initially
+    }));
 
-        resolve({
-            image: loadedImage,
-            points
-        });
-      };
-    });
+    return points;
   }
 
   async loadL1Nodes(): Promise<GraphData> {
@@ -257,7 +243,6 @@ export class GraphUtils {
     return particleSystem;
   }
 
-  //threejs scene specific things
   centerCameraOnMesh(
     camera: THREE.PerspectiveCamera,
     controls: OrbitControls,

@@ -13,12 +13,14 @@ import (
 	docs "aou_api/docs"
 	"aou_api/src/auth"
 	"aou_api/src/database"
-	"aou_api/src/handlers"
-	"aou_api/src/handlers/health_handlers"
-	"aou_api/src/handlers/intrinsic_handlers"
-	"aou_api/src/handlers/knowledge_bases_handlers"
-	"aou_api/src/handlers/personality_handlers"
-	"aou_api/src/handlers/pursuits_handlers"
+	handlers "aou_api/src/handlers/graph"
+	helpers "aou_api/src/handlers/helpers"
+
+	"aou_api/src/handlers/graph/health_handlers"
+	"aou_api/src/handlers/graph/intrinsic_handlers"
+	"aou_api/src/handlers/graph/knowledge_bases_handlers"
+	"aou_api/src/handlers/graph/personality_handlers"
+	"aou_api/src/handlers/graph/pursuits_handlers"
 	"aou_api/src/middleware"
 	"aou_api/src/models"
 )
@@ -46,6 +48,11 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 	secureRoutes := baseRoutes.Group("/secure")
 	secureRoutes.Use(middleware.JWTAuth())
 	{
+		helper := secureRoutes.Group("helper")
+		{
+			helper.GET("s3-object", helpers.GetS3Object)
+		}
+
 		knowledge_graph := secureRoutes.Group("graph")
 		{
 			knowledge_graph.GET("match-all", handlers.MatchAll)

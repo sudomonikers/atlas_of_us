@@ -8,6 +8,40 @@ import type {
 export class HttpService {
   constructor() {}
 
+  async getS3Object(bucketName: string, key: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      fetch(`${API_BASE}/api/secure/helper/s3-object?bucket=${bucketName}&key=${key}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+        },
+      })
+      .then(response => {
+        if (!response.ok) {
+          reject(new Error(`HTTP error! status: ${response.status}`));
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const imageUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.src = imageUrl;
+        img.onload = () => {
+          URL.revokeObjectURL(imageUrl); // Clean up memory after the image is loaded
+          resolve(img); // Resolve the promise with the loaded image
+        };
+        img.onerror = (error) => {
+          reject(error);
+        };
+      })
+      .catch(error => {
+        console.error("Error fetching S3 object:", error);
+        reject(error);
+      });
+    });
+  }
+
   private async fetchNodes(
     endpoint: string
   ): Promise<{
