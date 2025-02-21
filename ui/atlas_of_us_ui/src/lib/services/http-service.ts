@@ -62,12 +62,10 @@ export class HttpService {
       }
 
       const [body] = await response.json();
-      console.log(body)
       const mappedBody = {
         nodes: body.Values[0] as Neo4jNode[],
         relationships: body.Values[1] as Neo4jRelationship[],
       };
-      console.log(mappedBody)
       return mappedBody;
     } catch (err) {
       console.error(err);

@@ -53,11 +53,3 @@ export interface ThreeContext {
   resizeObserver: ResizeObserver;
   loader: THREE.TextureLoader;
 }
-
-interface NodeMesh extends THREE.Mesh {
-  graphData: Neo4jNodeWithMappedPositions;
-}
-
-interface RelationshipLine extends THREE.Line {
-  graphData: Neo4jRelationship;
-}

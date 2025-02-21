@@ -23,36 +23,34 @@
   const velocities: THREE.Vector3[] = [];
   const boundarySize = 1500;
 
-
-
   async function loadGraphData() {
     const graphData = await graphUtils.loadL1Nodes();
 
-    {
-      const image = await http.getS3Object('atlas-of-us-general-bucket', 'woman.jpg');
+    // const tree = graphUtils.generateNaryTree(graphData, 3);
+    // console.log(tree)
+
+    const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 300);
+    console.log(positions)
+    const flattened = graphUtils.flattenNestedStructure(positions);
+    console.log(flattened)
+
+    // const keys = Object.keys(graphData);
+    for (let index = 0; index < flattened.length; index++) {
+      const data = graphData[flattened[index].key];
+      const image = await http.getS3Object(
+        "atlas-of-us-general-bucket",
+        "woman.jpg"
+      );
       const points = await graphUtils.processImage(image, 1500, 50);
       await graphUtils.createGraphConstellation(
-        points, 
-        {x: 0, y: 0, z: -250}, 
-        image, 
+        points,
+        flattened[index].value,
+        image,
         threeContext,
         graphData.healthNodes
       );
     }
-
-    // {
-    //   const {image, points} = await graphUtils.processImage(manPng, 1500, 50);
-    //   await graphUtils.createGraphConstellation(
-    //     points, 
-    //     {x: 0, y: 0, z: 250}, 
-    //     image, 
-    //     threeContext,
-    //     graphData.healthNodes
-    //   );
-    // }
-
   }
-
 
   //particles which will always be in camera
   function loadParticles() {
@@ -151,8 +149,12 @@
   function onMouseMove(event: MouseEvent) {
     // Calculate mouse position in normalized device coordinates
     const rect = threeContext.container.getBoundingClientRect();
-    threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
-    threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
+    threeContext.mouse.x =
+      ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 -
+      1;
+    threeContext.mouse.y =
+      -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 +
+      1;
 
     // Update raycaster parameters for better point detection
     if (!threeContext.raycaster.params.Points) {
@@ -165,7 +167,10 @@
   function animate(delta: number) {
     updateParticles();
 
-    threeContext.raycaster.setFromCamera(threeContext.mouse, threeContext.camera);
+    threeContext.raycaster.setFromCamera(
+      threeContext.mouse,
+      threeContext.camera
+    );
 
     // Reset all point sizes and store currently hovered data
     let hoveredNodeData: Neo4jNodeWithMappedPositions | null = null;
@@ -182,7 +187,9 @@
     });
 
     // Scale up intersected particles/nodes
-    const intersects = threeContext.raycaster.intersectObjects(threeContext.scene.children);
+    const intersects = threeContext.raycaster.intersectObjects(
+      threeContext.scene.children
+    );
     if (intersects.length > 0) {
       const intersectedObject = intersects[0].object;
 
@@ -272,8 +279,8 @@
       container,
       resizeObserver,
       loader,
-      renderer
-    }
+      renderer,
+    };
   }
 
   function loadBackground() {
@@ -295,10 +302,8 @@
     loadBackground();
     loadParticles();
 
-
     loadGraphData();
 
-    
     return () => {
       // Clean up resources
       threeContext.resizeObserver.unobserve(container);
