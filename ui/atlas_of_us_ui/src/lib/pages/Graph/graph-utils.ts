@@ -311,7 +311,7 @@ export class GraphUtils {
       const rootKey = keys[0];
       const rootNode = {
         key: rootKey,
-        value: null,
+        coordinates: null,
         children: [],
       };
   
@@ -359,72 +359,81 @@ export class GraphUtils {
     distanceFactor = 2
   ) {
     const tree = this.generateNaryTree(data, branchesPerNode);
-    const cameraPosition = camera.position;
+    const cameraPosition = camera.position.clone();
     const cameraDirection = new THREE.Vector3();
     camera.getWorldDirection(cameraDirection);
   
-    function calculateNodePosition(node, parentPosition = null, level = 0) {
-      if (!node) return;
+    // Position root node in front of camera
+    tree.coordinates = {
+      x: cameraPosition.x + cameraDirection.x * distanceFactor,
+      y: cameraPosition.y + cameraDirection.y * distanceFactor,
+      z: cameraPosition.z + cameraDirection.z * distanceFactor
+    };
   
-      // Root node positioning
-      if (level === 0) {
-        node.value = {
-          x: cameraPosition.x + cameraDirection.x * distanceFactor,
-          y: cameraPosition.y + cameraDirection.y * distanceFactor,
-          z: cameraPosition.z + cameraDirection.z * distanceFactor
-        };
+    function positionNodesRecursively(node, parentPosition) {
+      if (!node || node.children.length === 0) return;
+  
+      const nodePosition = new THREE.Vector3(
+        node.coordinates.x,
+        node.coordinates.y,
+        node.coordinates.z
+      );
+  
+      // Create direction vector from parent to current node
+      const currentDirection = new THREE.Vector3()
+        .subVectors(nodePosition, parentPosition)
+        .normalize();
+  
+      // Calculate the base circle of the cone for this node's children
+      const coneAngle = Math.PI / 6; // 30 degrees
+      const baseRadius = Math.tan(coneAngle) * distanceFactor;
+  
+      // Create basis vectors for the circle perpendicular to current direction
+      const right = new THREE.Vector3();
+      const up = new THREE.Vector3();
+  
+      // If current direction is nearly parallel to world-up, use a different reference vector
+      const worldUp = new THREE.Vector3(0, 1, 0);
+      if (Math.abs(currentDirection.dot(worldUp)) > 0.9) {
+        right.set(1, 0, 0);
       } else {
-        // Child node positioning
-        const angleStep = (2 * Math.PI) / branchesPerNode;
-        console.log("angleStep", angleStep)
-        const radius = distanceFactor * (Math.sqrt(level) + 1); // Increased base radius
-        
-        // Calculate position based on parent and branch number
-        const childIndex = parentPosition.childCount || 0;
-        const angle = angleStep * childIndex + (Math.PI / branchesPerNode); // Offset starting angle
-        
-        // For 3+ branches, create true pyramid structure
-        if (branchesPerNode >= 3) {
-          // Calculate golden ratio for better visual distribution
-          const goldenRatio = 1.618033988749895;
-          
-          // Adjust radius and height based on number of branches
-          const adjustedRadius = radius * (1 + (childIndex / branchesPerNode));
-          const heightFactor = distanceFactor * goldenRatio;
-          
-          // Calculate 3D coordinates with emphasis on z-axis distribution
-          const xOffset = Math.cos(angle) * adjustedRadius;
-          const yOffset = Math.sin(angle) * adjustedRadius;
-          const zOffset = -radius * heightFactor; // More pronounced z-axis movement
-          
-          node.value = {
-            x: parentPosition.x + xOffset,
-            y: parentPosition.y + yOffset,
-            z: parentPosition.z + zOffset
-          };
-        } else {
-          // For 2 or fewer branches, maintain original planar distribution
-          const xOffset = Math.cos(angle) * radius;
-          const yOffset = Math.sin(angle) * radius;
-          
-          node.value = {
-            x: parentPosition.x + xOffset,
-            y: parentPosition.y + yOffset,
-            z: parentPosition.z - radius * 0.5
-          };
-        }
-  
-        // Update parent's child count
-        parentPosition.childCount = (parentPosition.childCount || 0) + 1;
+        right.crossVectors(currentDirection, worldUp).normalize();
       }
+      up.crossVectors(right, currentDirection).normalize();
   
-      // Process children
-      for (const child of node.children) {
-        calculateNodePosition(child, node.value, level + 1);
-      }
+      // Position each child around the base of the cone
+      node.children.forEach((child, index) => {
+        const angle = (index / node.children.length) * Math.PI * 2;
+        
+        // Start at the parent node's position
+        const childPosition = new THREE.Vector3().copy(nodePosition);
+        
+        // Move in the current direction by distanceFactor
+        childPosition.add(
+          currentDirection.clone().multiplyScalar(distanceFactor)
+        );
+  
+        // Add circular offset using the basis vectors
+        childPosition.add(
+          right.clone().multiplyScalar(Math.cos(angle) * baseRadius)
+        );
+        childPosition.add(
+          up.clone().multiplyScalar(Math.sin(angle) * baseRadius)
+        );
+  
+        child.coordinates = {
+          x: childPosition.x,
+          y: childPosition.y,
+          z: childPosition.z
+        };
+  
+        // Recursively position this child's children
+        positionNodesRecursively(child, nodePosition);
+      });
     }
   
-    calculateNodePosition(tree);
+    // Start recursive positioning from root
+    positionNodesRecursively(tree, cameraPosition);
     return tree;
   }
 }

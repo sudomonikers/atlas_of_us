@@ -29,8 +29,7 @@
     // const tree = graphUtils.generateNaryTree(graphData, 3);
     // console.log(tree)
 
-    const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 300);
-    console.log(positions)
+    const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 500);
     const flattened = graphUtils.flattenNestedStructure(positions);
     console.log(flattened)
 
@@ -44,7 +43,7 @@
       const points = await graphUtils.processImage(image, 1500, 50);
       await graphUtils.createGraphConstellation(
         points,
-        flattened[index].value,
+        flattened[index].coordinates,
         image,
         threeContext,
         graphData.healthNodes
@@ -228,7 +227,7 @@
       75,
       container.offsetWidth / container.offsetHeight,
       0.1,
-      10000 //setting this far away since we arent normalizing coordinates of image data
+      0 //setting this far away since we arent normalizing coordinates of image data
     );
 
     //renderer
