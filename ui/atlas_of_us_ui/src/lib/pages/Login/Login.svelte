@@ -1,5 +1,6 @@
 <script lang="ts">
   import { API_BASE } from "../../../environment";
+  import { goto } from "@mateothegreat/svelte5-router";
 
   let username = "";
   let password = "";
@@ -23,8 +24,8 @@
     if (response.ok) {
       console.log("Logged in successfully");
       const responseBody = await response.json();
-      console.log("Response body:", responseBody);
-      localStorage.setItem("jwt", responseBody)
+      localStorage.setItem("jwt", responseBody);
+      goto("/Graph");
     } else {
       console.error("Login failed");
     }
