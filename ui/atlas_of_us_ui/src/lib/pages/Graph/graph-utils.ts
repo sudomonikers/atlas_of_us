@@ -356,7 +356,7 @@ export class GraphUtils {
     camera: THREE.PerspectiveCamera,
     data: GraphData,
     branchesPerNode: number,
-    distanceFactor = 2
+    distanceFactor: number
   ) {
     const tree = this.generateNaryTree(data, branchesPerNode);
     const cameraPosition = camera.position.clone();
@@ -369,7 +369,6 @@ export class GraphUtils {
       y: cameraPosition.y + cameraDirection.y * distanceFactor,
       z: cameraPosition.z + cameraDirection.z * distanceFactor
     };
-  
     function positionNodesRecursively(node, parentPosition) {
       if (!node || node.children.length === 0) return;
   
@@ -399,6 +398,7 @@ export class GraphUtils {
       } else {
         right.crossVectors(currentDirection, worldUp).normalize();
       }
+      right.crossVectors(currentDirection, worldUp).normalize();
       up.crossVectors(right, currentDirection).normalize();
   
       // Position each child around the base of the cone
