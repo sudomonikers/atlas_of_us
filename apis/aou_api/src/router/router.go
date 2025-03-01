@@ -21,6 +21,7 @@ import (
 	"aou_api/src/handlers/graph/knowledge_bases_handlers"
 	"aou_api/src/handlers/graph/personality_handlers"
 	"aou_api/src/handlers/graph/pursuits_handlers"
+	"aou_api/src/handlers/graph/skill_handlers"
 	"aou_api/src/middleware"
 	"aou_api/src/models"
 )
@@ -53,16 +54,19 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 			helper.GET("s3-object", helpers.GetS3Object)
 		}
 
-		knowledge_graph := secureRoutes.Group("graph")
+		graph_management := secureRoutes.Group("graph")
 		{
-			knowledge_graph.GET("match-all", handlers.MatchAll)
-			knowledge_graph.GET("match-domain/:domainName", handlers.MatchDomain)
-			knowledge_graph.GET("match-node/:nodeName/:numDescendants", handlers.MatchDescendants)
+			graph_management.POST("evaluate", handlers.GraphManagement)
 		}
 
 		pursuits := secureRoutes.Group(("pursuits"))
 		{
 			pursuits.GET("all-pursuits", pursuits_handlers.GetAllPursuitsNodes)
+		}
+
+		skills := secureRoutes.Group(("skills"))
+		{
+			skills.GET("all-skills", skill_handlers.GetAllSkillsNodes)
 		}
 
 		personality := secureRoutes.Group(("personality"))
