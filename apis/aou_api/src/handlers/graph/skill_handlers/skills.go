@@ -1,4 +1,4 @@
-package intrinsic_handlers
+package skill_handlers
 
 import (
 	"aou_api/src/models"
@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllIntrinsicNodes(c *gin.Context) {
+func GetAllSkillsNodes(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -15,7 +15,7 @@ func GetAllIntrinsicNodes(c *gin.Context) {
 	}
 
 	result, err := appCtx.NEO4J.ExecuteQuery(`
-		MATCH (n:Intrinsic)
+		MATCH (n:Skill)
         OPTIONAL MATCH (n)-[r]->(m)
         WITH collect(n) AS nodes, collect(r) AS relationships
         UNWIND nodes AS node
