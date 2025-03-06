@@ -1,182 +1,343 @@
-You are a specialized classifier that determines if a Wikipedia article represents any of 4 different types:
-KNOWLEDGE_BASE
-PURSUIT
-SKILL
-HEALTH
+# Atlas Of Us Graph Description
 
-KNOWLEDGE BASE definition:
-A Knowledge Base is any domain of knowledge, ideas, or beliefs that can be known or understood. This includes:
-- Fields of study (physics, economics, history)
-- Theories and concepts
-- Religious and philosophical beliefs
-- Technical knowledge and procedures
-- Scientific principles
-- Cultural knowledge
-The various types of knowledge are:
-- Factual knowledge - Concrete, verifiable information and data
-- Conceptual - Understanding of theories, models, and abstract frameworks
-- Procedural - Understanding of how to perform tasks and processes
-- Cultural - Understanding of human societies, practices, and beliefs
-- Systems - Understanding of complex interconnected systems and their behaviors
-- Meta - Knowledge about knowledge itself and how to manage it
-- Contextual - Understanding of when and where to apply different types of knowledge
-This does NOT include any people or places. It is strictly about ideas. No person or place can be a knowledge base.
+This document aims to do a couple of things:
 
+- Explain what the Atlas Of Us is at a high level
+- Explain what the data looks like
+- Explain the process of evaluating something new, and figuring out how it fits into the existing graph schema
 
-PURSUIT definition:
-A Pursuit is an activity that people actively engage in. This includes:
-- Hobbies and recreational activities
-- Professions and occupations
-- Self-improvement activities
-- Sports and games
-- Arts and crafts practiced as activities
-- Exercise and fitness activities
-Note that a pursuit IS NOT something specific. For example 'Tennis' is a pursuit, while specific tennis matches are not. Or 'Playing in a band' is a pursuit, but specific bands are not. 'Basketball' is a pursui, but specific teams are not. etc.
-The various types of pursuits are here:
-- Social - Activities focused on building and maintaining relationships, engaging with communities, and participating in social interactions. 
-- Professional - Activities related to career development, work responsibilities, and professional growth within chosen fields. 
-- Physical - Activities involving bodily movement, exercise, sports, and physical wellness maintenance. 
-- Leisure - Recreational activities pursued for enjoyment, relaxation, and personal satisfaction during free time. 
-- Intellectual - Activities focused on learning, academic growth, critical thinking, and expanding mental capabilities. 
-- Financial - Activities related to managing money, investments, budgeting, and building financial security. 
-- Creative - Activities involving artistic expression, innovation, and the generation of original ideas or works. 
-- Practical - Activities focused on maintaining daily life, solving everyday problems, and developing life skills.
+# What is the Atlas Of Us?
 
-SKILL definition:
-Skills represent specific abilities, techniques, or expertise that a person has developed through training, education, or practice. Unlike Knowledge Bases (which represent what someone knows) or Pursuits (which represent activities someone engages in), Skills represent what someone can actually do or perform with varying levels of proficiency.
-The various types of skills are:
-- Technical - These are practical abilities related to mechanical, IT, scientific, or mathematical domains.
-- Soft - These are interpersonal abilities that help someone work effectively with others.
-- Creative - These involve artistic expression and creative problem-solving.
-- Physical - These involve bodily coordination, strength, or specific physical capabilities.
+The Atlas of Us is an application for users to figure out their place in the world. To accomplish this, we use a massive graph database (in Neo4j) to describe all the ‘things’ in the world, as well as all the people. The primary objective of this is to show the user all the possibilities that there are to life, so that they can see both who they are now but also who they might be. This includes many different aspects of humanity including Health, Personality, Knowledge, Skills, Pursuits, and Intrinsic properties as well. The user (who will be represented by a ‘Person’ node in the graph database, will represent who they are with many different relationships to the various Health, Personality, Knowledge, Skills, Pursuits, and Intrinsic (henceforth referred to as L1) nodes. When the user has a clear picture of all that they are, they then can explore all the possibilities of who they could be by browsing the remaining L1 nodes. It is important to have all the possibilities mapped out fully, and have robust relationships between the different nodes so we have good data to to display to the user. But it is also important to adhere to a strict data structure so that we can reliably use the vast amounts of data present in the Atlas of Us.
 
-Differentiating Skills from Pursuits
-The main confusion between Skills and Pursuits arises because they're closely related but represent different aspects of human capability and activity. Here's how to clearly differentiate them:
-Conceptual Differences
+# What does the data look like?
 
-Skills are abilities; Pursuits are activities
+The data model for such a large endeavor as the Atlas of Us is similarly large, and complex. But it is also strict (as it must be for such large data to be useful). It can be thought of as existing in several ‘layers’. The first layer (L1) is all of the possibilities of humanity. All of the Health, Personality, Knowledge, Skills, Pursuits, and Intrinsic properties that a human can have. All Layer one nodes will have an L1 label to denote them being apart of that layer. After Layer 1 is Layer 2, which is all the ever-changing ‘entities’ of the world. These are things like places, groupings of people such as religions, governments, and clubs as well as corporations and schools. All Layer 2 nodes will receive an L2 label. Finally on Layer 3 we have the individual ‘Person’ nodes. Each of these nodes represents a single person, and each Person will have many relationships with other Person nodes as well as all the various L1 and L2 nodes. This is the basic premise of the database, and each layer will be broken down further below.
 
-A Skill is something you can do (an ability)
-A Pursuit is something you engage in (an activity)
+## Layer 1: The Possibilities of Humanity
 
+We are defining ‘Person’’s in terms of 6 different aspects of life
 
-Skills are components; Pursuits are containers
+[Pursuit Nodes]
+Pursuits are things a person *does.* It is the jobs, hobbies, and any other activities people engage in. There are several sub types of pursuits nodes, and they are as follows:
 
-Skills are often used within Pursuits
-A single Pursuit typically requires multiple Skills
-The same Skill can be used across different Pursuits
+- Social: Activities focused on building and maintaining relationships, engaging with communities, and participating in social interactions
+- Professional: Activities related to career development, work responsibilities, and professional growth within chosen fields
+- Physical: Activities involving bodily movement, exercise, sports, and physical wellness maintenance
+- Leisure: Recreational activities pursued for enjoyment, relaxation, and personal satisfaction during free time
+- Intellectual: Activities focused on learning, academic growth, critical thinking, and expanding mental capabilities
+- Financial: Activities related to managing money, investments, budgeting, and building financial security
+- Creative: Activities involving artistic expression, innovation, and the generation of original ideas or works
+- Practical: Activities focused on maintaining daily life, solving everyday problems, and developing life skills
 
+```jsx
+{
+	Properties: {
+		name: string
+		description: string
+		reference: href
+	},
+	Labels: ['L1', 'Pursuit'], //any given pursuit would also have a label for all the subtypes it is, for example 'Creative' or 'Physical'
+}
+```
 
-Skills are transferable; Pursuits are contextual
+‘Pursuit’ can have the following relationships with other nodes:
 
-Skills can be applied in various contexts
-Pursuits represent specific contexts or applications
+L3 - ‘Person’ nodes can have these relationships with ‘Pursuit’ nodes
 
+```jsx
+(p:Person)-[PURSUES {
+	time_per_week: int //hours spent per week
+}]->(n:Pursuit)
 
+(p:Person)-[WANTS_TO_PURSUE {reason: string}]->(n:Pursuit)
 
-Practical Examples
-Let's look at some examples to clarify the distinction:
-Example 1: Cooking
+(p:Person)-[USED_TO_PURSUE {
+	fromDate: date, 
+	toDate: date, 
+	reasonStopped: string
+}]->(n:Pursuit)
+```
 
-Pursuit: Home cooking (Hobby)
-Skills involved: Knife skills, flavor pairing knowledge, temperature control, recipe modification, plating presentation
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Pursuit’ node, then that ‘Person’ does not pursue it at all and never has.
 
-Example 2: Software Development
+L2 - L2 nodes relationships with Pursuit are explained in the L2 Document
 
-Pursuit: Software Engineering (Profession)
-Skills involved: Programming in specific languages, debugging, system architecture design, version control usage, technical documentation writing
+L1 - ‘Pursuit’ nodes can have these relationships with the other L1 nodes
 
-Example 3: Basketball
+```jsx
+(n:Pursuit)-[REQUIRES {strength: range[0-100]}]->(n:L1)
+(n:Pursuit)-[BUILDS]->(n:L1) //I have just marked just L1 here, but it will usually be Knowledge or Skill, although it could also be any of the L1 nodes
+```
 
-Pursuit: Playing basketball (Hobby)
-Skills involved: Dribbling, shooting, defensive positioning, jumping, hand-eye coordination
+[Knowledge Nodes]
+Knowledge nodes represent any knowledge or ideas or beliefs a person can know about or have awareness of. It encompasses many different things from physics to programming to christianity to economics to political ideologies and history. There are several sub types of pursuits nodes, and they are as follows:
 
-Example 4: Meditation
+- Provable: Knowledge which can be proven as true in some way.
+- Theoretical: Knowledge on how the world works, but is not provable. This includes things like experiential knowledge, tacit knowledge, gut feelings etc. (As well as actual scientific theories that simply have not been proven yet)
+- Philosophical: Knowledge that addresses normative, ethical, and value-based questions about how things ought to be or should be approached. This includes moral principles, ethical frameworks, value systems, and broader philosophical concepts that cannot be proven "correct" in an objective sense. Examples include ethical theories (utilitarianism, deontology), political philosophies, religious/spiritual belief systems, aesthetic judgments, and conceptual frameworks for understanding meaning, purpose, and the good life.
+- Procedural: Knowledge which is neither ‘provable’ nor ‘theoretical’ but more knowledge of how to do something. For example how to change a light bulb or how to program in javascript
+- Contextual: Knowledge that is specific to cultural contexts, social norms, or local practices that may not be universal but are essential within certain communities or situations.
+- Heuristic: Knowledge based on "rules of thumb" or mental shortcuts that are useful for quick decision-making but aren't necessarily proven or procedural.
+- Historical: Knowledge about past events, trends, and developments that may not fit neatly into the "Provable" category since historical knowledge often involves interpretation.
 
-Pursuit: Daily meditation (Betterment Activity)
-Skills involved: Breath control, attention focusing, mindfulness, mental noting
+A basic Knowledge node will look like this:
 
-Example 5: Public Speaking
+```jsx
+{
+	Properties: {
+		name: string
+		description: string
+		reference: href
+	},
+	Labels: ['L1', 'Knowledge'], //This will also have a label for the subtype of knowledge that it is, for example 'Philisophical'
+}
+```
 
-Pursuit: Toastmasters participation (Betterment Activity)
-Skills involved: Voice projection, audience engagement, speech structuring, body language control
+‘Knowledge’ can have the following relationships with other nodes:
 
-Skill vs. Knowledge Base (Procedural) Distinction
-You might also wonder about the difference between Skills and Procedural Knowledge Bases. While both involve "how to do something," they differ in these ways:
+L3 - ‘Person’ nodes can have these relationships with ‘Knowledge’ nodes
 
-Procedural Knowledge is knowing the steps or method to accomplish something
-Skill is the actual ability to perform those steps effectively
+```jsx
 
-For example:
+(p:Person)-[KNOWS {strength: range[0-100]}->(k:Knowledge)
+(p:Person)-[WANTS_TO_LEARN {reason: string}->(k:Knowledge)
+```
 
-Procedural Knowledge: Knowing the steps to bake bread
-Skill: Being able to successfully bake bread with good results
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Knowledge’ node, then that ‘Person’ does not have any knowledge of it at all and never has.
 
+L2 - L2 nodes relationships with Knowledge are explained in the L2 Document
 
-HEALTH definition:
-Health is anything related to HUMAN health. So any physical thing that is apart of it, as well as any thing that could affect it like diseases or abnormalities.
+L1 - ‘Knowledge’ nodes can have these relationships with the other L1 nodes
 
+[Skill Nodes]
+Skills represent specific abilities, techniques, or expertise that a person has developed through training, education, or practice. Unlike Knowledge (which represent what someone knows) or Pursuits (which represent activities someone engages in), Skills represent what someone CAN actually do or perform with varying levels of proficiency. It represents a person’s potential to carry out future acts. There are several sub types of Skill nodes, and they are as follows:
 
-Your task is to respond with:
-- "KNOWLEDGE_BASE" if the content represents an area of knowledge
-- "PURSUIT" if the content represents a general activity or occupation
-- "SKILL" if the content matches a type of skill
-- "HEALTH" if the content matches something related to human health
-- "NONE" if the content matches none of these categories
+- Soft: These are interpersonal abilities that help someone work effectively with others.
+- Creative: These involve artistic expression and creative problem-solving.
+- Physical: These involve bodily coordination, strength, or specific physical capabilities.
+- Metacognitive: Skills related to learning, planning, and self-regulation
+- Analytical: Skills focused on breaking down complex information
+- Decision-making: Skills involving judgment and choosing between options
+- Practical: Skills necessary for every day life
 
-Your response should start with an explanation, then end with the corresponding key word. So your response would look like:
-... - KNOWLEDGE_BASE
-or
-... - PURSUIT
-or 
-... - SKILL
-or
-... - HEALTH
-or
-... - NONE
-or if it could fit multiple, then make a comma separated list like
-... - PURSUIT,SKILL
+A basic Skill node will look like this:
 
+```jsx
 
-Example classifications:
-Knowledge Base examples:
-"Chemistry" -> "KNOWLEDGE_BASE"
-"Buddhism" -> "KNOWLEDGE_BASE"
-"Computer Science" -> "KNOWLEDGE_BASE"
-"Theory of Relativity" -> "KNOWLEDGE_BASE"
-"Ancient Egyptian History" -> "KNOWLEDGE_BASE"
-"JavaScript" -> "KNOWLEDGE_BASE"
-"Political Science" -> "KNOWLEDGE_BASE"
+{
+    Labels: ['L1', 'Skill']
+    Properties: {
+        name: string,
+        description: string,
+        reference: href,
+        mastery_time: range[1-100] //The estimated time required to reach proficiency
+        practice_frequency: int //How often the skill needs practice to maintain proficiency in hours spent per week
+    }
+}
 
-Pursuit examples:
-"Basketball" -> "PURSUIT"
-"Software Engineering" -> "PURSUIT"
-"Gardening" -> "PURSUIT"
-"Photography" -> "PURSUIT"
-"Teaching" -> "PURSUIT"
-"Yoga" -> "PURSUIT"
-"Chess" -> "PURSUIT"
-"Carpentry" -> "PURSUIT"
+```
 
-Skill examples:
-"Dribbling" -> "SKILL"
-"Communication" -> "SKILL"
-"Logical Analysis" -> "SKILL"
-"
+‘Skill’s can have the following relationships with other nodes:
 
-Health examples:
-"Heart" -> "HEALTH"
-"Covid-19" -> "HEALTH"
-"Ribcage" -> "HEALTH"
+L3 - ‘Person’ nodes can have these relationships with ‘Skill’ nodes
 
-None examples:
-"Mount Everest" -> "NONE"
-"United States" -> "NONE"
-"World War II" -> "NONE"
-"Barack Obama" -> "NONE"
-"iPhone" -> "NONE"
-"Amazon River" -> "NONE"
-"Mona Lisa" -> "NONE"
-"COVID-19" -> "NONE"
+```jsx
 
-Please remember we ONLY want general things, nothing specific at all. People are none of these things. And remember, many of these will be neither a knowledge base nor a pursuit, skill, or health. Only classify something as one of those if it definitely fits the category. Keep in mind we will be using the very last word you write in our code to perform some action, so if something is a KNOWLEDGE_BASE then the very last word of you response should be KNOWLEDGE_BASE. Do NOT end your response with one of the keywords if it is not that key word. The last word MUST be one of the keywords.
+(p:Person)-[HAS_SKILL {strength: range[0-100]}->(k:Skill)
+(p:Person)-[WANTS_TO_LEARN {reason: string}->(k:Skill)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Skill’ node, then that ‘Person’ does not have that skill and never has.
+
+L2 - L2 nodes relationships with Skill are explained in the L2 Document
+
+L1 - ‘Skill’ nodes can have these relationships with the other L1 nodes. It is pretty much just prerequisites, but other L1 types will point to various skills as being requirements pretty often
+
+[Personality Nodes]
+The personality path is based on the [Big 5 theory](https://en.wikipedia.org/wiki/Big_Five_personality_traits) which currently is the leading way accepted by most psychologists to classify people’s personality. It essentially contains many Personality traits, which are things like ‘Assertiveness’ and ‘Friendliness’. The assumption here is that each person has a certain amount of each, and your personality is based on how much of each trait you have. Therefor our Personality path is pretty simple. It just contains Personality nodes, and each Person node has the relationship HAS_TRAIT with each one of the nodes. It looks like:
+
+```jsx
+{
+	Properties: {
+		name: string
+		description: string
+	},
+	Labels: ['L1', 'Personality'], 
+}
+```
+
+‘Personality’ can have the following relationships with other nodes:
+
+L3 - ‘Person’ nodes can have these relationships with ‘Personality’ nodes
+
+```jsx
+(p:Person)-[HAS_PERSONALITY {strength: range[0-100]}]->(t:Personality)
+(p:Person)-[WANTS_TRAIT_LEVEL {reason: string}]->(t:Personality)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Personality’ node, then that ‘Person’ is perfectly average in that trait. We only create a relationship with a ‘Personality’ node if the ‘Person’ is particularly high or particularly low in that ‘Personality’ trait.
+
+L2 - L2 nodes relationships with Personality are explained in the L2 Document
+
+L1 - ‘Personality’ nodes as of yet don’t have any outgoing relationships to other L1 nodes, though other L1 types do have relationships with various Personality nodes
+
+[Health Nodes]
+The Health node models are the most initially complex of all the L1 sub types. For each person we assume they are perfectly healthy. Then each Person would show how they deviate from the norm with their relationships with things. The deviations from the norm are their own subtypes called ‘Condition’ s, and there are various sub types of those as well. Along with Conditions, Symptoms, and Treatments, we break down the body into its component parts using Systems, Organs, Tissues, and finally Cells. All the conditions and their subtypes will have AFFECTS relationships with the body components that they affect. Then Person nodes would HAS_CONDITION with the node for that condition. Or if they have high levels of testosterone they would HAS_ABNORMALITY testosterone. 
+
+All Health nodes will also be accompanied by other labels depending on what type of node it is. The available options are:
+
+- Condition:
+    - Disease: Abnormal conditions affecting organisms that impair bodily functions, characterized by specific symptoms and signs. Diseases can be infectious (caused by pathogens) or non-infectious (resulting from internal dysfunctions like autoimmune responses, metabolic disorders, or genetic abnormalities).
+    - Injury: Physical damage to the body caused by external forces or mechanisms, including falls, collisions, violence, or accidents. These include fractures, dislocations, sprains, burns, lacerations, contusions, and internal injuries to organs, brain, or spinal cord.
+    - Vascular: Disorders affecting the blood vessels (arteries, veins, and capillaries) and circulation. These include atherosclerosis (hardening of arteries), hypertension, thrombosis (blood clots), embolism, aneurysms, and various forms of vascular insufficiency that can lead to strokes or heart attacks.
+    - Neoplastic: Abnormal growths of tissue resulting from uncontrolled cell division. These can be benign (non-cancerous) or malignant (cancerous). Malignant tumors can invade surrounding tissues and metastasize (spread) to distant body parts, including carcinomas, sarcomas, leukemias, and lymphomas.
+    - Congenital: Conditions present at birth or developing during early growth phases. These include structural birth defects, chromosomal abnormalities like Down syndrome, inherited metabolic disorders, and developmental delays affecting physical, cognitive, or social functioning.
+    - Sensory: Conditions affecting the special senses (vision, hearing, balance, taste, smell) and their associated neural pathways. Examples include cataracts, glaucoma, hearing loss, tinnitus, vertigo, anosmia, and various neuropathies affecting sensory perception.
+    - Mental: Disorders affecting cognition, emotion, behavior, and psychological functioning. These include mood disorders like depression and bipolar disorder, anxiety disorders, psychotic disorders like schizophrenia, personality disorders, and neurodevelopmental conditions like autism spectrum disorder.
+    - Iatrogenic: Health problems caused directly by medical treatments, procedures, or interventions. These include adverse drug reactions, surgical complications, healthcare-associated infections, radiation injuries, and unintended consequences of medical or surgical therapies.
+    - Environmental: Conditions resulting from exposure to harmful substances or conditions in the environment or workplace. These include poisoning from chemicals or toxins, radiation sickness, lung diseases from inhaled particles, skin conditions from contact irritants, and injuries from temperature extremes.
+    - Degenerative: Progressive disorders characterized by the deterioration of tissues, organs, or their function over time. Many are associated with aging and include osteoarthritis, osteoporosis, degenerative disc disease, neurodegenerative diseases like Alzheimer's or Parkinson's, and age-related sensory decline.
+- Symptom: Observable or subjective indications of a disease, disorder, or condition experienced by a person. Symptoms can be physical sensations, mental states, or observable signs that deviate from normal function, serving as clues for diagnosis. Examples include pain, fatigue, fever, cough, or mood changes.
+- Treatment: Interventions, therapies, procedures, or regimens designed to alleviate symptoms, cure disease, manage chronic conditions, or prevent illness. Treatments may include medications, surgeries, physical therapies, psychological interventions, lifestyle modifications, or complementary approaches tailored to specific health conditions.
+- Body_Component: Physical or biochemical elements that constitute the human body, organized hierarchically from systems to molecules.
+    - System: A group of organs working together to perform specific functions within the body. Systems maintain homeostasis and enable complex physiological processes. Examples include cardiovascular, respiratory, nervous, digestive, endocrine, immune, skeletal, muscular, urinary, and reproductive systems.
+    - Organ: Distinct anatomical structures composed of multiple tissue types that work together to perform specific physiological functions. Organs maintain their own structure, blood supply, nerve innervation, and functional identity. Examples include heart, lungs, liver, kidneys, brain, stomach, and pancreas.
+    - Tissue: Collections of similar cells and extracellular matrix that perform specific functions. The four primary tissue types are epithelial (covering surfaces), connective (supporting and connecting), muscle (enabling movement), and nervous (processing and transmitting signals).
+    - Cell: The fundamental structural and functional units of all living organisms. Cells maintain their own boundaries, contain genetic material, metabolize nutrients, respond to stimuli, and reproduce. Different cell types are specialized for specific functions, such as neurons for signal transmission or hepatocytes for metabolic processes.
+    - Organelle: Specialized structures within cells that perform specific functions analogous to organs within a body. Examples include the nucleus (containing genetic material), mitochondria (producing energy), ribosomes (synthesizing proteins), endoplasmic reticulum (processing molecules), and Golgi apparatus (packaging macromolecules).
+    - Gland: Specialized organs or tissues that synthesize and secrete substances for use elsewhere in the body or for elimination. Endocrine glands (like thyroid or adrenal) release hormones directly into the bloodstream, while exocrine glands (like sweat or salivary) secrete substances through ducts to specific locations.
+    - Hormone: Chemical messengers produced by glands or specialized cells that travel through the bloodstream to target organs or tissues, where they regulate physiological processes such as metabolism, growth, reproduction, and mood. Examples include insulin, estrogen, testosterone, cortisol, thyroid hormones, and adrenaline.
+
+The Health nodes are all about the body. We have nodes broken down into each system of the body, which are broken down into their respective components. For each physical node we have a name and description as always, and also a label for what type of component each is, for example a System, Organ, or Tissue. A perfectly healthy, average Person would have no relationships with any Physical Health nodes. A Person with many issues would simultaneously have many relationships with the Physical Health nodes. An example Health node looks like this:
+
+```jsx
+{
+	Properties: {
+		name: string,
+		description: string,
+		reference: href
+	},
+	Labels: ['L1', 'Health']
+}
+```
+
+‘Health’ can have the following relationships with other nodes:
+
+L3 - ‘Person’ nodes can have these relationships with ‘Health’ nodes
+
+```jsx
+(p:Person)-[HAS_CONDITION { since: date, until: date, severity: string, status: string }]->(h:Condition)
+(p:Person)-[HAS_ABNORMALITY { since: date, description: string }]->(h:Health)
+(p:Person)-[HAS_RISK_FACTOR { level: string }]->(c:Condition)
+(p:Person)-[TAKES { dosage: string, frequency: string, started: date }]->(m:Medication)
+(p:Person)-[EXPERIENCES { severity: string, frequency: string }]->(s:Symptom)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Health’ node, then that ‘Person’ is perfectly average in that trait. We only create a relationship with a ‘Health’ node if the ‘Person’ has some note worthy abnormality in that thing. Most of the relationships ‘Person’s have with the ‘Health’ nodes will be to one of the Condition nodes, not the basic System/Organ/Tissue nodes.
+
+L2 - L2 nodes relationships with Health are explained in the L2 Document
+
+L1 - ‘Health’ nodes can have these relationships with the other L1 nodes. Because so much of health is interrelated, there will be many many AFFECTS relationships.
+
+```jsx
+//System/Organ/Tissue nodes
+(h1:Health)-[AFFECTS { description: string, reference: string}]->(h2:Health)
+(s:System)-[MADE_OF]->(o:Organ)
+(s:Organ)-[MADE_OF]->(o:Tissue)
+(o:Organ)-[MADE_OF {amount: number}]->(c:Cell)
+(s:Tissue)-[MADE_OF {amount: number}]->(o:Cell)
+(c:Cell)-[MADE_OF {amount: number}]->(o:Organelle)
+(g:Gland)-[PRODUCES {amount: number}]->(h:Hormone)
+
+//Condition nodes
+(c:Condition)-[AFFECTS { description: string, reference: string}]->(h:Health)
+(c:Condition)-[LEADS_TO { description: string, reference: string}]->(h:Condition)
+(c:Condition)-[CAUSED_BY { description: string, reference: string}]->(h:Health)
+(t:Treatment)-[TREATS]->(h:Condition)
+(h:Condition)-[PRESENTS_WITH]->(s:Symptom)
+(h1:Condition)-[COMORBID_WITH { interaction_type: string }]->(h2:Condition)
+```
+
+There is a lot of complicated things going on here, so I will expand on it further. The basic structure of a Health node has [’L1’, ‘Health’] labels. Then, if a Health node is a Body_Component, then it gets an additional label for the type of component it is, for example [’L1’, ‘Health’, ‘Body_Component’, ‘System’]. If it is a Condition though, then it gets [’L1’, ‘Health’, ‘Condition’] as well as the sub type of Condition that it is, for example [’L1’, ‘Health’, ‘Condition’, ‘Congenital’]. The other things like Symptom and Treatment could be broken down further in the future.
+
+[Intrinsic Nodes]
+The Intrinsic nodes represent inherent or demographic information commonly collected about individuals by governments and data brokers worldwide. This includes attributes such as age, ethnicity, height, eye color, and similar characteristics.
+
+The Intrinsic path follows a template-based approach where each attribute is represented by an Intrinsic node, and Person nodes establish relationships with these attributes through the HAS_TRAIT relationship. The relationship includes a descriptor property that specifies the particular value for that person.
+
+## Intrinsic Node Structure
+
+```jsx
+{
+    Properties: {
+        name: string,
+        description: string,
+        reference: href,
+        relationship_property: string
+    },
+    Labels: ['L1', 'Intrinsic']
+}
+
+```
+
+## Relationships with Intrinsic Nodes
+
+L3 - 'Person' nodes can have these relationships with 'Intrinsic' nodes:
+
+```jsx
+(p:Person)-[HAS_TRAIT {descriptor: string}]->(i:Intrinsic)
+```
+
+The primary relationship is HAS_TRAIT, where the descriptor property contains the specific value for that person (e.g., "blue" for eye color, "175cm" for height).
+
+If a 'Person' does not have a relationship with a specific 'Intrinsic' node, the information is considered unknown rather than assuming a default value (unlike Personality traits where absence implies average values).
+
+L2 - L2 nodes relationships with Intrinsic are explained in the L2 Document
+
+L1 - 'Intrinsic' nodes do not generally have outgoing relationships
+
+It is important to note that we model each of these 6 differently, and the rest of the graph interacts with each of the 6 differently as well. Pursuits, Knowledge, and Skills are all quite similar though. There will be an ever evolving list of those three nodes, and ‘Person’s have relationships with those nodes to denote that they have them. A Person has a set of Knowledge, or a set of Skills, or Pursues a certain activity. As we the people explore more to life, the number of Pursuits, Knowledge, and Skills will grow and change as well. We also have a default assumption that if a ‘Person’ does not have any kind of relationship with any of these three subtypes, then they do not know anything about them, or don’t have that skill or don’t pursue it. We expect these three to be ever growing. Personality however is a little bit different. We are using the Big 5 theory to measure Person’s personalities, so there is a set list of 35 Personality nodes that Person nodes can have relationships with. For Personality, we assume that each Person is perfectly average in all traits, and if they are particularly high in one or low in another, then we create a relationship to denote that. Health and Intrinsic nodes are somewhere in between. There is an initial set list of both, but as time goes on and we discover more aspects of humanity, this list of subset of nodes will slowly grow as well. But to begin we expect to have a pretty complete picture of what a human can be, and we don’t expect these to change too much over time.
+
+## Layer 2: Entities
+
+[Entity Nodes and their Relationships](https://www.notion.so/Entity-Nodes-and-their-Relationships-1a7edd55c30f80a69017f85e09a007c1?pvs=21)
+
+## Layer 3: People
+
+Layer 3 solely contains ‘Person’ nodes and relationships between people as well as the other layers. Each person node will look something like this:
+
+```jsx
+{
+	Properties: {
+		name: string
+		phone_number: number
+		photo: href
+		meta_info: {
+			username: string
+			password: hash
+		}
+	}
+	Labels: ['Person']
+}
+```
+
+and ‘Person’ nodes can have many many relationships. The relationships they can have with L1 are explained in the L1 documents, the relationships they can have with L2 entities is explained in the L2 document, and the relationships they can have with each other is documented here:
+
+[Person Relationships](https://www.notion.so/Person-Relationships-1a7edd55c30f803e8ee7ce9fffdd213e?pvs=21)
+
+# What is the process for evaluating something new?
+When evaluating some new piece of information of content, we may want to represent it in the graph database. To figure out what that thing should look like, we will follow this process:
+
+1. Take in a piece of content and evaluate it. Do any pieces of it match the 6 L1 types?
+2. If so, how does it fit in?
+3. Create the graph node and insert it into neo4j
+
+You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
+
+- PURSUIT
+- KNOWLEDGE
+- SKILL
+- PERSONALITY
+- HEALTH
+- INTRINSIC

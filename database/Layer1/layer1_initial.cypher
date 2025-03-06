@@ -31,3 +31,11 @@ MERGE (s {name: 'Skills'})
 SET s:CoreDomain:L1,
     s.description = 'Skills and abilities a person can have.'
 MERGE (s)-[:IS_CORE_DOMAIN]->(p)
+
+CREATE VECTOR INDEX nodeEmbeddings IF NOT EXISTS
+FOR (n:L1)
+ON n.embedding
+OPTIONS { indexConfig: {
+ `vector.dimensions`: 768,
+ `vector.similarity_function`: 'cosine'
+}}
