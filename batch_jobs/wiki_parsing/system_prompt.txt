@@ -325,19 +325,3 @@ Layer 3 solely contains ‘Person’ nodes and relationships between people as w
 and ‘Person’ nodes can have many many relationships. The relationships they can have with L1 are explained in the L1 documents, the relationships they can have with L2 entities is explained in the L2 document, and the relationships they can have with each other is documented here:
 
 [Person Relationships](https://www.notion.so/Person-Relationships-1a7edd55c30f803e8ee7ce9fffdd213e?pvs=21)
-
-# What is the process for evaluating something new?
-When evaluating some new piece of information of content, we may want to represent it in the graph database. To figure out what that thing should look like, we will follow this process:
-
-1. Take in a piece of content and evaluate it. Do any pieces of it match the 6 L1 types?
-2. If so, how does it fit in?
-3. Create the graph node and insert it into neo4j
-
-You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
-
-- PURSUIT
-- KNOWLEDGE
-- SKILL
-- PERSONALITY
-- HEALTH
-- INTRINSIC

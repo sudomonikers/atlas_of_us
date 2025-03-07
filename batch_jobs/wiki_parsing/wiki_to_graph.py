@@ -39,10 +39,23 @@ CATEGORY_DOCUMENTATION_PATHS = {
     "REJECTED": "./rejected"
 }
 
-SIMILARITY_PROMPT = f""
-SIMILARITY_TOOLS = []
+NODE_CHOICE_PROMPT = """
+# What is the process for evaluating something new?
+When evaluating some new piece of information of content, we may want to represent it in the graph database. To figure out what that thing should look like, we will follow this process:
 
-NODE_CHOICE_PROMPT = f""
+1. Take in a piece of content and evaluate it. Do any pieces of it match the 6 L1 types?
+2. If so, how does it fit in?
+3. Create the graph node and insert it into neo4j
+
+You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
+
+- PURSUIT
+- KNOWLEDGE
+- SKILL
+- PERSONALITY
+- HEALTH
+- INTRINSIC
+"""
 NODE_CHOICE_TOOLS = [
     {
         "type": "function",
@@ -72,7 +85,6 @@ NODE_CHOICE_TOOLS = [
 ]
 
 class AtlasOfUsGraphAdmin:
-    #TODO: init passes the eye test, needs to actually run to determine errors though
     def __init__(self, uri, auth):
         #neo4j initialization
         self.driver = GraphDatabase.driver(uri, auth=auth)
@@ -156,8 +168,30 @@ class AtlasOfUsGraphAdmin:
         similar_nodes = self.checkNodeSimilarity(generated_embedding)
         if len(similar_nodes) > 0:
             print("Checking on similar nodes")
-            #### NEED TO MAKE THE AI RETURN SOMETHING BETTER, MIGHT NEED TO MESS WITH THE SYSTEM PROMPT
-            similarity_response = self.run_inference(f"\n\nYou previously took in this content and chose to create a node based off of it, however upon querying the database we see that something similar might actually exist. Here are the results of that query: {similar_nodes}\n\n Upon reviewing these, do any of them look like they are the same thing as the node you are trying to create? If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'", [])
+            SIMILARITY_PROMPT = f"""
+            You previously took in this content and chose to create a node based off of it, however upon querying the database we see that something similar might actually exist.
+            Here are the results of that query: 
+
+            {similar_nodes}
+
+            Upon reviewing these, do any of them look like they are the same thing as the node you are trying to create? 
+            If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'
+            """
+            SIMILARITY_TOOLS = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "determineSimilarity",
+                        "description": "Handles the choice made by the llm of whether the subject node is a DUPLICATE or DIFFERENT from the other similar nodes.",
+                        "parameters": {
+                            "type": "string",
+                            "description": "One of two possible values, 'DUPLICATE' or 'DIFFERENT'",
+                        }
+                    }
+                }
+            ]
+
+            similarity_response = self.run_inference(SIMILARITY_PROMPT, SIMILARITY_TOOLS)
             print(similarity_response['choices'][0]['message'])
 
         #now that we have an embedding, we should see if something similar already exists
@@ -188,13 +222,22 @@ class AtlasOfUsGraphAdmin:
             case _:
                 print("default case")
 
+    def determineSimilarity(self, function_params: Dict[str, Any]):
+        match function_params['similarity_determination']:
+            case "DUPLICATE":
+                return
+            case "DIFFERENT":
+                print('different')
+            case _:
+                print("Bad AI response at handleSimilarity")
+
     def process_file(self, file_key: str) -> Dict[str, Any]:
         """Process a single file from S3 and evaluate it for inclusion in the graph"""
         # Download file content
         response = self.s3.get_object(Bucket=S3_BUCKET, Key=file_key)
         file_content_str = response['Body'].read().decode('utf-8')
         file_content = json.loads(file_content_str)
-        ai_message = f"Title: {file_content['title']}\nExcerpt: {file_content['text'][:500]}...\n\nEvaluate this Wikipedia content according to the Atlas Of Us schema."
+        ai_message = NODE_CHOICE_PROMPT + f"\n\nTitle: {file_content['title']}\nExcerpt: {file_content['text'][:500]}...\n\nEvaluate this Wikipedia content according to the Atlas Of Us schema."
         ai_response = self.run_inference(ai_message, NODE_CHOICE_TOOLS)
         ai_message = ai_response['choices'][0]['message']
         if ai_response['choices'][0]['message']['tool_calls']:
