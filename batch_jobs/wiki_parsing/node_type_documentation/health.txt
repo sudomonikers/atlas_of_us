@@ -1,0 +1,79 @@
+Health Documentation
+
+The Health node models are the most initially complex of all the L1 sub types. For each person we assume they are perfectly healthy. Then each Person would show how they deviate from the norm with their relationships with things. The deviations from the norm are their own subtypes called ‘Condition’ s, and there are various sub types of those as well. Along with Conditions, Symptoms, and Treatments, we break down the body into its component parts using Systems, Organs, Tissues, and finally Cells. All the conditions and their subtypes will have AFFECTS relationships with the body components that they affect. Then Person nodes would HAS_CONDITION with the node for that condition. Or if they have high levels of testosterone they would HAS_ABNORMALITY testosterone. 
+
+All Health nodes will also be accompanied by other labels depending on what type of node it is. The available options are:
+
+- Condition:
+    - Disease: Abnormal conditions affecting organisms that impair bodily functions, characterized by specific symptoms and signs. Diseases can be infectious (caused by pathogens) or non-infectious (resulting from internal dysfunctions like autoimmune responses, metabolic disorders, or genetic abnormalities).
+    - Injury: Physical damage to the body caused by external forces or mechanisms, including falls, collisions, violence, or accidents. These include fractures, dislocations, sprains, burns, lacerations, contusions, and internal injuries to organs, brain, or spinal cord.
+    - Vascular: Disorders affecting the blood vessels (arteries, veins, and capillaries) and circulation. These include atherosclerosis (hardening of arteries), hypertension, thrombosis (blood clots), embolism, aneurysms, and various forms of vascular insufficiency that can lead to strokes or heart attacks.
+    - Neoplastic: Abnormal growths of tissue resulting from uncontrolled cell division. These can be benign (non-cancerous) or malignant (cancerous). Malignant tumors can invade surrounding tissues and metastasize (spread) to distant body parts, including carcinomas, sarcomas, leukemias, and lymphomas.
+    - Congenital: Conditions present at birth or developing during early growth phases. These include structural birth defects, chromosomal abnormalities like Down syndrome, inherited metabolic disorders, and developmental delays affecting physical, cognitive, or social functioning.
+    - Sensory: Conditions affecting the special senses (vision, hearing, balance, taste, smell) and their associated neural pathways. Examples include cataracts, glaucoma, hearing loss, tinnitus, vertigo, anosmia, and various neuropathies affecting sensory perception.
+    - Mental: Disorders affecting cognition, emotion, behavior, and psychological functioning. These include mood disorders like depression and bipolar disorder, anxiety disorders, psychotic disorders like schizophrenia, personality disorders, and neurodevelopmental conditions like autism spectrum disorder.
+    - Iatrogenic: Health problems caused directly by medical treatments, procedures, or interventions. These include adverse drug reactions, surgical complications, healthcare-associated infections, radiation injuries, and unintended consequences of medical or surgical therapies.
+    - Environmental: Conditions resulting from exposure to harmful substances or conditions in the environment or workplace. These include poisoning from chemicals or toxins, radiation sickness, lung diseases from inhaled particles, skin conditions from contact irritants, and injuries from temperature extremes.
+    - Degenerative: Progressive disorders characterized by the deterioration of tissues, organs, or their function over time. Many are associated with aging and include osteoarthritis, osteoporosis, degenerative disc disease, neurodegenerative diseases like Alzheimer's or Parkinson's, and age-related sensory decline.
+- Symptom: Observable or subjective indications of a disease, disorder, or condition experienced by a person. Symptoms can be physical sensations, mental states, or observable signs that deviate from normal function, serving as clues for diagnosis. Examples include pain, fatigue, fever, cough, or mood changes.
+- Treatment: Interventions, therapies, procedures, or regimens designed to alleviate symptoms, cure disease, manage chronic conditions, or prevent illness. Treatments may include medications, surgeries, physical therapies, psychological interventions, lifestyle modifications, or complementary approaches tailored to specific health conditions.
+- Body_Component: Physical or biochemical elements that constitute the human body, organized hierarchically from systems to molecules.
+    - System: A group of organs working together to perform specific functions within the body. Systems maintain homeostasis and enable complex physiological processes. Examples include cardiovascular, respiratory, nervous, digestive, endocrine, immune, skeletal, muscular, urinary, and reproductive systems.
+    - Organ: Distinct anatomical structures composed of multiple tissue types that work together to perform specific physiological functions. Organs maintain their own structure, blood supply, nerve innervation, and functional identity. Examples include heart, lungs, liver, kidneys, brain, stomach, and pancreas.
+    - Tissue: Collections of similar cells and extracellular matrix that perform specific functions. The four primary tissue types are epithelial (covering surfaces), connective (supporting and connecting), muscle (enabling movement), and nervous (processing and transmitting signals).
+    - Cell: The fundamental structural and functional units of all living organisms. Cells maintain their own boundaries, contain genetic material, metabolize nutrients, respond to stimuli, and reproduce. Different cell types are specialized for specific functions, such as neurons for signal transmission or hepatocytes for metabolic processes.
+    - Organelle: Specialized structures within cells that perform specific functions analogous to organs within a body. Examples include the nucleus (containing genetic material), mitochondria (producing energy), ribosomes (synthesizing proteins), endoplasmic reticulum (processing molecules), and Golgi apparatus (packaging macromolecules).
+    - Gland: Specialized organs or tissues that synthesize and secrete substances for use elsewhere in the body or for elimination. Endocrine glands (like thyroid or adrenal) release hormones directly into the bloodstream, while exocrine glands (like sweat or salivary) secrete substances through ducts to specific locations.
+    - Hormone: Chemical messengers produced by glands or specialized cells that travel through the bloodstream to target organs or tissues, where they regulate physiological processes such as metabolism, growth, reproduction, and mood. Examples include insulin, estrogen, testosterone, cortisol, thyroid hormones, and adrenaline.
+
+The Health nodes are all about the body. We have nodes broken down into each system of the body, which are broken down into their respective components. For each physical node we have a name and description as always, and also a label for what type of component each is, for example a System, Organ, or Tissue. A perfectly healthy, average Person would have no relationships with any Physical Health nodes. A Person with many issues would simultaneously have many relationships with the Physical Health nodes. An example Health node looks like this:
+
+```jsx
+{
+	Properties: {
+		name: string,
+		description: string,
+		reference: href
+	},
+	Labels: ['L1', 'Health']
+}
+```
+
+‘Health’ can have the following relationships with other nodes:
+
+L3 - ‘Person’ nodes can have these relationships with ‘Health’ nodes
+
+```jsx
+(p:Person)-[HAS_CONDITION { since: date, until: date, severity: string, status: string }]->(h:Condition)
+(p:Person)-[HAS_ABNORMALITY { since: date, description: string }]->(h:Health)
+(p:Person)-[HAS_RISK_FACTOR { level: string }]->(c:Condition)
+(p:Person)-[TAKES { dosage: string, frequency: string, started: date }]->(m:Medication)
+(p:Person)-[EXPERIENCES { severity: string, frequency: string }]->(s:Symptom)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Health’ node, then that ‘Person’ is perfectly average in that trait. We only create a relationship with a ‘Health’ node if the ‘Person’ has some note worthy abnormality in that thing. Most of the relationships ‘Person’s have with the ‘Health’ nodes will be to one of the Condition nodes, not the basic System/Organ/Tissue nodes.
+
+L2 - L2 nodes relationships with Health are explained in the L2 Document
+
+L1 - ‘Health’ nodes can have these relationships with the other L1 nodes. Because so much of health is interrelated, there will be many many AFFECTS relationships.
+
+```jsx
+//System/Organ/Tissue nodes
+(h1:Health)-[AFFECTS { description: string, reference: string}]->(h2:Health)
+(s:System)-[MADE_OF]->(o:Organ)
+(s:Organ)-[MADE_OF]->(o:Tissue)
+(o:Organ)-[MADE_OF {amount: number}]->(c:Cell)
+(s:Tissue)-[MADE_OF {amount: number}]->(o:Cell)
+(c:Cell)-[MADE_OF {amount: number}]->(o:Organelle)
+(g:Gland)-[PRODUCES {amount: number}]->(h:Hormone)
+
+//Condition nodes
+(c:Condition)-[AFFECTS { description: string, reference: string}]->(h:Health)
+(c:Condition)-[LEADS_TO { description: string, reference: string}]->(h:Condition)
+(c:Condition)-[CAUSED_BY { description: string, reference: string}]->(h:Health)
+(t:Treatment)-[TREATS]->(h:Condition)
+(h:Condition)-[PRESENTS_WITH]->(s:Symptom)
+(h1:Condition)-[COMORBID_WITH { interaction_type: string }]->(h2:Condition)
+```
+
+There is a lot of complicated things going on here, so I will expand on it further. The basic structure of a Health node has [’L1’, ‘Health’] labels. Then, if a Health node is a Body_Component, then it gets an additional label for the type of component it is, for example [’L1’, ‘Health’, ‘Body_Component’, ‘System’]. If it is a Condition though, then it gets [’L1’, ‘Health’, ‘Condition’] as well as the sub type of Condition that it is, for example [’L1’, ‘Health’, ‘Condition’, ‘Congenital’]. The other things like Symptom and Treatment could be broken down further in the future.

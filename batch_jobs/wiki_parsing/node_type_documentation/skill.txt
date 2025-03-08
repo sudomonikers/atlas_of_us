@@ -1,0 +1,49 @@
+Skills Documentation
+
+Skills represent specific abilities, techniques, or expertise that a person has developed through training, education, or practice. Unlike Knowledge (which represent what someone knows) or Pursuits (which represent activities someone engages in), Skills represent what someone CAN actually do or perform with varying levels of proficiency. It represents a person’s potential to carry out future acts. There are several sub types of Skill nodes, and they are as follows:
+
+- Soft: These are interpersonal abilities that help someone work effectively with others.
+- Creative: These involve artistic expression and creative problem-solving.
+- Physical: These involve bodily coordination, strength, or specific physical capabilities.
+- Metacognitive: Skills related to learning, planning, and self-regulation
+- Analytical: Skills focused on breaking down complex information
+- Decision-making: Skills involving judgment and choosing between options
+- Practical: Skills necessary for every day life
+
+A basic Skill node will look like this:
+
+```jsx
+
+{
+    Labels: ['L1', 'Skill']
+    Properties: {
+        name: string,
+        description: string,
+        reference: href,
+        mastery_time: range[1-100] //The estimated time required to reach proficiency
+        practice_frequency: int //How often the skill needs practice to maintain proficiency in hours spent per week
+    }
+}
+
+```
+
+‘Skill’s can have the following relationships with other nodes:
+
+L3 - ‘Person’ nodes can have these relationships with ‘Skill’ nodes
+
+```jsx
+
+(p:Person)-[HAS_SKILL {strength: range[0-100]}]->(k:Skill)
+(p:Person)-[WANTS_TO_LEARN {reason: string}]->(k:Skill)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Skill’ node, then that ‘Person’ does not have that skill and never has.
+
+L2 - L2 nodes relationships with Skill are explained in the L2 Document
+
+L1 - ‘Skill’ nodes can have these relationships with the other L1 nodes. It is pretty much just prerequisites, but other L1 types will point to various skills as being requirements pretty often
+
+```jsx
+(n:Skill)-[REQUIRES {strength: range[0-100]}]->(n:L1) //usually Knowledge or another Skill, but could be any type of L1 node. Usually means the object is a prerequisite for the subject skill
+(s1:Skill)-[COMPLEMENTS {strength: range[1-100]}]->(s2:Skill)
+```

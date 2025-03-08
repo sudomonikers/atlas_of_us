@@ -1,0 +1,36 @@
+Intrinsic Documentation
+
+The Intrinsic nodes represent inherent or demographic information commonly collected about individuals by governments and data brokers worldwide. This includes attributes such as age, ethnicity, height, eye color, and similar characteristics.
+
+The Intrinsic path follows a template-based approach where each attribute is represented by an Intrinsic node, and Person nodes establish relationships with these attributes through the HAS_TRAIT relationship. The relationship includes a descriptor property that specifies the particular value for that person.
+
+## Intrinsic Node Structure
+
+```jsx
+{
+    Properties: {
+        name: string,
+        description: string,
+        reference: href,
+        relationship_property: string
+    },
+    Labels: ['L1', 'Intrinsic']
+}
+
+```
+
+## Relationships with Intrinsic Nodes
+
+L3 - 'Person' nodes can have these relationships with 'Intrinsic' nodes:
+
+```jsx
+(p:Person)-[HAS_TRAIT {descriptor: string}]->(i:Intrinsic)
+```
+
+The primary relationship is HAS_TRAIT, where the descriptor property contains the specific value for that person (e.g., "blue" for eye color, "175cm" for height).
+
+If a 'Person' does not have a relationship with a specific 'Intrinsic' node, the information is considered unknown rather than assuming a default value (unlike Personality traits where absence implies average values).
+
+L2 - L2 nodes relationships with Intrinsic are explained in the L2 Document
+
+L1 - 'Intrinsic' nodes do not generally have outgoing relationships

@@ -23,20 +23,14 @@ MIN_CONFIDENCE_THRESHOLD = 0.75
 HUMAN_REVIEW_THRESHOLD = 0.85
 #S3
 S3_BUCKET = os.getenv("S3_BUCKET")
-
-
 # Paths for categorization
 CATEGORY_DOCUMENTATION_PATHS = {
-    "KNOWLEDGE": "./is_kb",
-    "PURSUIT": "./is_pursuit",
-    "HEALTH": "./is_health",
-    "SKILL": "./is_skill",
-    "PERSONALITY": "./is_personality",
-    "INTRINSIC": "./is_intrinsic",
-    "ENTITY": "./is_entity",
-    "PERSON": "./is_person",
-    "REVIEW": "./needs_review",
-    "REJECTED": "./rejected"
+    "KNOWLEDGE": "./node_type_documentation/knowledge.txt",
+    "PURSUIT": "./node_type_documentation/pursuit.txt",
+    "HEALTH": "./node_type_documentation/health.txt",
+    "SKILL": "./node_type_documentation/skill.txt",
+    "PERSONALITY": "./node_type_documentation/personality.txt",
+    "INTRINSIC": "./node_type_documentation/intrinsic.txt"
 }
 
 class AtlasOfUsGraphAdmin:
@@ -53,6 +47,12 @@ class AtlasOfUsGraphAdmin:
         # Load system prompts
         with open("system_prompt.txt", "r") as f:
             self.system_message = f.read()
+        
+        # Load category documentation
+        self.category_documentation = {}
+        for category, path in CATEGORY_DOCUMENTATION_PATHS.items():
+            with open(path, "r") as f:
+                self.category_documentation[category] = f.read()
 
     def close(self):
         self.driver.close()
@@ -98,10 +98,21 @@ class AtlasOfUsGraphAdmin:
         }
         try:
             response = requests.post(INFERENCE_ENDPOINT, json=payload)
-        except Exception as e:
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        except requests.exceptions.RequestException as e:
             print(f"Error running inference: {e}")
+            return {}, conversation_history  # Return empty dict and original history on error
 
-        return response.json()['choices'][0]['message']
+        ai_message = response.json()['choices'][0]['message']
+
+        # Update conversation history with the user message and the AI response
+        if conversation_history is None:
+            conversation_history = []
+
+        conversation_history.append({"role": "user", "content": message})
+        conversation_history.append({"role": "assistant", "content": ai_message})
+
+        return ai_message, conversation_history
 
     def findSimilarNodes(self, embedding_to_check: List[float]) -> List:
         try:
@@ -163,12 +174,12 @@ class AtlasOfUsGraphAdmin:
 
         You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
 
-        - PURSUIT
-        - KNOWLEDGE
-        - SKILL
-        - PERSONALITY
-        - HEALTH
-        - INTRINSIC
+        - Pursuit
+        - Knowledge
+        - Skill
+        - Personality
+        - Health
+        - Intrinsic
 
         Title: {file_content['title']}
         Excerpt: {file_content['text'][:500]}...
@@ -203,10 +214,10 @@ class AtlasOfUsGraphAdmin:
             }
         ]
         #run inference
-        ai_response = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)        
+        ai_response, conversation_history = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)        
         while 'tool_calls' not in ai_response:
             print("No tool calls in response, retrying...")
-            ai_response = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)
+            ai_response, conversation_history = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)
         
         print(f"Initial ai response: {ai_response}\n")
         tool_call = ai_response['tool_calls'][0]
@@ -233,7 +244,7 @@ class AtlasOfUsGraphAdmin:
                     If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'. Only send back one of those two words.
                     Do not send back an explanation. Only respond with 'DUPLICATE' or 'DIFFERENT'.
                     """
-                    similarity_response = self.run_inference(SIMILARITY_PROMPT, [])
+                    similarity_response, conversation_history = self.run_inference(SIMILARITY_PROMPT, [], conversation_history)
                     while similarity_response['content'] not in ("DUPLICATE", "DIFFERENT"):
                         print("No tool calls in response, retrying...")
                         similarity_response = self.run_inference(SIMILARITY_PROMPT, NODE_CHOICE_TOOLS)
@@ -243,6 +254,31 @@ class AtlasOfUsGraphAdmin:
                             print('This is a duplicate, no action taken.')
                             pass
                         case "DIFFERENT":
+                            ###REFINE THE NODE FURTHER FOR SUB TYPES
+                            REFINE_NODE_FURTHER_PROMPT = f"""
+                            Now that we have determined the node's, main type, we need to refine it further.
+                            The following is the documentation for the node type you have selected:
+
+                            {self.category_documentation[function_args['nodeType']]}
+
+                            Given the following content, does it fall into any of the subcategories listed in the documentation?
+                            If it does, respond with an array of the subtypes. These subtypes will become labels in our graph database.
+                            """
+                            REFINE_NODE_FURTHER_TOOLS = [
+                                {
+                                    "type": "function",
+                                    "function": {
+                                        "name": "refineNodeSubTypes",
+                                        "description": "Adds subtypes to the previous node",
+                                        "parameters": {
+                                            "type": "list",
+                                            "description": "A list of subtypes to add as labels to the node."
+                                        }
+                                    }
+                                }
+                            ]
+                            node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
+                            print(node_refinement_response)
                             self.createNode(
                                 ["L1", function_args['nodeType']], 
                                 {
@@ -257,14 +293,40 @@ class AtlasOfUsGraphAdmin:
                         case _:
                             print("Bad AI response, reevaluate")      
                 else:
+                    ###REFINE THE NODE FURTHER FOR SUB TYPES
+                    REFINE_NODE_FURTHER_PROMPT = f"""
+                    Now that we have determined the node's, main type, we need to refine it further.
+                    The following is the documentation for the node type you have selected:
+
+                    {self.category_documentation[function_args['nodeType']]}
+
+                    Given the following content, does it fall into any of the subcategories listed in the documentation?
+                    If it does, respond with an array of the subtypes. These subtypes will become labels in our graph database.
+                    """
+                    REFINE_NODE_FURTHER_TOOLS = [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "refineNodeSubTypes",
+                                "description": "Adds subtypes to the previous node",
+                                "parameters": {
+                                    "type": "list",
+                                    "description": "A list of subtypes to add as labels to the node."
+                                }
+                            }
+                        }
+                    ]
+                    print(f"CONVO HISTORY: {conversation_history}")
+                    node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
+                    print(node_refinement_response)
                     self.createNode(
                         ["L1", function_args['nodeType']], 
                         {
-                        "name": function_args['nodeName'],
-                        "description": function_args['nodeDescription'],
-                        "embedding": generated_embedding,
-                        "aiGenerated": True,
-                        "aiReasonForAdding": ai_response['content'] #ADDING THIS TEMPORARILY FOR DEBUGGING PURPOSES (IT SHOULD BE REMOVED LATER)
+                            "name": function_args['nodeName'],
+                            "description": function_args['nodeDescription'],
+                            "embedding": generated_embedding,
+                            "aiGenerated": True,
+                            "aiReasonForAdding": ai_response['content'] #ADDING THIS TEMPORARILY FOR DEBUGGING PURPOSES (IT SHOULD BE REMOVED LATER)
                         }
                     )
 

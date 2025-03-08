@@ -1,0 +1,52 @@
+Pursuits Documentation
+
+Pursuits are things a person *does.* It is the jobs, hobbies, and any other activities people engage in. There are several sub types of pursuits nodes, and they are as follows:
+
+- Social: Activities focused on building and maintaining relationships, engaging with communities, and participating in social interactions
+- Professional: Activities related to career development, work responsibilities, and professional growth within chosen fields
+- Physical: Activities involving bodily movement, exercise, sports, and physical wellness maintenance
+- Leisure: Recreational activities pursued for enjoyment, relaxation, and personal satisfaction during free time
+- Intellectual: Activities focused on learning, academic growth, critical thinking, and expanding mental capabilities
+- Financial: Activities related to managing money, investments, budgeting, and building financial security
+- Creative: Activities involving artistic expression, innovation, and the generation of original ideas or works
+- Practical: Activities focused on maintaining daily life, solving everyday problems, and developing life skills
+
+```jsx
+{
+	Properties: {
+		name: string
+		description: string
+		reference: href
+	},
+	Labels: ['L1', 'Pursuit'], //any given pursuit would also have a label for all the subtypes it is, for example 'Creative' or 'Physical'
+}
+```
+
+‘Pursuit’ can have the following relationships with other nodes:
+
+L3 - ‘Person’ nodes can have these relationships with ‘Pursuit’ nodes
+
+```jsx
+(p:Person)-[PURSUES {
+	time_per_week: int //hours spent per week
+}]->(n:Pursuit)
+
+(p:Person)-[WANTS_TO_PURSUE {reason: string}]->(n:Pursuit)
+
+(p:Person)-[USED_TO_PURSUE {
+	fromDate: date, 
+	toDate: date, 
+	reasonStopped: string
+}]->(n:Pursuit)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Pursuit’ node, then that ‘Person’ does not pursue it at all and never has.
+
+L2 - L2 nodes relationships with Pursuit are explained in the L2 Document
+
+L1 - ‘Pursuit’ nodes can have these relationships with the other L1 nodes
+
+```jsx
+(n:Pursuit)-[REQUIRES {strength: range[0-100]}]->(n:L1)
+(n:Pursuit)-[BUILDS]->(n:L1) //I have just marked just L1 here, but it will usually be Knowledge or Skill, although it could also be any of the L1 nodes
+```

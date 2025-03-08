@@ -1,0 +1,28 @@
+Personality Documentation
+
+The personality path is based on the [Big 5 theory](https://en.wikipedia.org/wiki/Big_Five_personality_traits) which currently is the leading way accepted by most psychologists to classify people’s personality. It essentially contains many Personality traits, which are things like ‘Assertiveness’ and ‘Friendliness’. The assumption here is that each person has a certain amount of each, and your personality is based on how much of each trait you have. Therefor our Personality path is pretty simple. It just contains Personality nodes, and each Person node has the relationship HAS_TRAIT with each one of the nodes. It looks like:
+
+```jsx
+{
+	Properties: {
+		name: string
+		description: string
+	},
+	Labels: ['L1', 'Personality'], 
+}
+```
+
+‘Personality’ can have the following relationships with other nodes:
+
+L3 - ‘Person’ nodes can have these relationships with ‘Personality’ nodes
+
+```jsx
+(p:Person)-[HAS_PERSONALITY {strength: range[0-100]}]->(t:Personality)
+(p:Person)-[WANTS_TRAIT_LEVEL {reason: string}]->(t:Personality)
+```
+
+The default assumption is that if a ‘Person’ does not have a relationship with a ‘Personality’ node, then that ‘Person’ is perfectly average in that trait. We only create a relationship with a ‘Personality’ node if the ‘Person’ is particularly high or particularly low in that ‘Personality’ trait.
+
+L2 - L2 nodes relationships with Personality are explained in the L2 Document
+
+L1 - ‘Personality’ nodes as of yet don’t have any outgoing relationships to other L1 nodes, though other L1 types do have relationships with various Personality nodes
