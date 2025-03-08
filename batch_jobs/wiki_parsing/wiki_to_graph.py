@@ -141,11 +141,14 @@ class AtlasOfUsGraphAdmin:
             "messages": messages,
             "tools": tools
         }
-        
-        response = requests.post(INFERENCE_ENDPOINT, json=payload)
-        return response.json() 
+        try:
+            response = requests.post(INFERENCE_ENDPOINT, json=payload)
+        except Exception as e:
+            print(f"Error running inference: {e}")
 
-    def checkNodeSimilarity(self, embedding_to_check: List[float]) -> List:
+        return response.json()['choices'][0]['message']
+
+    def findSimilarNodes(self, embedding_to_check: List[float]) -> List:
         try:
             similarity_result = self.driver.execute_query(
                 (
@@ -162,74 +165,30 @@ class AtlasOfUsGraphAdmin:
             return similar_results
         except Exception as e:
             print(f"Error checking node similarity: {e}")
+            
+    def createNode(self, labels: List[str], properties: Dict[str, Any]):
+        """
+        Creates a node in the Neo4j graph with the given labels and properties.
+        Requires that properties contains an 'embedding' key with a valid embedding value.
+
+        Args:
+            labels (List[str]): A list of labels to apply to the node.
+            properties (Dict[str, Any]): A dictionary of properties to set on the node, including an 'embedding'.
+        """
+        if 'embedding' not in properties:
+            raise ValueError("Embedding must be provided in properties")
+
+        properties['aiGenerated'] = True  # Ensure aiGenerated is always true
+
+        label_string = ":".join(labels)
+        property_string = ", ".join([f"{key}: ${key}" for key in properties])
+        query = f"MERGE (n:{label_string} {{{property_string}}})"
+        
+        self.driver.execute_query(query, **properties)
+        print(f"Created node with labels: {labels} and properties: {properties}")
     
-    def buildKnowledgeNode(self, function_params, ai_message):
-        generated_embedding = self.generate_embedding(function_params['nodeDescription'])
-        similar_nodes = self.checkNodeSimilarity(generated_embedding)
-        if len(similar_nodes) > 0:
-            print("Checking on similar nodes")
-            SIMILARITY_PROMPT = f"""
-            You previously took in this content and chose to create a node based off of it, however upon querying the database we see that something similar might actually exist.
-            Here are the results of that query: 
-
-            {similar_nodes}
-
-            Upon reviewing these, do any of them look like they are the same thing as the node you are trying to create? 
-            If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'
-            """
-            SIMILARITY_TOOLS = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "determineSimilarity",
-                        "description": "Handles the choice made by the llm of whether the subject node is a DUPLICATE or DIFFERENT from the other similar nodes.",
-                        "parameters": {
-                            "type": "string",
-                            "description": "One of two possible values, 'DUPLICATE' or 'DIFFERENT'",
-                        }
-                    }
-                }
-            ]
-
-            similarity_response = self.run_inference(SIMILARITY_PROMPT, SIMILARITY_TOOLS)
-            print(similarity_response['choices'][0]['message'])
-
-        #now that we have an embedding, we should see if something similar already exists
-        self.driver.execute_query(
-            "MERGE (k:L1:Knowledge {name: $name, description: $description, embedding: $embedding, aiGenerated: true})", 
-            name = function_params['nodeName'],
-            description = function_params['nodeDescription'],
-            embedding = generated_embedding
-        )
-        print(f"Created new node: {function_params['nodeName']}")
-
-    def handleChoice(self, function_params: Dict[str, Any], ai_message: Any):
-        match function_params['nodeType']:
-            case "NONE":
-                print(function_params)
-            case "PURSUIT":
-                print(function_params)
-            case "KNOWLEDGE":
-                self.buildKnowledgeNode(function_params, ai_message)
-            case "SKILL":
-                print(function_params)
-            case "PERSONALITY":
-                print(function_params)
-            case "HEALTH":
-                print(function_params)
-            case "INTRINSIC":
-                print(function_params)
-            case _:
-                print("default case")
-
-    def determineSimilarity(self, function_params: Dict[str, Any]):
-        match function_params['similarity_determination']:
-            case "DUPLICATE":
-                return
-            case "DIFFERENT":
-                print('different')
-            case _:
-                print("Bad AI response at handleSimilarity")
+    def createRelationship(self):
+        print("build this function")
 
     def process_file(self, file_key: str) -> Dict[str, Any]:
         """Process a single file from S3 and evaluate it for inclusion in the graph"""
@@ -237,16 +196,74 @@ class AtlasOfUsGraphAdmin:
         response = self.s3.get_object(Bucket=S3_BUCKET, Key=file_key)
         file_content_str = response['Body'].read().decode('utf-8')
         file_content = json.loads(file_content_str)
-        ai_message = NODE_CHOICE_PROMPT + f"\n\nTitle: {file_content['title']}\nExcerpt: {file_content['text'][:500]}...\n\nEvaluate this Wikipedia content according to the Atlas Of Us schema."
-        ai_response = self.run_inference(ai_message, NODE_CHOICE_TOOLS)
-        ai_message = ai_response['choices'][0]['message']
-        if ai_response['choices'][0]['message']['tool_calls']:
-            tool_call = ai_response['choices'][0]['message']['tool_calls'][0]
-            function_name = tool_call['function']['name']
-            function_args = json.loads(tool_call['function']['arguments'])
+        
+        #message 
+        ai_message = NODE_CHOICE_PROMPT + f"\n\nTitle: {file_content['title']}\nExcerpt: {file_content['text'][:500]}...\n\nEvaluate this Wikipedia content according to the Atlas Of Us schema. Call the handleChoice function with the node designation"
+        #run inference
+        ai_response = self.run_inference(ai_message, NODE_CHOICE_TOOLS)        
+        while 'tool_calls' not in ai_response:
+            print("No tool calls in response, retrying...")
+            ai_response = self.run_inference(ai_message, NODE_CHOICE_TOOLS)
+            print(ai_response)
+        
+        print(ai_response)
+        tool_call = ai_response['tool_calls'][0]
+        function_name = tool_call['function']['name']
+        function_args = json.loads(tool_call['function']['arguments'])
 
-            if function_name == "handleChoice":
-                self.handleChoice(function_args, ai_message)
+        if function_name == "handleChoice":
+            if function_args['nodeType'] == "NONE":
+                pass
+            else:
+                generated_embedding = self.generate_embedding(function_args['nodeDescription'])
+                similar_nodes = self.findSimilarNodes(generated_embedding)
+
+                #if we have similar nodes, double check with the llm if they are really the same or not
+                if len(similar_nodes) > 0:
+                    print("Checking on similar nodes")
+                    SIMILARITY_PROMPT = f"""
+                    You previously took in this content and chose to create a node based off of it, however upon querying the database we see that something similar might actually exist.
+                    Here are the results of that query: 
+
+                    {similar_nodes}
+
+                    Upon reviewing these, do any of them look like they are the same thing as the node you are trying to create? 
+                    If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'. Only send back one of those two words.
+                    Do not send back an explanation. Only respond with 'DUPLICATE' or 'DIFFERENT'.
+                    """
+                    similarity_response = self.run_inference(SIMILARITY_PROMPT, [])
+                    match similarity_response['content']:
+                        case "DUPLICATE":
+                            print('This is a duplicate, no action taken.')
+                            pass
+                        case "DIFFERENT":
+                            self.driver.execute_query(
+                                "MERGE (k:L1:Knowledge {name: $name, description: $description, embedding: $embedding, aiGenerated: true})", 
+                                name = function_params['nodeName'],
+                                description = function_params['nodeDescription'],
+                                embedding = generated_embedding
+                            )
+                            print(f"Created new node: {function_params['nodeName']}")
+                        case _:
+                            print("Bad AI response, reevaluate")      
+                else:
+                      ##JUST CREATED THIS FUNCTION, CHECK IT WORKS
+                      self.createNode(
+                          ["L1", ""], 
+                          {
+                            "name": function_params['nodeName'],
+                            "description": function_params['nodeDescription'],
+                            "embedding": generated_embedding
+                          }
+                        )
+                      self.driver.execute_query(
+                            "MERGE (k:L1:Knowledge {name: $name, description: $description, embedding: $embedding, aiGenerated: true})", 
+                            name = function_params['nodeName'],
+                            description = function_params['nodeDescription'],
+                            embedding = generated_embedding
+                        )
+            #now we should have determined what the content is about, we should check to see if something like this already exists in the db
+            self.handleChoice(function_args, ai_message)
 
     def process_all_files(self):
         """Process all files in the S3 bucket"""
@@ -257,7 +274,6 @@ class AtlasOfUsGraphAdmin:
             page_iterator = paginator.paginate(Bucket=S3_BUCKET)
             
             all_results = []
-            
             for page in page_iterator:
                 if 'Contents' not in page:
                     print(f"No files found in bucket '{S3_BUCKET}'")
@@ -280,7 +296,7 @@ class AtlasOfUsGraphAdmin:
                         print(f"Error processing {file_key}: {e}")
             
             # Generate summary report
-            self.generate_report(all_results)
+            #self.generate_report(all_results)
                     
         except ClientError as e:
             print(f"Error accessing S3: {e}")
