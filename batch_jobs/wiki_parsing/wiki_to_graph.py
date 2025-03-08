@@ -39,51 +39,6 @@ CATEGORY_DOCUMENTATION_PATHS = {
     "REJECTED": "./rejected"
 }
 
-NODE_CHOICE_PROMPT = """
-# What is the process for evaluating something new?
-When evaluating some new piece of information of content, we may want to represent it in the graph database. To figure out what that thing should look like, we will follow this process:
-
-1. Take in a piece of content and evaluate it. Do any pieces of it match the 6 L1 types?
-2. If so, how does it fit in?
-3. Create the graph node and insert it into neo4j
-
-You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
-
-- PURSUIT
-- KNOWLEDGE
-- SKILL
-- PERSONALITY
-- HEALTH
-- INTRINSIC
-"""
-NODE_CHOICE_TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "handleChoice",
-            "description": "Handles the choice made by the llm of what type of node the provided content might be",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "nodeType": {
-                        "type": "string",
-                        "description": "The node type selected. One of seven possible values: PURSUIT, KNOWLEDGE, SKILL, PERSONALITY, HEALTH, INTRINSIC, or NONE"
-                    },
-                    "nodeName": {
-                        "type": "string",
-                        "description": "What the name of the node should be."
-                    },
-                    "nodeDescription": {
-                        "type": "string",
-                        "description": "A description of the new node we are creating."
-                    }
-                },
-                "required": ["nodeType"]
-            }
-        }
-    }
-]
-
 class AtlasOfUsGraphAdmin:
     def __init__(self, uri, auth):
         #neo4j initialization
@@ -198,15 +153,62 @@ class AtlasOfUsGraphAdmin:
         file_content = json.loads(file_content_str)
         
         #message 
-        ai_message = NODE_CHOICE_PROMPT + f"\n\nTitle: {file_content['title']}\nExcerpt: {file_content['text'][:500]}...\n\nEvaluate this Wikipedia content according to the Atlas Of Us schema. Call the handleChoice function with the node designation"
+        NODE_CHOICE_PROMPT = f"""
+        # What is the process for evaluating something new?
+        When evaluating some new piece of information of content, we may want to represent it in the graph database. To figure out what that thing should look like, we will follow this process:
+
+        1. Take in a piece of content and evaluate it. Do any pieces of it match the 6 L1 types?
+        2. If so, how does it fit in?
+        3. Create the graph node and insert it into neo4j
+
+        You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
+
+        - PURSUIT
+        - KNOWLEDGE
+        - SKILL
+        - PERSONALITY
+        - HEALTH
+        - INTRINSIC
+
+        Title: {file_content['title']}
+        Excerpt: {file_content['text'][:500]}...
+        
+        Evaluate this Wikipedia content according to the Atlas Of Us schema. Call the handleChoice function with the node designation.
+        """
+        NODE_CHOICE_TOOLS = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "handleChoice",
+                    "description": "Handles the choice made by the llm of what type of node the provided content might be",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "nodeType": {
+                                "type": "string",
+                                "description": "The node type selected. One of seven possible values: PURSUIT, KNOWLEDGE, SKILL, PERSONALITY, HEALTH, INTRINSIC, or NONE"
+                            },
+                            "nodeName": {
+                                "type": "string",
+                                "description": "What the name of the node should be."
+                            },
+                            "nodeDescription": {
+                                "type": "string",
+                                "description": "A description of the new node we are creating."
+                            }
+                        },
+                        "required": ["nodeType", "nodeName", "nodeDescription"]
+                    }
+                }
+            }
+        ]
         #run inference
-        ai_response = self.run_inference(ai_message, NODE_CHOICE_TOOLS)        
+        ai_response = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)        
         while 'tool_calls' not in ai_response:
             print("No tool calls in response, retrying...")
-            ai_response = self.run_inference(ai_message, NODE_CHOICE_TOOLS)
-            print(ai_response)
+            ai_response = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)
         
-        print(ai_response)
+        print(f"Initial ai response: {ai_response}\n")
         tool_call = ai_response['tool_calls'][0]
         function_name = tool_call['function']['name']
         function_args = json.loads(tool_call['function']['arguments'])
@@ -232,38 +234,39 @@ class AtlasOfUsGraphAdmin:
                     Do not send back an explanation. Only respond with 'DUPLICATE' or 'DIFFERENT'.
                     """
                     similarity_response = self.run_inference(SIMILARITY_PROMPT, [])
+                    while similarity_response['content'] not in ("DUPLICATE", "DIFFERENT"):
+                        print("No tool calls in response, retrying...")
+                        similarity_response = self.run_inference(SIMILARITY_PROMPT, NODE_CHOICE_TOOLS)
+
                     match similarity_response['content']:
                         case "DUPLICATE":
                             print('This is a duplicate, no action taken.')
                             pass
                         case "DIFFERENT":
-                            self.driver.execute_query(
-                                "MERGE (k:L1:Knowledge {name: $name, description: $description, embedding: $embedding, aiGenerated: true})", 
-                                name = function_params['nodeName'],
-                                description = function_params['nodeDescription'],
-                                embedding = generated_embedding
+                            self.createNode(
+                                ["L1", function_args['nodeType']], 
+                                {
+                                    "name": function_args['nodeName'],
+                                    "description": function_args['nodeDescription'],
+                                    "embedding": generated_embedding,
+                                    "aiGenerated": True,
+                                    "aiReasonForAdding": ai_response['content'] #ADDING THIS TEMPORARILY FOR DEBUGGING PURPOSES (IT SHOULD BE REMOVED LATER)
+                                }
                             )
-                            print(f"Created new node: {function_params['nodeName']}")
+                            print(f"Created new node: {function_args['nodeName']}")
                         case _:
                             print("Bad AI response, reevaluate")      
                 else:
-                      ##JUST CREATED THIS FUNCTION, CHECK IT WORKS
-                      self.createNode(
-                          ["L1", ""], 
-                          {
-                            "name": function_params['nodeName'],
-                            "description": function_params['nodeDescription'],
-                            "embedding": generated_embedding
-                          }
-                        )
-                      self.driver.execute_query(
-                            "MERGE (k:L1:Knowledge {name: $name, description: $description, embedding: $embedding, aiGenerated: true})", 
-                            name = function_params['nodeName'],
-                            description = function_params['nodeDescription'],
-                            embedding = generated_embedding
-                        )
-            #now we should have determined what the content is about, we should check to see if something like this already exists in the db
-            self.handleChoice(function_args, ai_message)
+                    self.createNode(
+                        ["L1", function_args['nodeType']], 
+                        {
+                        "name": function_args['nodeName'],
+                        "description": function_args['nodeDescription'],
+                        "embedding": generated_embedding,
+                        "aiGenerated": True,
+                        "aiReasonForAdding": ai_response['content'] #ADDING THIS TEMPORARILY FOR DEBUGGING PURPOSES (IT SHOULD BE REMOVED LATER)
+                        }
+                    )
 
     def process_all_files(self):
         """Process all files in the S3 bucket"""
@@ -304,7 +307,7 @@ class AtlasOfUsGraphAdmin:
 if __name__ == '__main__':
     admin = AtlasOfUsGraphAdmin(URI, AUTH)
     try:
-        admin.process_all_files() #we can run this when ready, for now process one file
-        #admin.process_file("1000001_NPU.json")
+        admin.process_all_files() 
+        #admin.process_file("1000001_NPU.json") #FOR DEBUGGING one file
     finally:
         admin.close()
