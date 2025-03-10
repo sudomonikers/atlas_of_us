@@ -25,12 +25,12 @@ HUMAN_REVIEW_THRESHOLD = 0.85
 S3_BUCKET = os.getenv("S3_BUCKET")
 # Paths for categorization
 CATEGORY_DOCUMENTATION_PATHS = {
-    "KNOWLEDGE": "./node_type_documentation/knowledge.txt",
-    "PURSUIT": "./node_type_documentation/pursuit.txt",
-    "HEALTH": "./node_type_documentation/health.txt",
-    "SKILL": "./node_type_documentation/skill.txt",
-    "PERSONALITY": "./node_type_documentation/personality.txt",
-    "INTRINSIC": "./node_type_documentation/intrinsic.txt"
+    "Knowledge": "./node_type_documentation/knowledge.txt",
+    "Pursuit": "./node_type_documentation/pursuit.txt",
+    "Health": "./node_type_documentation/health.txt",
+    "Skill": "./node_type_documentation/skill.txt",
+    "Personality": "./node_type_documentation/personality.txt",
+    "Intrinsic": "./node_type_documentation/intrinsic.txt"
 }
 
 class AtlasOfUsGraphAdmin:
@@ -96,6 +96,7 @@ class AtlasOfUsGraphAdmin:
             "messages": messages,
             "tools": tools
         }
+
         try:
             response = requests.post(INFERENCE_ENDPOINT, json=payload)
             response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
@@ -110,7 +111,10 @@ class AtlasOfUsGraphAdmin:
             conversation_history = []
 
         conversation_history.append({"role": "user", "content": message})
-        conversation_history.append({"role": "assistant", "content": ai_message})
+        if 'tool_calls' in ai_message:
+            conversation_history.append({"role": "assistant", "content": f"Tool call made: {ai_message['tool_calls'][0]['function']['name']} called with parameters {ai_message['tool_calls'][0]['function']['arguments']}"})
+        else:
+            conversation_history.append({"role": "assistant", "content": ai_message['content']})
 
         return ai_message, conversation_history
 
@@ -172,7 +176,7 @@ class AtlasOfUsGraphAdmin:
         2. If so, how does it fit in?
         3. Create the graph node and insert it into neo4j
 
-        You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches KNOWLEDGE” or whichever category it matches. The 6 categories available are:
+        You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches Knowledge” or whichever category it matches. The 6 categories available are:
 
         - Pursuit
         - Knowledge
@@ -197,7 +201,7 @@ class AtlasOfUsGraphAdmin:
                         "properties": {
                             "nodeType": {
                                 "type": "string",
-                                "description": "The node type selected. One of seven possible values: PURSUIT, KNOWLEDGE, SKILL, PERSONALITY, HEALTH, INTRINSIC, or NONE"
+                                "description": "The node type selected. One of seven possible values: Pursuit, Knowledge, Skill, Personality, Health, Intrinsic, or NONE"
                             },
                             "nodeName": {
                                 "type": "string",
@@ -228,6 +232,7 @@ class AtlasOfUsGraphAdmin:
             if function_args['nodeType'] == "NONE":
                 pass
             else:
+                #generate an embedding of the content, and then check neo4j to see if somthing similar exists
                 generated_embedding = self.generate_embedding(function_args['nodeDescription'])
                 similar_nodes = self.findSimilarNodes(generated_embedding)
 
@@ -245,11 +250,12 @@ class AtlasOfUsGraphAdmin:
                     Do not send back an explanation. Only respond with 'DUPLICATE' or 'DIFFERENT'.
                     """
                     similarity_response, conversation_history = self.run_inference(SIMILARITY_PROMPT, [], conversation_history)
-                    while similarity_response['content'] not in ("DUPLICATE", "DIFFERENT"):
-                        print("No tool calls in response, retrying...")
-                        similarity_response = self.run_inference(SIMILARITY_PROMPT, NODE_CHOICE_TOOLS)
+                    last_word = similarity_response['content'].split()[-1]  # Extract the last word
+                    while last_word not in ("DUPLICATE", "DIFFERENT"):
+                        similarity_response, conversation_history = self.run_inference(SIMILARITY_PROMPT, [], conversation_history)
+                        last_word = similarity_response['content'].split()[-1]  # Extract the last word
 
-                    match similarity_response['content']:
+                    match last_word:
                         case "DUPLICATE":
                             print('This is a duplicate, no action taken.')
                             pass
@@ -271,7 +277,7 @@ class AtlasOfUsGraphAdmin:
                                         "name": "refineNodeSubTypes",
                                         "description": "Adds subtypes to the previous node",
                                         "parameters": {
-                                            "type": "list",
+                                            "type": "array",
                                             "description": "A list of subtypes to add as labels to the node."
                                         }
                                     }
@@ -280,13 +286,12 @@ class AtlasOfUsGraphAdmin:
                             node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
                             print(node_refinement_response)
                             self.createNode(
-                                ["L1", function_args['nodeType']], 
+                                ["L1", function_args['nodeType']] + json.loads(node_refinement_response['tool_calls'][0]['function']['arguments']),
                                 {
                                     "name": function_args['nodeName'],
                                     "description": function_args['nodeDescription'],
                                     "embedding": generated_embedding,
-                                    "aiGenerated": True,
-                                    "aiReasonForAdding": ai_response['content'] #ADDING THIS TEMPORARILY FOR DEBUGGING PURPOSES (IT SHOULD BE REMOVED LATER)
+                                    "aiGenerated": True
                                 }
                             )
                             print(f"Created new node: {function_args['nodeName']}")
@@ -310,25 +315,25 @@ class AtlasOfUsGraphAdmin:
                                 "name": "refineNodeSubTypes",
                                 "description": "Adds subtypes to the previous node",
                                 "parameters": {
-                                    "type": "list",
+                                    "type": "array",
                                     "description": "A list of subtypes to add as labels to the node."
                                 }
                             }
                         }
                     ]
-                    print(f"CONVO HISTORY: {conversation_history}")
                     node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
                     print(node_refinement_response)
                     self.createNode(
-                        ["L1", function_args['nodeType']], 
+                        ["L1", function_args['nodeType']] + json.loads(node_refinement_response['tool_calls'][0]['function']['arguments']),
                         {
                             "name": function_args['nodeName'],
                             "description": function_args['nodeDescription'],
                             "embedding": generated_embedding,
-                            "aiGenerated": True,
-                            "aiReasonForAdding": ai_response['content'] #ADDING THIS TEMPORARILY FOR DEBUGGING PURPOSES (IT SHOULD BE REMOVED LATER)
+                            "aiGenerated": True
                         }
                     )
+                    print(f"Created new node: {function_args['nodeName']}")
+
 
     def process_all_files(self):
         """Process all files in the S3 bucket"""
