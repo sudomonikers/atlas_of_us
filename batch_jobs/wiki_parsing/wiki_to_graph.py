@@ -112,7 +112,8 @@ class AtlasOfUsGraphAdmin:
 
         conversation_history.append({"role": "user", "content": message})
         if 'tool_calls' in ai_message:
-            conversation_history.append({"role": "assistant", "content": f"Tool call made: {ai_message['tool_calls'][0]['function']['name']} called with parameters {ai_message['tool_calls'][0]['function']['arguments']}"})
+            function_call = ai_message['tool_calls'][0]['function']
+            conversation_history.append({"role": "assistant", "content": f"Tool call made: {function_call['name']} called with parameters {function_call['arguments']}"})
         else:
             conversation_history.append({"role": "assistant", "content": ai_message['content']})
 
@@ -188,7 +189,8 @@ class AtlasOfUsGraphAdmin:
         Title: {file_content['title']}
         Excerpt: {file_content['text'][:500]}...
         
-        Evaluate this Wikipedia content according to the Atlas Of Us schema. Call the handleChoice function with the node designation.
+        Evaluate this Wikipedia content according to the Atlas Of Us schema.
+        Call the handleChoice function with the expected parameters.
         """
         NODE_CHOICE_TOOLS = [
             {
@@ -210,129 +212,113 @@ class AtlasOfUsGraphAdmin:
                             "nodeDescription": {
                                 "type": "string",
                                 "description": "A description of the new node we are creating."
+                            },
+                            "selectionReason": {
+                                "type": "string",
+                                "description": "The AI agents reasoning for how this content matches the selected nodeName"
                             }
                         },
-                        "required": ["nodeType", "nodeName", "nodeDescription"]
+                        "required": ["nodeType", "nodeName", "nodeDescription", "selectionReason"]
                     }
                 }
             }
         ]
         #run inference
         ai_response, conversation_history = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)        
-        while 'tool_calls' not in ai_response:
-            print("No tool calls in response, retrying...")
-            ai_response, conversation_history = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)
-        
-        print(f"Initial ai response: {ai_response}\n")
-        tool_call = ai_response['tool_calls'][0]
-        function_name = tool_call['function']['name']
-        function_args = json.loads(tool_call['function']['arguments'])
+        node_choice_function_call = ai_response['tool_calls'][0]['function']
+        node_choice_function_call_arguments = json.loads(node_choice_function_call['arguments'])
+        node_type_selected = node_choice_function_call_arguments['nodeType']
+        print(node_type_selected, ai_response)
 
-        if function_name == "handleChoice":
-            if function_args['nodeType'] == "NONE":
-                pass
-            else:
-                #generate an embedding of the content, and then check neo4j to see if somthing similar exists
-                generated_embedding = self.generate_embedding(function_args['nodeDescription'])
-                similar_nodes = self.findSimilarNodes(generated_embedding)
+        #If the agent thinks this content has something that should be added to the db, lets have it refine further
+        if node_type_selected != 'None':
+            #generate an embedding of the content, and then check neo4j to see if somthing similar exists
+            generated_embedding = self.generate_embedding(node_choice_function_call_arguments['nodeDescription'])
+            similar_nodes = self.findSimilarNodes(generated_embedding)
 
-                #if we have similar nodes, double check with the llm if they are really the same or not
-                if len(similar_nodes) > 0:
-                    print("Checking on similar nodes")
-                    SIMILARITY_PROMPT = f"""
-                    You previously took in this content and chose to create a node based off of it, however upon querying the database we see that something similar might actually exist.
-                    Here are the results of that query: 
+            #if we have similar nodes, double check with the llm if they are really the same or not
+            if len(similar_nodes) > 0:
+                print("Checking on similar nodes")
+                SIMILARITY_PROMPT = f"""
+                You previously took in this content and chose to create a node based off of it, however upon querying the database we see that something similar might actually exist.
+                Here are the results of that query: 
 
-                    {similar_nodes}
+                {similar_nodes}
 
-                    Upon reviewing these, do any of them look like they are the same thing as the node you are trying to create? 
-                    If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'. Only send back one of those two words.
-                    Do not send back an explanation. Only respond with 'DUPLICATE' or 'DIFFERENT'.
-                    """
-                    similarity_response, conversation_history = self.run_inference(SIMILARITY_PROMPT, [], conversation_history)
-                    last_word = similarity_response['content'].split()[-1]  # Extract the last word
-                    while last_word not in ("DUPLICATE", "DIFFERENT"):
-                        similarity_response, conversation_history = self.run_inference(SIMILARITY_PROMPT, [], conversation_history)
-                        last_word = similarity_response['content'].split()[-1]  # Extract the last word
-
-                    match last_word:
-                        case "DUPLICATE":
-                            print('This is a duplicate, no action taken.')
-                            pass
-                        case "DIFFERENT":
-                            ###REFINE THE NODE FURTHER FOR SUB TYPES
-                            REFINE_NODE_FURTHER_PROMPT = f"""
-                            Now that we have determined the node's, main type, we need to refine it further.
-                            The following is the documentation for the node type you have selected:
-
-                            {self.category_documentation[function_args['nodeType']]}
-
-                            Given the following content, does it fall into any of the subcategories listed in the documentation?
-                            If it does, respond with an array of the subtypes. These subtypes will become labels in our graph database.
-                            """
-                            REFINE_NODE_FURTHER_TOOLS = [
-                                {
-                                    "type": "function",
-                                    "function": {
-                                        "name": "refineNodeSubTypes",
-                                        "description": "Adds subtypes to the previous node",
-                                        "parameters": {
-                                            "type": "array",
-                                            "description": "A list of subtypes to add as labels to the node."
-                                        }
-                                    }
-                                }
-                            ]
-                            node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
-                            print(node_refinement_response)
-                            self.createNode(
-                                ["L1", function_args['nodeType']] + json.loads(node_refinement_response['tool_calls'][0]['function']['arguments']),
-                                {
-                                    "name": function_args['nodeName'],
-                                    "description": function_args['nodeDescription'],
-                                    "embedding": generated_embedding,
-                                    "aiGenerated": True
-                                }
-                            )
-                            print(f"Created new node: {function_args['nodeName']}")
-                        case _:
-                            print("Bad AI response, reevaluate")      
-                else:
-                    ###REFINE THE NODE FURTHER FOR SUB TYPES
-                    REFINE_NODE_FURTHER_PROMPT = f"""
-                    Now that we have determined the node's, main type, we need to refine it further.
-                    The following is the documentation for the node type you have selected:
-
-                    {self.category_documentation[function_args['nodeType']]}
-
-                    Given the following content, does it fall into any of the subcategories listed in the documentation?
-                    If it does, respond with an array of the subtypes. These subtypes will become labels in our graph database.
-                    """
-                    REFINE_NODE_FURTHER_TOOLS = [
-                        {
-                            "type": "function",
-                            "function": {
-                                "name": "refineNodeSubTypes",
-                                "description": "Adds subtypes to the previous node",
-                                "parameters": {
-                                    "type": "array",
-                                    "description": "A list of subtypes to add as labels to the node."
-                                }
+                Upon reviewing these, do any of them look like they are the same thing as the node you are trying to create? 
+                If so send back 'DUPLICATE' if what you are trying to create is different, send back 'DIFFERENT'. Only send back one of those two words.
+                Do not send back an explanation. Only respond with 'DUPLICATE' or 'DIFFERENT' as a parameter to the provided handleSimilarityResponse tool.
+                """
+                SIMILARITY_TOOLS = [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "handleSimilarityResponse",
+                            "description": "Handles the choice made by the llm of whether or not the given node is the same as or different from the provided 'similar' nodes.",
+                            "parameters": {
+                                "type": "string",
+                                "description": "One of two possible strings 'DIFFERENT', or 'DUPLICATE'"
                             }
                         }
-                    ]
-                    node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
-                    print(node_refinement_response)
-                    self.createNode(
-                        ["L1", function_args['nodeType']] + json.loads(node_refinement_response['tool_calls'][0]['function']['arguments']),
-                        {
-                            "name": function_args['nodeName'],
-                            "description": function_args['nodeDescription'],
-                            "embedding": generated_embedding,
-                            "aiGenerated": True
+                    }
+                ]
+                similarity_response, conversation_history = self.run_inference(SIMILARITY_PROMPT, SIMILARITY_TOOLS, conversation_history)
+                
+                similarity_function_call = similarity_response['tool_calls'][0]['function']
+                similarity_function_call_choice = json.loads(similarity_function_call['arguments'])
+                if similarity_function_call_choice == 'DUPLICATE':
+                    pass
+
+            #if we have cleared the node type check as well as the duplicate check, then we can refine our node further
+            REFINE_NODE_FURTHER_PROMPT = f"""
+            Now that we have determined the node's, main type, we need to refine it further.
+            The following is the documentation for the node type you have selected:
+
+            {self.category_documentation[node_type_selected]}
+
+            Given the following content, does it fall into any of the subcategories listed in the documentation?
+            If it does, respond with an array of the subtypes. These subtypes will become labels in our graph database.
+            """
+            REFINE_NODE_FURTHER_TOOLS = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "refineNodeSubTypes",
+                        "description": "Adds subtypes to the previous node",
+                        "parameters": {
+                            "type": "object",
+                            "properties": { 
+                                "subTypesSelected": {
+                                    "type": "array",
+                                    "description": "A list of subtypes to add as labels to the node."
+                                },
+                                "selectionReason": {
+                                    "type": "string",
+                                    "description": "The AI agents reasoning for how this content matches the selected nodeName"
+                                }
+                            }
+
                         }
-                    )
-                    print(f"Created new node: {function_args['nodeName']}")
+                    }
+                }
+            ]
+            node_refinement_response, conversation_history = self.run_inference(REFINE_NODE_FURTHER_PROMPT, REFINE_NODE_FURTHER_TOOLS, conversation_history)
+            print(node_refinement_response)
+
+            #now that we have our node nice and refined and passing all checks, add it to the database
+            sub_types_selected = json.loads(node_refinement_response['tool_calls'][0]['function']['arguments'])['subTypesSelected']
+            self.createNode(
+                ["L1", node_type_selected] + sub_types_selected,
+                {
+                    "name": node_choice_function_call_arguments['nodeName'],
+                    "description": node_choice_function_call_arguments['nodeDescription'],
+                    "embedding": generated_embedding,
+                    "aiGenerated": True
+                }
+            )
+            print(f"Created new node: {node_choice_function_call_arguments['nodeName']}")
+        else:
+            pass
 
 
     def process_all_files(self):

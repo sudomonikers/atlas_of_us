@@ -10,6 +10,9 @@ Knowledge nodes represent any knowledge or ideas or beliefs a person can know ab
 - Heuristic: Knowledge based on "rules of thumb" or mental shortcuts that are useful for quick decision-making but aren't necessarily proven or procedural.
 - Historical: Knowledge about past events, trends, and developments that may not fit neatly into the "Provable" category since historical knowledge often involves interpretation.
 
+It should be noted that 'things' are not necessarily knowledge. Just because you could have knowledge about something like a movie, book, game, or any other thing that does not make it knowledge by itself. 
+Ideas INSIDE the movie/book/thing may represent a 'Knowledge' node, but the thing itself is not a 'Knowledge' node.
+
 A basic Knowledge node will look like this:
 
 ```jsx
