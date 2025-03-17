@@ -173,11 +173,10 @@ class AtlasOfUsGraphAdmin:
         # What is the process for evaluating something new?
         When evaluating some new piece of information of content, we may want to represent it in the graph database. To figure out what that thing should look like, we will follow this process:
 
-        1. Take in a piece of content and evaluate it. Do any pieces of it match the 6 L1 types?
+        1. Take in a piece of content and evaluate it. Does anything within the content match any of the 6 L1 types?
         2. If so, how does it fit in?
-        3. Create the graph node and insert it into neo4j
 
-        You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, respond by saying so. You can indicate your choice (if there is any choice) by the last word of your response. Give your reasoning, and then end your answer with “therefor, this piece of content matches Knowledge” or whichever category it matches. The 6 categories available are:
+        You, as the LLM Atlas Of Us Graph Database Manager, will be the one performing the evaluation. If any piece of the ingested content relates to one of the 6 nodes, then call the handleChoice function with one of the 6 expected parameters:
 
         - Pursuit
         - Knowledge
@@ -185,6 +184,8 @@ class AtlasOfUsGraphAdmin:
         - Personality
         - Health
         - Intrinsic
+
+        If the content does not match any L1 type, then call handleChoice with NONE.
 
         Title: {file_content['title']}
         Excerpt: {file_content['text'][:500]}...
@@ -231,7 +232,7 @@ class AtlasOfUsGraphAdmin:
         print(node_type_selected, ai_response)
 
         #If the agent thinks this content has something that should be added to the db, lets have it refine further
-        if node_type_selected != 'None':
+        if node_type_selected != 'NONE':
             #generate an embedding of the content, and then check neo4j to see if somthing similar exists
             generated_embedding = self.generate_embedding(node_choice_function_call_arguments['nodeDescription'])
             similar_nodes = self.findSimilarNodes(generated_embedding)
@@ -313,7 +314,8 @@ class AtlasOfUsGraphAdmin:
                     "name": node_choice_function_call_arguments['nodeName'],
                     "description": node_choice_function_call_arguments['nodeDescription'],
                     "embedding": generated_embedding,
-                    "aiGenerated": True
+                    "aiGenerated": True,
+                    "aiReasoning": node_choice_function_call_arguments['selectionReason']
                 }
             )
             print(f"Created new node: {node_choice_function_call_arguments['nodeName']}")
