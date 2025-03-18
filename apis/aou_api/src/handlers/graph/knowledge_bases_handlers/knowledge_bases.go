@@ -15,7 +15,7 @@ func GetAllKnowledgeBaseNodes(c *gin.Context) {
 	}
 
 	result, err := appCtx.NEO4J.ExecuteQuery(`
-		MATCH (n:Knowledge)
+        MATCH (n:Knowledge)
         OPTIONAL MATCH (n)-[r]->(m)
         WITH collect(n) AS nodes, collect(r) AS relationships
         UNWIND nodes AS node

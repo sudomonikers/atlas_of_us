@@ -23,17 +23,11 @@
   const velocities: THREE.Vector3[] = [];
   const boundarySize = 1500;
 
-  async function loadGraphData() {
+  async function loadL1GraphData() {
     const graphData = await graphUtils.loadL1Nodes();
-
-    // const tree = graphUtils.generateNaryTree(graphData, 3);
-    // console.log(tree)
-
     const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 500);
     const flattened = graphUtils.flattenNestedStructure(positions);
-    console.log(flattened)
 
-    // const keys = Object.keys(graphData);
     for (let index = 0; index < flattened.length; index++) {
       const data = graphData[flattened[index].key];
       const image = await http.getS3Object(
@@ -301,7 +295,7 @@
     loadBackground();
     loadParticles();
 
-    loadGraphData();
+    loadL1GraphData();
 
     return () => {
       // Clean up resources
