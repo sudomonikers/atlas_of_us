@@ -61,13 +61,21 @@ export class GraphUtils {
   }
 
   async loadL1Nodes(): Promise<GraphData> {
-    const personalityNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Personality');
-    const healthNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Health');
-    const knowledgeNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Knowledge');
-    const intrinsicsNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Intrinsic');
-    const pursuitsNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Pursuit');
-    const skillsNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Skill');
-
+    const [
+      personalityNodes,
+      healthNodes,
+      knowledgeNodes,
+      intrinsicsNodes,
+      pursuitsNodes,
+      skillsNodes,
+    ] = await Promise.all([
+      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Personality'),
+      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Health'),
+      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Knowledge'),
+      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Intrinsic'),
+      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Pursuit'),
+      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Skill'),
+    ]);
     const graphData = {
       healthNodes,
       personalityNodes,
@@ -149,8 +157,8 @@ export class GraphUtils {
       // For particles without assigned data, set default color (white)
       if (particleData[i] === null) {
         colors[i * 3] = 1.0; // R
-        colors[i * 3 + 1] = 1.0; // G
-        colors[i * 3 + 2] = 1.0; // B
+        colors[i * 3 + 1] = 0; // G
+        colors[i * 3 + 2] = 0; // B
       }
     }
 
@@ -162,7 +170,7 @@ export class GraphUtils {
     const material = new THREE.PointsMaterial({
       size: 2.0, // Much larger size because we're working with pixel coordinates
       transparent: true,
-      opacity: 0.8,
+      opacity: 1,
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
       vertexColors: true,
@@ -178,13 +186,8 @@ export class GraphUtils {
     threeContext.container.addEventListener("click", (event) => {
       // Calculate mouse position in normalized device coordinates
       const rect = threeContext.container.getBoundingClientRect();
-      threeContext.mouse.x =
-        ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 -
-        1;
-      threeContext.mouse.y =
-        -((event.clientY - rect.top) / threeContext.container.offsetHeight) *
-          2 +
-        1;
+      threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
+      threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
 
       // Update the raycaster
       threeContext.raycaster.setFromCamera(
@@ -194,7 +197,6 @@ export class GraphUtils {
 
       // Check for intersections with the particle system
       const intersects = threeContext.raycaster.intersectObject(particleSystem);
-
       if (intersects.length > 0) {
         this.centerCameraOnMesh(
           threeContext.camera,
@@ -220,20 +222,16 @@ export class GraphUtils {
     threeContext.scene.add(particleSystem);
 
     // Calculate the necessary camera Z position to view the entire image
-    const aspectRatio =
-      threeContext.container.offsetWidth / threeContext.container.offsetHeight;
+    const aspectRatio = threeContext.container.offsetWidth / threeContext.container.offsetHeight;
     const imageAspectRatio = width / height;
 
     let cameraZ;
     if (aspectRatio > imageAspectRatio) {
       // Window is wider than image
-      cameraZ =
-        height / (2 * Math.tan((Math.PI * threeContext.camera.fov) / 360));
+      cameraZ = height / (2 * Math.tan((Math.PI * threeContext.camera.fov) / 360));
     } else {
       // Window is taller than image
-      cameraZ =
-        width /
-        (2 * Math.tan((Math.PI * threeContext.camera.fov) / 360) * aspectRatio);
+      cameraZ = width / (2 * Math.tan((Math.PI * threeContext.camera.fov) / 360) * aspectRatio);
     }
 
     // Add some padding

@@ -142,19 +142,8 @@
   function onMouseMove(event: MouseEvent) {
     // Calculate mouse position in normalized device coordinates
     const rect = threeContext.container.getBoundingClientRect();
-    threeContext.mouse.x =
-      ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 -
-      1;
-    threeContext.mouse.y =
-      -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 +
-      1;
-
-    // Update raycaster parameters for better point detection
-    if (!threeContext.raycaster.params.Points) {
-      threeContext.raycaster.params.Points = { threshold: 2 }; // Increase point detection threshold
-    } else {
-      threeContext.raycaster.params.Points.threshold = 2;
-    }
+    threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
+    threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
   }
 
   function animate(delta: number) {
@@ -204,9 +193,7 @@
           intersectedObject.userData.particleData &&
           intersectedObject.userData.particleData[intersectedIndex]
         ) {
-          hoveredNodeData =
-            intersectedObject.userData.particleData[intersectedIndex];
-          console.log("Hovered node data:", hoveredNodeData);
+          hoveredNodeData = intersectedObject.userData.particleData[intersectedIndex];
         }
       }
     }
@@ -221,7 +208,7 @@
       75,
       container.offsetWidth / container.offsetHeight,
       0.1,
-      0 //setting this far away since we arent normalizing coordinates of image data
+      10000
     );
 
     //renderer
