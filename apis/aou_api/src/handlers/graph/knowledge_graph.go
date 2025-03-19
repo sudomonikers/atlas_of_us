@@ -1,96 +1,498 @@
 package handlers
 
 import (
-    "aou_api/src/models"
-    "fmt"
-    "net/http"
-    "io"
+	"aou_api/src/models"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
-func GraphManagement(c *gin.Context) {
-    appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
-    if !exists {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-        return
-    }
+type NodeQueryParams struct {
+	// Labels is a comma-separated list of node labels to filter by
+	// Example: L1,Pursuit
+	Labels string `form:"labels"`
 
-    // Read the request body
-    body, err := io.ReadAll(c.Request.Body)
-    if err != nil {
-        appCtx.LOGGER.Error("Error reading request body: " + err.Error())
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-        return
-    }
-    fmt.Printf("Request Body: %s\n", string(body))
+	// Properties is a URL encoded comma-separated list of property key-value pairs to filter by
+	// Example: "name:Cross-country%20Skiing,description:The%20activity%20of%20cross-country%20skiing%2C%20a%20form%20of%20skiing%20where%20skiers%20move%20over%20relatively%20flat%20terrain."
+	Properties string `form:"properties"`
+}
 
-    var requestData map[string]interface{}
-    if err := json.Unmarshal(body, &requestData); err != nil {
-    	appCtx.LOGGER.Error("Error unmarshaling JSON: " + err.Error())
-    	c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
-    	return
-    }
+// GetNodes retrieves nodes from the graph based on query parameters.
+// @Description Retrieves nodes based on labels and properties.
+// @ID get-nodes
+// @Produce json
+// @Param labels query string false "Comma-separated list of labels"
+// @Param properties query string false "URL encoded comma-separated list of property key-value pairs"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/get-nodes [get]
+func GetNodes(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
 
+	var params NodeQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query parameters"})
+		return
+	}
 
-    //parse the text, send a POST request to process.env.LLM_ENDPOINT
-	resp, _ := http.Post(os.Getenv("LLM_ENDPOINT"), "application/json", c.Request.Body)
-	defer resp.Body.Close()
-    responseBody, _ := io.ReadAll(resp.Body)
-    var llmResponse LLMResponse
-    if err := json.Unmarshal(responseBody, &llmResponse); err != nil {
-        appCtx.LOGGER.Error("Error unmarshaling LLM response: " + err.Error())
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid LLM response"})
-        return
-    }
+	var matchClauses []string
 
+	// Handle labels
+	if params.Labels != "" {
+		labels := strings.Split(params.Labels, ",")
+		for _, label := range labels {
+			matchClauses = append(matchClauses, fmt.Sprintf("MATCH (n:`%s`)", strings.TrimSpace(label)))
+		}
+	} else {
+		matchClauses = append(matchClauses, "MATCH (n)")
+	}
 
+	// Handle properties
+	whereClauses := []string{}
+	if params.Properties != "" {
+		// URL decode the properties string
+		decodedProperties, err := url.QueryUnescape(params.Properties)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid properties encoding"})
+			return
+		}
 
-	//Does the input contain any information that might be useful in the Atlas Of Us?
-	if llmResponse.Insert {
-		//if it does, list the nodes we may want to insert. we should get back an array of possible node insertions
-        nodesToEvaluate := llmResponse.NodesToEvaluate
-        for _, node := range nodesToEvaluate {
-            fmt.Printf("Processing node: %+v\n", node)
-            // Check if the node already exists in the database or not
-			result, err := appCtx.NEO4J.ExecuteQuery(`
-				MATCH (n:Skill {name: '%s'})
-				OPTIONAL MATCH (n)-[r]->(m)
-				WITH collect(n) AS nodes, collect(r) AS relationships
-				UNWIND nodes AS node
-				UNWIND relationships AS relationship
-				RETURN collect(DISTINCT node) AS nodes, collect(DISTINCT relationship) AS relationships
-			`, map[string]any{})
-			if err != nil {
-				appCtx.LOGGER.Error(err.Error())
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-				return
+		properties := strings.Split(decodedProperties, ",")
+		for _, prop := range properties {
+			parts := strings.SplitN(prop, ":", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				whereClauses = append(whereClauses, fmt.Sprintf("n.%s = '%s'", key, value))
 			}
-			//TODO clean up the above
+		}
+	}
 
-			//if it does exist, simply do nothing, but if it doesnt exist, now we need to determine how to enter it
-			if result.length {
-				return //or pass or whatever go does, basically we want to exit this iteration of the for loop
-			} else {
-				//now we want to query the llm to see what kind of node this should be, including any subtypesif applicable by passing in the previous context as well as documentation on the different types of nodes we have
-				resp, _ := http.Post(os.Getenv("LLM_ENDPOINT"), "application/json", c.Request.Body)
+	var queryString string
+	if len(matchClauses) > 0 {
+		queryString = strings.Join(matchClauses, "\n")
+	}
 
-				//if we have a determination, lets insert the node
-				result, _ := appCtx.NEO4J.ExecuteQuery(`
-					MERGE ()
-				`, map[string]any{})
+	if len(whereClauses) > 0 {
+		queryString += "\nWHERE " + strings.Join(whereClauses, " AND ")
+	}
 
-				//now that weve inserted the node, we should figure out if any existing nodes should have relationships to it
-			}
+	queryString += `
+        OPTIONAL MATCH (n)-[r]->(m)
+        WITH collect(n) AS nodes, collect(r) AS relationships
+        UNWIND nodes AS node
+        UNWIND relationships AS relationship
+        RETURN collect(DISTINCT node) AS nodes, collect(DISTINCT relationship) AS relationships
+    `
 
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{})
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
 
-        }
-    } else {
-        c.JSON(http.StatusOK, "Nothing to do here.")
-        return
-    }
+	c.JSON(http.StatusOK, result)
+}
 
-    
+type GetNodeWithRelationshipsByIdParams struct {
+	// Element Id of a node
+	// Example: "4:7f3adc9f-8a7b-48e6-9c5d-12e34f56a7b8:0"
+	Id string `form:"id" binding:"required"` // Changed json:"id" to form:"id"
+}
 
-    c.JSON(http.StatusOK, result)
+// GetNodeWithRelationshipsById retrieves nodes from the graph based on query parameters.
+// @Description Get a node from the graph by id and also retrieves its relationships
+// @ID get-node-with-relationships-by-id
+// @Produce json
+// @Param id query string true "Node element ID"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/get-node-with-relationships-by-id [get] // Corrected the route
+func GetNodeWithRelationshipsById(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var params GetNodeWithRelationshipsByIdParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query parameters"})
+		return
+	}
+
+	queryString := `
+        MATCH (n)
+        WHERE elementId(n) = $id
+        OPTIONAL MATCH (n)-[r]->(m)
+        RETURN n, collect(r) AS relationships
+    `
+
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"id": params.Id})
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+type CreateNodeRequest struct {
+	// Labels is an array of labels to assign to the new node
+	// Example: ["L1", "Pursuit"]
+	Labels []string `json:"labels" binding:"required"`
+
+	// Properties is a map of property key-value pairs for the new node
+	// Example: {"name": "Cross Country Skiing", "description": "The activity of cross-country skiing, a form of skiing where skiers move over relatively flat terrain."}
+	Properties map[string]any `json:"properties" binding:"required"`
+}
+
+// CreateNode creates a new node in the graph.
+// @Description Creates a new node with the given labels and properties.
+// @ID create-node
+// @Accept json
+// @Produce json
+// @Param request body CreateNodeRequest true "Request body for creating a node"
+// @Success 201 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/create-node [post]
+func CreateNode(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var requestBody CreateNodeRequest
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "Expected JSON with 'labels' array and 'properties' object",
+		})
+		return
+	}
+
+	labelString := ":" + strings.Join(requestBody.Labels, ":")
+	queryString := fmt.Sprintf("CREATE (n%s $properties) RETURN n", labelString)
+
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{
+		"properties": requestBody.Properties,
+	})
+
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, result)
+}
+
+type CreateRelationshipRequest struct {
+	// SourceId is the element ID of the source node
+	// Example: "4:7f3adc9f-8a7b-48e6-9c5d-12e34f56a7b8:0"
+	SourceId string `json:"sourceId" binding:"required"`
+
+	// TargetId is the element ID of the target node
+	// Example: "4:9a8b7c6d-5e4f-3a2b-1c0d-12e34f56a7b8:0"
+	TargetId string `json:"targetId" binding:"required"`
+
+	// Type is the relationship type to create
+	// Example: "RELATES_TO"
+	Type string `json:"type" binding:"required"`
+
+	// Properties is an optional map of property key-value pairs for the relationship
+	// Example: {"fromDate": "2023-01-15", "strength": 0.85}
+	Properties map[string]any `json:"properties"`
+}
+
+// CreateRelationship creates a new relationship between two nodes in the graph.
+// @Description Creates a new relationship of the given type between two nodes identified by their element IDs.
+// @ID create-relationship
+// @Accept json
+// @Produce json
+// @Param request body CreateRelationshipRequest true "Request body for creating a relationship"
+// @Success 201 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/create-relationship [post]
+func CreateRelationship(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var requestBody CreateRelationshipRequest
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "Expected JSON with 'sourceId', 'targetId', 'type', and optional 'properties'",
+		})
+		return
+	}
+
+	queryString := `
+        MATCH (source), (target)
+        WHERE elementId(source) = $sourceId AND elementId(target) = $targetId
+        CREATE (source)-[r:%s $properties]->(target)
+        RETURN r
+    `
+	queryString = fmt.Sprintf(queryString, requestBody.Type)
+
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{
+		"sourceId":   requestBody.SourceId,
+		"targetId":   requestBody.TargetId,
+		"properties": requestBody.Properties,
+	})
+
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, result)
+}
+
+type UpdateNodeRequest struct {
+	// TargetId is the element ID of the target node
+	// Example: "4:9a8b7c6d-5e4f-3a2b-1c0d-12e34f56a7b8:0"
+	TargetId string `json:"targetId" binding:"required"`
+
+	// Labels is an array of labels to set on the node
+	// Example: ["L1", "Pursuit"]
+	Labels []string `json:"labels"`
+
+	// Properties is a map of property key-value pairs to update on the node
+	// Example: {"name": "Cross Country Skiing", "description": "The activity of cross-country skiing, a form of skiing where skiers move over relatively flat terrain."}
+	Properties map[string]any `json:"properties"`
+}
+
+// UpdateNode updates an existing node in the graph.
+// @Description Updates the labels and/or properties of an existing node identified by its element ID.
+// @ID update-node
+// @Accept json
+// @Produce json
+// @Param request body UpdateNodeRequest true "Request body for updating a node"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/update-node [put]
+func UpdateNode(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var requestBody UpdateNodeRequest
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "Expected JSON with 'targetId' and either 'labels' or 'properties'",
+		})
+		return
+	}
+
+	// Validate that at least labels or properties is provided
+	if len(requestBody.Labels) == 0 && len(requestBody.Properties) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "At least one of 'labels' or 'properties' must be provided",
+		})
+		return
+	}
+
+	queryParts := []string{
+		"MATCH (n)",
+		"WHERE elementId(n) = $targetId",
+	}
+
+	// Handle labels if provided
+	if len(requestBody.Labels) > 0 {
+		// Remove all existing labels and set new ones
+		queryParts = append(queryParts, "REMOVE n:"+strings.Join([]string{"_"}, ":"))
+		for _, label := range requestBody.Labels {
+			queryParts = append(queryParts, fmt.Sprintf("SET n:`%s`", label))
+		}
+	}
+
+	// Handle properties if provided
+	if len(requestBody.Properties) > 0 {
+		queryParts = append(queryParts, "SET n += $properties")
+	}
+
+	queryParts = append(queryParts, "RETURN n")
+	queryString := strings.Join(queryParts, "\n")
+
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{
+		"targetId":   requestBody.TargetId,
+		"properties": requestBody.Properties,
+	})
+
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+type UpdateRelationshipRequest struct {
+	// TargetId is the element ID of the target relationship
+	// Example: "5:9a8b7c6d-5e4f-3a2b-1c0d-12e34f56a7b8:0"
+	TargetId string `json:"targetId" binding:"required"`
+
+	// Type is the relationship type to update
+	// Example: "RELATES_TO"
+	Type string `json:"type" binding:"required"`
+
+	// Properties is an optional map of property key-value pairs for the relationship
+	// Example: {"fromDate": "2023-01-15", "strength": 0.85}
+	Properties map[string]any `json:"properties"`
+}
+
+// UpdateRelationship updates an existing relationship in the graph.
+// @Description Updates the properties of an existing relationship identified by its element ID.  If the relationship type is provided, the existing relationship is deleted and a new one is created with the new type.
+// @ID update-relationship
+// @Accept json
+// @Produce json
+// @Param request body UpdateRelationshipRequest true "Request body for updating a relationship"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/update-relationship [put]
+func UpdateRelationship(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var requestBody UpdateRelationshipRequest
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "Expected JSON with 'targetId', 'type', and optional 'properties'",
+		})
+		return
+	}
+
+	queryString := `
+        MATCH ()-[r]->()
+        WHERE elementId(r) = $targetId
+        SET r = $properties
+    `
+
+	// If type needs to be updated, we need to create a new relationship and delete the old one
+	// since Neo4j doesn't support changing relationship types
+	if requestBody.Type != "" {
+		queryString = `
+            MATCH (source)-[r]->(target)
+            WHERE elementId(r) = $targetId
+            CREATE (source)-[newR:%s $properties]->(target)
+            DELETE r
+            RETURN newR AS r
+        `
+		queryString = fmt.Sprintf(queryString, requestBody.Type)
+	} else {
+		queryString += `
+            RETURN r
+        `
+	}
+
+	// Execute query
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{
+		"targetId":   requestBody.TargetId,
+		"properties": requestBody.Properties,
+	})
+
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+type FindSimilarNodesRequest struct {
+	// NodeId is the element ID of the node to find similar nodes for
+	// Example: "4:9a8b7c6d-5e4f-3a2b-1c0d-12e34f56a7b8:0"
+	NodeId string `json:"nodeId"`
+
+	// Embedding is the vector embedding to use for similarity search
+	// Example: [0.1, 0.23, -0.45, 0.67, ...]
+	Embedding []float64 `json:"embedding"`
+
+	// Limit is the maximum number of similar nodes to return (optional, defaults to 5)
+	Limit int `json:"limit"`
+}
+
+// FindSimilarNodes finds nodes similar to a given node or embedding.
+// @Description Finds nodes similar to a node specified by its element ID or by a vector embedding.
+// @ID find-similar-nodes
+// @Accept json
+// @Produce json
+// @Param request body FindSimilarNodesRequest true "Request body for finding similar nodes"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/similar-nodes [post]
+func FindSimilarNodes(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var requestBody FindSimilarNodesRequest
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "Expected JSON with either 'nodeId' or 'embedding'",
+		})
+		return
+	}
+
+	// Validate that exactly one of nodeId or embedding is provided
+	if (requestBody.NodeId == "" && len(requestBody.Embedding) == 0) || (requestBody.NodeId != "" && len(requestBody.Embedding) > 0) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": "Exactly one of 'nodeId' or 'embedding' must be provided",
+		})
+		return
+	}
+
+	limit := 5
+	if requestBody.Limit > 0 {
+		limit = requestBody.Limit
+	}
+
+	var query string
+	var params map[string]any
+
+	if requestBody.NodeId != "" {
+		// Search using a reference node ID
+		query = `
+            MATCH (n) 
+            WHERE elementId(n) = $nodeId
+            CALL db.index.vector.queryNodes('nodeEmbeddings', $limit, n.embedding)
+            YIELD node, score
+            WHERE elementId(node) <> $nodeId
+            RETURN node.name as name, node.description as description, elementId(node) as id, score
+            ORDER BY score DESC
+        `
+		params = map[string]any{
+			"nodeId": requestBody.NodeId,
+			"limit":  limit,
+		}
+	} else {
+		// Search using an embedding vector
+		query = `
+            CALL db.index.vector.queryNodes('nodeEmbeddings', $limit, $embedding)
+            YIELD node, score
+            RETURN node.name as name, node.description as description, elementId(node) as id, score
+            ORDER BY score DESC
+        `
+		params = map[string]any{
+			"embedding": requestBody.Embedding,
+			"limit":     limit,
+		}
+	}
+
+	result, err := appCtx.NEO4J.ExecuteQuery(query, params)
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

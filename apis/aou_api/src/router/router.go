@@ -10,18 +10,12 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
-	docs "aou_api/docs"
 	"aou_api/src/auth"
 	"aou_api/src/database"
+	docs "aou_api/src/docs"
 	handlers "aou_api/src/handlers/graph"
 	helpers "aou_api/src/handlers/helpers"
 
-	"aou_api/src/handlers/graph/health_handlers"
-	"aou_api/src/handlers/graph/intrinsic_handlers"
-	"aou_api/src/handlers/graph/knowledge_bases_handlers"
-	"aou_api/src/handlers/graph/personality_handlers"
-	"aou_api/src/handlers/graph/pursuits_handlers"
-	"aou_api/src/handlers/graph/skill_handlers"
 	"aou_api/src/middleware"
 	"aou_api/src/models"
 )
@@ -56,37 +50,14 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 
 		graph_management := secureRoutes.Group("graph")
 		{
-			graph_management.POST("evaluate", handlers.GraphManagement)
-		}
-
-		pursuits := secureRoutes.Group(("pursuits"))
-		{
-			pursuits.GET("all-pursuits", pursuits_handlers.GetAllPursuitsNodes)
-		}
-
-		skills := secureRoutes.Group(("skills"))
-		{
-			skills.GET("all-skills", skill_handlers.GetAllSkillsNodes)
-		}
-
-		personality := secureRoutes.Group(("personality"))
-		{
-			personality.GET("all-personality", personality_handlers.GetAllPersonalityNodes)
-		}
-
-		knowledge_bases := secureRoutes.Group(("knowledge-bases"))
-		{
-			knowledge_bases.GET("all-knowledge-bases", knowledge_bases_handlers.GetAllKnowledgeBaseNodes)
-		}
-
-		intrinsic := secureRoutes.Group(("intrinsic"))
-		{
-			intrinsic.GET("all-intrinsic", intrinsic_handlers.GetAllIntrinsicNodes)
-		}
-
-		health := secureRoutes.Group(("health"))
-		{
-			health.GET("all-health", health_handlers.GetAllHealthNodes)
+			graph_management.GET("get-nodes", handlers.GetNodes)
+			graph_management.GET("get-node-with-relationships-by-id", handlers.GetNodeWithRelationshipsById)
+			graph_management.POST("create-node", handlers.CreateNode)
+			graph_management.PUT("update-node", handlers.UpdateNode)
+			graph_management.POST("create-relationship", handlers.CreateRelationship)
+			graph_management.PUT("update-relationship", handlers.UpdateRelationship)
+			//The following method is purely a FETCH operation and does not mutate any data, but we are using POST because we may send in a potentially very large vector embedding for finding similarity and there can be issues with that using GET
+			graph_management.POST("similar-nodes", handlers.FindSimilarNodes)
 		}
 	}
 

@@ -16,6 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate swag init
+
 var ginLambda *ginadapter.GinLambda
 
 func init() {
