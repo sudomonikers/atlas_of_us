@@ -1,4 +1,48 @@
 definitions:
+  auth.LoginRequest:
+    properties:
+      password:
+        description: |-
+          Password for login
+          Example: password123
+        type: string
+      username:
+        description: |-
+          Username for login
+          Example: testuser
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  auth.SignUpRequest:
+    properties:
+      email:
+        description: |-
+          Email address for registration
+          Example: test@example.com
+        type: string
+      password:
+        description: |-
+          Password for registration
+          Example: password123
+        type: string
+      phone:
+        description: |-
+          Phone number for registration
+          Example: 123-456-7890
+        type: string
+      username:
+        description: |-
+          Username for registration
+          Example: testuser
+        type: string
+    required:
+    - email
+    - password
+    - phone
+    - username
+    type: object
   handlers.CreateNodeRequest:
     properties:
       labels:
@@ -113,6 +157,58 @@ definitions:
 info:
   contact: {}
 paths:
+  /:
+    get:
+      description: Returns a simple health status.
+      operationId: healthcheck
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates user credentials and returns a JWT token upon successful
+        login.
+      operationId: login
+      parameters:
+      - description: User login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid username or password
+          schema:
+            additionalProperties: true
+            type: object
+        "406":
+          description: Username and password combo not found!
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
   /secure/graph/create-node:
     post:
       consumes:
@@ -324,6 +420,74 @@ paths:
             type: object
         "400":
           description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+  /secure/helper/s3-object:
+    get:
+      description: Retrieves an object from S3 given a bucket and key.
+      operationId: get-s3-object
+      parameters:
+      - description: S3 Bucket
+        in: query
+        name: bucket
+        required: true
+        type: string
+      - description: S3 Key
+        in: query
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: Successful operation
+          schema:
+            type: string
+        "400":
+          description: Invalid query parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+  /sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and returns a JWT token upon successful
+        registration.
+      operationId: sign-up
+      parameters:
+      - description: User registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "406":
+          description: Username or phone number already exists!
           schema:
             additionalProperties: true
             type: object

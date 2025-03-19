@@ -61,12 +61,12 @@ export class GraphUtils {
   }
 
   async loadL1Nodes(): Promise<GraphData> {
-    const personalityNodes = await this.httpService.getPersonalityNodes();
-    const healthNodes = await this.httpService.getHealthNodes();
-    const knowledgeNodes = await this.httpService.getKnowledgeNodes();
-    const intrinsicsNodes = await this.httpService.getIntrinsicNodes();
-    const pursuitsNodes = await this.httpService.getPursuitNodes();
-    const skillsNodes = await this.httpService.getSkillNodes();
+    const personalityNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Personality');
+    const healthNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Health');
+    const knowledgeNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Knowledge');
+    const intrinsicsNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Intrinsic');
+    const pursuitsNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Pursuit');
+    const skillsNodes = await this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Skill');
 
     const graphData = {
       healthNodes,

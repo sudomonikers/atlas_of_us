@@ -42,7 +42,7 @@ export class HttpService {
     });
   }
 
-  private async fetchNodes(
+  async fetchNodes(
     endpoint: string
   ): Promise<{
     nodes: Neo4jNode[];
@@ -74,29 +74,5 @@ export class HttpService {
         relationships: [],
       };
     }
-  }
-
-  async getHealthNodes() {
-    return this.fetchNodes("/api/secure/health/all-health");
-  }
-
-  async getPersonalityNodes() {
-    return this.fetchNodes("/api/secure/personality/all-personality");
-  }
-
-  async getIntrinsicNodes() {
-    return this.fetchNodes("/api/secure/intrinsic/all-intrinsic");
-  }
-
-  async getKnowledgeNodes() {
-    return this.fetchNodes("/api/secure/knowledge-bases/all-knowledge-bases");
-  }
-
-  async getPursuitNodes() {
-    return this.fetchNodes("/api/secure/pursuits/all-pursuits");
-  }
-
-  async getSkillNodes() {
-    return this.fetchNodes("/api/secure/skill/all-skill");
   }
 }

@@ -15,16 +15,37 @@ import (
 )
 
 // Healthcheck
+// @Description  Returns a simple health status.
+// @ID healthcheck
+// @Produce  json
+// @Success 200 {string} string "ok"
+// @Router / [get]
 func Healthcheck(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
 }
 
 // LOGIN/SIGNUP ROUTES
 type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	// Username for login
+	// Example: testuser
+	Username string `json:"username" binding:"required"`
+	// Password for login
+	// Example: password123
+	Password string `json:"password" binding:"required"`
 }
 
+// Login endpoint
+// @Description Authenticates user credentials and returns a JWT token upon successful login.
+// @ID login
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "User login credentials"
+// @Success 200 {string} string "JWT token"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 406 {object} map[string]interface{} "Username and password combo not found!"
+// @Failure 401 {object} map[string]interface{} "Invalid username or password"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /login [post]
 func Login(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
@@ -75,12 +96,31 @@ func Login(c *gin.Context) {
 }
 
 type SignUpRequest struct {
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	PhoneNumber string `json:"phone"`
-	Email       string `json:"email"`
+	// Username for registration
+	// Example: testuser
+	Username string `json:"username" binding:"required"`
+	// Password for registration
+	// Example: password123
+	Password string `json:"password" binding:"required"`
+	// Phone number for registration
+	// Example: 123-456-7890
+	PhoneNumber string `json:"phone" binding:"required"`
+	// Email address for registration
+	// Example: test@example.com
+	Email string `json:"email" binding:"required,email"`
 }
 
+// SignUp endpoint
+// @Description Creates a new user account and returns a JWT token upon successful registration.
+// @ID sign-up
+// @Accept json
+// @Produce json
+// @Param request body SignUpRequest true "User registration details"
+// @Success 200 {string} string "JWT token"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 406 {object} map[string]interface{} "Username or phone number already exists!"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /sign-up [post]
 func SignUp(c *gin.Context) {
 	appCtx, exists := c.MustGet("appCtx").(*models.AppContext)
 	if !exists {
