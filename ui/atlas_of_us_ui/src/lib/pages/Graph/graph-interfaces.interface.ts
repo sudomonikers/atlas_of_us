@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 export interface Neo4jNode {
   Id: number;
@@ -52,4 +53,5 @@ export interface ThreeContext {
   mouse: THREE.Vector2;
   resizeObserver: ResizeObserver;
   loader: THREE.TextureLoader;
+  labelRenderer: CSS2DRenderer;
 }

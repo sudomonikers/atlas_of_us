@@ -4,10 +4,12 @@ import type {
   NodeCoordinate,
   Neo4jApiResponse,
   Neo4jNodeWithMappedPositions,
-  ThreeContext
+  ThreeContext,
+  Neo4jNode
 } from "./graph-interfaces.interface";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 export class GraphUtils {
   constructor(private httpService: HttpService) {}
@@ -63,26 +65,26 @@ export class GraphUtils {
   async loadL1Nodes(): Promise<GraphData> {
     const [
       personalityNodes,
-      healthNodes,
-      knowledgeNodes,
-      intrinsicsNodes,
-      pursuitsNodes,
-      skillsNodes,
+      // healthNodes,
+      // knowledgeNodes,
+      // intrinsicsNodes,
+      // pursuitsNodes,
+      // skillsNodes,
     ] = await Promise.all([
       this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Personality'),
-      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Health'),
-      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Knowledge'),
-      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Intrinsic'),
-      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Pursuit'),
-      this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Skill'),
+      // this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Health'),
+      // this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Knowledge'),
+      // this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Intrinsic'),
+      // this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Pursuit'),
+      // this.httpService.fetchNodes('/api/secure/graph/get-nodes?labels=L1,Skill'),
     ]);
     const graphData = {
-      healthNodes,
       personalityNodes,
-      knowledgeNodes,
-      intrinsicsNodes,
-      pursuitsNodes,
-      skillsNodes
+      // healthNodes,
+      // knowledgeNodes,
+      // intrinsicsNodes,
+      // pursuitsNodes,
+      // skillsNodes
     };
     return graphData;
   }
@@ -100,11 +102,7 @@ export class GraphUtils {
     // Create geometry
     const positions = new Float32Array(imagePoints.length * 3);
     const colors = new Float32Array(imagePoints.length * 3);
-
-    // Create array to track which particles have associated data
-    const particleData: (Neo4jNodeWithMappedPositions | null)[] = new Array(
-      imagePoints.length
-    ).fill(null);
+    const selectedIndices = new Set<number>();
 
     // Assign graph data to some particles if provided
     if (graphData && graphData.nodes.length > 0) {
@@ -114,51 +112,36 @@ export class GraphUtils {
         Math.floor(imagePoints.length * 0.1)
       );
 
-      // Randomly select particles to have data
-      const selectedIndices = new Set<number>();
       while (selectedIndices.size < dataPointCount) {
+        //for now choosing random indexes
         const randomIndex = Math.floor(Math.random() * imagePoints.length);
         selectedIndices.add(randomIndex);
       }
-
-      // Assign data to selected particles
-      let dataIndex = 0;
-      selectedIndices.forEach((particleIndex) => {
-        if (dataIndex < graphData.nodes.length) {
-          // Create coordinates for the node based on particle position
-          const nodeWithPosition: Neo4jNodeWithMappedPositions = {
-            ...graphData.nodes[dataIndex],
-            coordinates: {
-              x: imagePoints[particleIndex].x,
-              y: imagePoints[particleIndex].y,
-              z: imagePoints[particleIndex].z,
-            },
-          };
-
-          // Store the data with the particle
-          particleData[particleIndex] = nodeWithPosition;
-
-          // Set a different color for particles with data (light blue)
-          colors[particleIndex * 3] = 0.5; // R
-          colors[particleIndex * 3 + 1] = 0.7; // G
-          colors[particleIndex * 3 + 2] = 1.0; // B
-
-          dataIndex++;
-        }
-      });
     }
 
     // Fill positions array
+    let nodeDataPosition = 0
     for (let i = 0; i < imagePoints.length; i++) {
       positions[i * 3] = imagePoints[i].x;
       positions[i * 3 + 1] = imagePoints[i].y;
       positions[i * 3 + 2] = imagePoints[i].z;
 
-      // For particles without assigned data, set default color (white)
-      if (particleData[i] === null) {
+      //if this node is "special" than make it a different color and add its position to our graphData
+      if (selectedIndices.has(i)) {
         colors[i * 3] = 1.0; // R
         colors[i * 3 + 1] = 0; // G
         colors[i * 3 + 2] = 0; // B
+
+        (graphData.nodes[nodeDataPosition] as Neo4jNodeWithMappedPositions).coordinates = {
+          x: imagePoints[i].x,
+          y: imagePoints[i].y,
+          z: imagePoints[i].z
+        }
+        nodeDataPosition ++;
+      } else {
+        colors[i * 3] = 1.0; // R
+        colors[i * 3 + 1] = 1.0; // G
+        colors[i * 3 + 2] = 1.0; // B
       }
     }
 
@@ -176,49 +159,16 @@ export class GraphUtils {
       vertexColors: true,
     });
 
-    // Store original size in userData for reference during hover
-    material.userData = { originalSize: material.size };
-
     // Create particle system
     const particleSystem = new THREE.Points(geometry, material);
-
-    // Add click event listener to the container
-    threeContext.container.addEventListener("click", (event) => {
-      // Calculate mouse position in normalized device coordinates
-      const rect = threeContext.container.getBoundingClientRect();
-      threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
-      threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
-
-      // Update the raycaster
-      threeContext.raycaster.setFromCamera(
-        threeContext.mouse,
-        threeContext.camera
-      );
-
-      // Check for intersections with the particle system
-      const intersects = threeContext.raycaster.intersectObject(particleSystem);
-      if (intersects.length > 0) {
-        this.centerCameraOnMesh(
-          threeContext.camera,
-          threeContext.controls,
-          particleSystem
-        );
-      }
-    });
-
-    // Store the particle data and image dimensions for later use
-    particleSystem.userData = {
-      particleData: particleData,
-      graphData: graphData,
-      imageWidth: width,
-      imageHeight: height,
-    };
 
     particleSystem.position.set(
       sceneLocation.x,
       sceneLocation.y,
       sceneLocation.z
     );
+    particleSystem.userData = {selectedIndices, graphData}
+    console.log(particleSystem)
     threeContext.scene.add(particleSystem);
 
     // Calculate the necessary camera Z position to view the entire image
@@ -293,6 +243,55 @@ export class GraphUtils {
     }
 
     updateCamera();
+  }
+
+  applyBlurEffect(
+    threeContext: ThreeContext,
+    focusedObject: THREE.Object3D
+  ) {
+
+  }
+
+  addInfoBoxToPosition(
+    position: THREE.Vector3,
+    content: Neo4jNode,
+    threeContext: ThreeContext
+  ) {
+    // Create a div element for the info box
+    const infoBoxElement = document.createElement("div");
+    infoBoxElement.className = "info-box";
+
+    // Format the content, these classes are set in app.css
+    let htmlContent = `
+      <div class="info-box-header">${content.Labels.join(", ")}</div>
+      <div class="info-box-id">ID: ${content.Id}</div>
+      <div class="info-box-content">
+    `;
+
+    // Add properties
+    for (const [key, value] of Object.entries(content.Props)) {
+      htmlContent += `<div class="info-box-property"><span>${key}:</span> ${value}</div>`;
+    }
+
+    htmlContent += `</div>`;
+    infoBoxElement.innerHTML = htmlContent;
+
+    const infoBox = new CSS2DObject(infoBoxElement);
+
+    // Create a dummy object to hold the info box
+    const dummy = new THREE.Object3D();
+    dummy.position.copy(position);
+
+    // Position the label at the bottom of the box
+    infoBox.position.set(0, 0, 0); // Adjust as needed
+    dummy.add(infoBox);
+
+    // Add the dummy object to the scene
+    threeContext.scene.add(dummy);
+
+    // Return the dummy object so it can be removed later if needed
+    console.log(infoBox)
+    return dummy;
   }
 
   generateNaryTree(data: GraphData, numberOfBranches: number) {

@@ -1,6 +1,8 @@
 <script lang="ts">
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+  import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+
   import { onMount } from "svelte";
   import { HttpService } from "../../services/http-service";
   import { GraphUtils } from "./graph-utils";
@@ -25,14 +27,14 @@
 
   async function loadL1GraphData() {
     const graphData = await graphUtils.loadL1Nodes();
-    const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 500);
+    const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 250);
     const flattened = graphUtils.flattenNestedStructure(positions);
 
     for (let index = 0; index < flattened.length; index++) {
       const data = graphData[flattened[index].key];
       const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
-        "woman.jpg"
+        "woman (1) (1).jpg"
       );
       const points = await graphUtils.processImage(image, 1500, 50);
       await graphUtils.createGraphConstellation(
@@ -40,7 +42,7 @@
         flattened[index].coordinates,
         image,
         threeContext,
-        graphData.healthNodes
+        data
       );
     }
   }
@@ -146,6 +148,41 @@
     threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
   }
 
+  function onClick(event: MouseEvent) {
+    // Calculate mouse position in normalized device coordinates
+    const rect = threeContext.container.getBoundingClientRect();
+    threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
+    threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
+
+    threeContext.raycaster.setFromCamera(
+      threeContext.mouse,
+      threeContext.camera
+    );
+
+    const intersects = threeContext.raycaster.intersectObjects(
+      threeContext.scene.children
+    );
+
+    if (intersects.length > 0) {
+      const intersectedObject = intersects[0].object;
+      graphUtils.centerCameraOnMesh(
+        threeContext.camera,
+        threeContext.controls,
+        intersectedObject
+      );
+      if (intersectedObject instanceof THREE.Points) {
+        if (intersectedObject.userData.graphData) {
+          const graphData = intersectedObject.userData.graphData.nodes;
+          console.log(graphData)
+          for (let node of graphData) {
+            graphUtils.addInfoBoxToPosition(node.coordinates, node, threeContext);
+          }
+        }
+      }
+      graphUtils.applyBlurEffect(threeContext, intersectedObject);
+    }
+  }
+
   function animate(delta: number) {
     updateParticles();
 
@@ -200,6 +237,7 @@
 
     threeContext.controls.update(delta);
     threeContext.renderer.render(threeContext.scene, threeContext.camera);
+    threeContext.labelRenderer.render(threeContext.scene, threeContext.camera);
   }
 
   function setUpScene(): ThreeContext {
@@ -226,11 +264,19 @@
     //loader
     const loader = new THREE.TextureLoader();
 
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    document.body.appendChild(labelRenderer.domElement);
+
     //raycaster for capturing mouse movement
     const raycaster = new THREE.Raycaster();
     raycaster.params.Points = { threshold: 2 };
     const mouse = new THREE.Vector2();
     container.addEventListener("mousemove", onMouseMove);
+    container.addEventListener("click", onClick);
     container.appendChild(renderer.domElement);
 
     //handle window resize
@@ -238,6 +284,7 @@
       camera.aspect = container.offsetWidth / container.offsetHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.offsetWidth, container.offsetHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
     });
     resizeObserver.observe(container);
 
@@ -260,6 +307,7 @@
       resizeObserver,
       loader,
       renderer,
+      labelRenderer
     };
   }
 
@@ -290,6 +338,7 @@
       threeContext.renderer.dispose();
       threeContext.controls.dispose();
       container.removeEventListener("mousemove", onMouseMove);
+      container.removeEventListener("click", onClick)
     };
   });
 </script>
