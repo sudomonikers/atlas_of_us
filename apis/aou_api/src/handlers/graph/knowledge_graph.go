@@ -127,7 +127,38 @@ func GetNodeWithRelationshipsById(c *gin.Context) {
         MATCH (n)
         WHERE elementId(n) = $id
         OPTIONAL MATCH (n)-[r]->(m)
-        RETURN n, collect(r) AS relationships
+        WITH n, collect(r) AS relationships, collect(m) AS affiliatedNodes
+        RETURN 
+            {
+                elementId: elementId(n),
+                labels: labels(n),
+                name: n.name,
+				image: n.image,
+                description: n.description
+            } AS n, 
+			CASE size(relationships)
+				WHEN 0 THEN []
+				ELSE [relationship IN relationships |
+					{
+						id: elementId(relationship),
+						startElementId: elementId(startNode(relationship)),
+						endElementId: elementId(endNode(relationship)),
+						type: type(relationship),
+						props: properties(relationship)
+					}
+				]
+            END AS relationships, 
+            CASE size(affiliatedNodes)
+                WHEN 0 THEN []
+                ELSE [node IN affiliatedNodes | 
+                    {
+                        elementId: elementId(node),
+                        labels: labels(node),
+                        name: node.name,
+                        description: node.description
+                    }
+				]
+            END AS affiliatedNodes
     `
 
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"id": params.Id})

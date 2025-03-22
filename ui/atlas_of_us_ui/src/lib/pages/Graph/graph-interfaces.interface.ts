@@ -3,30 +3,27 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 export interface Neo4jNode {
-  Id: number;
-  ElementId: string;
-  Labels: string[];
-  Props: {
-    [key: string]: any;
-  };
+  elementId: string,
+  labels: string[],
+  name: string,
+  image: string,
+  description: string
 }
 
 export interface Neo4jRelationship {
-    Id: number;
-    ElementId: string;
-    StartElementId: string;
-    StartId: number;
-    EndElementId: string;
-    EndId: number;
-    Type: string;
-    Props: {
-        [key: string]: any;
-    }
+  id: string,
+  startElementId: string,
+  endElementId: string,
+  type: string,
+  props: {
+    [key: string]: any
+  }
 }
 
 export interface Neo4jApiResponse {
-  nodes: Neo4jNode[];
+  nodeRoot: Neo4jNode;
   relationships: Neo4jRelationship[];
+  affiliates: Neo4jNode[]
 }
 
 export interface GraphData {

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { slide } from "svelte/transition";
   import { route, Router, type Route } from "@mateothegreat/svelte5-router";
+  import { jwtDecode } from 'jwt-decode';
 
   import Profile from "../pages/Profile/Profile.svelte";
   import PageNotFound from "../pages/PageNotFound/PageNotFound.svelte";
@@ -13,14 +14,39 @@
   import Contact from "../pages/Contact/Contact.svelte";
 
   let menuOpen = $state(false);
+  let loginMenuOpen = $state(false);
+  let loggedIn = $state(false);
+  let userInput = $state("");
+  $effect(() => {
+    console.log(userInput)
+    if (loggedIn) {
+      loginMenuOpen = false;
+    }
+  });
+
+  function login() {
+    console.log('logging in...')
+    menuOpen = false;
+    loginMenuOpen = true;
+  }
+
   function toggleMenu() {
+    loginMenuOpen = false;
     menuOpen = !menuOpen;
+  }
+
+  function handleNavigation() {
+    menuOpen = false;
+    const inputElement = document.getElementById("input") as HTMLInputElement;
+    if (inputElement) {
+      inputElement.value = "";
+    }
   }
 
   const routes: Route[] = [
     {
       path: "^/$", //base path
-      component: Graph,
+      component: Graph
     },
     {
       path: ".+",
@@ -58,7 +84,7 @@
     },
     {
       path: "Graph",
-      component: Graph,
+      component: Graph
     },
     {
       path: "Roadmap",
@@ -70,22 +96,41 @@
     },
   ];
 
-  onMount(() => {});
+  onMount(() => {
+    const jwt = localStorage.getItem('jwt');
+    if (jwt) {
+      try {
+        const decodedToken: { exp: number } = jwtDecode(jwt);
+        const currentTime = Math.floor(Date.now() / 1000); // in seconds
+        if (decodedToken?.exp < currentTime) {
+          loggedIn = false;
+          localStorage.removeItem('jwt');
+        } else {
+          loggedIn = true;
+        }
+      } catch (error) {
+        loggedIn = false; 
+        localStorage.removeItem('jwt');
+      }
+    } else {
+      loggedIn = false;
+    }
+  });
 </script>
 
 <nav>
-  <button class="hamburger-button" onclick={toggleMenu}>
-    {#if menuOpen}
-      <svg viewBox="0 0 100 100" width="40">
-        <path class="line line-cross1" d="M 10 10 L 90 90" />
-        <path class="line line-cross2" d="M 90 10 L 10 90" />
-      </svg>
-    {:else}
-      <svg viewBox="0 0 100 100" width="40">
-        <path class="line line-burger1" d="M 10 30 H 90" />
-        <path class="line line-burger2" d="M 10 70 H 90" />
-      </svg>
-    {/if}
+  <button class="microphone-button">
+    <span class="material-symbols-outlined">mic_off</span>
+  </button>
+  <input type="text" id="input" class="nav-input" bind:value={userInput} />
+  {#if !loggedIn}
+    <button class="login-button" onclick={login}>Login</button>
+  {/if}
+  <button class="hamburger-button" onclick={toggleMenu} aria-label="Menu Toggle">
+    <svg viewBox="0 0 100 100" width="40">
+      <path class="line" d="M 10 25 H 90" class:line-burger1={!menuOpen} class:line-cross1={menuOpen} />
+      <path class="line" d="M 10 75 H 90" class:line-burger2={!menuOpen} class:line-cross2={menuOpen} />
+    </svg>
   </button>
 </nav>
 {#if menuOpen}
@@ -94,7 +139,7 @@
       <li>
         <a
           use:route
-          onclick={() => (menuOpen = false)}
+          onclick={handleNavigation}
           target="_blank"
           href="/Graph"
           data-text="Atlas Of Us">Atlas Of Us</a
@@ -103,16 +148,16 @@
       <li>
         <a
           use:route
-          onclick={() => (menuOpen = false)}
+          onclick={handleNavigation}
           target="_blank"
-          href="/Profie"
+          href="/Profile"
           data-text="My Profile">My Profile</a
         >
       </li>
       <li>
         <a
           use:route
-          onclick={() => (menuOpen = false)}
+          onclick={handleNavigation}
           target="_blank"
           href="/Community"
           data-text="Community">Community</a
@@ -121,7 +166,7 @@
       <li>
         <a
           use:route
-          onclick={() => (menuOpen = false)}
+          onclick={handleNavigation}
           target="_blank"
           href="/Roadmap"
           data-text="Roadmap">Roadmap</a
@@ -130,13 +175,18 @@
       <li>
         <a
           use:route
-          onclick={() => (menuOpen = false)}
+          onclick={handleNavigation}
           target="_blank"
           href="/Contact"
           data-text="Get In Touch">Get In Touch</a
         >
       </li>
     </ul>
+  </div>
+{/if}
+{#if loginMenuOpen}
+  <div transition:slide class="nav-container">
+    <Login bind:loggedIn={loggedIn}></Login>
   </div>
 {/if}
 <Router basePath="/" {routes} />
@@ -155,8 +205,48 @@
     height: 60px;
     background-color: #fff;
     display: flex;
+    justify-content: right;
+    padding: 0 15px;
+  }
+
+  .nav-input {
+    flex-grow: 1;
+    margin: 15px;
+    border: 1px solid #ccc;
+    padding: 8px;
+    border-radius: 5px;
+  }
+
+  .login-button {
+    margin: 15px;
+    border: 1px solid #ccc;
+    padding: 8px;
+    border-radius: 5px;
+    background-color: #000;
+    color: white; /* Ensure text is visible on the black background */
+    display: flex; /* Use flexbox for vertical alignment */
+    align-items: center; /* Vertically center the text */
     justify-content: center;
   }
+  .login-button:hover {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
+    outline: none; 
+  }
+  .login-button:active {
+    box-shadow: 0 0 5px rgba(255, 8, 0, 0.89);
+  }
+
+  .microphone-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: 5px; /* Add some spacing between the button and input */
+    cursor: pointer;
+    color: black;
+    display: flex;
+    align-items: center;
+  }
+
   .nav-container {
     position: fixed;
     background-color: rgba(0, 0, 0, 0.5);
@@ -165,6 +255,7 @@
     top: 60px;
     left: 0;
     z-index: 1000;
+    overflow-y: scroll;
   }
   body {
     display: flex;
@@ -250,6 +341,7 @@
     background: #ffeaa7;
   }
 
+  /**HAMBURGER MENU*/
   .hamburger-button {
     background: none;
     border: none;
@@ -260,26 +352,26 @@
   .line {
     stroke: black;
     stroke-width: 5;
-    transition: all 3s;
+    transition: transform 0.7s ease;
   }
 
   .line-burger1 {
-    transform-origin: center;
-    transition: transform 3s;
+    transform: none; /* Reset all transforms */
+    transform-origin: 50px 25px;
   }
 
   .line-burger2 {
-    transform-origin: center;
-    transition: transform 3s;
+    transform: none; /* Reset all transforms */
+    transform-origin: 50px 75px;
   }
 
   .line-cross1 {
-    transform-origin: center;
-    transition: transform 3s;
+    transform-origin: 50px 25px;
+    transform: translateY(25px) rotate(45deg);
   }
 
   .line-cross2 {
-    transform-origin: center;
-    transition: transform 3s;
+    transform-origin: 50px 75px;
+    transform: translateY(-25px) rotate(-45deg);
   }
 </style>

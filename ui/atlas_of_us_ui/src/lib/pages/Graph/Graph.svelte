@@ -8,9 +8,7 @@
   import { GraphUtils } from "./graph-utils";
 
   import type {
-    Neo4jApiResponse,
-    Neo4jNodeWithMappedPositions,
-    NodeCoordinate,
+  Neo4jApiResponse,
     ThreeContext,
   } from "./graph-interfaces.interface";
 
@@ -18,33 +16,34 @@
 
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
+  let graphData: Neo4jApiResponse;
   let threeContext: ThreeContext;
   let container: HTMLDivElement;
 
   let instancedMesh: THREE.InstancedMesh;
   const velocities: THREE.Vector3[] = [];
   const boundarySize = 1500;
+  // Track when the mouse was pressed down
+  let mouseDownTime: number | null = null;
+  let mouseDownPosition = { x: 0, y: 0 };
+  const CLICK_THRESHOLD_MS = 300; // Time in ms to consider a "short click"
+  const POSITION_THRESHOLD = 5; // Pixels to consider as movement
 
   async function loadL1GraphData() {
-    const graphData = await graphUtils.loadL1Nodes();
-    const positions = graphUtils.positionTreeNodesBasedOnTree(threeContext.camera, graphData, 2, 250);
-    const flattened = graphUtils.flattenNestedStructure(positions);
-
-    for (let index = 0; index < flattened.length; index++) {
-      const data = graphData[flattened[index].key];
-      const image = await http.getS3Object(
+    graphData = await graphUtils.loadNodeAndAffiliatesById('4:85214d9a-1dfe-48e4-9e42-48eefb670f7a:176');
+    console.log(graphData)
+    const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
-        "woman (1) (1).jpg"
+        graphData.nodeRoot.image
       );
-      const points = await graphUtils.processImage(image, 1500, 50);
+      const points = await graphUtils.processImage(image, 2000, 50);
       await graphUtils.createGraphConstellation(
         points,
-        flattened[index].coordinates,
+        {x: 0, y: 0, z: 0},
         image,
         threeContext,
-        data
+        graphData
       );
-    }
   }
 
   //particles which will always be in camera
@@ -149,11 +148,6 @@
   }
 
   function onClick(event: MouseEvent) {
-    // Calculate mouse position in normalized device coordinates
-    const rect = threeContext.container.getBoundingClientRect();
-    threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
-    threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
-
     threeContext.raycaster.setFromCamera(
       threeContext.mouse,
       threeContext.camera
@@ -170,17 +164,30 @@
         threeContext.controls,
         intersectedObject
       );
-      if (intersectedObject instanceof THREE.Points) {
-        if (intersectedObject.userData.graphData) {
-          const graphData = intersectedObject.userData.graphData.nodes;
-          console.log(graphData)
-          for (let node of graphData) {
-            graphUtils.addInfoBoxToPosition(node.coordinates, node, threeContext);
-          }
-        }
-      }
-      graphUtils.applyBlurEffect(threeContext, intersectedObject);
+      graphUtils.showRelationshipLines(intersectedObject, threeContext, graphData);
     }
+  }
+
+  function onMouseDown(event: MouseEvent) {
+    mouseDownTime = Date.now();
+    mouseDownPosition = { x: event.clientX, y: event.clientY };
+  }
+
+  function onMouseUp(event: MouseEvent) {
+    if (mouseDownTime === null) return;
+    
+    const clickDuration = Date.now() - mouseDownTime;
+    const moveDistance = Math.sqrt(
+      Math.pow(event.clientX - mouseDownPosition.x, 2) + 
+      Math.pow(event.clientY - mouseDownPosition.y, 2)
+    );
+    
+    // Only handle as a click if it was short and didn't move much
+    if (clickDuration < CLICK_THRESHOLD_MS && moveDistance < POSITION_THRESHOLD) {
+      onClick(event);
+    }
+    
+    mouseDownTime = null;
   }
 
   function animate(delta: number) {
@@ -191,49 +198,32 @@
       threeContext.camera
     );
 
-    // Reset all point sizes and store currently hovered data
-    let hoveredNodeData: Neo4jNodeWithMappedPositions | null = null;
-
-    threeContext.scene.children.forEach((object) => {
-      if (object instanceof THREE.Points) {
-        const material = object.material as THREE.PointsMaterial;
-        if (material.userData.originalSize) {
-          material.size = material.userData.originalSize;
-        }
-      } else if (object instanceof THREE.Mesh) {
-        object.scale.setScalar(1);
-      }
-    });
-
-    // Scale up intersected particles/nodes
+    // Find intersected sphere
     const intersects = threeContext.raycaster.intersectObjects(
-      threeContext.scene.children
+      threeContext.scene.children, 
+      true
     );
-    if (intersects.length > 0) {
-      const intersectedObject = intersects[0].object;
 
-      if (intersectedObject instanceof THREE.Points) {
-        const material = intersectedObject.material as THREE.PointsMaterial;
-
-        // Store original size if not already stored
-        if (!material.userData.originalSize) {
-          material.userData.originalSize = material.size;
-        }
-
-        // Scale up the size
-        material.size = material.userData.originalSize * 1.5;
-
-        // Get the index of the intersected particle
-        const intersectedIndex = intersects[0].index;
-        if (
-          intersectedIndex !== undefined &&
-          intersectedObject.userData.particleData &&
-          intersectedObject.userData.particleData[intersectedIndex]
-        ) {
-          hoveredNodeData = intersectedObject.userData.particleData[intersectedIndex];
-        }
+    let intersectedObject = intersects.length ? intersects[0].object : null;
+    if (intersectedObject instanceof THREE.Mesh && !intersectedObject.userData.isFocused) {
+      intersectedObject.userData.isFocused = true;
+      intersectedObject.scale.setScalar(1.5);
+      // If this is a data node, add an infobox
+      if (intersectedObject.userData.isDataNode && !intersectedObject.userData.infoBox) {
+        graphUtils.addInfoBoxToMesh(intersectedObject);
       }
     }
+
+    // Reset all previously focused objects
+    threeContext.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh && object.userData.isFocused && object !== intersectedObject) {
+        object.scale.setScalar(1);
+        object.userData.isFocused = false;
+        if (object.userData.infoBox && !object.userData.isCentered) {
+          graphUtils.removeInfoBoxFromMesh(object)
+        }
+      }
+    });
 
     threeContext.controls.update(delta);
     threeContext.renderer.render(threeContext.scene, threeContext.camera);
@@ -274,9 +264,10 @@
     //raycaster for capturing mouse movement
     const raycaster = new THREE.Raycaster();
     raycaster.params.Points = { threshold: 2 };
-    const mouse = new THREE.Vector2();
+    const mouse = new THREE.Vector2(10000, 10000); //initializing this will outside the scene so that it doesnt mess with scene objects
     container.addEventListener("mousemove", onMouseMove);
-    container.addEventListener("click", onClick);
+    container.addEventListener('mousedown', onMouseDown);
+    container.addEventListener('mouseup', onMouseUp);
     container.appendChild(renderer.domElement);
 
     //handle window resize
@@ -338,7 +329,8 @@
       threeContext.renderer.dispose();
       threeContext.controls.dispose();
       container.removeEventListener("mousemove", onMouseMove);
-      container.removeEventListener("click", onClick)
+      container.removeEventListener('mousedown', onMouseDown);
+      container.removeEventListener('mouseup', onMouseUp);
     };
   });
 </script>

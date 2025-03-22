@@ -1,5 +1,6 @@
 import { API_BASE } from "../../environment";
 import type {
+  Neo4jApiResponse,
   Neo4jNode,
   Neo4jRelationship,
 } from "../pages/Graph/graph-interfaces.interface";
@@ -44,10 +45,7 @@ export class HttpService {
 
   async fetchNodes(
     endpoint: string
-  ): Promise<{
-    nodes: Neo4jNode[];
-    relationships: Neo4jRelationship[];
-  }> {
+  ): Promise<Neo4jApiResponse> {
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "GET",
@@ -63,16 +61,18 @@ export class HttpService {
 
       const [body] = await response.json();
       const mappedBody = {
-        nodes: body.Values[0] as Neo4jNode[],
+        nodeRoot: body.Values[0] as Neo4jNode,
         relationships: body.Values[1] as Neo4jRelationship[],
+        affiliates: body.Values[2] as Neo4jNode[]
       };
       return mappedBody;
     } catch (err) {
       console.error(err);
-      return {
-        nodes: [],
+      return { 
+        nodeRoot: {},
         relationships: [],
-      };
+        affiliates: []
+      } as any;
     }
   }
 }

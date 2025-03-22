@@ -84,3 +84,7 @@ func GetS3Object(c *gin.Context) {
 		return
 	}
 }
+
+func GenerateImageBasedOffName(c *gin.Context) {
+
+}

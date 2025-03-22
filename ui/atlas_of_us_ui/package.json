@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@mateothegreat/svelte5-router": "^0.1.38",
+    "jwt-decode": "^4.0.0",
     "three": "^0.173.0"
   }
 }
