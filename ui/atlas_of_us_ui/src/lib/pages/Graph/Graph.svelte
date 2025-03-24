@@ -7,12 +7,15 @@
   import { HttpService } from "../../services/http-service";
   import { GraphUtils } from "./graph-utils";
 
+  import { searchState } from "../../nav/input-state.svelte"
+
   import type {
   Neo4jApiResponse,
     ThreeContext,
   } from "./graph-interfaces.interface";
 
   import galaxyBackground from "../../../assets/galaxy.jpeg";
+  import Nav from "../../nav/Nav.svelte";
 
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
@@ -28,6 +31,11 @@
   let mouseDownPosition = { x: 0, y: 0 };
   const CLICK_THRESHOLD_MS = 300; // Time in ms to consider a "short click"
   const POSITION_THRESHOLD = 5; // Pixels to consider as movement
+
+  let navInputChange = $derived(searchState.text)
+  $effect(() => {
+    console.log(navInputChange)
+  })
 
   async function loadL1GraphData() {
     graphData = await graphUtils.loadNodeAndAffiliatesById('4:85214d9a-1dfe-48e4-9e42-48eefb670f7a:176');
@@ -159,12 +167,23 @@
 
     if (intersects.length > 0) {
       const intersectedObject = intersects[0].object;
-      graphUtils.centerCameraOnMesh(
-        threeContext.camera,
-        threeContext.controls,
-        intersectedObject
-      );
-      graphUtils.showRelationshipLines(intersectedObject, threeContext, graphData);
+      if (!intersectedObject.userData.isCentered) {
+        graphUtils.centerCameraOnMesh(
+          threeContext.camera,
+          threeContext.controls,
+          intersectedObject
+        );
+        if (intersectedObject instanceof THREE.Mesh) {
+          graphUtils.showRelationshipLines(intersectedObject, threeContext, graphData);
+        } else if (intersectedObject instanceof THREE.Line) {
+          console.log(intersectedObject)
+          graphUtils.clearRelationshipLines(threeContext, [intersectedObject.userData.relationship.id]);
+        }
+      } else {
+        console.log(threeContext.homeCameraPosition)
+        graphUtils.clearFocus(threeContext, intersectedObject);
+      }
+      
     }
   }
 
@@ -238,6 +257,7 @@
       0.1,
       10000
     );
+    const homeCameraPosition = camera.position;
 
     //renderer
     const renderer = new THREE.WebGLRenderer();
@@ -291,6 +311,7 @@
     return {
       scene,
       camera,
+      homeCameraPosition,
       raycaster,
       mouse,
       controls,

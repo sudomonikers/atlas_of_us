@@ -4,6 +4,7 @@
   import { route, Router, type Route } from "@mateothegreat/svelte5-router";
   import { jwtDecode } from 'jwt-decode';
 
+  import { searchState } from "./input-state.svelte";
   import Profile from "../pages/Profile/Profile.svelte";
   import PageNotFound from "../pages/PageNotFound/PageNotFound.svelte";
   import Login from "../pages/Login/Login.svelte";
@@ -122,7 +123,7 @@
   <button class="microphone-button">
     <span class="material-symbols-outlined">mic_off</span>
   </button>
-  <input type="text" id="input" class="nav-input" bind:value={userInput} />
+  <input type="text" id="input" class="nav-input" bind:value="{searchState.text}" />
   {#if !loggedIn}
     <button class="login-button" onclick={login}>Login</button>
   {/if}
@@ -207,6 +208,7 @@
     display: flex;
     justify-content: right;
     padding: 0 15px;
+    z-index: 999;
   }
 
   .nav-input {

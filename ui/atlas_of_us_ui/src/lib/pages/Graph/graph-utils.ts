@@ -207,6 +207,9 @@ export class GraphUtils {
     cameraZ *= 1.1;
     threeContext.camera.position.z = cameraZ;
     threeContext.camera.updateProjectionMatrix();
+    console.log(threeContext.camera.position)
+    threeContext.homeCameraPosition = threeContext.camera.position.clone();
+    console.log(threeContext.homeCameraPosition)
   
     return constellationGroup;
   }
@@ -235,7 +238,7 @@ export class GraphUtils {
     const targetPosition = new THREE.Vector3(
       center.x,
       center.y,
-      center.z + cameraZ * 2.0 // Add 10% padding
+      center.z + 150 //center.z + cameraZ * 2.0 // Add 10% padding
     );
 
     // Smoothly move the camera to the new position
@@ -267,7 +270,7 @@ export class GraphUtils {
 
   addInfoBoxToMesh(
     mesh: THREE.Mesh
-  ): CSS2DObject {
+  ) {
     const content = mesh.userData.nodeData;
 
     const infoBoxElement = document.createElement("div");
@@ -290,24 +293,20 @@ export class GraphUtils {
     
     // Add the info box directly to the mesh
     mesh.add(infoBox);    
-    mesh.userData.infoBox = infoBox;
-    
-    return infoBox;
+    mesh.userData.infoBox = true
   }
 
   addInfoBoxToRelationship(
     line: THREE.Line,
-    relationship: Neo4jRelationship,
-    threeContext: ThreeContext
+    relationship: Neo4jRelationship
   ) {
     // Create the HTML element for the info box
     const infoBoxElement = document.createElement("div");
-    infoBoxElement.className = "relationship-info-box";
+    infoBoxElement.className = "info-box";
   
     // Format the relationship content
     let htmlContent = `
       <div class="relationship-info-header">${relationship.type}</div>
-      <div class="relationship-info-content">
       `;
   
     // Add any custom properties from the relationship
@@ -319,98 +318,159 @@ export class GraphUtils {
       htmlContent += `</div>`;
     }
   
-    htmlContent += `</div>`;
     infoBoxElement.innerHTML = htmlContent;
   
     // Create the CSS2D object
     const infoBox = new CSS2DObject(infoBoxElement);
     
     // Position the info box at the midpoint of the line
-    const startPos = line.geometry.attributes.position.array;
-    const midpoint = new THREE.Vector3(
-      (startPos[0] + startPos[3]) / 2,
-      (startPos[1] + startPos[4]) / 2,
-      (startPos[2] + startPos[5]) / 2
-    );
+    let midpoint;
+    
+    // Check if the line has positions array (for curved lines)
+    if (line.geometry.attributes.position.count > 2) {
+      // For curved lines, find the middle point in the array
+      const positions = line.geometry.attributes.position.array;
+      const middleIndex = Math.floor(positions.length / 6) * 3; // Find middle vertex
+      midpoint = new THREE.Vector3(
+        positions[middleIndex],
+        positions[middleIndex + 1],
+        positions[middleIndex + 2]
+      );
+    } else {
+      // For straight lines, use the first and last points
+      const positions = line.geometry.attributes.position.array;
+      midpoint = new THREE.Vector3(
+        (positions[0] + positions[3]) / 2,
+        (positions[1] + positions[4]) / 2,
+        (positions[2] + positions[5]) / 2
+      );
+    }
     
     infoBox.position.copy(midpoint);
-    
-    // Add the info box to the scene (not to the line itself, as lines don't have proper hierarchical transform)
-    threeContext.scene.add(infoBox);
-    
-    // Store reference to the info box in the line's userData for later removal
-    line.userData.infoBox = infoBox;
+    line.add(infoBox);    
+    line.userData.infoBox = true;
   }
 
-  showRelationshipLines(
-    activeMesh: THREE.Object3D,
-    threeContext: ThreeContext,
-    graphData: Neo4jApiResponse
-  ) {
+  showRelationshipLines(activeMesh: THREE.Object3D, threeContext: ThreeContext, graphData: Neo4jApiResponse) {
     this.clearRelationshipLines(threeContext);
     
     const activeNodeId = activeMesh.userData.nodeData.elementId;
-    console.log(activeNodeId)
-
     
-    // Create a line for each relationship
-    const relevantRelationships = graphData.relationships.filter(rel => 
+    // Find all relationships for the active node
+    const relevantRelationships = graphData.relationships.filter(rel =>
       rel.startElementId === activeNodeId || rel.endElementId === activeNodeId
     );
-    console.log(relevantRelationships)
+        
+    // Group relationships by the target node
+    const relationshipsByTarget = {};
     
-    relevantRelationships.forEach((relationship) => {
-      console.log(relationship)
-      // Determine the target node ID (the other end of the relationship)
-      const targetNodeId = relationship.startElementId === activeNodeId 
-        ? relationship.endElementId 
-        : relationship.startElementId;
-
-      console.log(targetNodeId)
+    relevantRelationships.forEach(rel => {
+      const targetNodeId = rel.startElementId === activeNodeId 
+        ? rel.endElementId 
+        : rel.startElementId;
       
-      // Find the target mesh in the scene
+      if (!relationshipsByTarget[targetNodeId]) {
+        relationshipsByTarget[targetNodeId] = [];
+      }
+      relationshipsByTarget[targetNodeId].push(rel);
+    });
+    
+    // Process each target node
+    Object.keys(relationshipsByTarget).forEach(targetNodeId => {
+      const relationships = relationshipsByTarget[targetNodeId];
       const targetMesh = this.findObjectByElementId(threeContext.scene, targetNodeId);
-      
-      // Create a line between the active mesh and target mesh
       const startPosition = activeMesh.position.clone();
       const endPosition = targetMesh.position.clone();
       
-      // Create geometry for the line
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        startPosition,
-        endPosition
-      ]);
-      
-      // Determine line color based on relationship type
-      let lineColor;
-      switch(relationship.type) {
-        default:
-          lineColor = 0xff00ff; // Magenta
-          break;
+      // If single relationship, draw straight line
+      if (relationships.length === 1) {
+        const relationship = relationships[0];
+        const geometry = new THREE.BufferGeometry().setFromPoints([
+          startPosition,
+          endPosition
+        ]);
+        
+        const lineColor = 0xff00ff; // Magenta as default
+        
+        const material = new THREE.LineBasicMaterial({
+          color: lineColor,
+          linewidth: 5,
+          opacity: 1,
+          transparent: true
+        });
+        
+        const line = new THREE.Line(geometry, material);
+        line.userData = {
+          relationship: relationship,
+          sourceId: activeNodeId,
+          targetId: targetNodeId
+        };
+        
+        threeContext.scene.add(line);
+        this.addInfoBoxToRelationship(line, relationship);
+        
+      } else {
+        // Multiple relationships - draw curved lines
+        relationships.forEach((relationship, index) => {
+          const midPoint = new THREE.Vector3().addVectors(startPosition, endPosition).multiplyScalar(0.5);
+          const distance = startPosition.distanceTo(endPosition);          
+          const direction = new THREE.Vector3().subVectors(endPosition, startPosition).normalize();
+          
+          // Calculate perpendicular vector in the XY plane
+          const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x);
+          if (perpendicular.length() < 0.1) {
+            // If direction is mainly along Y axis, use a different perpendicular
+            perpendicular.set(1, 0, 0);
+          }
+          perpendicular.normalize();
+          
+          // Calculate curve offset
+          const offsetFactor = 0.2 * distance;
+          const indexOffset = index - (relationships.length - 1) / 2;
+          const offset = perpendicular.clone().multiplyScalar(indexOffset * offsetFactor);
+          
+          // Apply offset to midpoint
+          const controlPoint = midPoint.clone().add(offset);
+          
+          // Create curve points
+          const curvePoints = [];
+          for (let i = 0; i <= 20; i++) {
+            const t = i / 20;
+            
+            // Quadratic Bezier formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+            const point = new THREE.Vector3();
+            const mt = 1 - t;
+            
+            point.x = mt * mt * startPosition.x + 2 * mt * t * controlPoint.x + t * t * endPosition.x;
+            point.y = mt * mt * startPosition.y + 2 * mt * t * controlPoint.y + t * t * endPosition.y;
+            point.z = mt * mt * startPosition.z + 2 * mt * t * controlPoint.z + t * t * endPosition.z;
+            
+            curvePoints.push(point);
+          }
+          
+          // Create line geometry
+          const geometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
+          
+          const lineColor = 0xff00ff; // Default magenta
+          
+          const material = new THREE.LineBasicMaterial({
+            color: lineColor,
+            linewidth: 4,
+            opacity: 1,
+            transparent: true
+          });
+          
+          const line = new THREE.Line(geometry, material);
+          line.userData = {
+            relationship: relationship,
+            sourceId: activeNodeId,
+            targetId: targetNodeId
+          };
+          
+          threeContext.scene.add(line);
+          this.addInfoBoxToRelationship(line, relationship);
+        });
       }
-      
-      const material = new THREE.LineBasicMaterial({ 
-        color: lineColor,
-        linewidth: 2,
-        opacity: 0.7,
-        transparent: true
-      });
-      
-      // Create the line and add it to the scene
-      const line = new THREE.Line(geometry, material);
-      line.userData = {
-        relationship: relationship,
-        sourceId: activeNodeId,
-        targetId: targetNodeId
-      };
-      
-      threeContext.scene.add(line);
-      
-      this.addInfoBoxToRelationship(
-        line,
-        relationship,
-        threeContext
-      );
     });
   }
 
@@ -432,11 +492,16 @@ export class GraphUtils {
     return null;
   }
   
-  clearRelationshipLines(threeContext: ThreeContext) {
+  clearRelationshipLines(threeContext: ThreeContext, exceptionElementIds?: string[]) {
     const children = [...threeContext.scene.children];
     
     children.forEach((child) => {
-      if (child instanceof THREE.Line || child instanceof THREE.Sprite) {
+      if (child instanceof THREE.Line && !exceptionElementIds?.includes(child.userData.relationship.id)) {
+        if (child.children.length) {
+          child.children.forEach((element) => {
+            child.remove(element);
+          })
+        }
         threeContext.scene.remove(child);
         
         // Proper cleanup to avoid memory leaks
@@ -452,9 +517,51 @@ export class GraphUtils {
     });
   }
 
-  removeInfoBoxFromMesh(mesh: THREE.Mesh): void {
+  clearFocus(threeContext: ThreeContext, mesh: THREE.Object3D) {
+    mesh.userData.isCentered = false;
+    this.removeInfoBoxFromMesh(mesh);
+    this.clearRelationshipLines(threeContext);
+    this.lerpCameraToPosition(threeContext, mesh.position);
+  }
+
+  lerpCameraToPosition(
+    threeContext: ThreeContext,
+    targetLookAt: THREE.Vector3,
+    duration: number = 1000
+  ) {
+    console.log(threeContext.homeCameraPosition)
+    const { camera, homeCameraPosition, controls } = threeContext;
+    
+    // Capture the starting position and target
+    const startPosition = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const startTime = Date.now();
+  
+    function updateCamera() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+  
+      // Use the same easing function for smooth animation
+      const easeProgress = 1 - Math.cos((progress * Math.PI) / 2);
+  
+      // Lerp the camera position and controls target
+      camera.position.lerpVectors(startPosition, homeCameraPosition, easeProgress);
+      controls.target.lerpVectors(startTarget, targetLookAt, easeProgress);
+  
+      camera.lookAt(controls.target);
+      controls.update();
+  
+      if (progress < 1) {
+        requestAnimationFrame(updateCamera);
+      }
+    }
+  
+    updateCamera();
+  }
+
+  removeInfoBoxFromMesh(mesh: THREE.Object3D): void {
     if (mesh.userData.infoBox) {
-      mesh.remove(mesh.userData.infoBox);
+      mesh.remove(mesh.children[0]);
       mesh.userData.infoBox = null;
     }
   }

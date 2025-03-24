@@ -44,6 +44,7 @@ export interface ThreeContext {
   container: HTMLDivElement;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  homeCameraPosition: THREE.Vector3,
   renderer: THREE.WebGLRenderer;
   controls: OrbitControls;
   raycaster: THREE.Raycaster;
