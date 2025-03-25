@@ -67,6 +67,10 @@ export class GraphUtils {
     return this.httpService.fetchNodes(`/api/secure/graph/get-node-with-relationships-by-id?id=${id}`);
   }
 
+  async loadMostRelatedNodeBySearch(searchTerm: string): Promise<Neo4jApiResponse> {
+    return this.httpService.fetchNodes(`/api/secure/graph/get-node-with-relationships-by-search-term?searchTerm=${searchTerm}`);
+  }
+
   async createGraphConstellation(
     imagePoints: NodeCoordinate[],
     sceneLocation: NodeCoordinate,

@@ -15,7 +15,6 @@
   } from "./graph-interfaces.interface";
 
   import galaxyBackground from "../../../assets/galaxy.jpeg";
-  import Nav from "../../nav/Nav.svelte";
 
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
@@ -31,14 +30,22 @@
   let mouseDownPosition = { x: 0, y: 0 };
   const CLICK_THRESHOLD_MS = 300; // Time in ms to consider a "short click"
   const POSITION_THRESHOLD = 5; // Pixels to consider as movement
+  const DEBOUNCE_DELAY = 300; //ms
 
-  let navInputChange = $derived(searchState.text)
+  let navInputChange = $derived(searchState.text);
+  let debouncedSearchTerm: string;
+  let timeoutId: number;
   $effect(() => {
-    console.log(navInputChange)
-  })
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      debouncedSearchTerm = navInputChange;
+      console.log("Debounced search term:", debouncedSearchTerm);
+      loadL1GraphData(debouncedSearchTerm)
+    }, DEBOUNCE_DELAY); 
+  });
 
-  async function loadL1GraphData() {
-    graphData = await graphUtils.loadNodeAndAffiliatesById('4:85214d9a-1dfe-48e4-9e42-48eefb670f7a:176');
+  async function loadL1GraphData(searchTerm: string) {
+    graphData = await graphUtils.loadMostRelatedNodeBySearch(searchTerm);
     console.log(graphData)
     const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
@@ -342,7 +349,7 @@
     loadBackground();
     loadParticles();
 
-    loadL1GraphData();
+    //loadL1GraphData();
 
     return () => {
       // Clean up resources

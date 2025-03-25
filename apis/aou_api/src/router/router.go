@@ -1,17 +1,14 @@
 package router
 
 import (
-	"context"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"aou_api/src/auth"
-	"aou_api/src/database"
 	docs "aou_api/src/docs"
 	handlers "aou_api/src/handlers/graph"
 	helpers "aou_api/src/handlers/helpers"
@@ -20,12 +17,10 @@ import (
 	"aou_api/src/models"
 )
 
-func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *gin.Engine {
-	appCtx := models.NewAppContext(db, logger, ctx)
-
+func NewRouter(appCtx *models.AppContext) *gin.Engine {
 	r := gin.Default()
 	r.Use(models.ContextMiddleware(appCtx))
-	r.Use(middleware.Logger(logger))
+	r.Use(middleware.Logger(appCtx.LOGGER))
 	r.Use(middleware.Security())
 	r.Use(middleware.Cors())
 	r.Use(middleware.RateLimiter(rate.Every(1*time.Minute), 60)) // 60 requests per minute
@@ -45,13 +40,16 @@ func NewRouter(logger *zap.Logger, db *database.Neo4jDB, ctx *context.Context) *
 	{
 		helper := secureRoutes.Group("helper")
 		{
-			helper.GET("s3-object", helpers.GetS3Object)
+			helper.GET("s3-object", helpers.ReturnS3Object)
+			helper.POST("s3-upload", helpers.UploadS3Object)
 		}
 
 		graph_management := secureRoutes.Group("graph")
 		{
 			graph_management.GET("get-nodes", handlers.GetNodes)
 			graph_management.GET("get-node-with-relationships-by-id", handlers.GetNodeWithRelationshipsById)
+			graph_management.GET("get-node-with-relationships-by-search-term", handlers.GetNodeWithRelationshipsBySearchTerm)
+
 			graph_management.POST("create-node", handlers.CreateNode)
 			graph_management.PUT("update-node", handlers.UpdateNode)
 			graph_management.POST("create-relationship", handlers.CreateRelationship)

@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"aou_api/src/handlers/helpers"
 	"aou_api/src/models"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -102,7 +104,7 @@ func GetNodes(c *gin.Context) {
 type GetNodeWithRelationshipsByIdParams struct {
 	// Element Id of a node
 	// Example: "4:7f3adc9f-8a7b-48e6-9c5d-12e34f56a7b8:0"
-	Id string `form:"id" binding:"required"` // Changed json:"id" to form:"id"
+	Id string `form:"id" binding:"required"`
 }
 
 // GetNodeWithRelationshipsById retrieves nodes from the graph based on query parameters.
@@ -113,7 +115,7 @@ type GetNodeWithRelationshipsByIdParams struct {
 // @Success 200 {object} map[string]interface{} "Successful operation"
 // @Failure 400 {object} map[string]interface{} "Invalid query parameters"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /secure/graph/get-node-with-relationships-by-id [get] // Corrected the route
+// @Router /secure/graph/get-node-with-relationships-by-id [get]
 func GetNodeWithRelationshipsById(c *gin.Context) {
 	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
 
@@ -171,6 +173,85 @@ func GetNodeWithRelationshipsById(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+type GetNodeWithRelationshipsBySearchTermParams struct {
+	// Example: "Programming"
+	searchTerm string `form:"searchTerm" binding:"required"`
+}
+
+// GetNodeWithRelationshipsById retrieves nodes from the graph based on query parameters.
+// @Description Get a node from the graph by id and also retrieves its relationships
+// @ID get-node-with-relationships-by-search-term
+// @Produce json
+// @Param search-term query string true "Search Term"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/graph/get-node-with-relationships-by-search-term [get]
+func GetNodeWithRelationshipsBySearchTerm(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var params GetNodeWithRelationshipsBySearchTermParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query parameters"})
+		return
+	}
+
+	embedding, err := helpers.GenerateEmbedding(appCtx, params.searchTerm)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate embedding"})
+		return
+	}
+
+	queryString := `
+		CALL db.index.vector.queryNodes('nodeEmbeddings', 1, $embedding)
+		YIELD node, score
+
+        OPTIONAL MATCH (node)-[r]->(m)
+        WITH node, score, collect(r) AS relationships, collect(m) AS affiliatedNodes
+        RETURN 
+            {
+                elementId: elementId(node),
+                labels: labels(node),
+                name: node.name,
+				image: node.image,
+                description: node.description,
+				similarity: score
+            } AS n, 
+			CASE size(relationships)
+				WHEN 0 THEN []
+				ELSE [relationship IN relationships |
+					{
+						id: elementId(relationship),
+						startElementId: elementId(startNode(relationship)),
+						endElementId: elementId(endNode(relationship)),
+						type: type(relationship),
+						props: properties(relationship)
+					}
+				]
+            END AS relationships, 
+            CASE size(affiliatedNodes)
+                WHEN 0 THEN []
+                ELSE [node IN affiliatedNodes | 
+                    {
+                        elementId: elementId(node),
+                        labels: labels(node),
+                        name: node.name,
+                        description: node.description
+                    }
+				]
+            END AS affiliatedNodes
+    `
+
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"embedding": embedding})
+	if err != nil {
+		appCtx.LOGGER.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 type CreateNodeRequest struct {
 	// Labels is an array of labels to assign to the new node
 	// Example: ["L1", "Pursuit"]
@@ -202,6 +283,34 @@ func CreateNode(c *gin.Context) {
 		})
 		return
 	}
+
+	//generate a vector embedding
+	textToEmbed := requestBody.Properties["name"].(string) + ": " + requestBody.Properties["description"].(string)
+	embedding, err := helpers.GenerateEmbedding(appCtx, textToEmbed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate embedding"})
+		return
+	}
+	//generate a mascot image
+	image_prompt := fmt.Sprintf("A minimalistic black-and-white line drawing of %s. The sketch is drawn with elegant, simple outlines, with no shading or extra details. The style is similar to high-fashion sketches, emphasizing grace.")
+	image, err := helpers.GenerateImage(appCtx, image_prompt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate image"})
+		return
+	}
+	//upload image to s3
+	uploadParams := helpers.UploadParams{
+		Bucket: os.Getenv(""),
+		Key:    fmt.Sprintf("images/%s.png", requestBody.Properties["name"]),
+	}
+	err = helpers.UploadObjectToS3(uploadParams, image)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image to S3"})
+		return
+	}
+	// give the node relavent properties
+	requestBody.Properties["embedding"] = embedding
+	requestBody.Properties["image"] = image
 
 	labelString := ":" + strings.Join(requestBody.Labels, ":")
 	queryString := fmt.Sprintf("CREATE (n%s $properties) RETURN n", labelString)

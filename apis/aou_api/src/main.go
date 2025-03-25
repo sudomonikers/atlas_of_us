@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"aou_api/src/database"
+	"aou_api/src/models"
 	"aou_api/src/router"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -38,7 +39,9 @@ func init() {
 	}
 	gin.SetMode(ginMode)
 
-	r := router.NewRouter(logger, db, &ctx)
+	appCtx := models.NewAppContext(db, logger, &ctx)
+
+	r := router.NewRouter(appCtx)
 
 	if ginMode == gin.ReleaseMode {
 		ginLambda = ginadapter.New(r)
