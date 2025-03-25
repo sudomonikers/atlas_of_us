@@ -66,11 +66,15 @@ func GetNodes(c *gin.Context) {
 
 		properties := strings.Split(decodedProperties, ",")
 		for _, prop := range properties {
-			parts := strings.SplitN(prop, ":", 2)
+			parts := strings.SplitN(prop, "=", 2)
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
-				whereClauses = append(whereClauses, fmt.Sprintf("n.%s = '%s'", key, value))
+				if key == "elementId" {
+					whereClauses = append(whereClauses, fmt.Sprintf("elementId(n) = '%s'", value))
+				} else {
+					whereClauses = append(whereClauses, fmt.Sprintf("n.%s = '%s'", key, value))
+				}
 			}
 		}
 	}
@@ -85,50 +89,6 @@ func GetNodes(c *gin.Context) {
 	}
 
 	queryString += `
-        OPTIONAL MATCH (n)-[r]->(m)
-        WITH collect(n) AS nodes, collect(r) AS relationships
-        UNWIND nodes AS node
-        UNWIND relationships AS relationship
-        RETURN collect(DISTINCT node) AS nodes, collect(DISTINCT relationship) AS relationships
-    `
-
-	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{})
-	if err != nil {
-		appCtx.LOGGER.Error(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-type GetNodeWithRelationshipsByIdParams struct {
-	// Element Id of a node
-	// Example: "4:7f3adc9f-8a7b-48e6-9c5d-12e34f56a7b8:0"
-	Id string `form:"id" binding:"required"`
-}
-
-// GetNodeWithRelationshipsById retrieves nodes from the graph based on query parameters.
-// @Description Get a node from the graph by id and also retrieves its relationships
-// @ID get-node-with-relationships-by-id
-// @Produce json
-// @Param id query string true "Node element ID"
-// @Success 200 {object} map[string]interface{} "Successful operation"
-// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /secure/graph/get-node-with-relationships-by-id [get]
-func GetNodeWithRelationshipsById(c *gin.Context) {
-	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
-
-	var params GetNodeWithRelationshipsByIdParams
-	if err := c.ShouldBindQuery(&params); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query parameters"})
-		return
-	}
-
-	queryString := `
-        MATCH (n)
-        WHERE elementId(n) = $id
         OPTIONAL MATCH (n)-[r]->(m)
         WITH n, collect(r) AS relationships, collect(m) AS affiliatedNodes
         RETURN 
@@ -164,7 +124,8 @@ func GetNodeWithRelationshipsById(c *gin.Context) {
             END AS affiliatedNodes
     `
 
-	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"id": params.Id})
+	fmt.Println(queryString)
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

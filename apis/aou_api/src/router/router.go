@@ -47,7 +47,6 @@ func NewRouter(appCtx *models.AppContext) *gin.Engine {
 		graph_management := secureRoutes.Group("graph")
 		{
 			graph_management.GET("get-nodes", handlers.GetNodes)
-			graph_management.GET("get-node-with-relationships-by-id", handlers.GetNodeWithRelationshipsById)
 			graph_management.GET("get-node-with-relationships-by-search-term", handlers.GetNodeWithRelationshipsBySearchTerm)
 
 			graph_management.POST("create-node", handlers.CreateNode)
