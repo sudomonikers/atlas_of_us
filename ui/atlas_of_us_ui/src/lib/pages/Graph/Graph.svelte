@@ -39,12 +39,11 @@
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       debouncedSearchTerm = navInputChange;
-      console.log("Debounced search term:", debouncedSearchTerm);
       loadL1GraphData(debouncedSearchTerm)
     }, DEBOUNCE_DELAY); 
   });
 
-  async function loadL1GraphData(searchTerm: string) {
+  async function loadL1GraphData(searchTerm: string = 'Programming') {
     graphData = await graphUtils.loadMostRelatedNodeBySearch(searchTerm);
     console.log(graphData)
     const image = await http.getS3Object(

@@ -42,7 +42,31 @@
   }
 
   async function handleCreateAccount() {
+    console.log("Creating account with:", username, password);
+    const response = await fetch(
+      `${API_BASE}/api/sign-up`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: createAccountUsername,
+          password: createAccountPassword,
+          phone: createAccountPhone
+        }),
+      }
+    );
 
+    if (response.ok) {
+      console.log("Account Created in successfully");
+      const responseBody = await response.json();
+      localStorage.setItem("jwt", responseBody);
+      loggedIn = true;
+      goto("/Graph");
+    } else {
+      console.error("Login failed");
+    }
   }
 </script>
 

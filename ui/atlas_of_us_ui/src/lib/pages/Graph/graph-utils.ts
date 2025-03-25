@@ -5,7 +5,6 @@ import type {
   Neo4jApiResponse,
   Neo4jNodeWithMappedPositions,
   ThreeContext,
-  Neo4jNode,
   Neo4jRelationship
 } from "./graph-interfaces.interface";
 import * as THREE from "three";
@@ -78,7 +77,6 @@ export class GraphUtils {
     threeContext: ThreeContext,
     graphData: Neo4jApiResponse
   ): Promise<THREE.Group> {
-    console.log(graphData)
     const width = loadedImage.width;
     const height = loadedImage.height;
   
@@ -211,9 +209,7 @@ export class GraphUtils {
     cameraZ *= 1.1;
     threeContext.camera.position.z = cameraZ;
     threeContext.camera.updateProjectionMatrix();
-    console.log(threeContext.camera.position)
     threeContext.homeCameraPosition = threeContext.camera.position.clone();
-    console.log(threeContext.homeCameraPosition)
   
     return constellationGroup;
   }

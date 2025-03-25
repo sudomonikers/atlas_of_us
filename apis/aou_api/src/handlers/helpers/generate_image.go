@@ -18,13 +18,13 @@ type ImageGenerationResponse struct {
 }
 
 func GenerateImage(appCtx *models.AppContext, textToGenerateImageFrom string) ([]byte, error) {
-	imageGenerationEndpoint := os.Getenv("EMBEDDING_ENDPOINT")
+	imageGenerationEndpoint := os.Getenv("IMAGE_GEN_ENDPOINT")
 
 	requestBody, err := json.Marshal(map[string]interface{}{
-		"model":  "dall-e-2",
+		"model":  "dall-e-3",
 		"prompt": textToGenerateImageFrom,
 		"n":      1,
-		"size":   "512x512",
+		"size":   "1024x1024",
 	})
 	if err != nil {
 		appCtx.LOGGER.Error("Error marshaling request body: " + err.Error())
@@ -57,8 +57,6 @@ func GenerateImage(appCtx *models.AppContext, textToGenerateImageFrom string) ([
 		appCtx.LOGGER.Error("Error unmarshaling image generation response: " + err.Error())
 		return nil, err
 	}
-
-	fmt.Println(respBody)
 
 	imageURL := imageGenResponse.Data[0].Url
 

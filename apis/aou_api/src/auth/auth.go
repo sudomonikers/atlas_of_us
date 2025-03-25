@@ -105,9 +105,6 @@ type SignUpRequest struct {
 	// Phone number for registration
 	// Example: 123-456-7890
 	PhoneNumber string `json:"phone" binding:"required"`
-	// Email address for registration
-	// Example: test@example.com
-	Email string `json:"email" binding:"required,email"`
 }
 
 // SignUp endpoint
@@ -164,14 +161,12 @@ func SignUp(c *gin.Context) {
 		CREATE (p:Person:L3 {
 			username: $username,
 			password: $password,
-			phone: $phone,
-			email: $email
+			phone: $phone
 		})
 	`, map[string]any{
 		"username": signUpReq.Username,
 		"password": hashedPassword,
 		"phone":    signUpReq.PhoneNumber,
-		"email":    signUpReq.Email,
 	})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -292,25 +293,28 @@ func CreateNode(c *gin.Context) {
 		return
 	}
 	//generate a mascot image
-	image_prompt := fmt.Sprintf("A minimalistic black-and-white line drawing of %s. The sketch is drawn with elegant, simple outlines, with no shading or extra details. The style is similar to high-fashion sketches, emphasizing grace.")
+	image_prompt := fmt.Sprintf("A minimalistic black-and-white line drawing of '%s'. The sketch is drawn with elegant, simple outlines, with no shading or extra details. The style is similar to high-fashion sketches, emphasizing grace.", textToEmbed)
 	image, err := helpers.GenerateImage(appCtx, image_prompt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate image"})
 		return
 	}
-	//upload image to s3
+
+	now := time.Now()
+	timestamp := now.Format("20060102150405")
+	image_name := fmt.Sprintf("%s_%s.png", requestBody.Properties["name"], timestamp) //upload image to s3
 	uploadParams := helpers.UploadParams{
-		Bucket: os.Getenv(""),
-		Key:    fmt.Sprintf("images/%s.png", requestBody.Properties["name"]),
+		Bucket: os.Getenv("S3_BUCKET"),
+		Key:    image_name,
 	}
 	err = helpers.UploadObjectToS3(uploadParams, image)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image to S3"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image to S3", "err": err})
 		return
 	}
 	// give the node relavent properties
 	requestBody.Properties["embedding"] = embedding
-	requestBody.Properties["image"] = image
+	requestBody.Properties["image"] = image_name
 
 	labelString := ":" + strings.Join(requestBody.Labels, ":")
 	queryString := fmt.Sprintf("CREATE (n%s $properties) RETURN n", labelString)
