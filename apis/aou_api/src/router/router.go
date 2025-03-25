@@ -55,7 +55,7 @@ func NewRouter(appCtx *models.AppContext) *gin.Engine {
 			graph_management.POST("create-relationship", handlers.CreateRelationship)
 			graph_management.PUT("update-relationship", handlers.UpdateRelationship)
 			//The following method is purely a FETCH operation and does not mutate any data, but we are using POST because we may send in a potentially very large vector embedding for finding similarity and there can be issues with that using GET
-			graph_management.POST("similar-nodes", handlers.FindSimilarNodes)
+			graph_management.POST("similar-nodes", handlers.GetSimilarNodes)
 		}
 	}
 

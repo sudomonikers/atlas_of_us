@@ -292,6 +292,25 @@ func CreateNode(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate embedding"})
 		return
 	}
+
+	//check if a similar node already exists
+	similarityResult, err := helpers.FindSimilarNodes(appCtx, helpers.FindSimilarNodesStruct{Embedding: embedding})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find similar nodes"})
+		return
+	}
+	if len(similarityResult) > 0 {
+		record := similarityResult[0]           // Assuming the first result is the most similar
+		score, ok := record.Values[3].(float64) // Assuming score is the 4th value and is a float64
+		if ok && score > 0.7 {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":   "similar node already exists",
+				"details": fmt.Sprintf("A node with a similarity score of %f already exists.", score),
+			})
+			return
+		}
+	}
+
 	//generate a mascot image
 	image_prompt := fmt.Sprintf("A minimalistic black-and-white line drawing of '%s'. The sketch is drawn with elegant, simple outlines, with no shading or extra details. The style is similar to high-fashion sketches, emphasizing grace.", textToEmbed)
 	image, err := helpers.GenerateImage(appCtx, image_prompt)
@@ -300,8 +319,9 @@ func CreateNode(c *gin.Context) {
 		return
 	}
 
+	//upload the image to s3
 	now := time.Now()
-	timestamp := now.Format("20060102150405")
+	timestamp := now.Format(time.DateTime)
 	image_name := fmt.Sprintf("%s_%s.png", requestBody.Properties["name"], timestamp) //upload image to s3
 	uploadParams := helpers.UploadParams{
 		Bucket: os.Getenv("S3_BUCKET"),
@@ -312,7 +332,8 @@ func CreateNode(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image to S3", "err": err})
 		return
 	}
-	// give the node relavent properties
+
+	// give the node relevant properties
 	requestBody.Properties["embedding"] = embedding
 	requestBody.Properties["image"] = image_name
 
@@ -322,7 +343,6 @@ func CreateNode(c *gin.Context) {
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{
 		"properties": requestBody.Properties,
 	})
-
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -550,21 +570,8 @@ func UpdateRelationship(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-type FindSimilarNodesRequest struct {
-	// NodeId is the element ID of the node to find similar nodes for
-	// Example: "4:9a8b7c6d-5e4f-3a2b-1c0d-12e34f56a7b8:0"
-	NodeId string `json:"nodeId"`
-
-	// Embedding is the vector embedding to use for similarity search
-	// Example: [0.1, 0.23, -0.45, 0.67, ...]
-	Embedding []float64 `json:"embedding"`
-
-	// Limit is the maximum number of similar nodes to return (optional, defaults to 5)
-	Limit int `json:"limit"`
-}
-
-// FindSimilarNodes finds nodes similar to a given node or embedding.
-// @Description Finds nodes similar to a node specified by its element ID or by a vector embedding.
+// GetSimilarNodes finds nodes similar to a given node or embedding.
+// @Description Gets nodes similar to a node specified by its element ID or by a vector embedding.
 // @ID find-similar-nodes
 // @Accept json
 // @Produce json
@@ -573,10 +580,10 @@ type FindSimilarNodesRequest struct {
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /secure/graph/similar-nodes [post]
-func FindSimilarNodes(c *gin.Context) {
+func GetSimilarNodes(c *gin.Context) {
 	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
 
-	var requestBody FindSimilarNodesRequest
+	var requestBody helpers.FindSimilarNodesStruct
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request body",
@@ -594,46 +601,8 @@ func FindSimilarNodes(c *gin.Context) {
 		return
 	}
 
-	limit := 5
-	if requestBody.Limit > 0 {
-		limit = requestBody.Limit
-	}
-
-	var query string
-	var params map[string]any
-
-	if requestBody.NodeId != "" {
-		// Search using a reference node ID
-		query = `
-            MATCH (n) 
-            WHERE elementId(n) = $nodeId
-            CALL db.index.vector.queryNodes('nodeEmbeddings', $limit, n.embedding)
-            YIELD node, score
-            WHERE elementId(node) <> $nodeId
-            RETURN node.name as name, node.description as description, elementId(node) as id, score
-            ORDER BY score DESC
-        `
-		params = map[string]any{
-			"nodeId": requestBody.NodeId,
-			"limit":  limit,
-		}
-	} else {
-		// Search using an embedding vector
-		query = `
-            CALL db.index.vector.queryNodes('nodeEmbeddings', $limit, $embedding)
-            YIELD node, score
-            RETURN node.name as name, node.description as description, elementId(node) as id, score
-            ORDER BY score DESC
-        `
-		params = map[string]any{
-			"embedding": requestBody.Embedding,
-			"limit":     limit,
-		}
-	}
-
-	result, err := appCtx.NEO4J.ExecuteQuery(query, params)
+	result, err := helpers.FindSimilarNodes(appCtx, requestBody)
 	if err != nil {
-		appCtx.LOGGER.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
