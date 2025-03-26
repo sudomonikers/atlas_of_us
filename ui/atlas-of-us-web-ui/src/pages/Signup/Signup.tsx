@@ -1,4 +1,7 @@
-{/* <script lang="ts">
+import { NavBar } from "../../common-components/navbar/nav";
+
+{
+  /* <script lang="ts">
     import { API_BASE } from "../../../environment";
 
     async function signUp() {
@@ -30,12 +33,13 @@
 
 <style>
     
-</style> */}
+</style> */
+}
 
 export function Signup() {
-    return (
-        <>
-            <p>Signup Page</p>
-        </>
-    )
+  return (
+    <div>
+      <NavBar />
+    </div>
+  );
 }

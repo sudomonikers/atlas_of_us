@@ -1,7 +1,9 @@
+import { NavBar } from "../../common-components/navbar/nav";
+
 export function Community() {
-    return (
-        <>
-            <p>Community Page</p>
-        </>
-    )
+  return (
+    <div>
+      <NavBar />
+    </div>
+  );
 }

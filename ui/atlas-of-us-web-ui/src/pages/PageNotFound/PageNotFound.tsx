@@ -1,7 +1,9 @@
+import { NavBar } from "../../common-components/navbar/nav";
+
 export function PageNotFound() {
-    return (
-        <>
-            <p>Page Not Found</p>
-        </>
-    )
+  return (
+    <div>
+      <NavBar />
+    </div>
+  );
 }

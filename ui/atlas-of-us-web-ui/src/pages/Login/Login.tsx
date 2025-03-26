@@ -1,4 +1,7 @@
-{/* <script lang="ts">
+import { NavBar } from "../../common-components/navbar/nav";
+
+{
+  /* <script lang="ts">
   import { API_BASE } from "../../../environment";
   import { goto } from "@mateothegreat/svelte5-router";
 
@@ -159,13 +162,13 @@
     border-bottom: 1px solid white;
     margin: 0 10px;
   }
-</style> */}
-
+</style> */
+}
 
 export function Login() {
   return (
-      <>
-          <p>Login Page</p>
-      </>
-  )
+    <div>
+      <NavBar />
+    </div>
+  );
 }

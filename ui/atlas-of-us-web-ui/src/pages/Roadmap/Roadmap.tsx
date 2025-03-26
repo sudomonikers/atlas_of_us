@@ -1,7 +1,9 @@
+import { NavBar } from "../../common-components/navbar/nav";
+
 export function Roadmap() {
-    return (
-        <>
-            <p>Roadmap Page</p>
-        </>
-    )
+  return (
+    <div>
+      <NavBar />
+    </div>
+  );
 }

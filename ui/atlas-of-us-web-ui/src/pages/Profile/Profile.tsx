@@ -1,7 +1,9 @@
+import { NavBar } from "../../common-components/navbar/nav";
+
 export function Profile() {
-    return (
-        <>
-            <p>Profile Page</p>
-        </>
-    )
+  return (
+    <div>
+      <NavBar />
+    </div>
+  );
 }
