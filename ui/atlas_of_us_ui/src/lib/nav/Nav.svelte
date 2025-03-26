@@ -17,9 +17,7 @@
   let menuOpen = $state(false);
   let loginMenuOpen = $state(false);
   let loggedIn = $state(false);
-  let userInput = $state("");
   $effect(() => {
-    console.log(userInput)
     if (loggedIn) {
       loginMenuOpen = false;
     }

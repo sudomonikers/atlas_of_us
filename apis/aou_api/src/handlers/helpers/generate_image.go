@@ -18,6 +18,7 @@ type ImageGenerationResponse struct {
 }
 
 func GenerateImage(appCtx *models.AppContext, textToGenerateImageFrom string) ([]byte, error) {
+	//this function should be updated to use gpt-4o when it becomes available as it is much better
 	imageGenerationEndpoint := os.Getenv("IMAGE_GEN_ENDPOINT")
 
 	requestBody, err := json.Marshal(map[string]interface{}{

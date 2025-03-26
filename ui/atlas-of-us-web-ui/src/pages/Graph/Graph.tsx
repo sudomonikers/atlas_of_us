@@ -1,64 +1,50 @@
-<script lang="ts">
-  import * as THREE from "three";
-  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import React, { useEffect, useState } from 'react';
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
-  import { onMount } from "svelte";
-  import { HttpService } from "../../services/http-service";
-  import { GraphUtils } from "./graph-utils";
+import { HttpService } from "../../services/http-service";
+import { GraphUtils } from "./graph-utils";
 
-  import { searchState } from "../../nav/input-state.svelte"
-
-  import type {
+import type {
   Neo4jApiResponse,
-    ThreeContext,
-  } from "./graph-interfaces.interface";
+  ThreeContext
+} from "./graph-interfaces.interface";
 
-  import galaxyBackground from "../../../assets/galaxy.jpeg";
+import galaxyBackground from "../../assets/galaxy.jpeg";
 
-  const http = new HttpService();
-  const graphUtils = new GraphUtils(http);
-  let graphData: Neo4jApiResponse;
+const http = new HttpService();
+const graphUtils = new GraphUtils(http);
+
+export const Graph: React.FC = () => {
+  const [graphData, setGraphData] = useState<Neo4jApiResponse>({} as Neo4jApiResponse);
   let threeContext: ThreeContext;
   let container: HTMLDivElement;
 
   let instancedMesh: THREE.InstancedMesh;
   const velocities: THREE.Vector3[] = [];
   const boundarySize = 1500;
-  // Track when the mouse was pressed down
   let mouseDownTime: number | null = null;
   let mouseDownPosition = { x: 0, y: 0 };
-  const CLICK_THRESHOLD_MS = 300; // Time in ms to consider a "short click"
-  const POSITION_THRESHOLD = 5; // Pixels to consider as movement
-  const DEBOUNCE_DELAY = 300; //ms
-
-  let debouncedSearchTerm: string;
-  let timeoutId: number;
-  $effect(() => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      debouncedSearchTerm = searchState.text;
-
-      loadL1GraphData(debouncedSearchTerm)
-    }, DEBOUNCE_DELAY); 
-  });
+  const CLICK_THRESHOLD_MS = 300;
+  const POSITION_THRESHOLD = 5;
 
   async function loadL1GraphData(searchTerm: string = 'Programming') {
-    console.log(searchTerm)
-    graphData = await graphUtils.loadMostRelatedNodeBySearch(searchTerm);
-    console.log(graphData)
+    const fetchedGraphData = await graphUtils.loadMostRelatedNodeBySearch(searchTerm);
+    setGraphData(fetchedGraphData);
+
     const image = await http.getS3Object(
-        "atlas-of-us-general-bucket",
-        graphData.nodeRoot.image
-      );
-      const points = await graphUtils.processImage(image, 2000, 50);
-      await graphUtils.createGraphConstellation(
-        points,
-        {x: 0, y: 0, z: 0},
-        image,
-        threeContext,
-        graphData
-      );
+      "atlas-of-us-general-bucket",
+      fetchedGraphData.nodeRoot.image
+    );
+    const points = await graphUtils.processImage(image, 2000, 50);
+    await graphUtils.createGraphConstellation(
+      points,
+      {x: 0, y: 0, z: 0},
+      image,
+      threeContext,
+      fetchedGraphData
+    );
   }
 
   //particles which will always be in camera
@@ -241,7 +227,7 @@
     }
 
     // Reset all previously focused objects
-    threeContext.scene.traverse((object) => {
+    threeContext.scene.traverse((object: any) => {
       if (object instanceof THREE.Mesh && object.userData.isFocused && object !== intersectedObject) {
         object.scale.setScalar(1);
         object.userData.isFocused = false;
@@ -291,7 +277,7 @@
     //raycaster for capturing mouse movement
     const raycaster = new THREE.Raycaster();
     raycaster.params.Points = { threshold: 2 };
-    const mouse = new THREE.Vector2(10000, 10000); //initializing this will outside the scene so that it doesnt mess with scene objects
+    const mouse = new THREE.Vector2(10000, 10000); //initializing this outside the scene so that it doesnt mess with scene objects
     container.addEventListener("mousemove", onMouseMove);
     container.addEventListener('mousedown', onMouseDown);
     container.addEventListener('mouseup', onMouseUp);
@@ -308,7 +294,7 @@
 
     //animation loop
     let lastTime = 0;
-    renderer.setAnimationLoop((time) => {
+    renderer.setAnimationLoop((time: number) => {
       const delta = (time - lastTime) / 1000;
       lastTime = time;
 
@@ -344,13 +330,13 @@
     });
   }
 
-  onMount(() => {
+  useEffect(() => {
     threeContext = setUpScene();
     loadBackground();
     loadParticles();
 
     //loadL1GraphData();
-
+    console.log('before the return')
     return () => {
       // Clean up resources
       threeContext.resizeObserver.unobserve(container);
@@ -360,9 +346,18 @@
       container.removeEventListener('mousedown', onMouseDown);
       container.removeEventListener('mouseup', onMouseUp);
     };
-  });
-</script>
+  }, []);
 
-<div class="in-nav-container">
-  <div bind:this={container} style="width:100%; height:100%;"></div>
-</div>
+  return (
+    <div className="in-nav-container">
+      <div 
+        ref={(el) => {
+          if (el) {
+            container = el;
+          }
+        }} 
+        style={{width:'100%', height:'100%'}}
+      ></div>
+    </div>
+  );
+};
