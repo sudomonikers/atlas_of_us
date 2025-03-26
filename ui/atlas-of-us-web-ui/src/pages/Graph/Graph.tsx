@@ -1,68 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState, useEffect } from "react";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 import { HttpService } from "../../services/http-service";
 import { GraphUtils } from "./graph-utils";
 
 import type {
   Neo4jApiResponse,
-  ThreeContext
+  ThreeContext,
 } from "./graph-interfaces.interface";
 
 import galaxyBackground from "../../assets/galaxy.jpeg";
+import { NavBar } from "../../common-components/navbar/nav";
 
 const http = new HttpService();
 const graphUtils = new GraphUtils(http);
 
-export const Graph: React.FC = () => {
-  const [graphData, setGraphData] = useState<Neo4jApiResponse>({} as Neo4jApiResponse);
-  let threeContext: ThreeContext;
-  let container: HTMLDivElement;
-
-  let instancedMesh: THREE.InstancedMesh;
-  const velocities: THREE.Vector3[] = [];
+// Particle System Component
+function ParticleSystem() {
+  const instancedMeshRef = useRef<THREE.InstancedMesh>(null);
   const boundarySize = 1500;
-  let mouseDownTime: number | null = null;
-  let mouseDownPosition = { x: 0, y: 0 };
-  const CLICK_THRESHOLD_MS = 300;
-  const POSITION_THRESHOLD = 5;
+  const particleCount = 350;
 
-  async function loadL1GraphData(searchTerm: string = 'Programming') {
-    const fetchedGraphData = await graphUtils.loadMostRelatedNodeBySearch(searchTerm);
-    setGraphData(fetchedGraphData);
+  // Velocities and other particle-related states
+  const velocities = useRef<THREE.Vector3[]>([]);
 
-    const image = await http.getS3Object(
-      "atlas-of-us-general-bucket",
-      fetchedGraphData.nodeRoot.image
-    );
-    const points = await graphUtils.processImage(image, 2000, 50);
-    await graphUtils.createGraphConstellation(
-      points,
-      {x: 0, y: 0, z: 0},
-      image,
-      threeContext,
-      fetchedGraphData
-    );
-  }
-
-  //particles which will always be in camera
-  function loadParticles() {
-    const particleCount = 350;
-    const sphereGeometry = new THREE.SphereGeometry(2, 8, 8);
-    const material = new THREE.MeshBasicMaterial({ vertexColors: true });
-
-    instancedMesh = new THREE.InstancedMesh(
-      sphereGeometry,
-      material,
-      particleCount
-    );
+  useEffect(() => {
+    if (!instancedMeshRef.current) return;
 
     const dummy = new THREE.Object3D();
     const colors = new Float32Array(particleCount * 3);
+    const localVelocities: THREE.Vector3[] = [];
 
-    // Initialize all positions relative to (0,0,0)
     for (let i = 0; i < particleCount; i++) {
       // Random positions within boundary
       dummy.position.set(
@@ -78,7 +48,7 @@ export const Graph: React.FC = () => {
         (Math.random() - 0.5) * 0.25
       );
       velocity.multiplyScalar(0.3 + Math.random() * 0.3);
-      velocities.push(velocity);
+      localVelocities.push(velocity);
 
       dummy.rotation.x = Math.random() * Math.PI * 2;
       dummy.rotation.y = Math.random() * Math.PI * 2;
@@ -86,7 +56,7 @@ export const Graph: React.FC = () => {
       dummy.scale.setScalar(Math.random() * 2 + 1);
 
       dummy.updateMatrix();
-      instancedMesh.setMatrixAt(i, dummy.matrix);
+      instancedMeshRef.current.setMatrixAt(i, dummy.matrix);
 
       // Color logic
       const color = new THREE.Color();
@@ -100,29 +70,30 @@ export const Graph: React.FC = () => {
       colors[i * 3 + 2] = color.b;
     }
 
-    instancedMesh.instanceMatrix.needsUpdate = true;
-    sphereGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    if (instancedMeshRef.current) {
+      instancedMeshRef.current.instanceMatrix.needsUpdate = true;
+      (instancedMeshRef.current.geometry as THREE.SphereGeometry).setAttribute(
+        "color",
+        new THREE.BufferAttribute(colors, 3)
+      );
+    }
 
-    // Position the entire instancedMesh at the camera
-    instancedMesh.position.copy(threeContext.camera.position);
-    threeContext.scene.add(instancedMesh);
-  }
+    velocities.current = localVelocities;
+  }, []);
 
-  function updateParticles() {
+  useFrame(() => {
+    if (!instancedMeshRef.current) return;
+
     const dummy = new THREE.Object3D();
 
-    // Update instancedMesh position to match camera
-    instancedMesh.position.copy(threeContext.camera.position);
-
-    // Get each instance's matrix
-    for (let i = 0; i < velocities.length; i++) {
-      instancedMesh.getMatrixAt(i, dummy.matrix);
+    for (let i = 0; i < velocities.current.length; i++) {
+      instancedMeshRef.current.getMatrixAt(i, dummy.matrix);
       dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
 
       // Move based on velocity
-      dummy.position.add(velocities[i]);
+      dummy.position.add(velocities.current[i]);
 
-      // Wrap around relative to local position (since the whole mesh moves with camera)
+      // Wrap around
       if (dummy.position.x > boundarySize) dummy.position.x = -boundarySize;
       if (dummy.position.x < -boundarySize) dummy.position.x = boundarySize;
       if (dummy.position.y > boundarySize) dummy.position.y = -boundarySize;
@@ -135,229 +106,152 @@ export const Graph: React.FC = () => {
       dummy.rotation.y += 0.002;
 
       dummy.updateMatrix();
-      instancedMesh.setMatrixAt(i, dummy.matrix);
+      instancedMeshRef.current.setMatrixAt(i, dummy.matrix);
     }
 
-    instancedMesh.instanceMatrix.needsUpdate = true;
-  }
-
-  function onMouseMove(event: MouseEvent) {
-    // Calculate mouse position in normalized device coordinates
-    const rect = threeContext.container.getBoundingClientRect();
-    threeContext.mouse.x = ((event.clientX - rect.left) / threeContext.container.offsetWidth) * 2 - 1;
-    threeContext.mouse.y = -((event.clientY - rect.top) / threeContext.container.offsetHeight) * 2 + 1;
-  }
-
-  function onClick(event: MouseEvent) {
-    threeContext.raycaster.setFromCamera(
-      threeContext.mouse,
-      threeContext.camera
-    );
-
-    const intersects = threeContext.raycaster.intersectObjects(
-      threeContext.scene.children
-    );
-
-    if (intersects.length > 0) {
-      const intersectedObject = intersects[0].object;
-      if (!intersectedObject.userData.isCentered) {
-        graphUtils.centerCameraOnMesh(
-          threeContext.camera,
-          threeContext.controls,
-          intersectedObject
-        );
-        if (intersectedObject instanceof THREE.Mesh) {
-          graphUtils.showRelationshipLines(intersectedObject, threeContext, graphData);
-        } else if (intersectedObject instanceof THREE.Line) {
-          console.log(intersectedObject)
-          graphUtils.clearRelationshipLines(threeContext, [intersectedObject.userData.relationship.id]);
-        }
-      } else {
-        console.log(threeContext.homeCameraPosition)
-        graphUtils.clearFocus(threeContext, intersectedObject);
-      }
-      
-    }
-  }
-
-  function onMouseDown(event: MouseEvent) {
-    mouseDownTime = Date.now();
-    mouseDownPosition = { x: event.clientX, y: event.clientY };
-  }
-
-  function onMouseUp(event: MouseEvent) {
-    if (mouseDownTime === null) return;
-    
-    const clickDuration = Date.now() - mouseDownTime;
-    const moveDistance = Math.sqrt(
-      Math.pow(event.clientX - mouseDownPosition.x, 2) + 
-      Math.pow(event.clientY - mouseDownPosition.y, 2)
-    );
-    
-    // Only handle as a click if it was short and didn't move much
-    if (clickDuration < CLICK_THRESHOLD_MS && moveDistance < POSITION_THRESHOLD) {
-      onClick(event);
-    }
-    
-    mouseDownTime = null;
-  }
-
-  function animate(delta: number) {
-    updateParticles();
-
-    threeContext.raycaster.setFromCamera(
-      threeContext.mouse,
-      threeContext.camera
-    );
-
-    // Find intersected sphere
-    const intersects = threeContext.raycaster.intersectObjects(
-      threeContext.scene.children, 
-      true
-    );
-
-    let intersectedObject = intersects.length ? intersects[0].object : null;
-    if (intersectedObject instanceof THREE.Mesh && !intersectedObject.userData.isFocused) {
-      intersectedObject.userData.isFocused = true;
-      intersectedObject.scale.setScalar(1.5);
-      // If this is a data node, add an infobox
-      if (intersectedObject.userData.isDataNode && !intersectedObject.userData.infoBox) {
-        graphUtils.addInfoBoxToMesh(intersectedObject);
-      }
-    }
-
-    // Reset all previously focused objects
-    threeContext.scene.traverse((object: any) => {
-      if (object instanceof THREE.Mesh && object.userData.isFocused && object !== intersectedObject) {
-        object.scale.setScalar(1);
-        object.userData.isFocused = false;
-        if (object.userData.infoBox && !object.userData.isCentered) {
-          graphUtils.removeInfoBoxFromMesh(object)
-        }
-      }
-    });
-
-    threeContext.controls.update(delta);
-    threeContext.renderer.render(threeContext.scene, threeContext.camera);
-    threeContext.labelRenderer.render(threeContext.scene, threeContext.camera);
-  }
-
-  function setUpScene(): ThreeContext {
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      container.offsetWidth / container.offsetHeight,
-      0.1,
-      10000
-    );
-    const homeCameraPosition = camera.position;
-
-    //renderer
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(container.offsetWidth, container.offsetHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-
-    //orbit controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.025;
-    controls.minPolarAngle = Math.PI / 3;
-    controls.maxPolarAngle = Math.PI / 2;
-
-    //loader
-    const loader = new THREE.TextureLoader();
-
-    const labelRenderer = new CSS2DRenderer();
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.domElement.style.position = 'absolute';
-    labelRenderer.domElement.style.top = '0';
-    labelRenderer.domElement.style.pointerEvents = 'none';
-    document.body.appendChild(labelRenderer.domElement);
-
-    //raycaster for capturing mouse movement
-    const raycaster = new THREE.Raycaster();
-    raycaster.params.Points = { threshold: 2 };
-    const mouse = new THREE.Vector2(10000, 10000); //initializing this outside the scene so that it doesnt mess with scene objects
-    container.addEventListener("mousemove", onMouseMove);
-    container.addEventListener('mousedown', onMouseDown);
-    container.addEventListener('mouseup', onMouseUp);
-    container.appendChild(renderer.domElement);
-
-    //handle window resize
-    const resizeObserver = new ResizeObserver(() => {
-      camera.aspect = container.offsetWidth / container.offsetHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.offsetWidth, container.offsetHeight);
-      labelRenderer.setSize(window.innerWidth, window.innerHeight);
-    });
-    resizeObserver.observe(container);
-
-    //animation loop
-    let lastTime = 0;
-    renderer.setAnimationLoop((time: number) => {
-      const delta = (time - lastTime) / 1000;
-      lastTime = time;
-
-      animate(delta);
-    });
-
-    return {
-      scene,
-      camera,
-      homeCameraPosition,
-      raycaster,
-      mouse,
-      controls,
-      container,
-      resizeObserver,
-      loader,
-      renderer,
-      labelRenderer
-    };
-  }
-
-  function loadBackground() {
-    const texture = threeContext.loader.load(galaxyBackground, () => {
-      const pmremGenerator = new THREE.PMREMGenerator(threeContext.renderer);
-      pmremGenerator.compileEquirectangularShader();
-
-      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-      threeContext.scene.background = envMap; // Set as background
-      threeContext.scene.environment = envMap; // Set as environment map
-
-      pmremGenerator.dispose();
-      texture.dispose();
-    });
-  }
-
-  useEffect(() => {
-    threeContext = setUpScene();
-    loadBackground();
-    loadParticles();
-
-    //loadL1GraphData();
-    console.log('before the return')
-    return () => {
-      // Clean up resources
-      threeContext.resizeObserver.unobserve(container);
-      threeContext.renderer.dispose();
-      threeContext.controls.dispose();
-      container.removeEventListener("mousemove", onMouseMove);
-      container.removeEventListener('mousedown', onMouseDown);
-      container.removeEventListener('mouseup', onMouseUp);
-    };
-  }, []);
+    instancedMeshRef.current.instanceMatrix.needsUpdate = true;
+  });
 
   return (
-    <div className="in-nav-container">
-      <div 
-        ref={(el) => {
-          if (el) {
-            container = el;
-          }
-        }} 
-        style={{width:'100%', height:'100%'}}
-      ></div>
+    <instancedMesh
+      ref={instancedMeshRef}
+      args={[undefined, undefined, particleCount]}
+    >
+      <sphereGeometry args={[2, 8, 8]} />
+      <meshBasicMaterial vertexColors />
+    </instancedMesh>
+  );
+}
+
+//Background
+function Background() {
+  const { scene, gl } = useThree();
+  const texture = useLoader(THREE.TextureLoader, galaxyBackground);
+
+  useEffect(() => {
+    const pmremGenerator = new THREE.PMREMGenerator(gl);
+    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+
+    scene.background = envMap;
+    scene.environment = envMap;
+
+    pmremGenerator.dispose();
+    texture.dispose();
+
+    return () => {
+      scene.background = null;
+      scene.environment = null;
+    };
+  }, [texture, scene, gl]);
+
+  return null;
+}
+
+// Main Graph Component
+export const Graph: React.FC = () => {
+  const [graphData, setGraphData] = useState<Neo4jApiResponse>(
+    {} as Neo4jApiResponse
+  );
+  const mousePosition = useRef(new THREE.Vector2());
+  const raycasterRef = useRef(new THREE.Raycaster());
+
+  const CLICK_THRESHOLD_MS = 300;
+  const POSITION_THRESHOLD = 5;
+  const mouseDownRef = useRef<{
+    time: number | null;
+    position: { x: number; y: number };
+  }>({
+    time: null,
+    position: { x: 0, y: 0 },
+  });
+
+  async function loadL1GraphData(searchTerm: string = "Programming") {
+    const fetchedGraphData = await graphUtils.loadMostRelatedNodeBySearch(
+      searchTerm
+    );
+    setGraphData(fetchedGraphData);
+
+    const image = await http.getS3Object(
+      "atlas-of-us-general-bucket",
+      fetchedGraphData.nodeRoot.image
+    );
+    const points = await graphUtils.processImage(image, 2000, 50);
+
+    // Note: This would need to be adapted to work with React Three Fiber's paradigm
+    // You might need to create a separate component or use a ref to manage this
+  }
+
+  function handleMouseMove(event: MouseEvent) {
+    const canvas = event.currentTarget as HTMLCanvasElement;
+    mousePosition.current.x = (event.offsetX / canvas.width) * 2 - 1;
+    mousePosition.current.y = -(event.offsetY / canvas.height) * 2 + 1;
+  }
+
+  function handleMouseDown(event: MouseEvent) {
+    mouseDownRef.current = {
+      time: Date.now(),
+      position: { x: event.clientX, y: event.clientY },
+    };
+  }
+
+  function handleMouseUp(event: MouseEvent) {
+    if (!mouseDownRef.current.time) return;
+
+    const clickDuration = Date.now() - mouseDownRef.current.time;
+    const moveDistance = Math.sqrt(
+      Math.pow(event.clientX - mouseDownRef.current.position.x, 2) +
+        Math.pow(event.clientY - mouseDownRef.current.position.y, 2)
+    );
+
+    // Only handle as a click if it was short and didn't move much
+    if (
+      clickDuration < CLICK_THRESHOLD_MS &&
+      moveDistance < POSITION_THRESHOLD
+    ) {
+      handleClick(event);
+    }
+
+    mouseDownRef.current.time = null;
+  }
+
+  function handleClick(event: MouseEvent) {
+    // Implement click logic
+    // This would interact with your graph data and perform actions
+    console.log("Click event", event);
+  }
+
+  return (
+    <div>
+      <NavBar />
+      <div
+        className="in-nav-container"
+        style={{ width: "100%", height: "100%" }}
+      >
+        <Canvas
+          camera={{
+            fov: 75,
+            near: 0.1,
+            far: 10000,
+            position: [0, 0, 500],
+          }}
+          onMouseMove={handleMouseMove as any}
+          onMouseDown={handleMouseDown as any}
+          onMouseUp={handleMouseUp as any}
+        >
+          <Background />
+
+          {/* Particle System */}
+          <ParticleSystem />
+
+          {/* Orbit Controls */}
+          <OrbitControls
+            autoRotate
+            autoRotateSpeed={0.025}
+            minPolarAngle={Math.PI / 3}
+            maxPolarAngle={Math.PI / 2}
+          />
+        </Canvas>
+      </div>
     </div>
   );
 };
