@@ -62,8 +62,8 @@ export class GraphUtils {
     return points;
   }
 
-  async loadMostRelatedNodeBySearch(searchTerm: string): Promise<Neo4jApiResponse> {
-    return this.httpService.fetchNodes(`/api/secure/graph/get-node-with-relationships-by-search-term?searchTerm=${searchTerm}`);
+  async loadMostRelatedNodeBySearch(searchTerm: string, depth: number): Promise<Neo4jApiResponse> {
+    return this.httpService.fetchNodes(`/api/secure/graph/get-node-with-relationships-by-search-term?searchTerm=${searchTerm}&depth=${depth}`);
   }
 
   centerCameraOnMesh(

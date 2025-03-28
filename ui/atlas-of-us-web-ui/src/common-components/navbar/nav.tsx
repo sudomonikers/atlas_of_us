@@ -1,5 +1,5 @@
 import "./nav.css";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { jwtDecode } from "jwt-decode";
 import { useGlobal } from '../../GlobalProvider';
@@ -29,6 +29,17 @@ export function NavBar() {
     }
   }, [setLoggedIn]); // Add setLoggedIn as a dependency
 
+   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+   const debouncedSetSearchText = (value: string) => {
+     if (debounceTimeout.current) {
+       clearTimeout(debounceTimeout.current);
+     }
+ 
+     debounceTimeout.current = setTimeout(() => {
+       setSearchText(value);
+     }, 300); // Adjust the delay as needed (e.g., 300ms)
+   };
+
   const login = () => {
     navigate('/Login')
   }
@@ -51,8 +62,7 @@ export function NavBar() {
           type="text"
           id="input"
           className="nav-input"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={(e) => debouncedSetSearchText(e.target.value)}
         />
         {!loggedIn && (
           <button className="login-button" onClick={login}>

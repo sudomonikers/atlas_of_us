@@ -61,9 +61,14 @@ export const Graph = () => {
   }, [searchText]);
 
   async function loadL1GraphData(searchTerm: string = "Programming") {
+    if (!searchTerm.length) {
+      searchTerm = "Programming"
+    }
     const fetchedGraphData = await graphUtils.loadMostRelatedNodeBySearch(
-      searchTerm
+      "Programming",
+      2
     );
+    console.log(fetchedGraphData)
     setGraphData(fetchedGraphData);
 
     const image = await http.getS3Object(
