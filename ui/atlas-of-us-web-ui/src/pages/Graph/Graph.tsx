@@ -16,7 +16,7 @@ import type {
 import galaxyBackground from "../../assets/galaxy.jpeg";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Constellation } from "./constellation/constellation";
-import { ParticleSystem } from "./constellation/particles/particles";
+import { ParticleSystem } from "./particles/particles";
 
 const http = new HttpService();
 const graphUtils = new GraphUtils(http);
