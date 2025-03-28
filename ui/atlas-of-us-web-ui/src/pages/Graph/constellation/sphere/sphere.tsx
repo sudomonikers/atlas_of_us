@@ -16,7 +16,7 @@ const Sphere: React.FC<SphereProps> = ({
   isDataNode = false,
   isParentNode = false,
   nodeData,
-}) => {
+}) => {  
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);

@@ -42,6 +42,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
         Math.floor(Math.random() * (imagePoints.length - 1)) + 1;
       selectedIndices.add(randomIndex);
     }
+    console.log(graphData)
 
     // Create parent node
     sphereData.push({
@@ -91,6 +92,8 @@ export const Constellation: React.FC<ConstellationProps> = ({
 
     return { selectedIndices, sphereData };
   }, [imagePoints, graphData]);
+
+  console.log(sphereData)
 
   return (
     <group position={sceneLocation}>
