@@ -21,6 +21,9 @@ type NodeQueryParams struct {
 	// Properties is a URL encoded comma-separated list of property key-value pairs to filter by
 	// Example: "name:Cross-country%20Skiing,description:The%20activity%20of%20cross-country%20skiing%2C%20a%20form%20of%20skiing%20where%20skiers%20move%20over%20relatively%20flat%20terrain."
 	Properties string `form:"properties"`
+
+	//how many relationships to traverse
+	Depth int `form:"depth"`
 }
 
 // GetNodes retrieves nodes from the graph based on query parameters.
@@ -40,6 +43,12 @@ func GetNodes(c *gin.Context) {
 	if err := c.ShouldBindQuery(&params); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query parameters"})
 		return
+	}
+
+	// Default depth to 1 if not provided
+	depth := params.Depth
+	if depth == 0 {
+		depth = 1
 	}
 
 	var matchClauses []string
@@ -88,17 +97,22 @@ func GetNodes(c *gin.Context) {
 		queryString += "\nWHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	queryString += `
-        OPTIONAL MATCH (n)-[r]->(m)
-        WITH n, collect(r) AS relationships, collect(m) AS affiliatedNodes
-        RETURN 
-            {
-                elementId: elementId(n),
-                labels: labels(n),
-                name: n.name,
-				image: n.image,
-                description: n.description
-            } AS n, 
+	queryString += fmt.Sprintf(`
+		OPTIONAL MATCH (node)-[r*1..%d]->(m)
+		UNWIND r AS unwound_relationships
+		UNWIND m AS unwound_affiliates
+		WITH 
+			node,
+			collect(distinct unwound_relationships) AS relationships, 
+			collect(distinct unwound_affiliates) AS affiliatedNodes
+		RETURN 
+			{
+				elementId: elementId(node),
+				labels: labels(node),
+				name: node.name,
+				image: node.image,
+				description: node.description
+			} AS n, 
 			CASE size(relationships)
 				WHEN 0 THEN []
 				ELSE [relationship IN relationships |
@@ -110,22 +124,22 @@ func GetNodes(c *gin.Context) {
 						props: properties(relationship)
 					}
 				]
-            END AS relationships, 
-            CASE size(affiliatedNodes)
-                WHEN 0 THEN []
-                ELSE [node IN affiliatedNodes | 
-                    {
-                        elementId: elementId(node),
-                        labels: labels(node),
-                        name: node.name,
-                        description: node.description
-                    }
+			END AS relationships, 
+			CASE size(affiliatedNodes)
+				WHEN 0 THEN []
+				ELSE [node IN affiliatedNodes | 
+					{
+						elementId: elementId(node),
+						labels: labels(node),
+						name: node.name,
+						description: node.description
+					}
 				]
-            END AS affiliatedNodes
-    `
+			END AS affiliatedNodes
+	`, depth)
 
 	fmt.Println(queryString)
-	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{})
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"depth": depth})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -137,7 +151,9 @@ func GetNodes(c *gin.Context) {
 
 type GetNodeWithRelationshipsBySearchTermParams struct {
 	// Example: "Programming"
-	searchTerm string `form:"searchTerm" binding:"required"`
+	SearchTerm string `form:"searchTerm" binding:"required"`
+	//how many relationships to traverse
+	Depth int `form:"depth"`
 }
 
 // GetNodeWithRelationshipsById retrieves nodes from the graph based on query parameters.
@@ -158,18 +174,30 @@ func GetNodeWithRelationshipsBySearchTerm(c *gin.Context) {
 		return
 	}
 
-	embedding, err := helpers.GenerateEmbedding(appCtx, params.searchTerm)
+	// Default depth to 1 if not provided
+	depth := params.Depth
+	if depth == 0 {
+		depth = 1
+	}
+
+	embedding, err := helpers.GenerateEmbedding(appCtx, params.SearchTerm)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate embedding"})
 		return
 	}
 
-	queryString := `
+	queryString := fmt.Sprintf(`
 		CALL db.index.vector.queryNodes('nodeEmbeddings', 1, $embedding)
 		YIELD node, score
 
-        OPTIONAL MATCH (node)-[r]->(m)
-        WITH node, score, collect(r) AS relationships, collect(m) AS affiliatedNodes
+        OPTIONAL MATCH (node)-[r*1..%d]->(m)
+		UNWIND r AS unwound_relationships
+		UNWIND m AS unwound_affiliates
+        WITH 
+			node, 
+			score, 
+			collect(distinct unwound_relationships) AS relationships, 
+			collect(distinct unwound_affiliates) AS affiliatedNodes
         RETURN 
             {
                 elementId: elementId(node),
@@ -202,9 +230,9 @@ func GetNodeWithRelationshipsBySearchTerm(c *gin.Context) {
                     }
 				]
             END AS affiliatedNodes
-    `
+    `, depth)
 
-	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"embedding": embedding})
+	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"embedding": embedding, "depth": depth})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
