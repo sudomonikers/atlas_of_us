@@ -1,22 +1,25 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, forwardRef } from "react";
 import { Html } from "@react-three/drei";
 import { useThree, Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
+import { Neo4jNode, Neo4jRelationship } from "../../graph-interfaces.interface";
 
 interface SphereProps {
   position: Vector3;
-  isDataNode?: boolean;
-  isParentNode?: boolean;
-  nodeData?: any;
+  isDataNode: boolean;
+  isParentNode: boolean;
+  nodeData?: Neo4jNode;
+  relevantRelationships?: Neo4jRelationship[]
 }
 
-const Sphere: React.FC<SphereProps> = ({
+export const Sphere: React.FC<SphereProps> = ({
   position,
   isDataNode = false,
   isParentNode = false,
   nodeData,
-}) => {  
+  relevantRelationships
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -24,49 +27,56 @@ const Sphere: React.FC<SphereProps> = ({
   const controls = threeState.controls as OrbitControls;
   const camera = threeState.camera as THREE.PerspectiveCamera;
 
-  const centerCameraOnMesh = useCallback((object: THREE.Mesh) => {
-    // Get the bounding box of the object
-    const bbox = new THREE.Box3().setFromObject(object);
-    const center = new THREE.Vector3();
-    bbox.getCenter(center);
+  const centerCameraOnMesh = useCallback(
+    (object: THREE.Mesh) => {
+      // Get the bounding box of the object
+      const bbox = new THREE.Box3().setFromObject(object);
+      const center = new THREE.Vector3();
+      bbox.getCenter(center);
 
-    // Calculate the size of the bounding box
-    const size = new THREE.Vector3();
-    bbox.getSize(size);
+      // Calculate the size of the bounding box
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
 
-    // Create a new position for the camera
-    const targetPosition = new THREE.Vector3(
-      center.x,
-      center.y,
-      center.z + 150
-    );
+      // Create a new position for the camera
+      const targetPosition = new THREE.Vector3(
+        center.x,
+        center.y,
+        center.z + 150
+      );
 
-    // Smoothly move the camera to the new position
-    const duration = 1000; // Duration in milliseconds
-    const startPosition = camera.position.clone();
-    const startTarget = controls.target.clone(); // Capture the starting target
-    const startTime = Date.now();
+      // Smoothly move the camera to the new position
+      const duration = 1000; // Duration in milliseconds
+      const startPosition = camera.position.clone();
+      const startTarget = controls.target.clone(); // Capture the starting target
+      const startTime = Date.now();
 
-    function updateCamera() {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      function updateCamera() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
 
-      // Use an easing function for smooth animation
-      const easeProgress = 1 - Math.cos((progress * Math.PI) / 2);
+        // Use an easing function for smooth animation
+        const easeProgress = 1 - Math.cos((progress * Math.PI) / 2);
 
-      camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
-      controls.target.lerpVectors(startTarget, center, easeProgress); // Animate the target
+        camera.position.lerpVectors(
+          startPosition,
+          targetPosition,
+          easeProgress
+        );
+        controls.target.lerpVectors(startTarget, center, easeProgress); // Animate the target
 
-      camera.lookAt(center);
-      controls.update();
+        camera.lookAt(center);
+        controls.update();
 
-      if (progress < 1) {
-        requestAnimationFrame(updateCamera);
+        if (progress < 1) {
+          requestAnimationFrame(updateCamera);
+        }
       }
-    }
 
-    updateCamera();
-  }, [camera, controls]);
+      updateCamera();
+    },
+    [camera, controls]
+  );
 
   const clickHandler = () => {
     setIsActive(!isActive);
@@ -117,5 +127,3 @@ const Sphere: React.FC<SphereProps> = ({
     </mesh>
   );
 };
-
-export default Sphere;

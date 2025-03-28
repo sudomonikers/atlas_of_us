@@ -1,13 +1,15 @@
 import "./constellation.css";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import type {
   Neo4jApiResponse,
   NodeCoordinate,
   Neo4jNodeWithMappedPositions,
+  Neo4jRelationship,
+  Neo4jNode,
 } from "../graph-interfaces.interface";
-import Sphere from "./sphere/sphere";
+import { Sphere } from "./sphere/sphere";
 
 interface ConstellationProps {
   imagePoints: NodeCoordinate[];
@@ -27,7 +29,8 @@ export const Constellation: React.FC<ConstellationProps> = ({
       position: THREE.Vector3;
       isDataNode: boolean;
       isParentNode: boolean;
-      nodeData?: any;
+      nodeData: Neo4jNode;
+      relevantRelationships: Neo4jRelationship[];
     }> = [];
 
     // Determine how many particles will have data (for the affiliates)
@@ -42,7 +45,16 @@ export const Constellation: React.FC<ConstellationProps> = ({
         Math.floor(Math.random() * (imagePoints.length - 1)) + 1;
       selectedIndices.add(randomIndex);
     }
-    console.log(graphData)
+
+    // Create a map of relationships keyed by startElementId
+    const relationshipMap = new Map<string, Neo4jRelationship[]>();
+    graphData.relationships.forEach((relationship) => {
+      const startElementId = relationship.startElementId;
+      if (!relationshipMap.has(startElementId)) {
+        relationshipMap.set(startElementId, []);
+      }
+      relationshipMap.get(startElementId)!.push(relationship);
+    });
 
     // Create parent node
     sphereData.push({
@@ -50,6 +62,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
       isParentNode: true,
       isDataNode: true,
       nodeData: graphData.nodeRoot,
+      relevantRelationships: relationshipMap.get(graphData.nodeRoot.elementId) as Neo4jRelationship[]
     });
 
     // Create other spheres
@@ -63,7 +76,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
           imagePoints[i].z
         ),
         isDataNode: false,
-        isParentNode: false,
+        isParentNode: false
       };
 
       // Add data to special nodes
@@ -83,6 +96,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
 
         sphereInfo.isDataNode = true;
         sphereInfo.nodeData = affiliateNode;
+        sphereInfo.relevantRelationships = relationshipMap.get(affiliateNode.elementId) as Neo4jRelationship[];
 
         affiliateDataPosition++;
       }
@@ -93,8 +107,6 @@ export const Constellation: React.FC<ConstellationProps> = ({
     return { selectedIndices, sphereData };
   }, [imagePoints, graphData]);
 
-  console.log(sphereData)
-
   return (
     <group position={sceneLocation}>
       {sphereData.map((sphere, index) => (
@@ -104,6 +116,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
           isDataNode={sphere.isDataNode}
           isParentNode={sphere.isParentNode}
           nodeData={sphere.nodeData}
+          relevantRelationships={sphere.relevantRelationships}
         />
       ))}
     </group>
