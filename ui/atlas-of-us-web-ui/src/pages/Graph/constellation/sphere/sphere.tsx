@@ -31,7 +31,6 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
   
   // Access the node refs context
   const { nodeRefs } = useContext(NodeRefsContext);
-  console.log(nodeRefs)
 
   const centerCameraOnMesh = useCallback(
     (object: THREE.Mesh) => {
