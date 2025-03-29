@@ -1,5 +1,5 @@
 import "./constellation.css";
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, createContext, createRef } from "react";
 import * as THREE from "three";
 
 import type {
@@ -10,6 +10,13 @@ import type {
   Neo4jNode,
 } from "../graph-interfaces.interface";
 import { Sphere } from "./sphere/sphere";
+
+// Create a context to share node references between components
+export const NodeRefsContext = createContext<{
+  nodeRefs: Map<string, React.RefObject<THREE.Mesh>>;
+}>({
+  nodeRefs: new Map(),
+});
 
 interface ConstellationProps {
   imagePoints: NodeCoordinate[];
@@ -22,6 +29,9 @@ export const Constellation: React.FC<ConstellationProps> = ({
   graphData,
   sceneLocation = new THREE.Vector3(0, 0, 0),
 }) => {
+  // Create a map to store refs for data nodes - now typed as THREE.Mesh
+  const nodeRefsMap = useRef(new Map<string, React.RefObject<THREE.Mesh>>());
+  
   // Memoize the selected indices and data nodes
   const { selectedIndices, sphereData } = useMemo(() => {
     const selectedIndices = new Set<number>();
@@ -29,8 +39,9 @@ export const Constellation: React.FC<ConstellationProps> = ({
       position: THREE.Vector3;
       isDataNode: boolean;
       isParentNode: boolean;
-      nodeData: Neo4jNode;
-      relevantRelationships: Neo4jRelationship[];
+      nodeData?: Neo4jNode;
+      relevantRelationships?: Neo4jRelationship[];
+      elementId?: string;
     }> = [];
 
     // Determine how many particles will have data (for the affiliates)
@@ -62,8 +73,14 @@ export const Constellation: React.FC<ConstellationProps> = ({
       isParentNode: true,
       isDataNode: true,
       nodeData: graphData.nodeRoot,
-      relevantRelationships: relationshipMap.get(graphData.nodeRoot.elementId) as Neo4jRelationship[]
+      relevantRelationships: relationshipMap.get(graphData.nodeRoot.elementId),
+      elementId: graphData.nodeRoot.elementId
     });
+
+    // Create refs for the root node
+    if (!nodeRefsMap.current.has(graphData.nodeRoot.elementId)) {
+      nodeRefsMap.current.set(graphData.nodeRoot.elementId, createRef<THREE.Mesh>() as any);
+    }
 
     // Create other spheres
     let affiliateDataPosition = 0;
@@ -96,7 +113,13 @@ export const Constellation: React.FC<ConstellationProps> = ({
 
         sphereInfo.isDataNode = true;
         sphereInfo.nodeData = affiliateNode;
-        sphereInfo.relevantRelationships = relationshipMap.get(affiliateNode.elementId) as Neo4jRelationship[];
+        sphereInfo.relevantRelationships = relationshipMap.get(affiliateNode.elementId);
+        sphereInfo.elementId = affiliateNode.elementId;
+
+        // Create a ref for this data node
+        if (!nodeRefsMap.current.has(affiliateNode.elementId)) {
+          nodeRefsMap.current.set(affiliateNode.elementId, createRef<THREE.Mesh>() as any);
+        }
 
         affiliateDataPosition++;
       }
@@ -107,18 +130,26 @@ export const Constellation: React.FC<ConstellationProps> = ({
     return { selectedIndices, sphereData };
   }, [imagePoints, graphData]);
 
+  // Context value
+  const contextValue = useMemo(() => ({
+    nodeRefs: nodeRefsMap.current,
+  }), []);
+
   return (
-    <group position={sceneLocation}>
-      {sphereData.map((sphere, index) => (
-        <Sphere
-          key={index}
-          position={sphere.position}
-          isDataNode={sphere.isDataNode}
-          isParentNode={sphere.isParentNode}
-          nodeData={sphere.nodeData}
-          relevantRelationships={sphere.relevantRelationships}
-        />
-      ))}
-    </group>
+    <NodeRefsContext.Provider value={contextValue}>
+      <group position={sceneLocation}>
+        {sphereData.map((sphere, index) => (
+          <Sphere
+            key={index}
+            position={sphere.position}
+            isDataNode={sphere.isDataNode}
+            isParentNode={sphere.isParentNode}
+            nodeData={sphere.nodeData}
+            relevantRelationships={sphere.relevantRelationships}
+            ref={sphere.elementId ? nodeRefsMap.current.get(sphere.elementId) : undefined}
+          />
+        ))}
+      </group>
+    </NodeRefsContext.Provider>
   );
 };

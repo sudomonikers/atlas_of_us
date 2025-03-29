@@ -1,32 +1,37 @@
-import React, { useRef, useState, useCallback, forwardRef } from "react";
+import { useRef, useState, useCallback, forwardRef, useContext } from "react";
 import { Html } from "@react-three/drei";
 import { useThree, Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Neo4jNode, Neo4jRelationship } from "../../graph-interfaces.interface";
 import { RelationshipLine } from "../relationship-line/relationship-liine";
+import { NodeRefsContext } from "../constellation";
 
 interface SphereProps {
   position: Vector3;
   isDataNode: boolean;
   isParentNode: boolean;
   nodeData?: Neo4jNode;
-  relevantRelationships?: Neo4jRelationship[]
+  relevantRelationships?: Neo4jRelationship[];
 }
 
-export const Sphere: React.FC<SphereProps> = ({
+export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
   position,
   isDataNode = false,
   isParentNode = false,
   nodeData,
-  relevantRelationships
-}) => {
+  relevantRelationships = []
+}, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  const meshRef = useRef<THREE.Object3D>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
   const threeState = useThree();
   const controls = threeState.controls as OrbitControls;
   const camera = threeState.camera as THREE.PerspectiveCamera;
+  
+  // Access the node refs context
+  const { nodeRefs } = useContext(NodeRefsContext);
+  console.log(nodeRefs)
 
   const centerCameraOnMesh = useCallback(
     (object: THREE.Mesh) => {
@@ -64,7 +69,7 @@ export const Sphere: React.FC<SphereProps> = ({
           targetPosition,
           easeProgress
         );
-        controls.target.lerpVectors(startTarget, center, easeProgress); // Animate the target
+        controls.target.lerpVectors(startTarget, center, easeProgress);
 
         camera.lookAt(center);
         controls.update();
@@ -82,13 +87,25 @@ export const Sphere: React.FC<SphereProps> = ({
   const clickHandler = () => {
     setIsActive(!isActive);
     if (!isActive) {
-      centerCameraOnMesh(meshRef.current as any);
+      centerCameraOnMesh(meshRef.current as THREE.Mesh);
+    }
+  };
+
+  // Use the forwarded ref or fall back to the local ref
+  const combinedRef = (node: THREE.Mesh) => {
+    meshRef.current = node;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else {
+        ref.current = node;
+      }
     }
   };
 
   return (
     <mesh
-      ref={meshRef}
+      ref={combinedRef}
       position={position}
       scale={isActive || isHovered ? 1.5 : 1}
       userData={{
@@ -128,25 +145,22 @@ export const Sphere: React.FC<SphereProps> = ({
 
       {(isHovered || isActive) && relevantRelationships && (
         relevantRelationships.map((relationship) => {
-          const targetNode = threeState.scene.children.find(
-            (obj) => obj?.userData?.nodeData?.elementId === relationship.endElementId
-          );
-          console.log(targetNode)
-
+          let targetNode = nodeRefs.get(relationship.endElementId)?.current;
+          
           if (targetNode) {
             return (
               <RelationshipLine
-                key={relationship.id} // Assuming relationship has a unique id
+                key={relationship.id}
                 startNode={meshRef.current!}
-                endNode={targetNode} // Pass the target node
+                endNode={targetNode}
                 relationshipData={relationship}
               />
             );
           } else {
-            return null; // Or handle the case where targetNode is not found
+            return null;
           }
         })
       )}
     </mesh>
   );
-};
+});
