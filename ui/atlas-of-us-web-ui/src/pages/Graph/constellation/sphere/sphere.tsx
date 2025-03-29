@@ -4,6 +4,7 @@ import { useThree, Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Neo4jNode, Neo4jRelationship } from "../../graph-interfaces.interface";
+import { RelationshipLine } from "../relationship-line/relationship-liine";
 
 interface SphereProps {
   position: Vector3;
@@ -22,7 +23,7 @@ export const Sphere: React.FC<SphereProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Object3D>(null);
   const threeState = useThree();
   const controls = threeState.controls as OrbitControls;
   const camera = threeState.camera as THREE.PerspectiveCamera;
@@ -123,6 +124,28 @@ export const Sphere: React.FC<SphereProps> = ({
             </div>
           </div>
         </Html>
+      )}
+
+      {(isHovered || isActive) && relevantRelationships && (
+        relevantRelationships.map((relationship) => {
+          const targetNode = threeState.scene.children.find(
+            (obj) => obj?.userData?.nodeData?.elementId === relationship.endElementId
+          );
+          console.log(targetNode)
+
+          if (targetNode) {
+            return (
+              <RelationshipLine
+                key={relationship.id} // Assuming relationship has a unique id
+                startNode={meshRef.current!}
+                endNode={targetNode} // Pass the target node
+                relationshipData={relationship}
+              />
+            );
+          } else {
+            return null; // Or handle the case where targetNode is not found
+          }
+        })
       )}
     </mesh>
   );
