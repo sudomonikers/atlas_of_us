@@ -3,14 +3,11 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 interface GlobalContextType {
   searchText: string;
   setSearchText: (text: string) => void;
-  // Add other global state variables and functions here
   loggedIn: boolean;
   setLoggedIn: (loggedIn: boolean) => void;
-  menuOpen: boolean;
-  setMenuOpen: (menuOpen: boolean) => void;
 }
 
-const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
+const GlobalContext = createContext<GlobalContextType>(null);
 
 interface GlobalProviderProps {
   children: ReactNode;
@@ -18,16 +15,13 @@ interface GlobalProviderProps {
 
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [searchText, setSearchText] = useState('');
-    const [loggedIn, setLoggedIn] = useState(false);
-    const [menuOpen, setMenuOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   const value: GlobalContextType = {
     searchText,
     setSearchText,
     loggedIn,
     setLoggedIn,
-    menuOpen,
-    setMenuOpen,
   };
 
   return (

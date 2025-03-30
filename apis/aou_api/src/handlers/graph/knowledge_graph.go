@@ -57,10 +57,10 @@ func GetNodes(c *gin.Context) {
 	if params.Labels != "" {
 		labels := strings.Split(params.Labels, ",")
 		for _, label := range labels {
-			matchClauses = append(matchClauses, fmt.Sprintf("MATCH (n:`%s`)", strings.TrimSpace(label)))
+			matchClauses = append(matchClauses, fmt.Sprintf("MATCH (node:`%s`)", strings.TrimSpace(label)))
 		}
 	} else {
-		matchClauses = append(matchClauses, "MATCH (n)")
+		matchClauses = append(matchClauses, "MATCH (node)")
 	}
 
 	// Handle properties
@@ -80,9 +80,9 @@ func GetNodes(c *gin.Context) {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
 				if key == "elementId" {
-					whereClauses = append(whereClauses, fmt.Sprintf("elementId(n) = '%s'", value))
+					whereClauses = append(whereClauses, fmt.Sprintf("elementId(node) = '%s'", value))
 				} else {
-					whereClauses = append(whereClauses, fmt.Sprintf("n.%s = '%s'", key, value))
+					whereClauses = append(whereClauses, fmt.Sprintf("node.%s = '%s'", key, value))
 				}
 			}
 		}

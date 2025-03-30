@@ -11,6 +11,7 @@ export interface SphereProps {
   isParentNode: boolean;
   onNodeClick?: (elementId: string, activeState: boolean) => void;
   nodeData?: Neo4jNode;
+  onSphereReload?: (elementId: string, newLocation: THREE.Vector3) => void; //used to reload data in the Graph component (sets the data to the node which the user wants to explore more, called from the Html when the sphere is active)
 }
 
 export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
@@ -21,6 +22,7 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
       isParentNode = false,
       nodeData,
       onNodeClick,
+      onSphereReload
     },
     ref
   ) => {
@@ -139,6 +141,7 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
                 <div className="info-box-property">
                   <span>Description:</span> {nodeData.description}
                 </div>
+                <button onClick={() => onSphereReload(nodeData.elementId, meshRef.current.getWorldPosition(new THREE.Vector3()))}>Load {nodeData.name}</button>
               </div>
             </div>
           </Html>

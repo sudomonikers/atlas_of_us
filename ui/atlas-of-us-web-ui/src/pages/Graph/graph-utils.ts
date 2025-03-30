@@ -65,6 +65,15 @@ export class GraphUtils {
     );
   }
 
+  async loadNodeById(
+    elementId: string,
+    depth: number
+  ): Promise<Neo4jApiResponse> {
+    return this.httpService.fetchNodes(
+      `/api/secure/graph/get-nodes?properties=elementId=${elementId}&depth=${depth}`
+    );
+  }
+
   centerCameraOnMesh = (object: THREE.Object3D) => {
     const threeState = useThree();
     const controls = threeState.controls as OrbitControls;

@@ -19,13 +19,15 @@ import { RelationshipLine } from "./relationship-line/relationship-liine";
 interface ConstellationProps {
   imagePoints: NodeCoordinate[];
   graphData: Neo4jApiResponse;
-  sceneLocation?: THREE.Vector3;
+  sceneLocation: THREE.Vector3;
+  onSphereReload: (elementId: string, newLocation: THREE.Vector3) => void; //gets passed into the spheres which call it to reload graphData in the Graph component. Not used here.
 }
 
 export const Constellation: React.FC<ConstellationProps> = ({
   imagePoints,
   graphData,
-  sceneLocation = new THREE.Vector3(0, 0, 0),
+  sceneLocation,
+  onSphereReload
 }) => {
   // Create a map to store refs for data nodes
   const nodeRefsMap = useRef(new Map<string, React.RefObject<THREE.Mesh>>());
@@ -145,6 +147,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
                 : undefined
             }
             onNodeClick={(elementId, active) => toggleActive(elementId, active)}
+            onSphereReload={onSphereReload}
           />
         ))}
         {/* Render lines for active meshes */}

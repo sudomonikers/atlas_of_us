@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useGlobal } from "../../GlobalProvider";
 
-import { Canvas, useLoader, useThree } from "@react-three/fiber";
+import { Canvas, useLoader, useThree, Vector3 } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -46,19 +46,34 @@ function Background(): null {
   return null;
 }
 
-// Main Graph Component
 export const Graph = () => {
   const { searchText } = useGlobal();
 
-  const [graphData, setGraphData] = useState<Neo4jApiResponse>(
-    {} as Neo4jApiResponse
-  );
+  const [graphData, setGraphData] = useState<Neo4jApiResponse>({} as Neo4jApiResponse);
   const [imagePoints, setImagePoints] = useState<NodeCoordinate[]>([]);
+  const [sceneLocation, setSceneLocation] = useState<THREE.Vector3>(new THREE.Vector3(0,0,0))
 
   useEffect(() => {
-    // You can add a check to prevent unnecessary calls if needed
     loadL1GraphData(searchText);
   }, [searchText]);
+
+  const handleSphereClick = async (elementId: string, newSceneLocation: THREE.Vector3) => {
+    setSceneLocation(newSceneLocation);
+
+    const fetchedGraphData = await graphUtils.loadNodeById(
+      elementId,
+      2
+    );
+    console.log(fetchedGraphData)
+    setGraphData(fetchedGraphData);
+
+    const image = await http.getS3Object(
+      "atlas-of-us-general-bucket",
+      fetchedGraphData.nodeRoot.image
+    );
+    const points = await graphUtils.processImage(image, 2000, 50);
+    setImagePoints(points);
+  };
 
   async function loadL1GraphData(searchTerm: string) {
     if (!searchTerm.length) {
@@ -109,7 +124,12 @@ export const Graph = () => {
 
           {/* Constellation */}
           {graphData.nodeRoot && imagePoints.length > 0 && (
-            <Constellation imagePoints={imagePoints} graphData={graphData} />
+            <Constellation 
+              imagePoints={imagePoints} 
+              graphData={graphData} 
+              sceneLocation={sceneLocation}
+              onSphereReload={handleSphereClick}
+            />
           )}
         </Canvas>
       </div>
