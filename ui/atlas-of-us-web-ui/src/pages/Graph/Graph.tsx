@@ -23,7 +23,7 @@ const graphUtils = new GraphUtils(http);
 
 
 //Background
-function Background() {
+function Background(): null {
   const { scene, gl } = useThree();
   const texture = useLoader(THREE.TextureLoader, galaxyBackground);
 
@@ -60,12 +60,12 @@ export const Graph = () => {
     loadL1GraphData(searchText);
   }, [searchText]);
 
-  async function loadL1GraphData(searchTerm: string = "Programming") {
+  async function loadL1GraphData(searchTerm: string) {
     if (!searchTerm.length) {
       searchTerm = "Programming"
     }
     const fetchedGraphData = await graphUtils.loadMostRelatedNodeBySearch(
-      "Programming",
+      searchTerm,
       2
     );
     console.log(fetchedGraphData)

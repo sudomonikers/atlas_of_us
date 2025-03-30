@@ -1,7 +1,3 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-
 export interface Neo4jNode {
   elementId: string,
   labels: string[],
@@ -34,22 +30,4 @@ export interface NodeCoordinate {
   x: number;
   y: number;
   z: number;
-}
-
-export interface Neo4jNodeWithMappedPositions extends Neo4jNode {
-  coordinates: NodeCoordinate
-}
-
-export interface ThreeContext {
-  container: HTMLDivElement;
-  scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera;
-  homeCameraPosition: THREE.Vector3,
-  renderer: THREE.WebGLRenderer;
-  controls: OrbitControls;
-  raycaster: THREE.Raycaster;
-  mouse: THREE.Vector2;
-  resizeObserver: ResizeObserver;
-  loader: THREE.TextureLoader;
-  labelRenderer: CSS2DRenderer;
 }

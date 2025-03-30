@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import "./relationship-line.css";
+import React, { useMemo, useRef, useState } from "react";
 import { Object3D, Vector3 } from "three";
-import { Line } from '@react-three/drei';
+import { Html, Line } from "@react-three/drei";
 import { Neo4jRelationship } from "../../graph-interfaces.interface";
+import { Line2 } from "three-stdlib";
 
 interface RelationshipProps {
   startNode: Object3D;
@@ -12,27 +14,57 @@ interface RelationshipProps {
 export const RelationshipLine: React.FC<RelationshipProps> = ({
   startNode,
   endNode,
-  relationshipData
+  relationshipData,
 }) => {
-  // Calculate line points using the world positions of start and end nodes
+  const [isHovered, setIsHovered] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+  const lineRef = useRef<Line2>(null);
+
+  const clickHandler = () => {
+    setIsActive(!isActive);
+  };
+
   const linePoints = useMemo(() => {
     // Get world positions of start and end nodes
     const startPosition = startNode.getWorldPosition(new Vector3());
     const endPosition = endNode.getWorldPosition(new Vector3());
-    
+    const midPoint = new Vector3().addVectors(startPosition, endPosition).multiplyScalar(0.5);
+
     // Return an array of points for the line
-    return [
-        startPosition,
-        endPosition
-    ];
+    return [startPosition, endPosition, midPoint];
   }, [startNode, endNode]);
+
+  let color;
+  switch (relationshipData.type) {
+    case "BUILDS":
+      color = "blue";
+      break;
+    case "REQUIRES":
+      color = "red";
+      break;
+    default:
+      color = "white";
+      break;
+  }
 
   return (
     <Line
-      points={linePoints}
-      color="white"  // Default color, can be customized based on relationshipData
-      lineWidth={10} // Adjust line thickness as needed
-      dashed={false} // Set to true for dashed line if desired
-    />
+      ref={lineRef}
+      points={[linePoints[0], linePoints[1]]}
+      color={color}
+      lineWidth={isActive || isHovered ? 3 : 2}
+      userData={relationshipData}
+      onPointerOver={() => setIsHovered(true)}
+      onPointerOut={() => setIsHovered(false)}
+      onClick={clickHandler}
+    >
+      {(isHovered || isActive) && relationshipData && (
+        <Html position={linePoints[2]}>
+          <div className="info-box">
+            <div className="info-box-header">{relationshipData.type}</div>
+          </div>
+        </Html>
+      )}
+    </Line>
   );
 };

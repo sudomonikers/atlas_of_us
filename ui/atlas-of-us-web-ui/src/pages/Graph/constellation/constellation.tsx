@@ -10,10 +10,8 @@ import * as THREE from "three";
 
 import type {
   Neo4jApiResponse,
-  NodeCoordinate,
-  Neo4jNodeWithMappedPositions,
   Neo4jRelationship,
-  Neo4jNode,
+  NodeCoordinate
 } from "../graph-interfaces.interface";
 import { Sphere, SphereProps } from "./sphere/sphere";
 import { RelationshipLine } from "./relationship-line/relationship-liine";
@@ -99,13 +97,6 @@ export const Constellation: React.FC<ConstellationProps> = ({
       ) {
         const affiliateNode = graphData.affiliates[affiliateDataPosition];
 
-        // Update coordinates for the affiliate node
-        (affiliateNode as Neo4jNodeWithMappedPositions).coordinates = {
-          x: imagePoints[i].x,
-          y: imagePoints[i].y,
-          z: imagePoints[i].z,
-        };
-
         sphereInfo.isDataNode = true;
         sphereInfo.nodeData = affiliateNode;
 
@@ -169,6 +160,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
 
             return (
               <RelationshipLine 
+                key={relationship.id}
                 startNode={startSphere.current}
                 endNode={endSphere.current}
                 relationshipData={relationship}
