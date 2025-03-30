@@ -3,16 +3,15 @@ import { Html } from "@react-three/drei";
 import { useThree, Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { Neo4jNode, Neo4jRelationship } from "../../graph-interfaces.interface";
-import { RelationshipLine } from "../relationship-line/relationship-liine";
+import { Neo4jNode } from "../../graph-interfaces.interface";
 import { NodeRefsContext } from "../constellation";
 
 interface SphereProps {
   position: Vector3;
   isDataNode: boolean;
   isParentNode: boolean;
+  onNodeClick: (elementId: string, activeState: boolean) => void;
   nodeData?: Neo4jNode;
-  relevantRelationships?: Neo4jRelationship[];
 }
 
 export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
@@ -20,17 +19,17 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
   isDataNode = false,
   isParentNode = false,
   nodeData,
-  relevantRelationships = []
+  onNodeClick
 }, ref) => {
+  const { nodeRefs } = useContext(NodeRefsContext);
+
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
   const threeState = useThree();
   const controls = threeState.controls as OrbitControls;
   const camera = threeState.camera as THREE.PerspectiveCamera;
-  
-  // Access the node refs context
-  const { nodeRefs } = useContext(NodeRefsContext);
+
 
   const centerCameraOnMesh = useCallback(
     (object: THREE.Mesh) => {
@@ -85,22 +84,25 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
 
   const clickHandler = () => {
     setIsActive(!isActive);
+    if (nodeData?.elementId) {
+      onNodeClick(nodeData.elementId, !isActive)
+    }
     if (!isActive) {
       centerCameraOnMesh(meshRef.current as THREE.Mesh);
     }
   };
 
-  // Use the forwarded ref or fall back to the local ref
-  const combinedRef = (node: THREE.Mesh) => {
-    meshRef.current = node;
-    if (ref) {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else {
-        ref.current = node;
+    // Use the forwarded ref or fall back to the local ref
+    const combinedRef = (node: THREE.Mesh) => {
+      meshRef.current = node;
+      if (ref) {
+        if (typeof ref === 'function') {
+          ref(node);
+        } else {
+          ref.current = node;
+        }
       }
-    }
-  };
+    };
 
   return (
     <mesh
@@ -140,25 +142,6 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
             </div>
           </div>
         </Html>
-      )}
-
-      {(isHovered || isActive) && relevantRelationships && (
-        relevantRelationships.map((relationship) => {
-          let targetNode = nodeRefs.get(relationship.endElementId)?.current;
-          
-          if (targetNode) {
-            return (
-              <RelationshipLine
-                key={relationship.id}
-                startNode={meshRef.current!}
-                endNode={targetNode}
-                relationshipData={relationship}
-              />
-            );
-          } else {
-            return null;
-          }
-        })
       )}
     </mesh>
   );

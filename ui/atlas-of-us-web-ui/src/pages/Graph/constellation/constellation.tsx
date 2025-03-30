@@ -1,5 +1,12 @@
 import "./constellation.css";
-import React, { useMemo, useRef, createContext, createRef } from "react";
+import React, {
+  useMemo,
+  useRef,
+  createContext,
+  createRef,
+  useState,
+  useCallback,
+} from "react";
 import * as THREE from "three";
 
 import type {
@@ -10,6 +17,7 @@ import type {
   Neo4jNode,
 } from "../graph-interfaces.interface";
 import { Sphere } from "./sphere/sphere";
+import { RelationshipLine } from "./relationship-line/relationship-liine";
 
 // Create a context to share node references between components
 export const NodeRefsContext = createContext<{
@@ -29,18 +37,17 @@ export const Constellation: React.FC<ConstellationProps> = ({
   graphData,
   sceneLocation = new THREE.Vector3(0, 0, 0),
 }) => {
-  // Create a map to store refs for data nodes - now typed as THREE.Mesh
+  // Create a map to store refs for data nodes
   const nodeRefsMap = useRef(new Map<string, React.RefObject<THREE.Mesh>>());
-  
+  const [activeMeshes, setActiveMeshes] = useState(new Set<string>()); // Use a Set to store active mesh IDs
   // Memoize the selected indices and data nodes
-  const { selectedIndices, sphereData } = useMemo(() => {
+  const { relationshipMap, sphereData } = useMemo(() => {
     const selectedIndices = new Set<number>();
     const sphereData: Array<{
       position: THREE.Vector3;
       isDataNode: boolean;
       isParentNode: boolean;
       nodeData?: Neo4jNode;
-      relevantRelationships?: Neo4jRelationship[];
       elementId?: string;
     }> = [];
 
@@ -66,6 +73,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
       }
       relationshipMap.get(startElementId)!.push(relationship);
     });
+    console.log(relationshipMap);
 
     // Create parent node
     sphereData.push({
@@ -73,13 +81,15 @@ export const Constellation: React.FC<ConstellationProps> = ({
       isParentNode: true,
       isDataNode: true,
       nodeData: graphData.nodeRoot,
-      relevantRelationships: relationshipMap.get(graphData.nodeRoot.elementId),
-      elementId: graphData.nodeRoot.elementId
+      elementId: graphData.nodeRoot.elementId,
     });
 
     // Create refs for the root node
     if (!nodeRefsMap.current.has(graphData.nodeRoot.elementId)) {
-      nodeRefsMap.current.set(graphData.nodeRoot.elementId, createRef<THREE.Mesh>() as any);
+      nodeRefsMap.current.set(
+        graphData.nodeRoot.elementId,
+        createRef<THREE.Mesh>() as any
+      );
     }
 
     // Create other spheres
@@ -93,7 +103,7 @@ export const Constellation: React.FC<ConstellationProps> = ({
           imagePoints[i].z
         ),
         isDataNode: false,
-        isParentNode: false
+        isParentNode: false,
       };
 
       // Add data to special nodes
@@ -113,12 +123,14 @@ export const Constellation: React.FC<ConstellationProps> = ({
 
         sphereInfo.isDataNode = true;
         sphereInfo.nodeData = affiliateNode;
-        sphereInfo.relevantRelationships = relationshipMap.get(affiliateNode.elementId);
         sphereInfo.elementId = affiliateNode.elementId;
 
         // Create a ref for this data node
         if (!nodeRefsMap.current.has(affiliateNode.elementId)) {
-          nodeRefsMap.current.set(affiliateNode.elementId, createRef<THREE.Mesh>() as any);
+          nodeRefsMap.current.set(
+            affiliateNode.elementId,
+            createRef<THREE.Mesh>() as any
+          );
         }
 
         affiliateDataPosition++;
@@ -127,13 +139,28 @@ export const Constellation: React.FC<ConstellationProps> = ({
       sphereData.push(sphereInfo);
     }
 
-    return { selectedIndices, sphereData };
+    return { relationshipMap, sphereData };
   }, [imagePoints, graphData]);
 
-  // Context value
-  const contextValue = useMemo(() => ({
-    nodeRefs: nodeRefsMap.current,
-  }), []);
+  const toggleActive = useCallback((elementId: string, active: boolean) => {
+    setActiveMeshes((prevActiveMeshes) => {
+      const newActiveMeshes = new Set(prevActiveMeshes);
+      if (active) {
+        newActiveMeshes.add(elementId); // Add if active is true
+      } else {
+        newActiveMeshes.delete(elementId); // Remove if active is false
+      }
+      console.log(newActiveMeshes);
+      return newActiveMeshes;
+    });
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      nodeRefs: nodeRefsMap.current,
+    }),
+    []
+  );
 
   return (
     <NodeRefsContext.Provider value={contextValue}>
@@ -145,10 +172,34 @@ export const Constellation: React.FC<ConstellationProps> = ({
             isDataNode={sphere.isDataNode}
             isParentNode={sphere.isParentNode}
             nodeData={sphere.nodeData}
-            relevantRelationships={sphere.relevantRelationships}
-            ref={sphere.elementId ? nodeRefsMap.current.get(sphere.elementId) : undefined}
+            ref={
+              sphere.elementId
+                ? nodeRefsMap.current.get(sphere.elementId)
+                : undefined
+            }
+            onNodeClick={(elementId, active) => toggleActive(elementId, active)}
           />
         ))}
+        ,{/* Render lines for active meshes */}
+        {[...activeMeshes].map((activeMeshId) => {
+          const startSphere = nodeRefsMap.current.get(activeMeshId);
+
+          const relationships = relationshipMap.get(activeMeshId);
+
+          return relationships?.map((relationship) => {
+            const endSphere = nodeRefsMap.current.get(
+              relationship.endElementId
+            );
+
+            return (
+              <RelationshipLine 
+                startNode={startSphere.current}
+                endNode={endSphere.current}
+                relationshipData={relationship}
+              />
+            );
+          });
+        })}
       </group>
     </NodeRefsContext.Provider>
   );
