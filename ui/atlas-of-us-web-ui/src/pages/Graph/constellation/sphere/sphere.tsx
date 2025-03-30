@@ -1,16 +1,15 @@
-import { useRef, useState, useCallback, forwardRef, useContext } from "react";
+import { useRef, useState, useCallback, forwardRef } from "react";
 import { Html } from "@react-three/drei";
 import { useThree, Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Neo4jNode } from "../../graph-interfaces.interface";
-import { NodeRefsContext } from "../constellation";
 
-interface SphereProps {
+export interface SphereProps {
   position: Vector3;
   isDataNode: boolean;
   isParentNode: boolean;
-  onNodeClick: (elementId: string, activeState: boolean) => void;
+  onNodeClick?: (elementId: string, activeState: boolean) => void;
   nodeData?: Neo4jNode;
 }
 
@@ -21,8 +20,6 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(({
   nodeData,
   onNodeClick
 }, ref) => {
-  const { nodeRefs } = useContext(NodeRefsContext);
-
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
