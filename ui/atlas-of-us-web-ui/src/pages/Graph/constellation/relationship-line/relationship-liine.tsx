@@ -27,7 +27,8 @@ export const RelationshipLine: React.FC<RelationshipProps> = ({
   const linePoints = useMemo(() => {
     // Get world positions of start and end nodes
     const startPosition = startNode.getWorldPosition(new Vector3());
-    const endPosition = endNode.getWorldPosition(new Vector3());
+    
+    const endPosition = endNode ? endNode.getWorldPosition(new Vector3()) : new Vector3(0,0,0); //this or condition needs to be updated to shoot off into the void...
     const midPoint = new Vector3().addVectors(startPosition, endPosition).multiplyScalar(0.5);
 
     // Return an array of points for the line

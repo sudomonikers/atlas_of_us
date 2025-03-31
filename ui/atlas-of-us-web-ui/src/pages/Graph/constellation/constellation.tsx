@@ -1,5 +1,5 @@
 import "./constellation.css";
-import React, { useMemo, useRef, createRef, useState, useEffect } from "react";
+import React, { useRef, createRef, useState, useEffect } from "react";
 import * as THREE from "three";
 import { HttpService } from "../../../services/http-service";
 import { GraphUtils } from "../graph-utils";
@@ -16,23 +16,23 @@ const http = new HttpService();
 const graphUtils = new GraphUtils(http);
 
 export const Constellation = () => {
-  //reload data if the user searches
+  // Reload data when searchText changes
   const { searchText } = useGlobal();
   useEffect(() => {
     loadGraphData(searchText);
   }, [searchText]);
   
-  const [graphState, setGraphState] = useState({
-    data: {} as Neo4jApiResponse,
-    imagePoints: [] as NodeCoordinate[],
+  const [constellationState, setConstellationState] = useState({
+    sphereData: [] as SphereProps[],
+    relationshipMap: new Map<string, Neo4jRelationship[]>(),
     sceneLocation: new THREE.Vector3(0, 0, 0)
   });
   
-  // Reference map for nodes
+  // Reference map for nodes - gets reset when data changes
   const nodeRefsMap = useRef(new Map<string, React.RefObject<THREE.Mesh>>());
   const [activeMeshes, setActiveMeshes] = useState(new Set<string>());
 
-  // Core function to load graph data and image points
+  // Core function to load graph data and completely rebuild visualization
   const loadGraphData = async (searchTerm: string, nodeId?: string, newLocation?: THREE.Vector3) => {
     try {
       // Default search term if empty
@@ -40,28 +40,109 @@ export const Constellation = () => {
         searchTerm = "Programming";
       }
       
-      // Determine which API call to make based on parameters
-      const fetchedGraphData = nodeId 
+      const graphData = nodeId 
         ? await graphUtils.loadNodeById(nodeId, 2)
         : await graphUtils.loadMostRelatedNodeBySearch(searchTerm, 2);
+      console.log(graphData);
       
-      console.log(fetchedGraphData);
-      
-      // Load image and process points
       const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
-        fetchedGraphData.nodeRoot.image
+        graphData.nodeRoot.image
       );
       
-      const location = newLocation || graphState.sceneLocation;
-      const points = await graphUtils.processImage(image, 2000, 50, location);
+      const location = newLocation || constellationState.sceneLocation;
+      const imagePoints = await graphUtils.processImage(image, 50, location, 0.06);
       
-      // Update all related state at once
-      setGraphState({
-        data: fetchedGraphData,
-        imagePoints: points,
-        sceneLocation: newLocation || graphState.sceneLocation
+      // Clear existing refs and create new ones
+      nodeRefsMap.current.clear();
+      
+      // Reset active meshes on complete reload
+      setActiveMeshes(new Set());
+      
+      // Rebuild spheres and relationships from scratch on every data load
+      const selectedIndices = new Set<number>();
+      const sphereData: SphereProps[] = [];
+      
+      // Determine how many particles will have data (for the affiliates)
+      const dataPointCount = Math.min(
+        graphData.affiliates?.length || 0,
+        Math.floor(imagePoints.length * 0.1) - 1 // Reserve one spot for parent node
+      );
+
+      // Randomly select indices for data nodes, possibly change this later
+      while (selectedIndices.size < dataPointCount) {
+        const randomIndex =
+          Math.floor(Math.random() * (imagePoints.length - 1)) + 1;
+        selectedIndices.add(randomIndex);
+      }
+
+      // Create a map of relationships
+      const relationshipMap = new Map<string, Neo4jRelationship[]>();
+      graphData.relationships?.forEach((relationship) => {
+        const startElementId = relationship.startElementId;
+        if (!relationshipMap.has(startElementId)) {
+          relationshipMap.set(startElementId, []);
+        }
+        relationshipMap.get(startElementId)!.push(relationship);
       });
+
+      // Create parent node
+      sphereData.push({
+        position: location,
+        isParentNode: true,
+        isDataNode: true,
+        nodeData: graphData.nodeRoot,
+      });
+
+      // Create refs for the root node
+      nodeRefsMap.current.set(
+        graphData.nodeRoot.elementId,
+        createRef<THREE.Mesh>()
+      );
+
+      // Create other spheres
+      let affiliateDataPosition = 0;
+      for (let i = 1; i < imagePoints.length; i++) {
+        const isDataNode = selectedIndices.has(i);
+        const sphereInfo: SphereProps = {
+          position: new THREE.Vector3(
+            imagePoints[i].x,
+            imagePoints[i].y,
+            imagePoints[i].z
+          ),
+          isDataNode: false,
+          isParentNode: false,
+        };
+
+        // Add data to special nodes
+        if (
+          isDataNode &&
+          graphData.affiliates &&
+          affiliateDataPosition < graphData.affiliates.length
+        ) {
+          const affiliateNode = graphData.affiliates[affiliateDataPosition];
+
+          sphereInfo.isDataNode = true;
+          sphereInfo.nodeData = affiliateNode;
+
+          // Create a ref for this data node
+          nodeRefsMap.current.set(
+            affiliateNode.elementId,
+            createRef<THREE.Mesh>()
+          );
+
+          affiliateDataPosition++;
+        }
+
+        sphereData.push(sphereInfo);
+      }
+      
+      setConstellationState({
+        sphereData,
+        relationshipMap,
+        sceneLocation: location
+      });
+      
     } catch (error) {
       console.error("Error loading graph data:", error);
     }
@@ -85,103 +166,9 @@ export const Constellation = () => {
     });
   };
 
-  // Memoize the sphere data and relationship map
-  const { relationshipMap, sphereData } = useMemo(() => {
-    // Clear existing refs
-    nodeRefsMap.current.clear();
-    
-    const { data, imagePoints } = graphState;
-    if (!data.nodeRoot || !imagePoints.length) {
-      return { relationshipMap: new Map(), sphereData: [] };
-    }
-    
-    const selectedIndices = new Set<number>();
-    const sphereData: SphereProps[] = [];
-
-    // Determine how many particles will have data (for the affiliates)
-    const dataPointCount = Math.min(
-      data.affiliates?.length || 0,
-      Math.floor(imagePoints.length * 0.1) - 1 // Reserve one spot for parent node
-    );
-
-    // Randomly select indices for data nodes, possibly change this later to make it not random
-    while (selectedIndices.size < dataPointCount) {
-      const randomIndex =
-        Math.floor(Math.random() * (imagePoints.length - 1)) + 1;
-      selectedIndices.add(randomIndex);
-    }
-
-    // Create a map of relationships keyed by startElementId
-    const relationshipMap = new Map<string, Neo4jRelationship[]>();
-    data.relationships?.forEach((relationship) => {
-      const startElementId = relationship.startElementId;
-      if (!relationshipMap.has(startElementId)) {
-        relationshipMap.set(startElementId, []);
-      }
-      relationshipMap.get(startElementId)!.push(relationship);
-    });
-
-    // Create parent node
-    sphereData.push({
-      position: new THREE.Vector3(0, 0, 0),
-      isParentNode: true,
-      isDataNode: true,
-      nodeData: data.nodeRoot,
-    });
-
-    // Create refs for the root node
-    if (!nodeRefsMap.current.has(data.nodeRoot.elementId)) {
-      nodeRefsMap.current.set(
-        data.nodeRoot.elementId,
-        createRef<THREE.Mesh>()
-      );
-    }
-
-    // Create other spheres
-    let affiliateDataPosition = 0;
-    for (let i = 1; i < imagePoints.length; i++) {
-      const isDataNode = selectedIndices.has(i);
-      const sphereInfo: SphereProps = {
-        position: new THREE.Vector3(
-          imagePoints[i].x,
-          imagePoints[i].y,
-          imagePoints[i].z
-        ),
-        isDataNode: false,
-        isParentNode: false,
-      };
-
-      // Add data to special nodes
-      if (
-        isDataNode &&
-        data.affiliates &&
-        affiliateDataPosition < data.affiliates.length
-      ) {
-        const affiliateNode = data.affiliates[affiliateDataPosition];
-
-        sphereInfo.isDataNode = true;
-        sphereInfo.nodeData = affiliateNode;
-
-        // Create a ref for this data node
-        if (!nodeRefsMap.current.has(affiliateNode.elementId)) {
-          nodeRefsMap.current.set(
-            affiliateNode.elementId,
-            createRef<THREE.Mesh>()
-          );
-        }
-
-        affiliateDataPosition++;
-      }
-
-      sphereData.push(sphereInfo);
-    }
-
-    return { relationshipMap, sphereData };
-  }, [graphState]);
-
   return (
-    <group position={graphState.sceneLocation}>
-      {sphereData.map((sphere, index) => (
+    <group>
+      {constellationState.sphereData.map((sphere, index) => (
         <Sphere
           key={index}
           position={sphere.position}
@@ -200,9 +187,9 @@ export const Constellation = () => {
       {/* Render lines for active meshes */}
       {[...activeMeshes].map((activeMeshId) => {
         const startSphere = nodeRefsMap.current.get(activeMeshId);
-        const relationships = relationshipMap.get(activeMeshId) || [];
+        const relationships = constellationState.relationshipMap.get(activeMeshId) || [];
 
-        return relationships.map((relationship: Neo4jRelationship) => {
+        return relationships.map((relationship) => {
           const endSphere = nodeRefsMap.current.get(
             relationship.endElementId
           );

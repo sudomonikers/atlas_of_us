@@ -9,50 +9,76 @@ export class GraphUtils {
 
   async processImage(
     image: HTMLImageElement,
-    numPoints: number,
     threshold: number,
-    center: THREE.Vector3
+    center: THREE.Vector3,
+    selectionRatio: number,
   ): Promise<{ x: number; y: number; z: number }[]> {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
     canvas.width = image.width;
     canvas.height = image.height;
     ctx.drawImage(image, 0, 0);
-
+  
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const pixels = imageData.data;
     const edgePixels = [];
-
+  
+    // Center in image coordinates
+    const centerX = image.width / 2;
+    const centerY = image.height / 2;
+    
+    let closestPixel = null;
+    let minDistance = Infinity;
+  
     // Collect dark pixels using original pixel coordinates
     for (let y = 0; y < canvas.height; y++) {
       for (let x = 0; x < canvas.width; x++) {
         const i = (y * canvas.width + x) * 4;
         const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
-
+  
         if (brightness < threshold) {
           edgePixels.push({ x, y });
+          
+          // Calculate distance to the center
+          const distanceToCenter = Math.sqrt(
+            Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+          );
+          
+          // Check if this is the closest dark pixel to center
+          if (distanceToCenter < minDistance) {
+            minDistance = distanceToCenter;
+            closestPixel = { x, y };
+          }
         }
       }
     }
-
-    let selectedPixels;
-    if (edgePixels.length > numPoints) {
-      selectedPixels = [];
-      for (let i = 0; i < numPoints; i++) {
-        const randomIndex = Math.floor(Math.random() * edgePixels.length);
-        selectedPixels.push(edgePixels[randomIndex]);
-      }
-    } else {
-      selectedPixels = edgePixels;
+  
+    // If no dark pixels found, return empty array
+    if (edgePixels.length === 0) {
+      return [];
     }
-
-    // Keep original pixel coordinates but center at (0,0)
+  
+    // Find offset between closest dark pixel and center
+    const offsetX = closestPixel ? (closestPixel.x - centerX) : 0;
+    const offsetY = closestPixel ? (closestPixel.y - centerY) : 0;
+  
+    // Calculate how many points to select (33% of total dark pixels)
+    const numPointsToSelect = Math.max(1, Math.floor(edgePixels.length * selectionRatio));
+    
+    // Select random points
+    const selectedPixels = [];
+    for (let i = 0; i < numPointsToSelect; i++) {
+      const randomIndex = Math.floor(Math.random() * edgePixels.length);
+      selectedPixels.push(edgePixels[randomIndex]);
+    }
+  
+    // Adjust points relative to the closest dark pixel to center
     const points = selectedPixels.map((pixel) => ({
-      x: pixel.x - canvas.width / 2 + center.x, // Add center offset
-      y: -(pixel.y - canvas.height / 2) + center.y, // Flip Y for Three.js coordinate system and add center offset
-      z: center.z, // Set all points to z=0 plane initially
+      x: pixel.x - (centerX + offsetX) + center.x,
+      y: -(pixel.y - (centerY + offsetY)) + center.y,
+      z: center.z
     }));
-
+  
     return points;
   }
 
