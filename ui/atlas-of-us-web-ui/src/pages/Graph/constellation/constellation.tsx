@@ -4,9 +4,7 @@ import * as THREE from "three";
 import { HttpService } from "../../../services/http-service";
 import { GraphUtils } from "../graph-utils";
 import type {
-  Neo4jApiResponse,
   Neo4jRelationship,
-  NodeCoordinate
 } from "../graph-interfaces.interface";
 import { Sphere, SphereProps } from "./sphere/sphere";
 import { RelationshipLine } from "./relationship-line/relationship-liine";
