@@ -9,11 +9,13 @@ import type {
 import { Sphere, SphereProps } from "./sphere/sphere";
 import { RelationshipLine } from "./relationship-line/relationship-liine";
 import { useGlobal } from "../../../GlobalProvider";
+import { useThree } from "@react-three/fiber";
 
 const http = new HttpService();
 const graphUtils = new GraphUtils(http);
 
 export const Constellation = () => {
+  const threeContext = useThree();
   // Reload data when searchText changes
   const { searchText } = useGlobal();
   useEffect(() => {

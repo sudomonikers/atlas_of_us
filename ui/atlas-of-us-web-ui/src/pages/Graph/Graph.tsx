@@ -45,10 +45,13 @@ export const Graph = () => {
             autoRotateSpeed={0.025}
             minPolarAngle={Math.PI / 3}
             maxPolarAngle={Math.PI / 2}
+            minDistance={50}
+            maxDistance={1500}
             enableDamping={true}
             dampingFactor={0.05}
           />
 
+          {/* Background */}
           <Background />
 
           {/* Particle System */}

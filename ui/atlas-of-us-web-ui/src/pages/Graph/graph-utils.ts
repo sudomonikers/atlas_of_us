@@ -106,7 +106,7 @@ export class GraphUtils {
     );
   }
 
-  centerCameraOnMesh = (object: THREE.Object3D) => {
+  centerCameraOnMesh = (object: THREE.Object3D, distanceFactor: number) => {
     const threeState = useThree();
     const controls = threeState.controls as OrbitControls;
     const camera = threeState.camera as THREE.PerspectiveCamera;
@@ -123,7 +123,7 @@ export class GraphUtils {
     const targetPosition = new THREE.Vector3(
       center.x,
       center.y,
-      center.z + 150
+      center.z + distanceFactor
     );
 
     // Smoothly move the camera to the new position
