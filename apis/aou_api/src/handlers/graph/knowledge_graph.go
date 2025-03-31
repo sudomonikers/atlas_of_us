@@ -3,9 +3,9 @@ package handlers
 import (
 	"aou_api/src/handlers/helpers"
 	"aou_api/src/models"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -18,8 +18,8 @@ type NodeQueryParams struct {
 	// Example: L1,Pursuit
 	Labels string `form:"labels"`
 
-	// Properties is a URL encoded comma-separated list of property key-value pairs to filter by
-	// Example: "name:Cross-country%20Skiing,description:The%20activity%20of%20cross-country%20skiing%2C%20a%20form%20of%20skiing%20where%20skiers%20move%20over%20relatively%20flat%20terrain."
+	// Properties is a URL encoded JSON string of property key-value pairs to filter by
+	// Example: "{\"name\": \"Cross-country Skiing\", \"description\": \"...\"}"
 	Properties string `form:"properties"`
 
 	//how many relationships to traverse
@@ -66,24 +66,26 @@ func GetNodes(c *gin.Context) {
 	// Handle properties
 	whereClauses := []string{}
 	if params.Properties != "" {
-		// URL decode the properties string
-		decodedProperties, err := url.QueryUnescape(params.Properties)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid properties encoding"})
+		var properties map[string]interface{}
+		if err := json.Unmarshal([]byte(params.Properties), &properties); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid properties JSON"})
 			return
 		}
+		fmt.Println(properties)
 
-		properties := strings.Split(decodedProperties, ",")
-		for _, prop := range properties {
-			parts := strings.SplitN(prop, "=", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-				if key == "elementId" {
-					whereClauses = append(whereClauses, fmt.Sprintf("elementId(node) = '%s'", value))
-				} else {
-					whereClauses = append(whereClauses, fmt.Sprintf("node.%s = '%s'", key, value))
-				}
+		for key, value := range properties {
+			key = strings.TrimSpace(key)
+			valueStr, ok := value.(string) // Assuming all values are strings for simplicity
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "properties must have string values"})
+				return
+			}
+			valueStr = strings.TrimSpace(valueStr)
+
+			if key == "elementId" {
+				whereClauses = append(whereClauses, fmt.Sprintf("elementId(node) = '%s'", valueStr))
+			} else {
+				whereClauses = append(whereClauses, fmt.Sprintf("node.%s = '%s'", key, valueStr))
 			}
 		}
 	}

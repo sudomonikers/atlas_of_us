@@ -1,98 +1,30 @@
-import { useState, useEffect } from "react";
-import { useGlobal } from "../../GlobalProvider";
-
-import { Canvas, useLoader, useThree, Vector3 } from "@react-three/fiber";
+import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-
-import { HttpService } from "../../services/http-service";
-import { GraphUtils } from "./graph-utils";
-
-import type {
-  Neo4jApiResponse,
-  NodeCoordinate,
-} from "./graph-interfaces.interface";
 
 import galaxyBackground from "../../assets/galaxy.jpeg";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Constellation } from "./constellation/constellation";
 import { ParticleSystem } from "./particles/particles";
 
-const http = new HttpService();
-const graphUtils = new GraphUtils(http);
-
 
 //Background
 function Background(): null {
   const { scene, gl } = useThree();
   const texture = useLoader(THREE.TextureLoader, galaxyBackground);
+  const pmremGenerator = new THREE.PMREMGenerator(gl);
+  const envMap = pmremGenerator.fromEquirectangular(texture).texture;
 
-  useEffect(() => {
-    const pmremGenerator = new THREE.PMREMGenerator(gl);
-    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+  scene.background = envMap;
+  scene.environment = envMap;
 
-    scene.background = envMap;
-    scene.environment = envMap;
-
-    pmremGenerator.dispose();
-    texture.dispose();
-
-    return () => {
-      scene.background = null;
-      scene.environment = null;
-    };
-  }, [texture, scene, gl]);
+  pmremGenerator.dispose();
+  texture.dispose();
 
   return null;
 }
 
 export const Graph = () => {
-  const { searchText } = useGlobal();
-
-  const [graphData, setGraphData] = useState<Neo4jApiResponse>({} as Neo4jApiResponse);
-  const [imagePoints, setImagePoints] = useState<NodeCoordinate[]>([]);
-  const [sceneLocation, setSceneLocation] = useState<THREE.Vector3>(new THREE.Vector3(0,0,0))
-
-  useEffect(() => {
-    loadL1GraphData(searchText);
-  }, [searchText]);
-
-  const handleSphereClick = async (elementId: string, newSceneLocation: THREE.Vector3) => {
-    setSceneLocation(newSceneLocation);
-
-    const fetchedGraphData = await graphUtils.loadNodeById(
-      elementId,
-      2
-    );
-    console.log(fetchedGraphData)
-    setGraphData(fetchedGraphData);
-
-    const image = await http.getS3Object(
-      "atlas-of-us-general-bucket",
-      fetchedGraphData.nodeRoot.image
-    );
-    const points = await graphUtils.processImage(image, 2000, 50);
-    setImagePoints(points);
-  };
-
-  async function loadL1GraphData(searchTerm: string) {
-    if (!searchTerm.length) {
-      searchTerm = "Programming"
-    }
-    const fetchedGraphData = await graphUtils.loadMostRelatedNodeBySearch(
-      searchTerm,
-      2
-    );
-    console.log(fetchedGraphData)
-    setGraphData(fetchedGraphData);
-
-    const image = await http.getS3Object(
-      "atlas-of-us-general-bucket",
-      fetchedGraphData.nodeRoot.image
-    );
-    const points = await graphUtils.processImage(image, 2000, 50);
-    setImagePoints(points);
-  }
 
   return (
     <div>
@@ -123,14 +55,7 @@ export const Graph = () => {
           <ParticleSystem />
 
           {/* Constellation */}
-          {graphData.nodeRoot && imagePoints.length > 0 && (
-            <Constellation 
-              imagePoints={imagePoints} 
-              graphData={graphData} 
-              sceneLocation={sceneLocation}
-              onSphereReload={handleSphereClick}
-            />
-          )}
+          <Constellation />
         </Canvas>
       </div>
     </div>

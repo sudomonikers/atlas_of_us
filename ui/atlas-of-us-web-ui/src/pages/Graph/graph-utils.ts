@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import type { HttpService } from "../../services/http-service";
 import type { Neo4jApiResponse } from "./graph-interfaces.interface";
 import * as THREE from "three";
@@ -11,7 +10,8 @@ export class GraphUtils {
   async processImage(
     image: HTMLImageElement,
     numPoints: number,
-    threshold: number
+    threshold: number,
+    center: THREE.Vector3
   ): Promise<{ x: number; y: number; z: number }[]> {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
@@ -48,9 +48,9 @@ export class GraphUtils {
 
     // Keep original pixel coordinates but center at (0,0)
     const points = selectedPixels.map((pixel) => ({
-      x: pixel.x - canvas.width / 2,
-      y: -(pixel.y - canvas.height / 2), // Flip Y for Three.js coordinate system
-      z: 0, // Set all points to z=0 plane initially
+      x: pixel.x - canvas.width / 2 + center.x, // Add center offset
+      y: -(pixel.y - canvas.height / 2) + center.y, // Flip Y for Three.js coordinate system and add center offset
+      z: center.z, // Set all points to z=0 plane initially
     }));
 
     return points;
@@ -69,8 +69,14 @@ export class GraphUtils {
     elementId: string,
     depth: number
   ): Promise<Neo4jApiResponse> {
+    const queryParams = new URLSearchParams({
+      properties: JSON.stringify({
+        elementId: elementId
+      }),
+      depth: depth.toString()
+    });
     return this.httpService.fetchNodes(
-      `/api/secure/graph/get-nodes?properties=elementId=${elementId}&depth=${depth}`
+      `/api/secure/graph/get-nodes?${queryParams.toString()}`
     );
   }
 
