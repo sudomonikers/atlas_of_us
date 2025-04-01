@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./login.css";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Link, useNavigate } from "react-router";
+import { useGlobal } from "../../GlobalProvider";
 
 export function Login() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -10,7 +11,7 @@ export function Login() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
+  const { loggedIn, setLoggedIn } = useGlobal();
 
   async function handleLogin() {
     try {

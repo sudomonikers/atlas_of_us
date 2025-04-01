@@ -2,8 +2,11 @@ import { NavBar } from "../../common-components/navbar/nav";
 
 export function Profile() {
   return (
-    <div>
-      <NavBar />
-    </div>
+    <>
+      <NavBar/>
+      <div className="in-nav-container">
+
+      </div>
+    </>
   );
 }

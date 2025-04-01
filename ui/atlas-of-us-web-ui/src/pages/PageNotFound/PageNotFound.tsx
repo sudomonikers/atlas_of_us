@@ -2,8 +2,11 @@ import { NavBar } from "../../common-components/navbar/nav";
 
 export function PageNotFound() {
   return (
-    <div>
-      <NavBar />
-    </div>
+    <>
+      <NavBar/>
+      <div className="in-nav-container">
+        Doh!
+      </div>
+    </>
   );
 }
