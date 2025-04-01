@@ -6,8 +6,7 @@ import type {
 
 //service class for fetching data and mapping it for ui consumption
 export class HttpService {
-  API_BASE = 'http://localhost:8001';
-  //API_BASE = 'https://8tu1qzn57e.execute-api.us-east-2.amazonaws.com/prod'; 
+  API_BASE = import.meta.env.VITE_API_BASE_URL;
   constructor() {}
 
   async getS3Object(bucketName: string, key: string): Promise<HTMLImageElement> {

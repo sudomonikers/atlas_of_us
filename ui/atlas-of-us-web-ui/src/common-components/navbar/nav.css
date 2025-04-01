@@ -12,6 +12,7 @@ nav {
   background-color: #fff;
   display: flex;
   justify-content: right;
+  position: relative;
   padding: 0 15px;
   z-index: 999;
 }

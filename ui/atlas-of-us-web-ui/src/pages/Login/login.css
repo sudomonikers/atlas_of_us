@@ -1,0 +1,41 @@
+.login-container {
+  margin-top: 10%;
+  width: fit-content;
+  position: relative;
+  transform: translateX(-50%);
+  left: 50%;
+}
+.login-container h1 {
+  font-size: 3rem;
+}
+.login-container h2 {
+  font-size: 2.5rem;
+}
+.login-container p {
+  font-size: 1.5rem;
+}
+
+input {
+  margin: 10px;
+  padding: 10px;
+  border: 3px;
+}
+
+.or-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 20px 0; /* Adjust margin as needed */
+}
+
+.line {
+  flex-grow: 1;
+  height: 1px;
+  background-color: white; /* Adjust color as needed */
+}
+
+.or-text {
+  margin: 0 10px; /* Adjust spacing around "OR" as needed */
+  font-weight: bold; /* Make "OR" stand out */
+}

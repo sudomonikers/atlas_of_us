@@ -1,11 +1,12 @@
 import "./nav.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { jwtDecode } from "jwt-decode";
 import { useGlobal } from '../../GlobalProvider';
 
 export function NavBar() {
-  const { searchText, setSearchText, loggedIn, setLoggedIn, menuOpen, setMenuOpen } = useGlobal();
+  const { searchText, setSearchText, loggedIn, setLoggedIn } = useGlobal();
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
