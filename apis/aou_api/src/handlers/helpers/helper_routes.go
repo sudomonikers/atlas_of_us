@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"aou_api/src/models"
 	"bytes"
 	"io"
 	"log"
@@ -84,4 +85,37 @@ func UploadS3Object(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "File uploaded successfully")
+}
+
+type CreateEmbeddingFromTextParams struct {
+	Text string `form:"text"`
+}
+
+// CreateEmbeddingFromText creates an embedding from the provided text.
+// @Description Creates an embedding from the provided text.
+// @ID create-embedding
+// @Accept json
+// @Produce json
+// @Param name_and_description body CreateEmbeddingFromTextParams true "text"
+// @Success 200 {object} map[string]interface{} "Successful operation"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /secure/helper/embedding [post]
+func CreateEmbeddingFromText(c *gin.Context) {
+	appCtx, _ := c.MustGet("appCtx").(*models.AppContext)
+
+	var params CreateEmbeddingFromTextParams
+	if err := c.ShouldBindJSON(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	textToEmbed := params.Text
+	embedding, err := GenerateEmbedding(appCtx, textToEmbed)
+	if err != nil {
+		log.Printf("Error generating embedding: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"embedding": embedding})
 }

@@ -42,6 +42,7 @@ func NewRouter(appCtx *models.AppContext) *gin.Engine {
 		{
 			helper.GET("s3-object", helpers.ReturnS3Object)
 			helper.POST("s3-upload", helpers.UploadS3Object)
+			helper.POST("embedding", helpers.CreateEmbeddingFromText)
 		}
 
 		graph_management := secureRoutes.Group("graph")
