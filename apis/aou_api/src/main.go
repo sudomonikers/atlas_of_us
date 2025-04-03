@@ -23,21 +23,29 @@ var ginLambda *ginadapter.GinLambda
 
 func init() {
 	ctx := context.Background()
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-
-	err := godotenv.Load()
-	if err != nil {
-		logger.Warn("Warning: .env file not found, relying on environment variables")
-	}
-
-	db := database.NewNeo4jDatabase()
+	godotenv.Load()
 
 	ginMode := os.Getenv("GIN_MODE")
 	if ginMode == "" {
 		ginMode = gin.ReleaseMode // Default to ReleaseMode if not set so we have best security practices
 	}
 	gin.SetMode(ginMode)
+
+	var logger *zap.Logger
+	var err error
+
+	if ginMode == gin.ReleaseMode {
+		logger, err = zap.NewProduction()
+	} else {
+		logger, err = zap.NewDevelopment()
+	}
+
+	if err != nil {
+		panic(err) // Handle error properly, maybe log to stderr and exit
+	}
+	defer logger.Sync()
+
+	db := database.NewNeo4jDatabase()
 
 	appCtx := models.NewAppContext(db, logger, &ctx)
 

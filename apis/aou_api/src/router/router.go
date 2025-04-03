@@ -12,6 +12,7 @@ import (
 	docs "aou_api/src/docs"
 	handlers "aou_api/src/handlers/graph"
 	helpers "aou_api/src/handlers/helpers"
+	profile_handlers "aou_api/src/handlers/profile"
 
 	"aou_api/src/middleware"
 	"aou_api/src/models"
@@ -56,6 +57,11 @@ func NewRouter(appCtx *models.AppContext) *gin.Engine {
 			graph_management.PUT("update-relationship", handlers.UpdateRelationship)
 			//The following method is purely a FETCH operation and does not mutate any data, but we are using POST because we may send in a potentially very large vector embedding for finding similarity and there can be issues with that using GET
 			graph_management.POST("similar-nodes", handlers.GetSimilarNodes)
+		}
+
+		profile := secureRoutes.Group("profile")
+		{
+			profile.GET("user-profile/:username", profile_handlers.GetUserProfile)
 		}
 	}
 

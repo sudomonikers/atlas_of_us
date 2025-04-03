@@ -1,34 +1,12 @@
 import "./nav.css";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { jwtDecode } from "jwt-decode";
 import { useGlobal } from '../../GlobalProvider';
 
 export function NavBar() {
-  const { searchText, setSearchText, loggedIn, setLoggedIn } = useGlobal();
+  const { setSearchText, loggedIn } = useGlobal();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const jwt = localStorage.getItem("jwt");
-    if (jwt) {
-      try {
-        const decodedToken: { exp: number } = jwtDecode(jwt);
-        const currentTime = Math.floor(Date.now() / 1000); // in seconds
-        if (decodedToken?.exp < currentTime) {
-          setLoggedIn(false);
-          localStorage.removeItem("jwt");
-        } else {
-          setLoggedIn(true);
-        }
-      } catch (error) {
-        setLoggedIn(false);
-        localStorage.removeItem("jwt");
-      }
-    } else {
-      setLoggedIn(false);
-    }
-  }, [setLoggedIn]); // Add setLoggedIn as a dependency
 
    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
    const debouncedSetSearchText = (value: string) => {

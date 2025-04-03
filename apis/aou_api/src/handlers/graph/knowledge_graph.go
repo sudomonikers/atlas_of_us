@@ -115,32 +115,25 @@ func GetNodes(c *gin.Context) {
 				image: node.image,
 				description: node.description
 			} AS n, 
-			CASE size(relationships)
-				WHEN 0 THEN []
-				ELSE [relationship IN relationships |
-					{
-						id: elementId(relationship),
-						startElementId: elementId(startNode(relationship)),
-						endElementId: elementId(endNode(relationship)),
-						type: type(relationship),
-						props: properties(relationship)
-					}
-				]
-			END AS relationships, 
-			CASE size(affiliatedNodes)
-				WHEN 0 THEN []
-				ELSE [node IN affiliatedNodes | 
-					{
-						elementId: elementId(node),
-						labels: labels(node),
-						name: node.name,
-						description: node.description
-					}
-				]
-			END AS affiliatedNodes
+			[relationship IN relationships |
+				{
+					id: elementId(relationship),
+					startElementId: elementId(startNode(relationship)),
+					endElementId: elementId(endNode(relationship)),
+					type: type(relationship),
+					props: properties(relationship)
+				}
+			] AS relationships, 
+			[node IN affiliatedNodes | 
+				{
+					elementId: elementId(node),
+					labels: labels(node),
+					name: node.name,
+					description: node.description
+				}
+			] AS affiliatedNodes
 	`, depth)
 
-	fmt.Println(queryString)
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"depth": depth})
 	if err != nil {
 		appCtx.LOGGER.Error(err.Error())
@@ -200,38 +193,32 @@ func GetNodeWithRelationshipsBySearchTerm(c *gin.Context) {
 			score, 
 			collect(distinct unwound_relationships) AS relationships, 
 			collect(distinct unwound_affiliates) AS affiliatedNodes
-        RETURN 
-            {
-                elementId: elementId(node),
-                labels: labels(node),
-                name: node.name,
+		RETURN 
+			{
+				elementId: elementId(node),
+				labels: labels(node),
+				name: node.name,
 				image: node.image,
-                description: node.description,
+				description: node.description,
 				similarity: score
-            } AS n, 
-			CASE size(relationships)
-				WHEN 0 THEN []
-				ELSE [relationship IN relationships |
-					{
-						id: elementId(relationship),
-						startElementId: elementId(startNode(relationship)),
-						endElementId: elementId(endNode(relationship)),
-						type: type(relationship),
-						props: properties(relationship)
-					}
-				]
-            END AS relationships, 
-            CASE size(affiliatedNodes)
-                WHEN 0 THEN []
-                ELSE [node IN affiliatedNodes | 
-                    {
-                        elementId: elementId(node),
-                        labels: labels(node),
-                        name: node.name,
-                        description: node.description
-                    }
-				]
-            END AS affiliatedNodes
+			} AS n, 
+			[relationship IN relationships |
+				{
+					id: elementId(relationship),
+					startElementId: elementId(startNode(relationship)),
+					endElementId: elementId(endNode(relationship)),
+					type: type(relationship),
+					props: properties(relationship)
+				}
+			] AS relationships, 
+			[node IN affiliatedNodes | 
+				{
+					elementId: elementId(node),
+					labels: labels(node),
+					name: node.name,
+					description: node.description
+				}
+			] AS affiliatedNodes
     `, depth)
 
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"embedding": embedding, "depth": depth})

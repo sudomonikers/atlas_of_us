@@ -11,7 +11,21 @@ import { Graph } from './pages/Graph/Graph.tsx';
 import { Roadmap } from './pages/Roadmap/Roadmap.tsx';
 import { Contact } from './pages/Contact/Contact.tsx';
 import { PageNotFound } from './pages/PageNotFound/PageNotFound.tsx';
-import { GlobalProvider } from './GlobalProvider.tsx';
+import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
+
+interface PrivateRouteProps {
+  children: React.ReactNode;
+}
+
+export function PrivateRoute({ children }: PrivateRouteProps) {
+  const { loggedIn } = useGlobal();
+  
+  if (!loggedIn) {
+    return <Navigate to="/Login" replace />;
+  } else {
+    return children;
+  }
+}
 
 createRoot(document.getElementById('root')!).render(
   <GlobalProvider>
@@ -20,7 +34,11 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/" element={<Navigate to="/Graph" />} />
         <Route path="/Login" element={<Login />} />
         <Route path="/Signup" element={<Signup />} />
-        <Route path="/Profile" element={<Profile />} />
+        <Route path="/Profile" element={
+          <PrivateRoute>
+            <Profile />
+          </PrivateRoute>
+        } />
         <Route path="/Community" element={<Community />} />
         <Route path="/Graph" element={<Graph />} />
         <Route path="/Roadmap" element={<Roadmap />} />
