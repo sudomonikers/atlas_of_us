@@ -6,8 +6,9 @@ import { jwtDecode } from "jwt-decode";
 export function Profile() {
   const httpService = new HttpService();
 
-  const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
+  const [avatarImgUrl, setAvatarImgUrl] = useState(null);
 
   useEffect(() => {
     const jwt = localStorage.getItem('jwt');
@@ -18,10 +19,15 @@ export function Profile() {
       httpService.fetchNodes(`/api/secure/profile/user-profile/${username}`).then((response) => {
         setLoading(false)
         setProfileData(response)
-        console.log(response)
+        console.log(response);
+
+        //@ts-ignore
+        httpService.getS3Object('atlas-of-us-general-bucket', response.nodeRoot.Props.avatar).then(imgBlob => {
+          setAvatarImgUrl(URL.createObjectURL(imgBlob));
+        })
       });
     }
-  }, [])
+  }, []);
 
   return (
     <>
@@ -30,8 +36,11 @@ export function Profile() {
         {loading && 
           <p>loading</p>
         }
-        {profileData &&
-          <p>data</p>
+        {profileData && avatarImgUrl &&
+          <>
+            <p>data</p>
+            <img src={avatarImgUrl} alt="Avatar" />
+          </>
         }
       </div>
     </>

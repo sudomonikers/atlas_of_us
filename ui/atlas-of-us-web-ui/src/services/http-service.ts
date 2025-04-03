@@ -9,7 +9,7 @@ export class HttpService {
   API_BASE = import.meta.env.VITE_API_BASE_URL;
   constructor() {}
 
-  async getS3Object(bucketName: string, key: string): Promise<HTMLImageElement> {
+  async getS3Object(bucketName: string, key: string): Promise<Blob> {
     return new Promise((resolve, reject) => {
       fetch(`${this.API_BASE}/api/secure/helper/s3-object?bucket=${bucketName}&key=${key}`, {
         method: "GET",
@@ -22,19 +22,7 @@ export class HttpService {
         if (!response.ok) {
           reject(new Error(`HTTP error! status: ${response.status}`));
         }
-        return response.blob();
-      })
-      .then(blob => {
-        const imageUrl = URL.createObjectURL(blob);
-        const img = new Image();
-        img.src = imageUrl;
-        img.onload = () => {
-          URL.revokeObjectURL(imageUrl); // Clean up memory after the image is loaded
-          resolve(img); // Resolve the promise with the loaded image
-        };
-        img.onerror = (error) => {
-          reject(error);
-        };
+        resolve(response.blob());
       })
       .catch(error => {
         console.error("Error fetching S3 object:", error);

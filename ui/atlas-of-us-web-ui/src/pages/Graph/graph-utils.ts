@@ -8,11 +8,24 @@ export class GraphUtils {
   constructor(private httpService: HttpService) {}
 
   async processImage(
-    image: HTMLImageElement,
+    imageBlob: Blob,
     threshold: number,
     center: THREE.Vector3,
     selectionRatio: number,
   ): Promise<{ x: number; y: number; z: number }[]> {
+    const imageUrl = URL.createObjectURL(imageBlob);
+    const image = new Image();
+    image.src = imageUrl;
+    await new Promise<HTMLImageElement>((resolve, reject) => {
+      image.onload = () => {
+        URL.revokeObjectURL(imageUrl);
+        resolve(image);
+      };
+      image.onerror = (error) => {
+        URL.revokeObjectURL(imageUrl);
+        reject(error);
+      };
+    });
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
     canvas.width = image.width;

@@ -48,7 +48,7 @@ export const Constellation = () => {
       const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
         graphData.nodeRoot.image
-      );
+      )
       
       const location = newLocation || constellationState.sceneLocation;
       const imagePoints = await graphUtils.processImage(image, 50, location, 0.06);
