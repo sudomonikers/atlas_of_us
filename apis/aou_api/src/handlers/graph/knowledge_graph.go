@@ -101,8 +101,8 @@ func GetNodes(c *gin.Context) {
 
 	queryString += fmt.Sprintf(`
 		OPTIONAL MATCH (node)-[r*1..%d]->(m)
-		UNWIND r AS unwound_relationships
-		UNWIND m AS unwound_affiliates
+		UNWIND coalesce(r, [null]) AS unwound_relationships
+		UNWIND coalesce(m, [null]) AS unwound_affiliates
 		WITH 
 			node,
 			collect(distinct unwound_relationships) AS relationships, 
@@ -193,8 +193,8 @@ func GetNodeWithRelationshipsBySearchTerm(c *gin.Context) {
 		YIELD node, score
 
         OPTIONAL MATCH (node)-[r*1..%d]->(m)
-		UNWIND r AS unwound_relationships
-		UNWIND m AS unwound_affiliates
+		UNWIND coalesce(r, [null]) AS unwound_relationships
+		UNWIND coalesce(m, [null]) AS unwound_affiliates
         WITH 
 			node, 
 			score, 
