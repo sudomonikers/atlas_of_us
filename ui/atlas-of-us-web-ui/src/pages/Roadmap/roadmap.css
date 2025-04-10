@@ -1,0 +1,80 @@
+.roadmap-h1 {
+  font-family: "Mochiy Pop One", sans-serif;
+  color: #fd79a8;
+  font-size: 6rem;
+}
+
+.roadmap-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.roadmap-container p {
+  font-size: 2rem;
+  margin: 20px;
+}
+
+.roadmap-container ul {
+  text-align: left !important;
+  max-width: 600px;
+  font-size: 1.5rem;
+
+}
+
+.roadmap-container li {
+  text-align: left !important;
+  margin-left: 20px !important;
+  list-style-type: '-> ' !important;
+  vertical-align: middle;
+}
+
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: 1.5rem;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.in-progress {
+  font-family: "Mochiy Pop One", sans-serif;
+  background-color: #fd79a8;
+  color: white;
+  border: 1px solid #f8aec8;
+}
+
+.in-progress::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background-color: #690a2b;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}

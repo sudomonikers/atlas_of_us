@@ -1,5 +1,5 @@
-import { createRoot } from 'react-dom/client'
-import './index.css'
+import { createRoot } from 'react-dom/client';
+import './index.css';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 
 //pages
@@ -12,6 +12,7 @@ import { Roadmap } from './pages/Roadmap/Roadmap.tsx';
 import { Contact } from './pages/Contact/Contact.tsx';
 import { PageNotFound } from './pages/PageNotFound/PageNotFound.tsx';
 import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
+import { Blog } from './pages/Blog/Blog.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -43,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/Graph" element={<Graph />} />
         <Route path="/Roadmap" element={<Roadmap />} />
         <Route path="/Contact" element={<Contact />} />
+        <Route path="/Blog" element={<Blog />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </BrowserRouter>

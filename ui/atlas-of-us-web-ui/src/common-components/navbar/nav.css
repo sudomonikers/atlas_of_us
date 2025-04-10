@@ -23,6 +23,7 @@ nav {
   border: 1px solid #ccc;
   padding: 8px;
   border-radius: 5px;
+  background-color: #242424;
 }
 
 .login-button {
@@ -31,7 +32,7 @@ nav {
   padding: 8px;
   border-radius: 5px;
   background-color: #000;
-  color: white; /* Ensure text is visible on the black background */
+  color: white; /* Ensure text is visible on the #242424 background */
   display: flex; /* Use flexbox for vertical alignment */
   align-items: center; /* Vertically center the text */
   justify-content: center;
@@ -50,7 +51,7 @@ nav {
   padding: 0;
   margin-right: 5px; /* Add some spacing between the button and input */
   cursor: pointer;
-  color: black;
+  color: #242424;
   display: flex;
   align-items: center;
 }
@@ -100,10 +101,12 @@ ul:hover li a {
   color: #fff;
 }
 ul li:hover a {
-  color: #000;
+  color: #242424;
   background: transparent;
 }
 ul li a:before {
+  font-family: "Mochiy Pop One", sans-serif;
+
   content: "";
   position: absolute;
   top: 50%;
@@ -158,7 +161,7 @@ ul li:nth-child(6n + 6) a:before {
 }
 
 .line {
-  stroke: black;
+  stroke: #242424;
   stroke-width: 5;
   transition: transform 0.7s ease;
 }

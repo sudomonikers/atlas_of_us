@@ -1,32 +1,75 @@
 .community-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 2rem;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  padding: 15px;
 }
 
-.image-container {
-  background-color: white !important;
+p.description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: #555;
+}
+
+.screenshot {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.screenshot img {
+  width: 100%;
+  display: block;
+}
+
+.buttons {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
+  gap: 1rem;
 }
 
-.img {
-  width: auto;
-  height: 250px;
-  object-fit: cover;
+.btn-discord,
+.btn-reddit {
+  display: inline-block;
+  padding: 12px 24px;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  color: white;
 }
 
-.image-link {
-  padding: 15px;
-  cursor: pointer;
-  background-color: white;
+.btn-discord {
+  background: linear-gradient(90deg, #7289da, #99aab5);
+}
+
+.btn-reddit {
+  background: linear-gradient(90deg, #ff4500, #ff8717);
+}
+
+.btn-discord:hover,
+.btn-reddit:hover {
+  filter: brightness(1.1);
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 2rem;
+  }
+  .btn-discord,
+  .btn-reddit {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .big-h1 {
   font-size: 3rem;
-  margin: 20px;
+  margin-bottom: 20px;
   color: #1582fe;
+  font-family: "Mochiy Pop One", sans-serif;
 }

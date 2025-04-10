@@ -1,6 +1,6 @@
 .contact-container {
   background-color: #fff;
-  color: black;
+  color: #242424;
   display: flex;
   flex-direction: row;
   height: auto;
@@ -26,7 +26,7 @@
   display: flex;
   flex-direction: column;
   padding: 40px;
-  color: black;
+  color: #242424;
 }
 
 .main-heading {
@@ -34,6 +34,7 @@
   font-weight: bold;
   color: #a29bfe;
   margin-bottom: 10px;
+  font-family: "Mochiy Pop One", sans-serif;
 }
 
 .sub-heading {
@@ -64,7 +65,7 @@
 .contact-name {
   font-size: 1.2rem;
   font-weight: bold;
-  color: black;
+  color: #242424;
   margin-bottom: 5px;
 }
 

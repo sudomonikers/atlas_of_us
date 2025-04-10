@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/material-icons": "^5.2.5",
+    "@fontsource/mochiy-pop-one": "^5.2.5",
     "@react-three/drei": "^10.0.5",
     "@react-three/fiber": "^9.1.0",
     "@widgetbot/embed-api": "^1.2.17",
