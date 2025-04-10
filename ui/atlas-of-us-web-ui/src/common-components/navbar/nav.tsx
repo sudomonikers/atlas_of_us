@@ -34,9 +34,6 @@ export function NavBar() {
   return (
     <>
       <nav>
-        <button className="microphone-button">
-          <span className="material-symbols-outlined">mic_off</span>
-        </button>
         <input
           type="text"
           id="input"

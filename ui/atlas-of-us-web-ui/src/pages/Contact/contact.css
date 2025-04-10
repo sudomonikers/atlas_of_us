@@ -1,0 +1,102 @@
+.contact-container {
+  background-color: #fff;
+  color: black;
+  display: flex;
+  flex-direction: row;
+  height: auto;
+  width: 100%;
+}
+
+.image-container {
+  flex: 1; 
+  background-color: #eee; 
+  transition: transform 0.3s ease-out;
+  z-index: 2;
+}
+
+.image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+  color: black;
+}
+
+.main-heading {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #fd79a8;
+  margin-bottom: 10px;
+}
+
+.sub-heading {
+  font-size: 2rem;
+  font-style: italic;
+  color: #fd79a8;
+  margin-bottom: 40px;
+}
+
+.contact-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.contact-group {
+  flex: 1 1 300px;
+}
+
+.group-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #a8a8a8;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.contact-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: black;
+  margin-bottom: 5px;
+}
+
+.contact-email {
+  font-size: 1rem;
+  color: #fd79a8;
+  text-decoration: none;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.contact-email:hover {
+  text-decoration: underline;
+}
+
+.contact-phone {
+  font-size: 1rem;
+  color: #1a1a1a; /* Dark text color */
+  margin-top: 5px;
+}
+
+.github-logo {
+  height: 24px;
+  width: 24px;
+  vertical-align: middle; /* Add this line */
+  margin-right: 5px; /* Optional: Add some spacing between the image and text */
+}
+
+.big-h1 {
+  font-size: 8rem;
+}
+
+h3 {
+  font-size: 24px;
+}

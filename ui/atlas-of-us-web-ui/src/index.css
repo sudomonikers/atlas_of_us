@@ -28,6 +28,13 @@ body {
   width: 100%;
   position: absolute;
   top: 60px;
+  overflow-y: scroll;
+  background-color: #fff;
+  color: black;
+}
+
+.padding-container {
+  padding: 15px;
 }
 
 .center-container {
