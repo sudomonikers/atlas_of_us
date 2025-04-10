@@ -4,3 +4,99 @@
   font-size: 6rem;
   text-align: center;
 }
+
+.blog-container {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px 15px 15px;
+  gap: 2rem;
+}
+
+/* Main blog content area - 80% width */
+.blogs {
+  flex: 0 0 80%;
+  padding-right: 2rem;
+}
+
+.blog-post {
+  margin-bottom: 4rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #ffeaa7;
+}
+
+.blog-title {
+  font-family: "Mochiy Pop One", sans-serif;
+  font-size: 2rem;
+  color: #fff;
+}
+
+.blog-date {
+  color: #aaa;
+  font-style: italic;
+  margin-bottom: 15px;
+}
+
+.blog-content {
+  line-height: 1.6;
+}
+
+/* Table of Contents - 20% width with sticky positioning */
+.blog-navigator {
+  flex: 0 0 20%;
+}
+
+.toc-container {
+  position: sticky;
+  top: 100px;
+  padding: 0 15px 15px 15px;
+}
+
+.toc-heading {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ffeaa7;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-item {
+  padding: 10px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.toc-item:last-child {
+  border-bottom: none;
+}
+
+.toc-item:hover {
+  color: #ffeaa7;
+}
+
+.toc-item.active {
+  color: #ffeaa7;
+  font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .blog-container {
+    flex-direction: column;
+  }
+  
+  .blogs, .blog-navigator {
+    flex: 0 0 100%;
+    padding-right: 0;
+  }
+  
+  .toc-container {
+    position: static;
+    margin-bottom: 2rem;
+  }
+}
