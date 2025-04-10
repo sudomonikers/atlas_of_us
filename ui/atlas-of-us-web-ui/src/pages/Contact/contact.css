@@ -32,14 +32,14 @@
 .main-heading {
   font-size: 3rem;
   font-weight: bold;
-  color: #fd79a8;
+  color: #a29bfe;
   margin-bottom: 10px;
 }
 
 .sub-heading {
   font-size: 2rem;
   font-style: italic;
-  color: #fd79a8;
+  color: #a29bfe;
   margin-bottom: 40px;
 }
 
@@ -70,7 +70,7 @@
 
 .contact-email {
   font-size: 1rem;
-  color: #fd79a8;
+  color: #a29bfe;
   text-decoration: none;
   margin-bottom: 10px;
   display: block;

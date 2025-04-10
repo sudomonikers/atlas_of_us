@@ -95,6 +95,15 @@ export function NavBar() {
             </li>
             <li>
               <Link
+                to="/Contact"
+                onClick={handleNavigation}
+                data-text="Get In Touch"
+              >
+                Get In Touch
+              </Link>
+            </li>
+            <li>
+              <Link
                 to="/Roadmap"
                 onClick={handleNavigation}
                 data-text="Roadmap"
@@ -104,11 +113,11 @@ export function NavBar() {
             </li>
             <li>
               <Link
-                to="/Contact"
+                to="/Blog"
                 onClick={handleNavigation}
-                data-text="Get In Touch"
+                data-text="Blog"
               >
-                Get In Touch
+                Blog
               </Link>
             </li>
           </ul>
