@@ -119,3 +119,26 @@ body {
 .mt-10 {
   margin-top: 10px;
 }
+
+.or-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80%;
+  margin: 20px 0; /* Adjust margin as needed */
+}
+
+.line {
+  flex-grow: 1;
+  height: 1px;
+  background-color: white; /* Adjust color as needed */
+}
+
+.line-black {
+  background-color: black !important;
+}
+
+.or-text {
+  margin: 0 10px; /* Adjust spacing around "OR" as needed */
+  font-weight: bold; /* Make "OR" stand out */
+}

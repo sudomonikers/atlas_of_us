@@ -1,0 +1,31 @@
+.community-container {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+}
+
+.image-container {
+  background-color: white !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.img {
+  width: auto;
+  height: 250px;
+  object-fit: cover;
+}
+
+.image-link {
+  padding: 15px;
+  cursor: pointer;
+  background-color: white;
+}
+
+.big-h1 {
+  font-size: 3rem;
+  margin: 20px;
+}

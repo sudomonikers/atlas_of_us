@@ -20,22 +20,3 @@ input {
   padding: 10px;
   border: 3px;
 }
-
-.or-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  margin: 20px 0; /* Adjust margin as needed */
-}
-
-.line {
-  flex-grow: 1;
-  height: 1px;
-  background-color: white; /* Adjust color as needed */
-}
-
-.or-text {
-  margin: 0 10px; /* Adjust spacing around "OR" as needed */
-  font-weight: bold; /* Make "OR" stand out */
-}

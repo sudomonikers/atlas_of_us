@@ -50,26 +50,6 @@ export function Contact() {
             <img src={contactImage} alt="Contact Image" />
           </div>
           <div className="content-container">
-            {/* <i>
-              <h1 className="big-h1">Atlas Of Us</h1>
-            </i>
-
-            <h3>
-              Business Inquiries:{" "}
-              <a href="mailto:andrew.link1999@gmail.com" target="_blank">
-                andrewlink1999@gmail.com
-              </a>
-            </h3>
-            <h3>
-              Report a bug:{" "}
-              <img src={githubLogo} className="github-logo"></img>
-              <a
-                href="https://github.com/sudomonikers/atlas_of_us/issues"
-                target="_blank"
-              >
-               Add an issue in our github
-              </a>
-            </h3> */}
             <div className="content-container">
               <h1 className="main-heading">Atlas Of Us</h1>
               <h2 className="sub-heading">Start a conversation</h2>

@@ -92,11 +92,3 @@
   vertical-align: middle; /* Add this line */
   margin-right: 5px; /* Optional: Add some spacing between the image and text */
 }
-
-.big-h1 {
-  font-size: 8rem;
-}
-
-h3 {
-  font-size: 24px;
-}
