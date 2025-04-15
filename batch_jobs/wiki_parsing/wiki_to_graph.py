@@ -208,11 +208,11 @@ class AtlasOfUsGraphAdmin:
                             },
                             "nodeName": {
                                 "type": "string",
-                                "description": "What the name of the node should be."
+                                "description": "What the name of the node should be (not necessarily the name of the content)."
                             },
                             "nodeDescription": {
                                 "type": "string",
-                                "description": "A description of the new node we are creating."
+                                "description": "A description of the new node we are creating (not necessarily a description of the content)."
                             },
                             "selectionReason": {
                                 "type": "string",
@@ -225,11 +225,11 @@ class AtlasOfUsGraphAdmin:
             }
         ]
         #run inference
-        ai_response, conversation_history = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS)        
+        ai_response, conversation_history = self.run_inference(NODE_CHOICE_PROMPT, NODE_CHOICE_TOOLS) 
+        print(ai_response)       
         node_choice_function_call = ai_response['tool_calls'][0]['function']
         node_choice_function_call_arguments = json.loads(node_choice_function_call['arguments'])
         node_type_selected = node_choice_function_call_arguments['nodeType']
-        print(node_type_selected, ai_response)
 
         #If the agent thinks this content has something that should be added to the db, lets have it refine further
         if node_type_selected != 'NONE':
@@ -268,7 +268,7 @@ class AtlasOfUsGraphAdmin:
                 similarity_function_call = similarity_response['tool_calls'][0]['function']
                 similarity_function_call_choice = json.loads(similarity_function_call['arguments'])
                 if similarity_function_call_choice == 'DUPLICATE':
-                    pass
+                    return
 
             #if we have cleared the node type check as well as the duplicate check, then we can refine our node further
             REFINE_NODE_FURTHER_PROMPT = f"""
@@ -320,8 +320,8 @@ class AtlasOfUsGraphAdmin:
             )
             print(f"Created new node: {node_choice_function_call_arguments['nodeName']}")
         else:
-            pass
-
+            return
+            
 
     def process_all_files(self):
         """Process all files in the S3 bucket"""
@@ -348,8 +348,15 @@ class AtlasOfUsGraphAdmin:
                     print(f"\nProcessing file: {file_key} ({file_size} bytes)")
                     
                     try:
-                        result = self.process_file(file_key)
-                        all_results.append(result)
+                        start_time = time.time()
+                        self.process_file(file_key)
+
+                        # Move the file to the 'processed' folder
+                        self.s3.copy_object(Bucket=S3_BUCKET, CopySource={'Bucket': S3_BUCKET, 'Key': file_key}, Key='processed/' + file_key)
+                        self.s3.delete_object(Bucket=S3_BUCKET, Key=file_key)
+                        
+                        end_time = time.time()
+                        print(f"Time to process {file_key}: {end_time - start_time} seconds")
                     except Exception as e:
                         print(f"Error processing {file_key}: {e}")
             
