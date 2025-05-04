@@ -24,15 +24,7 @@ func GetUserProfile(c *gin.Context) {
 			collect(distinct unwound_affiliates) AS affiliatedNodes
 		RETURN 
 			node,
-			[relationship IN relationships |
-				{
-					id: elementId(relationship),
-					startElementId: elementId(startNode(relationship)),
-					endElementId: elementId(endNode(relationship)),
-					type: type(relationship),
-					props: properties(relationship)
-				}
-			] AS relationships,
+			relationships,
 			affiliatedNodes
 	`
 

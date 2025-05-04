@@ -1,0 +1,68 @@
+.profile-container {
+  padding: 2rem;
+  max-width: 900px;
+  margin: auto;
+  color: #f1f1f1;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 1.5rem;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 100%;
+  object-fit: cover;
+  border: 3px solid #666;
+}
+
+.basic-info h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.basic-info p {
+  margin: 0.25rem 0;
+  color: #aaa;
+}
+
+.profile-section {
+  margin-bottom: 2rem;
+}
+
+.profile-section h2 {
+  margin-bottom: 0.5rem;
+  color: #ddd;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  background-color: #333;
+  color: #eee;
+  padding: 0.4rem 0.8rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+}
+
+.pursuit-list, .org-list {
+  list-style: none;
+  padding: 0;
+}
+
+.pursuit-list li,
+.org-list li {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #333;
+}
+ 

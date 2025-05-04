@@ -1,17 +1,18 @@
 export interface Neo4jNode {
-  elementId: string,
-  labels: string[],
-  name: string,
-  image: string,
-  description: string
+  ElementId: string,
+  Id: string,
+  Labels: string[],
+  Props: {
+    [key: string]: any
+  },
 }
 
 export interface Neo4jRelationship {
-  id: string,
-  startElementId: string,
-  endElementId: string,
-  type: string,
-  props: {
+  ElementId: string,
+  StartElementId: string,
+  EndElementId: string,
+  Type: string,
+  Props: {
     [key: string]: any
   }
 }

@@ -19,8 +19,11 @@ export function Roadmap() {
               ADD FEATURES
               <ul>
                 <li>How to guides - 0%</li>
-                <li>Job finder - 0%</li>
-                <li>Tinder but better - 0%</li>
+                <li>Leaderboards - 0%</li>
+                <li>Job matcher - 0%</li>
+                <li>Tinder/hinge but better (relationship matcher) - 0%</li>
+                <li>Fortune telling / horoscopes - 0%</li>
+                <li>Mini Games like generating an animal to represent you - 0%</li>
               </ul>
             </li>
           </ul>
