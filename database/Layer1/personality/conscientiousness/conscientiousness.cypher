@@ -388,7 +388,7 @@ SET attr1.description = "Belief in one's ability to succeed in specific situatio
         -0.03252356871962547,
         0.055865947157144547
     ],
-    attr1.image = 'self_efficacy.jpg',
+    attr1.image = 'node_images/self_efficacy.jpg',
     attr1.aiGenerated = false,
     attr1.author = 'andrew link'
 MERGE (c)-[:HAS_TRAIT]->(attr1)
@@ -781,7 +781,7 @@ SET attr2.description = 'The quality or habit of being orderly and systematic.',
         0.011300824582576752,
         -0.06536378711462021
     ],
-    attr2.image = 'orderliness.jpg',
+    attr2.image = 'node_images/orderliness.jpg',
     attr2.aiGenerated = false,
     attr2.author = 'andrew link'
 MERGE (c)-[:HAS_TRAIT]->(attr2)
@@ -1174,7 +1174,7 @@ SET attr3.description = "Conscientiously or obediently fulfilling one's duty.",
         0.03228677436709404,
         -0.036094095557928085
     ],
-    attr3.image = 'dutifulness.jpg',
+    attr3.image = 'node_images/dutifulness.jpg',
     attr3.aiGenerated = false,
     attr3.author = 'andrew link'
 MERGE (c)-[:HAS_TRAIT]->(attr3)
@@ -1567,7 +1567,7 @@ SET attr4.description = 'A strong desire to accomplish significant goals, often 
         -0.0387570783495903,
         0.03218595311045647
     ],
-    attr4.image = 'achievement_striving.jpg',
+    attr4.image = 'node_images/achievement_striving.jpg',
     attr4.aiGenerated = false,
     attr4.author = 'andrew link'
 MERGE (c)-[:HAS_TRAIT]->(attr4)
@@ -1960,7 +1960,7 @@ SET attr5.description = "The ability to control one's feelings and overcome one'
         -0.05783938989043236,
         0.0003406988689675927
     ],
-    attr5.image = 'self_discipline.jpg',
+    attr5.image = 'node_images/self_discipline.jpg',
     attr5.aiGenerated = false,
     attr5.author = 'andrew link'
 MERGE (c)-[:HAS_TRAIT]->(attr5)
@@ -2353,7 +2353,7 @@ SET attr6.description = 'The quality of being careful, prudent, and thoughtful b
         0.012569471262395382,
         -0.02167566306889057
     ],
-    attr6.image = 'cautiousness.jpg',
+    attr6.image = 'node_images/cautiousness.jpg',
     attr6.aiGenerated = false,
     attr6.author = 'andrew link'
 MERGE (c)-[:HAS_TRAIT]->(attr6)

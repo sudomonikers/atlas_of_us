@@ -41,24 +41,10 @@ The Health nodes are all about the body. We have nodes broken down into each sys
 
 ‘Health’ can have the following relationships with other nodes:
 
-L3 - ‘Person’ nodes can have these relationships with ‘Health’ nodes
-
-```jsx
-(p:Person)-[HAS_CONDITION { since: date, until: date, severity: string, status: string }]->(h:Condition)
-(p:Person)-[HAS_ABNORMALITY { since: date, description: string }]->(h:Health)
-(p:Person)-[HAS_RISK_FACTOR { level: string }]->(c:Condition)
-(p:Person)-[TAKES { dosage: string, frequency: string, started: date }]->(m:Medication)
-(p:Person)-[EXPERIENCES { severity: string, frequency: string }]->(s:Symptom)
-```
-
-The default assumption is that if a ‘Person’ does not have a relationship with a ‘Health’ node, then that ‘Person’ is perfectly average in that trait. We only create a relationship with a ‘Health’ node if the ‘Person’ has some note worthy abnormality in that thing. Most of the relationships ‘Person’s have with the ‘Health’ nodes will be to one of the Condition nodes, not the basic System/Organ/Tissue nodes.
-
-L2 - L2 nodes relationships with Health are explained in the L2 Document
-
 L1 - ‘Health’ nodes can have these relationships with the other L1 nodes. Because so much of health is interrelated, there will be many many AFFECTS relationships.
 
 ```jsx
-//System/Organ/Tissue nodes
+//System/Organ/Tissue/Cell nodes
 (h1:Health)-[AFFECTS { description: string, reference: string}]->(h2:Health)
 (s:System)-[MADE_OF]->(o:Organ)
 (s:Organ)-[MADE_OF]->(o:Tissue)
@@ -66,14 +52,6 @@ L1 - ‘Health’ nodes can have these relationships with the other L1 nodes. Be
 (s:Tissue)-[MADE_OF {amount: number}]->(o:Cell)
 (c:Cell)-[MADE_OF {amount: number}]->(o:Organelle)
 (g:Gland)-[PRODUCES {amount: number}]->(h:Hormone)
-
-//Condition nodes
-(c:Condition)-[AFFECTS { description: string, reference: string}]->(h:Health)
-(c:Condition)-[LEADS_TO { description: string, reference: string}]->(h:Condition)
-(c:Condition)-[CAUSED_BY { description: string, reference: string}]->(h:Health)
-(t:Treatment)-[TREATS]->(h:Condition)
-(h:Condition)-[PRESENTS_WITH]->(s:Symptom)
-(h1:Condition)-[COMORBID_WITH { interaction_type: string }]->(h2:Condition)
 ```
 
-There is a lot of complicated things going on here, so I will expand on it further. The basic structure of a Health node has [’L1’, ‘Health’] labels. Then, if a Health node is a Body_Component, then it gets an additional label for the type of component it is, for example [’L1’, ‘Health’, ‘Body_Component’, ‘System’]. If it is a Condition though, then it gets [’L1’, ‘Health’, ‘Condition’] as well as the sub type of Condition that it is, for example [’L1’, ‘Health’, ‘Condition’, ‘Congenital’]. The other things like Symptom and Treatment could be broken down further in the future.
+There is a lot of complicated things going on here, so I will expand on it further. The basic structure of a Health node has [’L1’, ‘Health’] labels. Then, if a Health node is a Body_Component, then it gets an additional label for the type of component it is, for example [’L1’, ‘Health’, ‘Body_Component’, ‘System’].

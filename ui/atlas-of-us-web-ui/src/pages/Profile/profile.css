@@ -66,3 +66,14 @@
   border-bottom: 1px solid #333;
 }
  
+.strength-low {
+  color: red;
+}
+
+.strength-medium {
+  color: white;
+}
+
+.strength-high {
+  color: green;
+}

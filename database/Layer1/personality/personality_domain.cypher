@@ -387,7 +387,7 @@ SET p.description = 'Any being\'s\' collection of interrelated behavioral, cogni
         -0.03494207188487053,
         -0.006380485836416483
     ],
-    p.image = 'personality.jpg',
+    p.image = 'node_images/personality.jpg',
     p.aiGenerated = false,
     p.author = 'andrew link'
 
@@ -782,7 +782,7 @@ SET o:Personality:L1,
         0.00853581540286541,
         0.045756347477436066
     ],
-    o.image = 'openness.jpg',
+    o.image = 'node_images/openness.jpg',
     o.aiGenerated = false,
     o.author = 'andrew link'
 MERGE (p)-[:HAS_TRAIT]->(o)
@@ -1176,6 +1176,7 @@ SET ne:Personality:L1,
         -0.05867980048060417,
         0.0036743776872754097
     ],
+    ne.image = 'node_images/neuroticism.jpg',
     ne.aiGenerated = false,
     ne.author = 'andrew link'
 MERGE (p)-[:HAS_TRAIT]->(ne)
@@ -1569,7 +1570,7 @@ SET e:Personality:L1,
         -0.08511204272508621,
         0.022578038275241852
     ],
-    e.image = 'extraversion.jpg',
+    e.image = 'node_images/extraversion.jpg',
     e.aiGenerated = false,
     e.author = 'andrew link'
 MERGE (p)-[:HAS_TRAIT]->(e)
@@ -1963,7 +1964,7 @@ SET a:Personality:L1,
         -0.02349601499736309,
         -0.051706764847040176
     ],
-    a.image = 'agreeableness.jpg',
+    a.image = 'node_images/agreeableness.jpg',
     a.aiGenerated = false,
     a.author = 'andrew link'
 MERGE (p)-[:HAS_TRAIT]->(a)
@@ -2357,7 +2358,7 @@ SET c:Personality:L1,
         0.04594125971198082,
         -0.006666678469628096
     ],
-    c.image = 'conscientiousness.jpg',
+    c.image = 'node_images/conscientiousness.jpg',
     c.aiGenerated = false,
     c.author = 'andrew link'
 MERGE (p)-[:HAS_TRAIT]->(c)

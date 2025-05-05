@@ -388,7 +388,7 @@ SET attr1.description = 'Feeling of worry, nervousness, or unease about somethin
         -0.05702501907944679,
         0.0520700104534626
     ],
-    attr1.image = 'anxiety.jpg',
+    attr1.image = 'node_images/anxiety.jpg',
     attr1.aiGenerated = false,
     attr1.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr1)
@@ -781,7 +781,7 @@ SET attr2.description = 'Frequent changes in mood; tendency to experience feelin
         -0.025329576805233955,
         -0.011452063918113708
     ],
-    attr2.image = 'moodiness.jpg',
+    attr2.image = 'node_images/moodiness.jpg',
     attr2.aiGenerated = false,
     attr2.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr2)
@@ -1174,7 +1174,7 @@ SET attr3.description = 'Susceptibility to being easily stressed or overwhelmed 
         -0.07146317511796951,
         0.009133261628448963
     ],
-    attr3.image = 'vulnerability_to_stress.jpg',
+    attr3.image = 'node_images/vulnerability_to_stress.jpg',
     attr3.aiGenerated = false,
     attr3.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr3)
@@ -1567,7 +1567,7 @@ SET attr4.description = 'Tendency to have unpredictable and rapid changes in emo
         -0.042959317564964294,
         -0.01686054840683937
     ],
-    attr4.image = 'emotional_instability.jpg',
+    attr4.image = 'node_images/emotional_instability.jpg',
     attr4.aiGenerated = false,
     attr4.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr4)
@@ -1960,7 +1960,7 @@ SET attr5.description = 'Feeling or showing strong annoyance, displeasure, or ho
         -0.06136773154139519,
         0.015056542120873928
     ],
-    attr5.image = 'anger.jpg',
+    attr5.image = 'node_images/anger.jpg',
     attr5.aiGenerated = false,
     attr5.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr5)
@@ -2353,7 +2353,7 @@ SET attr6.description = 'Acute awareness of oneself, leading to feelings of shyn
         -0.06763062626123428,
         -0.034084998071193695
     ],
-    attr6.image = 'self_consciousness.jpg',
+    attr6.image = 'node_images/self_consciousness.jpg',
     attr6.aiGenerated = false,
     attr6.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr6)
@@ -2746,7 +2746,7 @@ SET attr7.description = "Lack of restraint in controlling one's desires or feeli
         -0.035845935344696045,
         -0.05194362625479698
     ],
-    attr7.image = 'immoderation.jpg',
+    attr7.image = 'node_images/immoderation.jpg',
     attr7.aiGenerated = false,
     attr7.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr7)
@@ -3139,7 +3139,7 @@ SET attr8.description = 'Feeling of severe despondency and dejection.',
         -0.041993431746959686,
         -0.03467648848891258
     ],
-    attr8.image = 'depression.jpg',
+    attr8.image = 'node_images/depression.jpg',
     attr8.aiGenerated = false,
     attr8.author = 'andrew link'
 MERGE (ne)-[:HAS_TRAIT]->(attr8)

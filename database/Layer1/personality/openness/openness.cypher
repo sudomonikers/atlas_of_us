@@ -388,7 +388,7 @@ SET attr1.description = 'The ability to think about things in novel ways and to 
         0.000966403225902468,
         0.035393912345170975
     ],
-    attr1.image = 'creativity.jpg',
+    attr1.image = 'node_images/creativity.jpg',
     attr1.aiGenerated = false,
     attr1.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr1)
@@ -781,7 +781,7 @@ SET attr2.description = 'A strong desire to learn or know something, leading to 
         -0.1184067651629448,
         0.00426893774420023
     ],
-    attr2.image = 'curiosity.jpg',
+    attr2.image = 'node_images/curiosity.jpg',
     attr2.aiGenerated = false,
     attr2.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr2)
@@ -1174,7 +1174,7 @@ SET attr3.description = 'The capacity to create ideas or pictures in your mind, 
         -0.058862343430519104,
         0.015567990019917488
     ],
-    attr3.image = 'imagination.jpg',
+    attr3.image = 'node_images/imagination.jpg',
     attr3.aiGenerated = false,
     attr3.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr3)
@@ -1567,7 +1567,7 @@ SET attr4.description = 'A willingness to take risks or try out new and challeng
         -0.05468720570206642,
         -0.049785491079092026
     ],
-    attr4.image = 'daringness.jpg',
+    attr4.image = 'node_images/daringness.jpg',
     attr4.aiGenerated = false,
     attr4.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr4)
@@ -1960,7 +1960,7 @@ SET attr5.description = 'A tendency to seek out new experiences and changes in r
         -0.06640245020389557,
         -0.054671864956617355
     ],
-    attr5.image = 'preference_for_variety.jpg',
+    attr5.image = 'node_images/preference_for_variety.jpg',
     attr5.aiGenerated = false,
     attr5.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr5)
@@ -2353,7 +2353,7 @@ SET attr6.description = 'A preference for dealing with complex, abstract ideas o
         -0.006739010568708181,
         -0.040907904505729675
     ],
-    attr6.image = 'intellectualism.jpg',
+    attr6.image = 'node_images/intellectualism.jpg',
     attr6.aiGenerated = false,
     attr6.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr6)
@@ -2746,7 +2746,7 @@ SET attr7.description = 'Eagerness to trying new activities and experiencing dif
         -0.0641171932220459,
         -0.025264736264944077
     ],
-    attr7.image = 'adventurousness.jpg',
+    attr7.image = 'node_images/adventurousness.jpg',
     attr7.aiGenerated = false,
     attr7.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr7)
@@ -3139,7 +3139,7 @@ SET attr8.description = 'Openness to reexamine traditional values and to be acce
         0.05063903331756592,
         0.0245878454297781
     ],
-    attr8.image = 'liberalism.jpg',
+    attr8.image = 'node_images/liberalism.jpg',
     attr8.aiGenerated = false,
     attr8.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr8)
@@ -3532,7 +3532,7 @@ SET attr9.description = 'Appreciation for art, beauty, and aesthetic experiences
         -0.05763745307922363,
         -0.028917809948325157
     ],
-    attr9.image = 'artistic_interests.jpg',
+    attr9.image = 'node_images/artistic_interests.jpg',
     attr9.aiGenerated = false,
     attr9.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr9)
@@ -3925,7 +3925,7 @@ SET attr10.description = "Awareness of and expression of one's own feelings.",
         -0.049799151718616486,
         -0.007336599286645651
     ],
-    attr10.image = 'emotionality.jpg',
+    attr10.image = 'node_images/emotionality.jpg',
     attr10.aiGenerated = false,
     attr10.author = 'andrew link'
 MERGE (o)-[:HAS_TRAIT]->(attr10)

@@ -1,0 +1,2 @@
+llama-server -hf unsloth/Qwen3-30B-A3B-GGUF:Q8_0 --jinja -no-cnv --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0 -c 40960 -n 32768 --no-context-shift --presence-penalty 2.0
+#llama-server --hf-repo bartowski/Qwen_Qwen3-32B-GGUF --hf-file Qwen_Qwen3-32B-Q8_0.gguf --jinja --temp 0.6 --top-p 0.95 --top-k 20 --draft-p-min 0

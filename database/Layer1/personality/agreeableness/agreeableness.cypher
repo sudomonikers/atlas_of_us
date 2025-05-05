@@ -389,7 +389,7 @@ SET attr1:Personality:L1:Trait,
         0.05465084686875343,
         0.019518477842211723
     ],
-    attr1.image = 'trust.jpg',
+    attr1.image = 'node_images/trust.jpg',
     attr1.aiGenerated = false,
     attr1.author = 'andrew link'
 MERGE (a)-[:HAS_TRAIT]->(attr1)
@@ -783,7 +783,7 @@ SET attr2:Personality:L1:Trait,
         0.00016907685494516045,
         -0.05255064368247986
     ],
-    attr2.image = 'morality.jpg',
+    attr2.image = 'node_images/morality.jpg',
     attr2.aiGenerated = false,
     attr2.author = 'andrew link'
 MERGE (a)-[:HAS_TRAIT]->(attr2)
@@ -1177,7 +1177,7 @@ SET attr3:Personality:L1:Trait,
         -0.11596841365098953,
         0.0353899784386158
     ],
-    attr3.image = 'altruism.jpg',
+    attr3.image = 'node_images/altruism.jpg',
     attr3.aiGenerated = false,
     attr3.author = 'andrew link'
 MERGE (a)-[:HAS_TRAIT]->(attr3)
@@ -1571,7 +1571,7 @@ SET attr4:Personality:L1:Trait,
         -0.0035758111625909805,
         -0.0035579961258918047
     ],
-    attr4.image = 'cooperation.jpg',
+    attr4.image = 'node_images/cooperation.jpg',
     attr4.aiGenerated = false,
     attr4.author = 'andrew link'
 MERGE (a)-[:HAS_TRAIT]->(attr4)
@@ -1965,7 +1965,7 @@ SET attr5:Personality:L1:Trait,
         -0.015457882545888424,
         -0.04018930345773697
     ],
-    attr5.image = 'modesty.jpg',
+    attr5.image = 'node_images/modesty.jpg',
     attr5.aiGenerated = false,
     attr5.author = 'andrew link'
 MERGE (a)-[:HAS_TRAIT]->(attr5)
@@ -2359,7 +2359,7 @@ SET attr6:Personality:L1:Trait,
         -0.004352401476353407,
         -0.0006334235658869147
     ],
-    attr6.image = 'sympathy.jpg',
+    attr6.image = 'node_images/sympathy.jpg',
     attr6.aiGenerated = false,
     attr6.author = 'andrew link'
 MERGE (a)-[:HAS_TRAIT]->(attr6)

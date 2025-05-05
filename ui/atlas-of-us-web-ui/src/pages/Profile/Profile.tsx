@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { NavBar } from "../../common-components/navbar/nav";
 import { HttpService } from "../../services/http-service";
 import { jwtDecode } from "jwt-decode";
-import { Neo4jNode } from "../Graph/graph-interfaces.interface";
+import { Neo4jApiResponse, Neo4jNode } from "../Graph/graph-interfaces.interface";
 
 export function Profile() {
   const httpService = new HttpService();
 
   const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState([] as unknown as Neo4jApiResponse);
   const [avatarImgUrl, setAvatarImgUrl] = useState(null);
 
   useEffect(() => {
@@ -101,14 +101,29 @@ export function Profile() {
             <div className="profile-section">
               <h2>Personality Traits</h2>
               <div className="tag-list">
-                {profileData.affiliates?.map(
-                  (personality: Neo4jNode) =>
-                    personality.Labels.includes("Personality") && (
+                {profileData.affiliates?.map((personality: Neo4jNode) => {
+                  if (personality.Labels.includes("Personality")) {
+                    const relationship = profileData.relationships.find((node) => node.EndElementId === personality.ElementId);
+                    const strength = relationship.Props["strength"];
+                    let strengthClass = "";
+
+                    if (strength >= 0 && strength <= 3) {
+                      strengthClass = "strength-low";
+                    } else if (strength >= 4 && strength <= 7) {
+                      strengthClass = "strength-medium";
+                    } else if (strength >= 8 && strength <= 10) {
+                      strengthClass = "strength-high";
+                    }
+
+                    return (
                       <span key={personality.ElementId} className="tag">
-                        {personality.Props["name"]}
+                        {personality.Props["name"]} - {" "}
+                        <span className={strengthClass}>{strength}</span>
                       </span>
-                    )
-                )}
+                    );
+                  }
+                  return null;
+                })}
               </div>
             </div>
 

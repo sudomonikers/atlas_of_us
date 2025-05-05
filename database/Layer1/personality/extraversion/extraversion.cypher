@@ -388,7 +388,7 @@ SET attr1.description = 'Enjoyment of being with people and seeking out company 
         -0.049455031752586365,
         0.023261357098817825
     ],
-    attr1.image = 'sociability.jpg',
+    attr1.image = 'node_images/sociability.jpg',
     attr1.aiGenerated = false,
     attr1.author = 'andrew link'
 MERGE (e)-[:HAS_TRAIT]->(attr1)
@@ -781,7 +781,7 @@ SET attr2.description = "The willingness to express oneself and one's rights wit
         -0.037178367376327515,
         -0.012629343196749687
     ],
-    attr2.image = 'assertiveness.jpg',
+    attr2.image = 'node_images/assertiveness.jpg',
     attr2.aiGenerated = false,
     attr2.author = 'andrew link'
 MERGE (e)-[:HAS_TRAIT]->(attr2)
@@ -1174,7 +1174,7 @@ SET attr3.description = 'A desire to seek out activities where there is a thrill
         -0.08027343451976776,
         0.025497037917375565
     ],
-    attr3.image = 'excitement_seeking.jpg',
+    attr3.image = 'node_images/excitement_seeking.jpg',
     attr3.aiGenerated = false,
     attr3.author = 'andrew link'
 MERGE (e)-[:HAS_TRAIT]->(attr3)
@@ -1567,7 +1567,7 @@ SET attr4.description = 'Tendency to experience joy and to be optimistic.',
         0.008543181233108044,
         0.014084004797041416
     ],
-    attr4.image = 'cheerfulness.jpg',
+    attr4.image = 'node_images/cheerfulness.jpg',
     attr4.aiGenerated = false,
     attr4.author = 'andrew link'
 MERGE (e)-[:HAS_TRAIT]->(attr4)
@@ -1960,7 +1960,7 @@ SET attr5.description = 'A tendency to be busy and engaged in activities.',
         -0.1250334084033966,
         0.006292746867984533
     ],
-    attr5.image = 'activity_level.jpg',
+    attr5.image = 'node_images/activity_level.jpg',
     attr5.aiGenerated = false,
     attr5.author = 'andrew link'
 MERGE (e)-[:HAS_TRAIT]->(attr5)
@@ -2353,7 +2353,7 @@ SET attr6.description = 'Being kind and pleasant towards others.',
         -0.021449821069836617,
         -0.010795594193041325
     ],
-    attr6.image = 'friendliness.jpg',
+    attr6.image = 'node_images/friendliness.jpg',
     attr6.aiGenerated = false,
     attr6.author = 'andrew link'
 MERGE (e)-[:HAS_TRAIT]->(attr6)

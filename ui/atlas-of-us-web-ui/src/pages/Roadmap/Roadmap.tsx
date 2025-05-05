@@ -22,6 +22,7 @@ export function Roadmap() {
                 <li>Leaderboards - 0%</li>
                 <li>Job matcher - 0%</li>
                 <li>Tinder/hinge but better (relationship matcher) - 0%</li>
+                <li>Auto-generate a resume for me based on the job description</li>
                 <li>Fortune telling / horoscopes - 0%</li>
                 <li>Mini Games like generating an animal to represent you - 0%</li>
               </ul>
