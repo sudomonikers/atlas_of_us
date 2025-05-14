@@ -1,7 +1,7 @@
 package profile
 
 import (
-	"aou_api/src/models"
+	models "aou_api/src/models"
 	"fmt"
 	"net/http"
 
@@ -30,7 +30,7 @@ func GetUserProfile(c *gin.Context) {
 
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"username": username})
 	if err != nil {
-		fmt.Println("\nERROR AT GetUserProfile:", err.Error(), "\n")
+		fmt.Println("\nERROR AT GetUserProfile:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error querying database"})
 		return
 	}

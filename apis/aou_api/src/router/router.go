@@ -8,14 +8,14 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"golang.org/x/time/rate"
 
-	"aou_api/src/auth"
+	auth "aou_api/src/auth"
 	docs "aou_api/src/docs"
-	handlers "aou_api/src/handlers/graph"
-	helpers "aou_api/src/handlers/helpers"
+	knowledge_graph_handlers "aou_api/src/handlers/graph"
 	profile_handlers "aou_api/src/handlers/profile"
+	helpers "aou_api/src/helpers"
 
-	"aou_api/src/middleware"
-	"aou_api/src/models"
+	middleware "aou_api/src/middleware"
+	models "aou_api/src/models"
 )
 
 func NewRouter(appCtx *models.AppContext) *gin.Engine {
@@ -48,15 +48,15 @@ func NewRouter(appCtx *models.AppContext) *gin.Engine {
 
 		graph_management := secureRoutes.Group("graph")
 		{
-			graph_management.GET("get-nodes", handlers.GetNodes)
-			graph_management.GET("get-node-with-relationships-by-search-term", handlers.GetNodeWithRelationshipsBySearchTerm)
+			graph_management.GET("get-nodes", knowledge_graph_handlers.GetNodes)
+			graph_management.GET("get-node-with-relationships-by-search-term", knowledge_graph_handlers.GetNodeWithRelationshipsBySearchTerm)
 
-			graph_management.POST("create-node", handlers.CreateNode)
-			graph_management.PUT("update-node", handlers.UpdateNode)
-			graph_management.POST("create-relationship", handlers.CreateRelationship)
-			graph_management.PUT("update-relationship", handlers.UpdateRelationship)
+			graph_management.POST("create-node", knowledge_graph_handlers.CreateNode)
+			graph_management.PUT("update-node", knowledge_graph_handlers.UpdateNode)
+			graph_management.POST("create-relationship", knowledge_graph_handlers.CreateRelationship)
+			graph_management.PUT("update-relationship", knowledge_graph_handlers.UpdateRelationship)
 			//The following method is purely a FETCH operation and does not mutate any data, but we are using POST because we may send in a potentially very large vector embedding for finding similarity and there can be issues with that using GET
-			graph_management.POST("similar-nodes", handlers.GetSimilarNodes)
+			graph_management.POST("similar-nodes", knowledge_graph_handlers.GetSimilarNodes)
 		}
 
 		profile := secureRoutes.Group("profile")

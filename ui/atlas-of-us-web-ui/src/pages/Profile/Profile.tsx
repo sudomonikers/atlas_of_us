@@ -4,6 +4,7 @@ import { NavBar } from "../../common-components/navbar/nav";
 import { HttpService } from "../../services/http-service";
 import { jwtDecode } from "jwt-decode";
 import { Neo4jApiResponse, Neo4jNode } from "../Graph/graph-interfaces.interface";
+import { NeuroticTraits } from "./personality.map";
 
 export function Profile() {
   const httpService = new HttpService();
@@ -59,66 +60,130 @@ export function Profile() {
             <div className="profile-section">
               <h2>Skills</h2>
               <div className="tag-list">
-                {profileData.affiliates?.map(
-                  (skill: Neo4jNode) =>
-                    skill.Labels.includes("Skill") && (
-                      <span key={skill.ElementId} className="tag">
-                        {skill.Props["name"]}
+                {profileData.affiliates?.map((node: Neo4jNode) => {
+                  if (node.Labels.includes("Skill")) {
+                    const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
+
+                    return (
+                      <span key={node.ElementId} className="tag">
+                        {node.Props["name"]}
                       </span>
-                    )
-                )}
+                    );
+                  }
+                  return null;
+                })}
               </div>
             </div>
 
             <div className="profile-section">
-              <h2>Knowledge Bases</h2>
+              <h2>Knowledge</h2>
               <div className="tag-list">
-                {profileData.affiliates?.map(
-                  (knowledge: Neo4jNode) =>
-                    knowledge.Labels.includes("Knowledge") && (
-                      <span key={knowledge.ElementId} className="tag">
-                        {knowledge.Props["name"]}
+                {profileData.affiliates?.map((node: Neo4jNode) => {
+                  if (node.Labels.includes("Knowledge")) {
+                    const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
+
+                    return (
+                      <span key={node.ElementId} className="tag">
+                        {node.Props["name"]}
                       </span>
-                    )
-                )}
+                    );
+                  }
+                  return null;
+                })}
               </div>
             </div>
 
             <div className="profile-section">
               <h2>Pursuits</h2>
               <div className="tag-list">
-                {profileData.affiliates?.map(
-                  (pursuit: Neo4jNode) =>
-                    pursuit.Labels.includes("Pursuit") && (
-                      <span key={pursuit.ElementId} className="tag">
-                        {pursuit.Props["name"]}
+                {profileData.affiliates?.map((node: Neo4jNode) => {
+                  if (node.Labels.includes("Pursuit")) {
+                    const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
+
+                    return (
+                      <span key={node.ElementId} className="tag">
+                        {node.Props["name"]}
                       </span>
-                    )
-                )}
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+
+            <div className="profile-section">
+              <h2>Health</h2>
+              <div className="tag-list">
+                {profileData.affiliates?.map((node: Neo4jNode) => {
+                  if (node.Labels.includes("Health")) {
+                    const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
+
+                    return (
+                      <span key={node.ElementId} className="tag">
+                        {node.Props["name"]}
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
               </div>
             </div>
 
             <div className="profile-section">
               <h2>Personality Traits</h2>
               <div className="tag-list">
-                {profileData.affiliates?.map((personality: Neo4jNode) => {
-                  if (personality.Labels.includes("Personality")) {
-                    const relationship = profileData.relationships.find((node) => node.EndElementId === personality.ElementId);
-                    const strength = relationship.Props["strength"];
+                {profileData.affiliates?.map((node: Neo4jNode) => {
+                  if (node.Labels.includes("Personality")) {
+                    const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
+                    const strength = userRelationship.Props["strength"];
                     let strengthClass = "";
 
-                    if (strength >= 0 && strength <= 3) {
-                      strengthClass = "strength-low";
-                    } else if (strength >= 4 && strength <= 7) {
-                      strengthClass = "strength-medium";
-                    } else if (strength >= 8 && strength <= 10) {
-                      strengthClass = "strength-high";
+                    const isNeurotic = NeuroticTraits.has(node.Props["name"]);
+
+                    if (isNeurotic) {
+                      // Opposite color logic for neurotic traits
+                      if (strength >= 7 && strength <= 10) {
+                        strengthClass = "strength-low";
+                      } else if (strength >= 4 && strength <= 6) {
+                        strengthClass = "strength-medium";
+                      } else if (strength >= 0 && strength <= 3) {
+                        strengthClass = "strength-high";
+                      }
+                    } else {
+                      // Normal color logic for non-neurotic traits
+                      if (strength >= 0 && strength <= 3) {
+                        strengthClass = "strength-low";
+                      } else if (strength >= 4 && strength <= 7) {
+                        strengthClass = "strength-medium";
+                      } else if (strength >= 8 && strength <= 10) {
+                        strengthClass = "strength-high";
+                      }
                     }
 
                     return (
-                      <span key={personality.ElementId} className="tag">
-                        {personality.Props["name"]} - {" "}
+                      <span key={node.ElementId} className="tag">
+                        {node.Props["name"]} - {" "}
                         <span className={strengthClass}>{strength}</span>
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+
+            <div className="profile-section">
+              <h2>Demographics</h2>
+              <div className="tag-list">
+                {profileData.affiliates?.map((node: Neo4jNode) => {
+                  if (node.Labels.includes("Demographics")) {
+                    const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
+                    const value = userRelationship.Props['value'];
+
+                    return (
+                      <span key={node.ElementId} className="tag">
+                        {node.Props["name"]} - {" "}
+                        <span>{value}</span>
                       </span>
                     );
                   }

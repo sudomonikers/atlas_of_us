@@ -1,4 +1,4 @@
-package handlers
+package knowledge_graph
 
 type Node struct {
 	Id        int64          `json:"Id"`
@@ -19,7 +19,7 @@ type Relationship struct {
 }
 
 type GetNodesResponse struct {
-	Values []interface{} `json:"Values"` // Use interface{} to handle different types
+	Values []interface{} `json:"Values"`
 	Keys   []string      `json:"Keys"`
 }
 

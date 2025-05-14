@@ -1,8 +1,8 @@
-package handlers
+package knowledge_graph
 
 import (
-	"aou_api/src/handlers/helpers"
-	"aou_api/src/models"
+	helpers "aou_api/src/helpers"
+	models "aou_api/src/models"
 	"encoding/json"
 	"fmt"
 	"net/http"
