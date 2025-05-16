@@ -4,7 +4,10 @@ import { NavBar } from "../../common-components/navbar/nav";
 import { HttpService } from "../../services/http-service";
 import { jwtDecode } from "jwt-decode";
 import { Neo4jApiResponse, Neo4jNode } from "../Graph/graph-interfaces.interface";
-import { NeuroticTraits } from "./personality.map";
+import { NeuroticTraits } from "../../common/maps/personality.map";
+import { DreyfusLevelsOfAquisition } from "../../common/enums/dreyfus-skill-aquisition.enum";
+import { Bloom6Levels } from "../../common/enums/blooms-6-levels.enum";
+import { BLOOM_MAPPINGS, DREYFUS_MAPPINGS } from "./profile-mappings";
 
 export function Profile() {
   const httpService = new HttpService();
@@ -64,8 +67,12 @@ export function Profile() {
                   if (node.Labels.includes("Skill")) {
                     const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
 
+                    const dreyfusLevel = userRelationship.Props["level"] as DreyfusLevelsOfAquisition;
+                    const dreyfusMapping = DREYFUS_MAPPINGS[dreyfusLevel];
+                    const color = dreyfusMapping ? dreyfusMapping.color : "#000000"; // Default to black if no mapping
+          
                     return (
-                      <span key={node.ElementId} className="tag">
+                      <span key={node.ElementId} className="tag" style={{ color }}>
                         {node.Props["name"]}
                       </span>
                     );
@@ -82,8 +89,12 @@ export function Profile() {
                   if (node.Labels.includes("Knowledge")) {
                     const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
 
+                    const bloomLevel = userRelationship.Props["level"] as Bloom6Levels;
+                    const bloomMapping = BLOOM_MAPPINGS[bloomLevel];
+                    const color = bloomMapping ? bloomMapping.color : "#000000"; // Default to black if no mapping
+          
                     return (
-                      <span key={node.ElementId} className="tag">
+                      <span key={node.ElementId} className="tag" style={{ color }}>
                         {node.Props["name"]}
                       </span>
                     );
@@ -99,9 +110,12 @@ export function Profile() {
                 {profileData.affiliates?.map((node: Neo4jNode) => {
                   if (node.Labels.includes("Pursuit")) {
                     const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
-
+                    const bloomLevel = userRelationship.Props["level"] as Bloom6Levels;
+                    const bloomMapping = BLOOM_MAPPINGS[bloomLevel];
+                    const color = bloomMapping ? bloomMapping.color : "#000000"; // Default to black if no mapping
+          
                     return (
-                      <span key={node.ElementId} className="tag">
+                      <span key={node.ElementId} className="tag" style={{ color }}>
                         {node.Props["name"]}
                       </span>
                     );
