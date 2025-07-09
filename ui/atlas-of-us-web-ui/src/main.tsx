@@ -13,6 +13,7 @@ import { Contact } from './pages/Contact/Contact.tsx';
 import { PageNotFound } from './pages/PageNotFound/PageNotFound.tsx';
 import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
 import { Blog } from './pages/Blog/Blog.tsx';
+import { Home } from './pages/Home/Home.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -32,7 +33,8 @@ createRoot(document.getElementById('root')!).render(
   <GlobalProvider>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/Graph" />} />
+        <Route path="/" element={<Navigate to="/Home" />} />
+        <Route path="/Home" element={<Home />} />
         <Route path="/Login" element={<Login />} />
         <Route path="/Signup" element={<Signup />} />
         <Route path="/Profile" element={
