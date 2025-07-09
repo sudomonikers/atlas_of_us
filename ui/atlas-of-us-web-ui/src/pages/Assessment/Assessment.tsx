@@ -34,7 +34,6 @@ function EtherealWorld() {
     );
 }
 
-
 export function Assessment() {
     const [currentStep, setCurrentStep] = useState(1);
     
