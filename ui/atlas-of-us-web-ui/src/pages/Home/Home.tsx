@@ -17,7 +17,7 @@ export function Home() {
     
     const handleStartJourney = () => {
         // Navigate to profile creation/assessment
-        navigate('/Profile');
+        navigate('/Assessment');
     }
     
     const handleExploreGraph = () => {

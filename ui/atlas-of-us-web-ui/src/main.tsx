@@ -14,6 +14,7 @@ import { PageNotFound } from './pages/PageNotFound/PageNotFound.tsx';
 import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
 import { Blog } from './pages/Blog/Blog.tsx';
 import { Home } from './pages/Home/Home.tsx';
+import { Assessment } from './pages/Assessment/Assessment.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -40,6 +41,11 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/Profile" element={
           <PrivateRoute>
             <Profile />
+          </PrivateRoute>
+        } />
+        <Route path="/Assessment" element={
+          <PrivateRoute>
+            <Assessment />
           </PrivateRoute>
         } />
         <Route path="/Community" element={<Community />} />
