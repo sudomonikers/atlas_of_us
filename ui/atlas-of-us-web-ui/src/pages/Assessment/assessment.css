@@ -1,0 +1,69 @@
+.assessment-container {
+    overflow: hidden;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+}
+
+.assessment-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.link-dialogue {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(155, 181, 255, 0.3);
+    border-radius: 15px;
+    padding: 30px 40px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.link-text {
+    color: #9bb5ff;
+    font-size: 18px;
+    line-height: 1.6;
+    font-family: 'Courier New', monospace;
+    text-align: left;
+    min-height: 60px;
+    text-shadow: 0 0 10px rgba(155, 181, 255, 0.5);
+}
+
+.cursor {
+    animation: blink 1s infinite;
+    color: #9bb5ff;
+    font-weight: bold;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.link-dialogue::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #9bb5ff, #6c5ce7, #9bb5ff);
+    border-radius: 17px;
+    z-index: -1;
+    opacity: 0.3;
+    animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.6; }
+}
