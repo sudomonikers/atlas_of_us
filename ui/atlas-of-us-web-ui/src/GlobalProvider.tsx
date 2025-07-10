@@ -37,7 +37,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
         } else {
           setLoggedIn(true);
         }
-      } catch (error) {
+      } catch {
         setLoggedIn(false);
         localStorage.removeItem("jwt");
       }

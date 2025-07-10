@@ -29,7 +29,6 @@ export function Profile() {
           setProfileData(response);
           console.log(response);
 
-          //@ts-ignore
           httpService
             .getS3Object(
               "atlas-of-us-general-bucket",

@@ -8,7 +8,7 @@ import { Link } from "react-router";
 export function Contact() {
   const imageContainerRef = useRef(null);
 
-  const handleMouseMove = (event: any) => {
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const container = imageContainerRef.current;
     if (!container) return;
 

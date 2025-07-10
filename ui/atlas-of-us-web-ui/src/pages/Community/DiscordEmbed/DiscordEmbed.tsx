@@ -40,7 +40,7 @@ export default class WidgetBot extends React.PureComponent<Props> {
     }
 
     state = {
-        url: null as any,
+        url: null as string | null,
         id: generateUUID()
     }
 
@@ -49,12 +49,12 @@ export default class WidgetBot extends React.PureComponent<Props> {
         iframe: null
     })
 
-    static getDerivedStateFromProps(props: Props, state: any) {
+    static getDerivedStateFromProps(props: Props, state: { url: string | null; id: string }) {
         let shard = props.shard
         if (!shard.startsWith('http')) shard = `https://${shard}`
         if (shard.endsWith('/')) shard = shard.substring(0, shard.length - 1)
 
-        let params: { [key: string]: string | number | boolean } = {
+        const params: { [key: string]: string | number | boolean } = {
             ...props.options,
             api: state.id
         }
@@ -89,7 +89,7 @@ export default class WidgetBot extends React.PureComponent<Props> {
                 style={{ ...Root({ width, height }), ...style }}
             >
                 <iframe
-                    src={defer ? '' : this.state.url} //@ts-ignore
+                    src={defer ? '' : this.state.url} //@ts-expect-error - ref assignment is valid
                     ref={ref => (this.api.iframe = ref)}
                     style={Embed}
                     tabIndex={focusable ? null : -1}

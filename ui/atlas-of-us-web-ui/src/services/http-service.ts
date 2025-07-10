@@ -60,7 +60,7 @@ export class HttpService {
         nodeRoot: {},
         relationships: [],
         affiliates: []
-      } as any;
+      } as Neo4jApiResponse;
     }
   }
 }

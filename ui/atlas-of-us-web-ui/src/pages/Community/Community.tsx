@@ -1,8 +1,6 @@
 import { NavBar } from "../../common-components/navbar/nav";
-import redditLogo from "../../assets/Reddit_Lockup.png";
 import WidgetBot from "./DiscordEmbed/DiscordEmbed";
 import "./community.css";
-import { Link } from "react-router";
 
 export function Community() {
   return (
