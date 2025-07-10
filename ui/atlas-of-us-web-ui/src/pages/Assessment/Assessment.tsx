@@ -8,20 +8,24 @@ import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
 
 interface StepResponse {
-    stepId: number;
+    stepId: string;
     response: string;
     timestamp: Date;
 }
 
 interface BranchingRule {
     condition: (response: string) => boolean;
-    nextStep: number;
+    nextStep: string;
 }
 
 interface StepConfig {
-    stepId: number;
+    stepId: string;
     branchingRules?: BranchingRule[];
-    defaultNext?: number;
+    defaultNext?: string;
+}
+
+export interface StepProps {
+    onNext: (response?: string) => void;
 }
 
 function EtherealWorld() {
@@ -52,35 +56,34 @@ function EtherealWorld() {
 }
 
 export function Assessment() {
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
     
     const stepConfigs: StepConfig[] = [
         {
-            stepId: 1,
-            defaultNext: 2
+            stepId: 'Step1',
+            defaultNext: 'Step2'
         },
         {
-            stepId: 2,
+            stepId: 'Step2',
             branchingRules: [
                 {
                     condition: (response: string) => response.trim() === "",
-                    nextStep: 3 // Could branch to different step for blank responses
+                    nextStep: 'Step2Choice1'
                 },
                 {
                     condition: (response: string) => response.trim() !== "",
-                    nextStep: 3 // Could branch to different step for filled responses
+                    nextStep: 'Step2Choice2'
                 }
-            ],
-            defaultNext: 3
+            ]
         },
         {
-            stepId: 3,
-            defaultNext: 4
+            stepId: 'Step3',
+            defaultNext: 'Step4'
         }
     ];
     
-    const handleStepComplete = (stepId: number, response: string = '') => {
+    const handleStepComplete = (stepId: string, response: string = '') => {
         const stepResponse: StepResponse = {
             stepId,
             response,
@@ -109,12 +112,12 @@ export function Assessment() {
     
     const renderCurrentStep = () => {
         switch(currentStep) {
-            case 1:
-                return <Step1 onNext={() => handleStepComplete(1)} />;
-            case 2:
-                return <Step2 onNext={(response) => handleStepComplete(2, response)} />;
-            case 3:
-                return <Step3 onNext={() => handleStepComplete(3)} />;
+            case 'Step1':
+                return <Step1 onNext={() => handleStepComplete('Step1')} />;
+            case 'Step2':
+                return <Step2 onNext={(response) => handleStepComplete('Step2', response)} />;
+            case 'Step3':
+                return <Step3 onNext={() => handleStepComplete('Step3')} />;
             default:
                 return <div className="link-dialogue">Assessment complete!</div>;
         }

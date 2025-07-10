@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import './dialogue.css';
 
 interface DialogueProps {
     text: string;
@@ -9,44 +10,70 @@ export function Dialogue({ text, onNext }: DialogueProps) {
     const [currentText, setCurrentText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [showEnterPrompt, setShowEnterPrompt] = useState(false);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const textRef = useRef<HTMLDivElement>(null);
     
     useEffect(() => {
         setIsTyping(true);
+        setShowEnterPrompt(false);
         let index = 0;
-        const typeInterval = setInterval(() => {
+        intervalRef.current = setInterval(() => {
             if (index < text.length) {
                 setCurrentText(text.substring(0, index + 1));
                 index++;
+                // Auto-scroll to bottom as text is added
+                if (textRef.current) {
+                    textRef.current.scrollTop = textRef.current.scrollHeight;
+                }
             } else {
                 setIsTyping(false);
                 setShowEnterPrompt(true);
-                clearInterval(typeInterval);
+                clearInterval(intervalRef.current!);
             }
         }, 50);
         
-        return () => clearInterval(typeInterval);
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
     }, [text]);
     
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
-            if (event.key === 'Enter' && !isTyping) {
-                onNext();
+            if (event.key === 'Enter') {
+                if (isTyping) {
+                    // Finish typing immediately
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                    }
+                    setCurrentText(text);
+                    setIsTyping(false);
+                    setShowEnterPrompt(true);
+                    // Auto-scroll to bottom when finishing typing
+                    if (textRef.current) {
+                        textRef.current.scrollTop = textRef.current.scrollHeight;
+                    }
+                } else {
+                    // Continue to next message
+                    onNext();
+                }
             }
         };
         
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [isTyping, onNext]);
+    }, [isTyping, onNext, text]);
     
     return (
         <div className="link-dialogue">
-            <div className="link-text">
+            <div className="link-text" ref={textRef}>
                 {currentText}
                 {isTyping && <span className="cursor">|</span>}
             </div>
             {showEnterPrompt && (
                 <div className="enter-prompt">
-                    Press <span className="enter-key">Enter</span> to continue
+                    Press <button className="enter-key" onClick={onNext}>Enter</button> to continue
                 </div>
             )}
         </div>
