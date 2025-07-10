@@ -86,8 +86,8 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
 
     const clickHandler = () => {
       setIsActive(!isActive);
-      if (nodeData?.elementId) {
-        onNodeClick(nodeData.elementId, !isActive);
+      if (nodeData?.ElementId) {
+        onNodeClick(nodeData.ElementId, !isActive);
       }
       if (!isActive) {
         centerCameraOnMesh(meshRef.current);
@@ -133,15 +133,15 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
         {(isHovered || isActive) && nodeData && (
           <Html position={[isParentNode ? 4 : 3, 0, 0]}>
             <div className="info-box">
-              <div className="info-box-header">{nodeData.name}</div>
+              <div className="info-box-header">{nodeData.Props.name}</div>
               <div className="info-box-property">
-                <span>Labels:</span> {nodeData.labels.join(", ")}
+                <span>Labels:</span> {nodeData.Labels.join(", ")}
               </div>
               <div className="info-box-content">
                 <div className="info-box-property">
-                  <span>Description:</span> {nodeData.description}
+                  <span>Description:</span> {nodeData.Props.description}
                 </div>
-                <button onClick={() => onSphereReload(nodeData.elementId, meshRef.current.getWorldPosition(new THREE.Vector3()))}>Load {nodeData.name}</button>
+                <button onClick={() => onSphereReload(nodeData.ElementId, meshRef.current.getWorldPosition(new THREE.Vector3()))}>Load {nodeData.Props.name}</button>
               </div>
             </div>
           </Html>

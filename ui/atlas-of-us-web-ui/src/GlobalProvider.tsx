@@ -61,6 +61,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line
 export const useGlobal = () => {
   const context = useContext(GlobalContext);
   if (!context) {

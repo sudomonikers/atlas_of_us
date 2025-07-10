@@ -36,7 +36,7 @@ export const RelationshipLine: React.FC<RelationshipProps> = ({
   }, [startNode, endNode]);
 
   let color;
-  switch (relationshipData.type) {
+  switch (relationshipData.Type) {
     case "BUILDS":
       color = "blue";
       break;
@@ -62,7 +62,7 @@ export const RelationshipLine: React.FC<RelationshipProps> = ({
       {(isHovered || isActive) && relationshipData && (
         <Html position={linePoints[2]}>
           <div className="info-box">
-            <div className="info-box-header">{relationshipData.type}</div>
+            <div className="info-box-header">{relationshipData.Type}</div>
           </div>
         </Html>
       )}

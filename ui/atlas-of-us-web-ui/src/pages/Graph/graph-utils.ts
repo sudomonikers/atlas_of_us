@@ -120,6 +120,7 @@ export class GraphUtils {
   }
 
   centerCameraOnMesh = (object: THREE.Object3D, distanceFactor: number) => {
+    // eslint-disable-next-line
     const threeState = useThree();
     const controls = threeState.controls as OrbitControls;
     const camera = threeState.camera as THREE.PerspectiveCamera;

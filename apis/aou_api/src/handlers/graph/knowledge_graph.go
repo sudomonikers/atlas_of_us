@@ -108,30 +108,9 @@ func GetNodes(c *gin.Context) {
 			collect(distinct unwound_relationships) AS relationships, 
 			collect(distinct unwound_affiliates) AS affiliatedNodes
 		RETURN 
-			{
-				elementId: elementId(node),
-				labels: labels(node),
-				name: node.name,
-				image: node.image,
-				description: node.description
-			} AS n, 
-			[relationship IN relationships |
-				{
-					id: elementId(relationship),
-					startElementId: elementId(startNode(relationship)),
-					endElementId: elementId(endNode(relationship)),
-					type: type(relationship),
-					props: properties(relationship)
-				}
-			] AS relationships, 
-			[node IN affiliatedNodes | 
-				{
-					elementId: elementId(node),
-					labels: labels(node),
-					name: node.name,
-					description: node.description
-				}
-			] AS affiliatedNodes
+			node,
+			relationships,
+			affiliatedNodes
 	`, depth)
 
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"depth": depth})
@@ -194,31 +173,9 @@ func GetNodeWithRelationshipsBySearchTerm(c *gin.Context) {
 			collect(distinct unwound_relationships) AS relationships, 
 			collect(distinct unwound_affiliates) AS affiliatedNodes
 		RETURN 
-			{
-				elementId: elementId(node),
-				labels: labels(node),
-				name: node.name,
-				image: node.image,
-				description: node.description,
-				similarity: score
-			} AS n, 
-			[relationship IN relationships |
-				{
-					id: elementId(relationship),
-					startElementId: elementId(startNode(relationship)),
-					endElementId: elementId(endNode(relationship)),
-					type: type(relationship),
-					props: properties(relationship)
-				}
-			] AS relationships, 
-			[node IN affiliatedNodes | 
-				{
-					elementId: elementId(node),
-					labels: labels(node),
-					name: node.name,
-					description: node.description
-				}
-			] AS affiliatedNodes
+			node,
+			relationships,
+			affiliatedNodes
     `, depth)
 
 	result, err := appCtx.NEO4J.ExecuteQuery(queryString, map[string]any{"embedding": embedding, "depth": depth})

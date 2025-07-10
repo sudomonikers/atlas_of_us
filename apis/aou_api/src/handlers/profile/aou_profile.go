@@ -35,7 +35,5 @@ func GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(result)
-
 	c.JSON(http.StatusOK, result)
 }

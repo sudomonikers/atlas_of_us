@@ -47,7 +47,7 @@ export const Constellation = () => {
       
       const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
-        graphData.nodeRoot.image
+        graphData.nodeRoot.Props.image
       )
       
       const location = newLocation || constellationState.sceneLocation;
@@ -79,7 +79,7 @@ export const Constellation = () => {
       // Create a map of relationships
       const relationshipMap = new Map<string, Neo4jRelationship[]>();
       graphData.relationships?.forEach((relationship) => {
-        const startElementId = relationship.startElementId;
+        const startElementId = relationship.StartElementId;
         if (!relationshipMap.has(startElementId)) {
           relationshipMap.set(startElementId, []);
         }
@@ -96,7 +96,7 @@ export const Constellation = () => {
 
       // Create refs for the root node
       nodeRefsMap.current.set(
-        graphData.nodeRoot.elementId,
+        graphData.nodeRoot.ElementId,
         createRef<THREE.Mesh>()
       );
 
@@ -127,7 +127,7 @@ export const Constellation = () => {
 
           // Create a ref for this data node
           nodeRefsMap.current.set(
-            affiliateNode.elementId,
+            affiliateNode.ElementId,
             createRef<THREE.Mesh>()
           );
 
@@ -176,8 +176,8 @@ export const Constellation = () => {
           isParentNode={sphere.isParentNode}
           nodeData={sphere.nodeData}
           ref={
-            sphere?.nodeData?.elementId
-              ? nodeRefsMap.current.get(sphere.nodeData.elementId)
+            sphere?.nodeData?.ElementId
+              ? nodeRefsMap.current.get(sphere.nodeData.ElementId)
               : undefined
           }
           onNodeClick={toggleActive}
@@ -191,12 +191,12 @@ export const Constellation = () => {
 
         return relationships.map((relationship) => {
           const endSphere = nodeRefsMap.current.get(
-            relationship.endElementId
+            relationship.EndElementId
           );
 
           return (
             <RelationshipLine 
-              key={relationship.id}
+              key={relationship.ElementId}
               startNode={startSphere?.current}
               endNode={endSphere?.current}
               relationshipData={relationship}
