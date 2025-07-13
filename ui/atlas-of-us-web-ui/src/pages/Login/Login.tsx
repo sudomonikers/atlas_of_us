@@ -15,7 +15,7 @@ export function Login() {
 
   async function handleLogin() {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/login`, {
+      const response = await fetch(`${apiBaseUrl}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

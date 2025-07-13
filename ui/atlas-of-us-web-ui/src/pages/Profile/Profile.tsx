@@ -23,7 +23,7 @@ export function Profile() {
       const username = decoded.iss;
 
       httpService
-        .fetchNodes(`/api/secure/profile/user-profile/${username}`)
+        .fetchNodes(`secure/profile/user-profile/${username}`)
         .then((response) => {
           setLoading(false);
           setProfileData(response);

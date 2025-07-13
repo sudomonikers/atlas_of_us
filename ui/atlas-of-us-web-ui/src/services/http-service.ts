@@ -11,7 +11,7 @@ export class HttpService {
 
   async getS3Object(bucketName: string, key: string): Promise<Blob> {
     return new Promise((resolve, reject) => {
-      fetch(`${this.API_BASE}/api/secure/helper/s3-object?bucket=${bucketName}&key=${key}`, {
+      fetch(`${this.API_BASE}/secure/helper/s3-object?bucket=${bucketName}&key=${key}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -35,7 +35,7 @@ export class HttpService {
     endpoint: string
   ): Promise<Neo4jApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE}${endpoint}`, {
+      const response = await fetch(`${this.API_BASE}/${endpoint}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

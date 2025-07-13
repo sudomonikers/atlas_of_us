@@ -100,7 +100,7 @@ export class GraphUtils {
     depth: number
   ): Promise<Neo4jApiResponse> {
     return this.httpService.fetchNodes(
-      `/api/secure/graph/get-node-with-relationships-by-search-term?searchTerm=${searchTerm}&depth=${depth}`
+      `secure/graph/get-node-with-relationships-by-search-term?searchTerm=${searchTerm}&depth=${depth}`
     );
   }
 
@@ -115,7 +115,7 @@ export class GraphUtils {
       depth: depth.toString()
     });
     return this.httpService.fetchNodes(
-      `/api/secure/graph/get-nodes?${queryParams.toString()}`
+      `secure/graph/get-nodes?${queryParams.toString()}`
     );
   }
 

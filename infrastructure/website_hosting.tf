@@ -83,11 +83,6 @@ resource "aws_route53_record" "txt_wildcard" {
   records = [aws_cloudfront_distribution.cdn.domain_name]
 }
 
-# Output the name servers
-output "nameservers" {
-  value = aws_route53_zone.main.name_servers
-}
-
 ###S3 BUCKET
 resource "aws_s3_bucket" "bucket" {
   bucket        = local.ui_bucket_name
