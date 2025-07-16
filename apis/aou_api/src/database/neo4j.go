@@ -29,6 +29,7 @@ func NewNeo4jDatabase() *Neo4jDB {
 		if err == nil {
 			break
 		} else {
+			log.Println(err)
 			log.Printf("Attempt %d: Failed to initialize database. Retrying...", i)
 			time.Sleep(3 * time.Second)
 		}

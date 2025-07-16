@@ -1,1 +1,0 @@
-llama-server --hf-repo sudomoniker/all-MiniLM-L6-v2-Q8_0-GGUF --embeddings

@@ -1,12 +1,9 @@
 package router
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"golang.org/x/time/rate"
 
 	auth "aou_api/src/auth"
 	docs "aou_api/src/docs"
@@ -22,9 +19,7 @@ func NewRouter(appCtx *models.AppContext) *gin.Engine {
 	r := gin.Default()
 	r.Use(models.ContextMiddleware(appCtx))
 	r.Use(middleware.Logger(appCtx.LOGGER))
-	r.Use(middleware.Security())
 	r.Use(middleware.Cors())
-	r.Use(middleware.RateLimiter(rate.Every(1*time.Minute), 60)) // 60 requests per minute
 
 	docs.SwaggerInfo.BasePath = "/api"
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))

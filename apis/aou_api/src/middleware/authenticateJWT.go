@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"aou_api/src/auth"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -13,6 +14,7 @@ func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		const BearerSchema = "Bearer "
 		header := c.GetHeader("Authorization")
+
 		if header == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization Header"})
 			c.Abort()
@@ -33,6 +35,7 @@ func JWTAuth() gin.HandlerFunc {
 		})
 
 		if err != nil {
+			fmt.Println(err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
