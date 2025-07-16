@@ -54,8 +54,15 @@ aws cloudfront create-invalidation --distribution-id <ID> --paths "/*"
 # Check EC2 instances
 aws ec2 describe-instances --filters "Name=tag:Name,Values=atlas-of-us-api-server"
 
+# Start/Stop EC2 instance manually (useful during development)
+aws ec2 start-instances --instance-ids <instance-id>
+aws ec2 stop-instances --instance-ids <instance-id>
+
 # SSH to EC2 instance
 ssh -i api-server-key ec2-user@<instance-ip>
+
+# Check Lambda function logs
+aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/ec2-auto-shutdown"
 ```
 
 ## Architecture Overview
@@ -65,7 +72,7 @@ ssh -i api-server-key ec2-user@<instance-ip>
 This Terraform configuration deploys a complete web application infrastructure for Atlas of Us on AWS:
 
 **Core Infrastructure:**
-- **EC2 Instance**: `t3.medium` instance running the Go API server with Docker
+- **EC2 Instance**: `t3.micro` instance running the Go API server with Docker (⚠️ **DEVELOPMENT SIZE** - upgrade to `t3.medium` or larger for production)
 - **S3 Buckets**: 
   - `atlas-of-us-site`: Static website hosting for React frontend
   - `atlas-of-us-general-bucket`: General purpose storage with versioning and encryption
@@ -82,6 +89,10 @@ This Terraform configuration deploys a complete web application infrastructure f
 - **CloudWatch**: Log groups for API server logs with 14-day retention
 - **Elastic IP**: Static IP address for API server
 
+**Cost Optimization (Development):**
+- **Lambda Scheduler**: Automatically shuts down EC2 instance at 12 AM EST daily to save costs
+- **Auto-restart**: Docker containers configured with `restart: unless-stopped` policy
+
 ### Key Configuration Details
 
 **Domain Setup:**
@@ -96,7 +107,7 @@ This Terraform configuration deploys a complete web application infrastructure f
 - EC2 instance configured with Docker and Docker Compose
 - User data script installs dependencies and sets up deployment directory
 - CloudWatch agent installed for monitoring
-- Storage: 20GB root volume + 100GB additional volume for LLM models
+- Storage: 8GB root volume + 20GB additional volume (⚠️ **DEVELOPMENT SIZE** - increase to 20GB + 100GB for production LLM models)
 
 **Environment Variables (from locals.tf):**
 - Database: Neo4j hosted database connection details
@@ -110,6 +121,7 @@ infrastructure/
 ├── ec2-server.tf           # EC2 instance, security groups, IAM roles
 ├── website_hosting.tf      # S3, CloudFront, Route 53, SSL certificates
 ├── general-s3-bucket.tf    # Additional S3 bucket for general storage
+├── lambda-scheduler.tf     # Lambda function for auto-shutdown at 12 AM EST
 ├── locals.tf              # Configuration variables and secrets
 ├── version.tf             # Terraform and AWS provider versions
 ├── api-server-key.pub      # SSH public key for EC2 access

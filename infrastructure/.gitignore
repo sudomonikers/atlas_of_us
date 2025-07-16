@@ -1,3 +1,4 @@
 locals.tf
 index.zip
 .terraform
+ec2_scheduler.zip

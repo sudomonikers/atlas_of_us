@@ -147,26 +147,19 @@ locals {
 # EC2 instance
 resource "aws_instance" "api_server" {
   ami                    = data.aws_ami.amazon_linux.id
-  instance_type          = "t3.medium" # Suitable for LLM workloads, adjust as needed
+  instance_type          = "t3.micro" # Development instance - much cheaper
   key_name               = aws_key_pair.api_server_key.key_name
   vpc_security_group_ids = [aws_security_group.api_server_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_api_profile.name
   user_data              = local.user_data
 
-  # Root volume configuration
+  # Root volume configuration - reduced for development
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = 30
     encrypted   = true
   }
 
-  # Additional storage for LLM models if needed
-  ebs_block_device {
-    device_name = "/dev/sdf"
-    volume_type = "gp3"
-    volume_size = 100
-    encrypted   = true
-  }
 
   tags = {
     Name = "atlas-of-us-api-server"
@@ -196,8 +189,4 @@ output "ec2_instance_id" {
 
 output "ec2_public_ip" {
   value = aws_eip.api_server_eip.public_ip
-}
-
-output "ec2_public_dns" {
-  value = aws_instance.api_server.public_dns
 }
