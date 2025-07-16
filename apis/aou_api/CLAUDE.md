@@ -115,3 +115,4 @@ Health checks are configured for both services.
 - Uses Go modules for dependency management
 - Designed for deployment on EC2 with Docker
 - Supports both development and production logging configurations
+- The deployed code on EC2 gets shutdown every night at 12 ET for cost savings reasons. If it is not hittable you may need to manually restart the EC2 instance.
