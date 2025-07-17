@@ -49,13 +49,14 @@ export function Signup() {
     <>
       <NavBar />
       <div className="in-nav-container">
-        <div className="login-container">
-          <h1>Create an Account!</h1>
-          <p>Here's why you should create an account...</p>
+        <div className="login-container card-cosmic">
+          <h1 className="text-h1">Create an Account!</h1>
+          <p className="text-body-large">Join the Atlas of Us and begin your journey of self-discovery...</p>
           <div className="form-fields">
             <div className="form-field">
-              <label htmlFor="username">Username:</label>
+              <label className="text-body mb-sm block" htmlFor="username">Username:</label>
               <input
+                className="input-cosmic"
                 id="username"
                 type="text"
                 placeholder="Username"
@@ -64,8 +65,9 @@ export function Signup() {
               />
             </div>
             <div className="form-field">
-              <label htmlFor="phone">Phone Number:</label>
+              <label className="text-body mb-sm block" htmlFor="phone">Phone Number:</label>
               <input
+                className="input-cosmic"
                 id="phone"
                 type="phone"
                 placeholder="Phone Number"
@@ -74,8 +76,9 @@ export function Signup() {
               />
             </div>
             <div className="form-field">
-              <label htmlFor="password">Password:</label>
+              <label className="text-body mb-sm block" htmlFor="password">Password:</label>
               <input
+                className="input-cosmic"
                 id="password"
                 type="password"
                 placeholder="Password"
@@ -84,8 +87,9 @@ export function Signup() {
               />
             </div>
             <div className="form-field">
-              <label htmlFor="confirm_password">Confirm Password:</label>
+              <label className="text-body mb-sm block" htmlFor="confirm_password">Confirm Password:</label>
               <input
+                className="input-cosmic"
                 id="confirm_password"
                 type="password"
                 placeholder="Confirm Password"
@@ -94,9 +98,9 @@ export function Signup() {
               />
             </div>
           </div>
-          <div className="mt-10">
+          <div className="mt-lg flex-center">
             <button
-              className="aou-button mr-10"
+              className="btn-cosmic interactive-particle"
               type="button"
               onClick={handleSignup}
             >

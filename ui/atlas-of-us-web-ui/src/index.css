@@ -1,3 +1,7 @@
+/* Atlas of Us Design System */
+@import './styles/design-tokens.css';
+@import './styles/components.css';
+
 /* mochiy-pop-one-latin-400-normal */
 @font-face {
   font-family: 'Mochiy Pop One';
@@ -9,13 +13,13 @@
 }
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  font-family: var(--font-secondary);
+  line-height: var(--line-height-normal);
+  font-weight: var(--font-weight-normal);
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: var(--star-text);
+  background-color: var(--void-dark);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -34,22 +38,22 @@ body {
 }
 
 .in-nav-container {
-  height: calc(100vh - 60px);
+  height: calc(100vh - var(--nav-height));
   width: 100%;
   position: absolute;
-  top: 60px;
+  top: var(--nav-height);
   overflow-y: scroll;
-  background-color: #fff;
-  color: #242424;
+  background-color: var(--cosmos-light);
+  color: var(--shadow-text);
 }
 
 .dark-background {
-  background-color: #242424 !important;
-  color: white;
+  background-color: var(--void-dark) !important;
+  color: var(--star-text);
 }
 
 .padding-container {
-  padding: 15px;
+  padding: var(--space-sm);
 }
 
 .center-container {
@@ -128,11 +132,11 @@ body {
 
 /** HELPERS **/
 .mr-10 {
-  margin-right: 10px;
+  margin-right: var(--space-xs);
 }
 
 .mt-10 {
-  margin-top: 10px;
+  margin-top: var(--space-xs);
 }
 
 .or-container {
@@ -140,20 +144,21 @@ body {
   align-items: center;
   justify-content: center;
   width: 80%;
-  margin: 20px 10%; /* Adjust margin as needed */
+  margin: var(--space-lg) 10%;
 }
 
 .line {
   flex-grow: 1;
   height: 1px;
-  background-color: white; /* Adjust color as needed */
+  background-color: var(--star-text);
 }
 
 .line-black {
-  background-color: #242424 !important;
+  background-color: var(--void-dark) !important;
 }
 
 .or-text {
-  margin: 0 10px; /* Adjust spacing around "OR" as needed */
-  font-weight: bold; /* Make "OR" stand out */
+  margin: 0 var(--space-xs);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-secondary);
 }

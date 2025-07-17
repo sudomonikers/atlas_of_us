@@ -1,0 +1,524 @@
+/* Atlas of Us - Component Library */
+/* Cosmic glass-morphism components with gentle animations */
+
+/* Import design tokens */
+@import './design-tokens.css';
+
+/* ===================
+   GLASS MORPHISM BASE
+   =================== */
+
+.glass-panel {
+  background: var(--glass-backdrop);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease-gentle);
+}
+
+.glass-panel:hover {
+  box-shadow: var(--glass-shadow-hover);
+}
+
+/* ===================
+   BUTTONS
+   =================== */
+
+/* Primary cosmic button */
+.btn-cosmic {
+  background: var(--gradient-cosmic);
+  color: var(--star-text);
+  border: none;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-family: var(--font-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--text-body);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-gentle);
+  box-shadow: var(--shadow-cosmic);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.btn-cosmic:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-cosmic-hover);
+  animation: cosmic-glow var(--duration-gentle) ease-in-out;
+}
+
+.btn-cosmic:active {
+  transform: translateY(0);
+}
+
+/* Glass button */
+.btn-glass {
+  background: var(--glass-backdrop);
+  color: var(--star-text);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-family: var(--font-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--text-body);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-gentle);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+.btn-glass:active {
+  transform: translateY(0);
+}
+
+/* Button sizes */
+.btn-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-small);
+}
+
+.btn-lg {
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--text-body-large);
+}
+
+/* ===================
+   CARDS
+   =================== */
+
+/* Cosmic glass card */
+.card-cosmic {
+  background: var(--glass-backdrop);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  box-shadow: var(--glass-shadow);
+  transition: all var(--duration-normal) var(--ease-gentle);
+}
+
+.card-cosmic:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+/* Card hover effect without floating */
+.card-floating {
+  transition: transform var(--duration-normal) var(--ease-gentle);
+}
+
+.card-floating:hover {
+  transform: translateY(-2px);
+}
+
+/* ===================
+   INTERACTIVE ELEMENTS
+   =================== */
+
+/* Particle effects around interactive elements */
+.interactive-particle {
+  position: relative;
+  overflow: hidden;
+}
+
+.interactive-particle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    transparent 70%);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-gentle);
+  pointer-events: none;
+}
+
+.interactive-particle:hover::before {
+  opacity: 1;
+  animation: stellar-shimmer var(--duration-gentle) ease-in-out infinite;
+}
+
+/* ===================
+   FORM ELEMENTS
+   =================== */
+
+/* Input fields with cosmic styling */
+.input-cosmic {
+  background: var(--glass-backdrop);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-secondary);
+  font-size: var(--text-body);
+  color: var(--star-text);
+  transition: all var(--duration-normal) var(--ease-gentle);
+  width: 100%;
+}
+
+.input-cosmic::placeholder {
+  color: var(--moon-text);
+}
+
+.input-cosmic:focus {
+  outline: none;
+  border-color: var(--violet-accent);
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+}
+
+/* Textarea */
+.textarea-cosmic {
+  background: var(--glass-backdrop);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  font-family: var(--font-secondary);
+  font-size: var(--text-body);
+  color: var(--star-text);
+  transition: all var(--duration-normal) var(--ease-gentle);
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.textarea-cosmic::placeholder {
+  color: var(--moon-text);
+}
+
+.textarea-cosmic:focus {
+  outline: none;
+  border-color: var(--violet-accent);
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+}
+
+/* ===================
+   LOADING STATES
+   =================== */
+
+/* Orbiting dots loader */
+.loader-orbit {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+}
+
+.loader-orbit::before,
+.loader-orbit::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--violet-accent);
+  animation: orbit 1.5s linear infinite;
+}
+
+.loader-orbit::after {
+  animation-delay: -0.75s;
+}
+
+/* Pulsing constellation */
+.loader-constellation {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.loader-constellation span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--star-green);
+  animation: stellar-pulse 1.2s ease-in-out infinite;
+}
+
+.loader-constellation span:nth-child(2) { animation-delay: 0.2s; }
+.loader-constellation span:nth-child(3) { animation-delay: 0.4s; }
+.loader-constellation span:nth-child(4) { animation-delay: 0.6s; }
+.loader-constellation span:nth-child(5) { animation-delay: 0.8s; }
+
+/* ===================
+   NAVIGATION
+   =================== */
+
+/* Glass navigation bar */
+.nav-glass {
+  background: var(--glass-backdrop);
+  border-bottom: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  height: var(--nav-height);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  transition: all var(--duration-normal) var(--ease-gentle);
+}
+
+/* ===================
+   LAYOUT UTILITIES
+   =================== */
+
+/* Responsive containers */
+.container-cosmic {
+  width: min(var(--container-lg), var(--container-max));
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+/* Centered container for forms and content */
+.container-centered {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: var(--space-lg);
+}
+
+.container-cosmic-sm {
+  width: min(var(--container-sm), var(--container-max));
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.container-cosmic-md {
+  width: min(var(--container-md), var(--container-max));
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+/* Flexible grid system */
+.grid-cosmic {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-cosmic-sm {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-cosmic-lg {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+/* Flex utilities */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.flex-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+
+/* ===================
+   TYPOGRAPHY CLASSES
+   =================== */
+
+.text-h1 {
+  font-family: var(--font-primary);
+  font-size: var(--text-h1);
+  line-height: var(--line-height-tight);
+  color: var(--star-text);
+  margin-bottom: var(--space-md);
+}
+
+.text-h2 {
+  font-family: var(--font-primary);
+  font-size: var(--text-h2);
+  line-height: var(--line-height-tight);
+  color: var(--star-text);
+  margin-bottom: var(--space-sm);
+}
+
+.text-h3 {
+  font-family: var(--font-primary);
+  font-size: var(--text-h3);
+  line-height: var(--line-height-normal);
+  color: var(--star-text);
+  margin-bottom: var(--space-sm);
+}
+
+.text-h4 {
+  font-family: var(--font-primary);
+  font-size: var(--text-h4);
+  line-height: var(--line-height-normal);
+  color: var(--star-text);
+  margin-bottom: var(--space-xs);
+}
+
+.text-body {
+  font-family: var(--font-secondary);
+  font-size: var(--text-body);
+  line-height: var(--line-height-normal);
+  color: var(--star-text);
+}
+
+.text-body-large {
+  font-family: var(--font-secondary);
+  font-size: var(--text-body-large);
+  line-height: var(--line-height-relaxed);
+  color: var(--star-text);
+}
+
+.text-small {
+  font-family: var(--font-secondary);
+  font-size: var(--text-small);
+  line-height: var(--line-height-normal);
+  color: var(--moon-text);
+}
+
+.text-caption {
+  font-family: var(--font-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--line-height-normal);
+  color: var(--moon-text);
+  font-style: italic;
+}
+
+/* ===================
+   RESPONSIVE UTILITIES
+   =================== */
+
+/* Mobile-first responsive visibility */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+  
+  .container-cosmic {
+    padding: 0 var(--space-lg);
+  }
+  
+  .grid-cosmic {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-cosmic {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  }
+}
+
+/* ===================
+   FOCUS STATES
+   =================== */
+
+/* Cosmic focus styles */
+.focus-cosmic:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--violet-accent);
+  animation: cosmic-glow var(--duration-gentle) ease-in-out;
+}
+
+/* ===================
+   UTILITY CLASSES
+   =================== */
+
+/* Spacing utilities */
+.m-0 { margin: 0; }
+.m-sm { margin: var(--space-sm); }
+.m-md { margin: var(--space-md); }
+.m-lg { margin: var(--space-lg); }
+.m-xl { margin: var(--space-xl); }
+
+.p-0 { padding: 0; }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mb-xl { margin-bottom: var(--space-xl); }
+
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mt-xl { margin-top: var(--space-xl); }
+
+/* Text alignment */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+/* Display utilities */
+.block { display: block; }
+.inline { display: inline; }
+.inline-block { display: inline-block; }
+.hidden { display: none; }
+
+/* Border radius utilities */
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }

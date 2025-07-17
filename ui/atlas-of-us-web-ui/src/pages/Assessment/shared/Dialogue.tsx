@@ -30,7 +30,7 @@ export function Dialogue({ text, onNext }: DialogueProps) {
                 setShowEnterPrompt(true);
                 clearInterval(intervalRef.current!);
             }
-        }, 50);
+        }, 15);
         
         return () => {
             if (intervalRef.current) {

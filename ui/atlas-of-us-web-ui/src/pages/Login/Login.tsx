@@ -46,15 +46,15 @@ export function Login() {
     <>
       <NavBar />
       <div className="in-nav-container">
-        <div className="login-container">
-          <h1>Welcome Back!</h1>
-          <p>Time to see who you are, and who you might become...</p>
-          <div className="">
-            <label className="" htmlFor="username">
+        <div className="login-container card-cosmic">
+          <h1 className="text-h1">Welcome Back!</h1>
+          <p className="text-body-large">Time to see who you are, and who you might become...</p>
+          <div className="mb-md">
+            <label className="text-body mb-sm block" htmlFor="username">
               Username:
             </label>
             <input
-              className=""
+              className="input-cosmic"
               id="username"
               type="text"
               placeholder="Username"
@@ -62,12 +62,12 @@ export function Login() {
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
-          <div className="">
-            <label className="" htmlFor="password">
+          <div className="mb-md">
+            <label className="text-body mb-sm block" htmlFor="password">
               Password:
             </label>
             <input
-              className=""
+              className="input-cosmic"
               id="password"
               type="password"
               placeholder="Password"
@@ -75,11 +75,11 @@ export function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <div className="mt-10">
-            <button className="aou-button mr-10" type="button" onClick={handleLogin}>
+          <div className="mt-lg flex-center gap-md">
+            <button className="btn-cosmic interactive-particle" type="button" onClick={handleLogin}>
               Sign In
             </button>
-            <a className="aou-button" href="#">
+            <a className="btn-glass interactive-particle" href="#">
               Forgot Password?
             </a>
           </div>
@@ -88,9 +88,11 @@ export function Login() {
             <div className="or-text">OR</div>
             <div className="line"></div>
           </div>
-          <h2>New Here?</h2>
-          <Link to="/Create">Create an account</Link> to experience the joy of
-          clairvoyance.
+          <h2 className="text-h2">New Here?</h2>
+          <p className="text-body">
+            <Link className="btn-glass interactive-particle" to="/Create">Create an account</Link> to experience the joy of
+            clairvoyance.
+          </p>
         </div>
       </div>
     </>

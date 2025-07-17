@@ -77,7 +77,8 @@ go run recreate_db.go    # Recreate database from schema files
 - **3D Graphics**: Three.js with React Three Fiber for graph visualization
 - **State Management**: React Context with JWT authentication
 - **Routing**: React Router v7 with protected routes
-- **Styling**: Component-scoped CSS files
+- **Styling**: Component-scoped CSS files with comprehensive design system
+- **Design System**: Ethereal space theme with glass-morphism effects (`ui/atlas-of-us-web-ui/src/styles/STYLE_GUIDE.md`)
 
 ### Database Schema
 - **Type**: Neo4j graph database with domain-specific node types
@@ -106,6 +107,16 @@ Secure routes require JWT tokens. Use the `/api/secure/` prefix for protected en
 
 ### Frontend Component Structure
 Follow the established pattern: component file + CSS file in same directory.
+
+### Design System Usage
+- **Style Guide**: Complete documentation at `ui/atlas-of-us-web-ui/src/styles/STYLE_GUIDE.md`
+- **Design Tokens**: CSS variables defined in `ui/atlas-of-us-web-ui/src/styles/design-tokens.css`
+- **Components**: Reusable UI components in `ui/atlas-of-us-web-ui/src/styles/components.css`
+- **Theme**: Ethereal space aesthetic with glass-morphism, cosmic colors, and subtle animations
+- **Typography**: Mochiy Pop One (headings) + Inter (body text)
+- **Colors**: Descriptive cosmic names (violet-deep, nebula-blue, star-green, etc.)
+- **Buttons**: Use `.btn-cosmic` (primary) and `.btn-glass` (secondary) classes
+- **Cards**: Use `.card-cosmic` with optional `.interactive-particle` for hover effects
 
 ### 3D Graph Visualization
 The Graph page renders Neo4j data in 3D space using Three.js. Node positioning and relationships are dynamically calculated.
