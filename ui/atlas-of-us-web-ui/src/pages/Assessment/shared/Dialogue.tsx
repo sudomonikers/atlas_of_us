@@ -21,10 +21,6 @@ export function Dialogue({ text, onNext }: DialogueProps) {
             if (index < text.length) {
                 setCurrentText(text.substring(0, index + 1));
                 index++;
-                // Auto-scroll to bottom as text is added
-                if (textRef.current) {
-                    textRef.current.scrollTop = textRef.current.scrollHeight;
-                }
             } else {
                 setIsTyping(false);
                 setShowEnterPrompt(true);
@@ -50,10 +46,6 @@ export function Dialogue({ text, onNext }: DialogueProps) {
                     setCurrentText(text);
                     setIsTyping(false);
                     setShowEnterPrompt(true);
-                    // Auto-scroll to bottom when finishing typing
-                    if (textRef.current) {
-                        textRef.current.scrollTop = textRef.current.scrollHeight;
-                    }
                 } else {
                     // Continue to next message
                     onNext();

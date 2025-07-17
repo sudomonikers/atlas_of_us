@@ -6,6 +6,11 @@ import { useState, useMemo } from "react";
 import { Step1 } from "./Step1/Step1";
 import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
+import { Step2Choice1 } from "./Step2Choice1/Step2Choice1";
+import { Step2Choice2 } from "./Step2Choice2/Step2Choice2";
+import { Step4 } from "./Step4/Step4";
+import { Step5 } from "./Step5/Step5";
+import { Step6 } from "./Step6/Step6";
 
 interface StepResponse {
     stepId: string;
@@ -72,14 +77,41 @@ export function Assessment() {
                     nextStep: 'Step2Choice1'
                 },
                 {
-                    condition: (response: string) => response.trim() !== "",
+                    condition: (response: string) => {
+                        setResponses([{
+                            stepId: 'Step2',
+                            response: response,
+                            timestamp: new Date()
+                        }])
+                        return response.trim() !== "";
+                    },
                     nextStep: 'Step2Choice2'
                 }
             ]
         },
         {
+            stepId: 'Step2Choice1',
+            defaultNext: 'Step3'
+        },
+        {
+            stepId: 'Step2Choice2',
+            defaultNext: 'Step3'
+        },
+        {
             stepId: 'Step3',
             defaultNext: 'Step4'
+        },
+        {
+            stepId: 'Step4',
+            defaultNext: 'Step5'
+        },
+        {
+            stepId: 'Step5',
+            defaultNext: 'Step6'
+        },
+        {
+            stepId: 'Step6',
+            defaultNext: 'Step7'
         }
     ];
     
@@ -116,8 +148,18 @@ export function Assessment() {
                 return <Step1 onNext={() => handleStepComplete('Step1')} />;
             case 'Step2':
                 return <Step2 onNext={(response) => handleStepComplete('Step2', response)} />;
+            case 'Step2Choice1':
+                return <Step2Choice1 onNext={() => handleStepComplete('Step2Choice1')} />;
+            case 'Step2Choice2':
+                return <Step2Choice2 onNext={() => handleStepComplete('Step2Choice2')} />;
             case 'Step3':
                 return <Step3 onNext={() => handleStepComplete('Step3')} />;
+            case 'Step4':
+                return <Step4 onNext={() => handleStepComplete('Step4')} />;
+            case 'Step5':
+                return <Step5 onNext={() => handleStepComplete('Step5')} />;
+            case 'Step6':
+                return <Step6 onNext={() => handleStepComplete('Step6')} />;
             default:
                 return <div className="link-dialogue">Assessment complete!</div>;
         }
