@@ -1,8 +1,9 @@
 import "./assessment.css";
 import { NavBar } from "../../common-components/navbar/nav";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars, Cloud } from "@react-three/drei";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
+import { OrbitControls as OrbitControlsType } from "three-stdlib";
 import { Step1 } from "./Step1/Step1";
 import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
@@ -11,6 +12,7 @@ import { Step2Choice2 } from "./Step2Choice2/Step2Choice2";
 import { Step4 } from "./Step4/Step4";
 import { Step5 } from "./Step5/Step5";
 import { Step6 } from "./Step6/Step6";
+import { interpolateColor } from "./shared/sharedFunctions";
 
 interface StepResponse {
     stepId: string;
@@ -31,16 +33,69 @@ interface StepConfig {
 
 export interface StepProps {
     onNext: (response?: string) => void;
+    onFunctionCall?: (functionName: string) => void;
 }
 
-function EtherealWorld() {
+interface WorldState {
+    skyColor: string; // hex code
+    starIntensity: number;
+    cameraTarget: number[];
+}
+
+function EtherealWorld({ targetWorldState }: { 
+    targetWorldState: WorldState; 
+}) {
+    const controlsRef = useRef<OrbitControlsType>(null);
+    const [worldState, setWorldState] = useState<WorldState>({
+        skyColor: '#1a1a2e',
+        starIntensity: 4,
+        cameraTarget: [0, 0, 0]
+    });
+
+    useFrame(() => {
+        if (!controlsRef.current) return;
+        
+        const lerpFactor = 0.05;
+        
+        // Animate camera target
+        const currentTarget = controlsRef.current.target;
+        const targetPos = targetWorldState.cameraTarget;
+        
+        currentTarget.x += (targetPos[0] - currentTarget.x) * lerpFactor;
+        currentTarget.y += (targetPos[1] - currentTarget.y) * lerpFactor;
+        currentTarget.z += (targetPos[2] - currentTarget.z) * lerpFactor;
+        
+        controlsRef.current.update();
+        
+        // Update worldState to lerp towards targetWorldState
+        setWorldState(prevState => {
+            const newState = { ...prevState };
+            
+            // Lerp star intensity
+            if (Math.abs(prevState.starIntensity - targetWorldState.starIntensity) > 0.01) {
+                newState.starIntensity += (targetWorldState.starIntensity - prevState.starIntensity) * lerpFactor;
+            }
+            
+            // Lerp sky color
+            if (prevState.skyColor !== targetWorldState.skyColor) {
+                const colorProgress = lerpFactor;
+                newState.skyColor = interpolateColor(prevState.skyColor, targetWorldState.skyColor, colorProgress);
+            }
+            
+            // Update camera target in state
+            newState.cameraTarget = [currentTarget.x, currentTarget.y, currentTarget.z];
+            
+            return newState;
+        });
+    });
+
     return (
         <>
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 10, 5]} intensity={0.5} />
             <pointLight position={[0, 10, 0]} intensity={0.8} color="#9bb5ff" />
             
-            <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade />
+            <Stars radius={100} depth={50} count={2000} factor={worldState.starIntensity} saturation={0} fade />
             
             <Cloud
                 position={[-10, 5, -10]}
@@ -55,7 +110,8 @@ function EtherealWorld() {
                 segments={15}
             />
             
-            <fog attach="fog" args={['#1a1a2e', 30, 100]} />
+            <fog attach="fog" args={[worldState.skyColor, 30, 100]} />
+            <OrbitControls ref={controlsRef} enableZoom={false} enablePan={false} />
         </>
     );
 }
@@ -63,6 +119,11 @@ function EtherealWorld() {
 export function Assessment() {
     const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
+    const [targetWorldState, setTargetWorldState] = useState<WorldState>({
+        skyColor: '#1a1a2e',
+        starIntensity: 4,
+        cameraTarget: [0, 0, 0]
+    });
     
     const stepConfigs: StepConfig[] = [
         {
@@ -115,6 +176,20 @@ export function Assessment() {
         }
     ];
     
+    const handleFunctionCall = (functionName: string) => {
+        switch (functionName) {
+            case 'transitionToSky':
+                setTargetWorldState({
+                    skyColor: '#0a0a1a',
+                    starIntensity: 6,
+                    cameraTarget: [0, 20, 0]
+                });
+                break;
+            default:
+                console.warn(`Unknown function call: ${functionName}`);
+        }
+    };
+    
     const handleStepComplete = (stepId: string, response: string = '') => {
         const stepResponse: StepResponse = {
             stepId,
@@ -159,7 +234,7 @@ export function Assessment() {
             case 'Step5':
                 return <Step5 onNext={() => handleStepComplete('Step5')} />;
             case 'Step6':
-                return <Step6 onNext={() => handleStepComplete('Step6')} />;
+                return <Step6 onNext={() => handleStepComplete('Step6')} onFunctionCall={handleFunctionCall} />;
             default:
                 return <div className="link-dialogue">Assessment complete!</div>;
         }
@@ -167,10 +242,13 @@ export function Assessment() {
 
     const memoizedCanvas = useMemo(() => (
         <Canvas className="assessment-canvas">
-            <EtherealWorld />
-            <OrbitControls enableZoom={false} enablePan={false} />
+            <EtherealWorld 
+                targetWorldState={targetWorldState}
+            />
         </Canvas>
-    ), []);
+    ), [targetWorldState]);
+
+
 
     return (
         <>

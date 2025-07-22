@@ -1,5 +1,5 @@
 import { StepProps } from "../Assessment";
-import { Dialogue } from "../shared/Dialogue";
+import { Dialogue } from "../shared/Dialogue/Dialogue";
 import { useState } from "react";
 
 export function Step2({ onNext }: StepProps) {
