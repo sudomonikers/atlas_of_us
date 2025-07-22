@@ -30,11 +30,12 @@ echo "Deploying Atlas of Us API to EC2..."
 
 # Create remote directory
 echo "Creating remote directory..."
-ssh -i "$EC2_KEY_PATH" "$EC2_USER@$EC2_HOST" "mkdir -p $REMOTE_DIR"
+ssh-keygen -R $EC2_HOST
+ssh -i "$EC2_KEY_PATH" -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" "mkdir -p $REMOTE_DIR"
 
 # Copy files to EC2
 echo "Copying files to EC2..."
-scp -i "$EC2_KEY_PATH" -r \
+scp -i "$EC2_KEY_PATH" -o StrictHostKeyChecking=no -r \
     ./src \
     ./go.mod \
     ./go.sum \
@@ -43,11 +44,11 @@ scp -i "$EC2_KEY_PATH" -r \
     "$EC2_USER@$EC2_HOST:$REMOTE_DIR/"
 
 # Copy production env file as .env
-scp -i "$EC2_KEY_PATH" ./.env.production "$EC2_USER@$EC2_HOST:$REMOTE_DIR/.env"
+scp -i "$EC2_KEY_PATH" -o StrictHostKeyChecking=no ./.env.production "$EC2_USER@$EC2_HOST:$REMOTE_DIR/.env"
 
 # Deploy on EC2
 echo "Deploying on EC2..."
-ssh -i "$EC2_KEY_PATH" "$EC2_USER@$EC2_HOST" << EOF
+ssh -i "$EC2_KEY_PATH" -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" << EOF
     cd $REMOTE_DIR
     
     # Stop existing containers

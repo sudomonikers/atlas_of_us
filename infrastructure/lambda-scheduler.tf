@@ -52,7 +52,7 @@ resource "aws_lambda_function" "ec2_scheduler" {
   role            = aws_iam_role.ec2_scheduler_lambda_role.arn
   handler         = "index.handler"
   source_code_hash = data.archive_file.ec2_scheduler_zip.output_base64sha256
-  runtime         = "python3.9"
+  runtime         = "python3.12"
   timeout         = 60
 
   environment {
