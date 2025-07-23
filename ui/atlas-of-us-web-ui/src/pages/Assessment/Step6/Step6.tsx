@@ -9,7 +9,7 @@ export function Step6({ onNext, onFunctionCall }: StepProps) {
         if (onFunctionCall) {
             onFunctionCall('transitionToSky');
         }
-    }, [onFunctionCall]);
+    }, []);
     
     return <Dialogue text={dialogueText} onNext={onNext} />;
 }

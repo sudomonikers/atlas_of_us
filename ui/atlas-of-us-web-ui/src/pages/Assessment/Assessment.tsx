@@ -42,18 +42,55 @@ interface WorldState {
     cameraTarget: number[];
 }
 
-function EtherealWorld({ targetWorldState }: { 
-    targetWorldState: WorldState; 
+function AssessmentWorld({ 
+    worldState, 
+    setWorldState, 
+    targetWorldState 
+}: { 
+    worldState: WorldState;
+    setWorldState: React.Dispatch<React.SetStateAction<WorldState>>;
+    targetWorldState: WorldState;
 }) {
     const controlsRef = useRef<OrbitControlsType>(null);
-    const [worldState, setWorldState] = useState<WorldState>({
-        skyColor: '#1a1a2e',
-        starIntensity: 4,
-        cameraTarget: [0, 0, 0]
+
+    useFrame(() => {
+        //animate the camera
+        if (!controlsRef.current) return;
+        
+        const lerpFactor = 0.25;
+        
+        // Animate camera target
+        const currentTarget = controlsRef.current.target;
+        const targetPos = targetWorldState.cameraTarget;
+        
+        const oldX = currentTarget.x;
+        const oldY = currentTarget.y;
+        const oldZ = currentTarget.z;
+        
+        currentTarget.x += (targetPos[0] - currentTarget.x) * lerpFactor;
+        currentTarget.y += (targetPos[1] - currentTarget.y) * lerpFactor;
+        currentTarget.z += (targetPos[2] - currentTarget.z) * lerpFactor;
+        
+        controlsRef.current.update();
+        
+        // Only update state if camera position actually changed
+        const threshold = 0.001;
+        if (Math.abs(oldX - currentTarget.x) > threshold || 
+            Math.abs(oldY - currentTarget.y) > threshold || 
+            Math.abs(oldZ - currentTarget.z) > threshold) {
+            setWorldState(prevState => ({
+                ...prevState,
+                cameraTarget: [currentTarget.x, currentTarget.y, currentTarget.z]
+            }));
+        }
     });
 
-    const memoizedClouds = useMemo(() => (
+    const memoizedCanvas = useMemo(() => (
         <>
+            <ambientLight intensity={0.3} />
+            <directionalLight position={[10, 10, 5]} intensity={0.5} />
+            <pointLight position={[0, 10, 0]} intensity={0.8} color="#9bb5ff" />
+            <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade />
             <Cloud
                 position={[-10, 5, -10]}
                 opacity={0.3}
@@ -66,71 +103,32 @@ function EtherealWorld({ targetWorldState }: {
                 speed={0.2}
                 segments={15}
             />
+            <OrbitControls ref={controlsRef} enableZoom={false} enablePan={false} />
         </>
     ), []);
 
-    useFrame(() => {
-        if (!controlsRef.current) return;
-        
-        const lerpFactor = 0.05;
-        
-        // Animate camera target
-        const currentTarget = controlsRef.current.target;
-        const targetPos = targetWorldState.cameraTarget;
-        
-        currentTarget.x += (targetPos[0] - currentTarget.x) * lerpFactor;
-        currentTarget.y += (targetPos[1] - currentTarget.y) * lerpFactor;
-        currentTarget.z += (targetPos[2] - currentTarget.z) * lerpFactor;
-        
-        controlsRef.current.update();
-        
-        // Update worldState to lerp towards targetWorldState
-        setWorldState(prevState => {
-            const newState = { ...prevState };
-            
-            // Lerp star intensity
-            if (Math.abs(prevState.starIntensity - targetWorldState.starIntensity) > 0.01) {
-                newState.starIntensity += (targetWorldState.starIntensity - prevState.starIntensity) * lerpFactor;
-            }
-            
-            // Lerp sky color
-            if (prevState.skyColor !== targetWorldState.skyColor) {
-                const colorProgress = lerpFactor;
-                newState.skyColor = interpolateColor(prevState.skyColor, targetWorldState.skyColor, colorProgress);
-            }
-            
-            // Update camera target in state
-            newState.cameraTarget = [currentTarget.x, currentTarget.y, currentTarget.z];
-            
-            return newState;
-        });
-    });
-
     return (
         <>
-            <ambientLight intensity={0.3} />
-            <directionalLight position={[10, 10, 5]} intensity={0.5} />
-            <pointLight position={[0, 10, 0]} intensity={0.8} color="#9bb5ff" />
-            
-            <Stars radius={100} depth={50} count={2000} factor={worldState.starIntensity} saturation={0} fade />
-            
-            {memoizedClouds}
-            
-            <fog attach="fog" args={[worldState.skyColor, 30, 100]} />
-            <OrbitControls ref={controlsRef} enableZoom={false} enablePan={false} />
+            {memoizedCanvas}
         </>
-    );
+    )
 }
 
 export function Assessment() {
     const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
+    const [worldState, setWorldState] = useState<WorldState>({
+        skyColor: '#1a1a2e',
+        starIntensity: 4,
+        cameraTarget: [0, 0, 0]
+    });
     const [targetWorldState, setTargetWorldState] = useState<WorldState>({
         skyColor: '#1a1a2e',
         starIntensity: 4,
         cameraTarget: [0, 0, 0]
     });
     
+
     const stepConfigs: StepConfig[] = [
         {
             stepId: 'Step1',
@@ -178,6 +176,7 @@ export function Assessment() {
     const handleFunctionCall = (functionName: string) => {
         switch (functionName) {
             case 'transitionToSky':
+                console.log('should just be called once')
                 setTargetWorldState({
                     skyColor: '#0a0a1a',
                     starIntensity: 6,
@@ -239,13 +238,13 @@ export function Assessment() {
         }
     };
 
-    const memoizedCanvas = useMemo(() => (
-        <Canvas className="assessment-canvas">
-            <EtherealWorld 
-                targetWorldState={targetWorldState}
-            />
-        </Canvas>
-    ), [targetWorldState]);
+
+
+
+
+
+
+    
 
 
 
@@ -253,7 +252,13 @@ export function Assessment() {
         <>
             <NavBar />
             <div className="in-nav-container assessment-container">
-                {memoizedCanvas}
+                <Canvas className="assessment-canvas">
+                    <AssessmentWorld 
+                        worldState={worldState}
+                        setWorldState={setWorldState}
+                        targetWorldState={targetWorldState}
+                    />
+                </Canvas>
                 {renderCurrentStep()}
             </div>
         </>
