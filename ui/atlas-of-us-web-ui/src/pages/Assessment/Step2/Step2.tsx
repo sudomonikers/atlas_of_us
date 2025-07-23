@@ -17,6 +17,8 @@ export function Step2({ onNext }: StepProps) {
 
     const handleKeyPress = (event: React.KeyboardEvent) => {
         if (event.key === 'Enter' && event.ctrlKey) {
+            event.preventDefault();
+            event.stopPropagation();
             handleSubmit();
         }
     };

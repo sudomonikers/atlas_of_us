@@ -138,14 +138,7 @@ export function Assessment() {
                     nextStep: 'Step2Choice1'
                 },
                 {
-                    condition: (response: string) => {
-                        setResponses([{
-                            stepId: 'Step2',
-                            response: response,
-                            timestamp: new Date()
-                        }])
-                        return response.trim() !== "";
-                    },
+                    condition: (response: string) => response.trim() !== "",
                     nextStep: 'Step2Choice2'
                 }
             ]
