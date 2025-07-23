@@ -52,6 +52,23 @@ function EtherealWorld({ targetWorldState }: {
         cameraTarget: [0, 0, 0]
     });
 
+    const memoizedClouds = useMemo(() => (
+        <>
+            <Cloud
+                position={[-10, 5, -10]}
+                opacity={0.3}
+                speed={0.4}
+                segments={20}
+            />
+            <Cloud
+                position={[10, -5, -5]}
+                opacity={0.2}
+                speed={0.2}
+                segments={15}
+            />
+        </>
+    ), []);
+
     useFrame(() => {
         if (!controlsRef.current) return;
         
@@ -97,18 +114,7 @@ function EtherealWorld({ targetWorldState }: {
             
             <Stars radius={100} depth={50} count={2000} factor={worldState.starIntensity} saturation={0} fade />
             
-            <Cloud
-                position={[-10, 5, -10]}
-                opacity={0.3}
-                speed={0.4}
-                segments={20}
-            />
-            <Cloud
-                position={[10, -5, -5]}
-                opacity={0.2}
-                speed={0.2}
-                segments={15}
-            />
+            {memoizedClouds}
             
             <fog attach="fog" args={[worldState.skyColor, 30, 100]} />
             <OrbitControls ref={controlsRef} enableZoom={false} enablePan={false} />
