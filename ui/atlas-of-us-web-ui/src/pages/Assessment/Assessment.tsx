@@ -1,9 +1,7 @@
 import "./assessment.css";
 import { NavBar } from "../../common-components/navbar/nav";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Stars, Cloud } from "@react-three/drei";
-import { useState, useMemo, useRef } from "react";
-import { OrbitControls as OrbitControlsType } from "three-stdlib";
+import { Canvas } from "@react-three/fiber";
+import { useState } from "react";
 import { Step1 } from "./Step1/Step1";
 import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
@@ -12,7 +10,7 @@ import { Step2Choice2 } from "./Step2Choice2/Step2Choice2";
 import { Step4 } from "./Step4/Step4";
 import { Step5 } from "./Step5/Step5";
 import { Step6 } from "./Step6/Step6";
-import { interpolateColor } from "./shared/sharedFunctions";
+import { AssessmentWorld, WorldState } from "./AssessmentWorld";
 
 interface StepResponse {
     stepId: string;
@@ -34,84 +32,6 @@ interface StepConfig {
 export interface StepProps {
     onNext: (response?: string) => void;
     onFunctionCall?: (functionName: string) => void;
-}
-
-interface WorldState {
-    skyColor: string; // hex code
-    starIntensity: number;
-    cameraTarget: number[];
-}
-
-function AssessmentWorld({ 
-    worldState, 
-    setWorldState, 
-    targetWorldState 
-}: { 
-    worldState: WorldState;
-    setWorldState: React.Dispatch<React.SetStateAction<WorldState>>;
-    targetWorldState: WorldState;
-}) {
-    const controlsRef = useRef<OrbitControlsType>(null);
-
-    useFrame(() => {
-        //animate the camera
-        if (!controlsRef.current) return;
-        
-        const lerpFactor = 0.25;
-        
-        // Animate camera target
-        const currentTarget = controlsRef.current.target;
-        const targetPos = targetWorldState.cameraTarget;
-        
-        const oldX = currentTarget.x;
-        const oldY = currentTarget.y;
-        const oldZ = currentTarget.z;
-        
-        currentTarget.x += (targetPos[0] - currentTarget.x) * lerpFactor;
-        currentTarget.y += (targetPos[1] - currentTarget.y) * lerpFactor;
-        currentTarget.z += (targetPos[2] - currentTarget.z) * lerpFactor;
-        
-        controlsRef.current.update();
-        
-        // Only update state if camera position actually changed
-        const threshold = 0.001;
-        if (Math.abs(oldX - currentTarget.x) > threshold || 
-            Math.abs(oldY - currentTarget.y) > threshold || 
-            Math.abs(oldZ - currentTarget.z) > threshold) {
-            setWorldState(prevState => ({
-                ...prevState,
-                cameraTarget: [currentTarget.x, currentTarget.y, currentTarget.z]
-            }));
-        }
-    });
-
-    const memoizedCanvas = useMemo(() => (
-        <>
-            <ambientLight intensity={0.3} />
-            <directionalLight position={[10, 10, 5]} intensity={0.5} />
-            <pointLight position={[0, 10, 0]} intensity={0.8} color="#9bb5ff" />
-            <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade />
-            <Cloud
-                position={[-10, 5, -10]}
-                opacity={0.3}
-                speed={0.4}
-                segments={20}
-            />
-            <Cloud
-                position={[10, -5, -5]}
-                opacity={0.2}
-                speed={0.2}
-                segments={15}
-            />
-            <OrbitControls ref={controlsRef} enableZoom={false} enablePan={false} />
-        </>
-    ), []);
-
-    return (
-        <>
-            {memoizedCanvas}
-        </>
-    )
 }
 
 export function Assessment() {
