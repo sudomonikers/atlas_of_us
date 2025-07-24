@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { OrbitControls, Stars, Cloud } from "@react-three/drei";
+import { Stars } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import { OrbitControls as OrbitControlsType } from "three-stdlib";
 
@@ -53,20 +53,7 @@ export function AssessmentWorld({
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 10, 5]} intensity={0.5} />
             <pointLight position={[0, 10, 0]} intensity={0.8} color="#9bb5ff" />
-            <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade />
-            <Cloud
-                position={[-10, 5, -10]}
-                opacity={0.3}
-                speed={0.4}
-                segments={20}
-            />
-            <Cloud
-                position={[10, -5, -5]}
-                opacity={0.2}
-                speed={0.2}
-                segments={15}
-            />
-            <OrbitControls ref={controlsRef} enableZoom={false} enablePan={false} />
+            <Stars radius={20} depth={2000} count={2500} factor={60} saturation={100} fade />
         </>
     ), []);
 

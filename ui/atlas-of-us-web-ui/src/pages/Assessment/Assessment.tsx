@@ -10,7 +10,11 @@ import { Step2Choice2 } from "./Step2Choice2/Step2Choice2";
 import { Step4 } from "./Step4/Step4";
 import { Step5 } from "./Step5/Step5";
 import { Step6 } from "./Step6/Step6";
+import { StepSkillsAbilities } from "./StepSkillsAbilities/StepSkillsAbilities";
+
 import { AssessmentWorld, WorldState } from "./AssessmentWorld";
+import { ForceGraph } from "../Graph/ForceGraph/ForceGraph";
+import { TrackballControls } from "@react-three/drei";
 
 interface StepResponse {
     stepId: string;
@@ -89,14 +93,17 @@ export function Assessment() {
         },
         {
             stepId: 'Step6',
-            defaultNext: 'Step7'
-        }
+            defaultNext: 'StepSkillsAbilities'
+        },
+        {
+            stepId: 'StepSkillsAbilities',
+            defaultNext: 'StepSkillsAbilities'
+        },
     ];
     
     const handleFunctionCall = (functionName: string) => {
         switch (functionName) {
             case 'transitionToSky':
-                console.log('should just be called once')
                 setTargetWorldState({
                     skyColor: '#0a0a1a',
                     starIntensity: 6,
@@ -153,6 +160,9 @@ export function Assessment() {
                 return <Step5 onNext={() => handleStepComplete('Step5')} />;
             case 'Step6':
                 return <Step6 onNext={() => handleStepComplete('Step6')} onFunctionCall={handleFunctionCall} />;
+            case 'StepSkillsAbilities':
+                return <StepSkillsAbilities onNext={() => handleStepComplete('StepSkillsAbilities')} onFunctionCall={handleFunctionCall} />;
+    
             default:
                 return <div className="link-dialogue">Assessment complete!</div>;
         }
@@ -160,6 +170,7 @@ export function Assessment() {
 
 
 
+    
 
 
 
@@ -172,12 +183,14 @@ export function Assessment() {
         <>
             <NavBar />
             <div className="in-nav-container assessment-container">
-                <Canvas className="assessment-canvas">
+                <Canvas className="assessment-canvas" flat camera={{ position: [0, 0, 180], far: 5000 }}>
+                    <TrackballControls />
                     <AssessmentWorld 
                         worldState={worldState}
                         setWorldState={setWorldState}
                         targetWorldState={targetWorldState}
                     />
+                    <ForceGraph />
                 </Canvas>
                 {renderCurrentStep()}
             </div>
