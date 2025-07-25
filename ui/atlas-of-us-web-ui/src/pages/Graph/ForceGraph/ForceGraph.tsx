@@ -1,71 +1,106 @@
 import R3fForceGraph from 'r3f-forcegraph';
+import SpriteText from 'three-spritetext';
 
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfaces.interface';
 
+
+export interface GraphData {
+  nodes: Neo4jNodeExtendedForUI[],
+  links: Neo4jRelationshipExtendedForUI[]
+}
+
+export interface Neo4jNodeExtendedForUI extends Neo4jNode {
+  collapsed?: boolean;
+  childLinks?: any[];
+}
+
+export interface Neo4jRelationshipExtendedForUI extends Neo4jRelationship {
+  collapsed?: boolean;
+  childLinks?: any[];
+}
 
 //THIS GUY WILL BE UPDATED WHEN WE START USING NEO4J GRAPH DATA
-export function ForceGraph () {
-      const fgRef = useRef(null);
-      useFrame(() => (fgRef.current.tickFrame()));
+export function ForceGraph({ neo4jResponse }: { neo4jResponse: Neo4jApiResponse }) {
+  const fgRef = useRef(null);
+  useFrame(() => (fgRef.current.tickFrame()));
 
-      const graphData = useMemo(() => genRandomTree(600, true), []);
+  const graphData = {
+    nodes: [...neo4jResponse.affiliates, neo4jResponse.nodeRoot],
+    links: neo4jResponse.relationships
+  } as GraphData;
 
-      const rootId = 0;
+  console.log(graphData)
 
-      const nodesById = useMemo(() => {
-        const nodesById = Object.fromEntries(graphData.nodes.map(node => [node.id, node]));
+  const rootId = neo4jResponse.nodeRoot.ElementId;
 
-        // link parent/children
-        graphData.nodes.forEach(node => {
-          node.collapsed = node.id !== rootId;
-          node.childLinks = [];
-        });
-        graphData.links.forEach(link => nodesById[link.source].childLinks.push(link));
+  const nodesById = useMemo(() => {
+    const nodesById = Object.fromEntries(graphData.nodes.map(node => [node.ElementId, node]));
 
-        return nodesById;
-      }, [graphData]);
+    // link parent/children
+    graphData.nodes.forEach(node => {
+      node.collapsed = node.ElementId !== rootId;
+      node.childLinks = [];
+    });
+    graphData.links.forEach(link => nodesById[link.StartElementId].childLinks.push(link));
 
-      const getPrunedTree = useCallback(() => {
-        const visibleNodes = [];
-        const visibleLinks = [];
-        (function traverseTree(node = nodesById[rootId]) {
-          visibleNodes.push(node);
-          if (node.collapsed) return;
-          visibleLinks.push(...node.childLinks);
-          node.childLinks
-                  .map(link => ((typeof link.target) === 'object') ? link.target : nodesById[link.target]) // get child node
-                  .forEach(traverseTree);
-        })();
+    return nodesById;
+  }, [graphData]);
 
-        return { nodes: visibleNodes, links: visibleLinks };
-      }, [nodesById]);
+  const getPrunedTree = useCallback(() => {
+    const visibleNodes = [];
+    const visibleLinks = [];
+    const visited = new Set();
+    
+    (function traverseTree(node = nodesById[rootId]) {
+      if (visited.has(node.ElementId)) return;
+      visited.add(node.ElementId);
+      
+      visibleNodes.push(node);
+      if (node.collapsed) return;
+      visibleLinks.push(...node.childLinks);
+      node.childLinks
+        .map(link => ((typeof link.target) === 'object') ? link.target : nodesById[link.EndElementId]) // get child node
+        .forEach(traverseTree);
+    })();
 
-      const [prunedTree, setPrunedTree] = useState(getPrunedTree());
+    return { nodes: visibleNodes, links: visibleLinks };
+  }, [nodesById]);
 
-      const handleNodeClick = useCallback(node => {
-        node.collapsed = !node.collapsed; // toggle collapse state
-        setPrunedTree(getPrunedTree())
-      }, []);
+  const [prunedTree, setPrunedTree] = useState(getPrunedTree());
 
-      return <R3fForceGraph
-        ref={fgRef}
-        graphData={prunedTree}
-        linkDirectionalParticles={1}
-        linkDirectionalParticleWidth={0.2}
-        nodeColor={node => !node.childLinks.length ? 'green' : node.collapsed ? 'red' : 'yellow'}
-        onNodeClick={handleNodeClick}
-      />;
-    }
+  const handleNodeClick = useCallback((node: Neo4jNodeExtendedForUI) => {
+    node.collapsed = !node.collapsed; // toggle collapse state
+    setPrunedTree(getPrunedTree())
+  }, []);
+
+  return <R3fForceGraph
+    ref={fgRef}
+    graphData={prunedTree}
+    nodeId={"ElementId"}
+    linkSource={"StartElementId"}
+    linkTarget={"EndElementId"}
+    linkDirectionalParticles={1}
+    linkDirectionalParticleWidth={0.2}
+    onNodeClick={handleNodeClick}
+    nodeThreeObject={node => {
+          const sprite = new SpriteText(node.Props.name);
+          sprite.color = !node.childLinks.length ? 'green' : node.collapsed ? 'red' : 'yellow';
+          sprite.textHeight = 8;
+          return sprite;
+        }}
+  />;
+}
 
 export function genRandomTree(N = 300, reverse = false) {
   return {
     nodes: [...Array(N).keys()].map(i => ({ id: i })),
-      links: [...Array(N).keys()]
-    .filter(id => id)
-    .map(id => ({
-      [reverse ? 'target' : 'source']: id,
-      [reverse ? 'source' : 'target']: Math.round(Math.random() * (id-1))
-    }))
+    links: [...Array(N).keys()]
+      .filter(id => id)
+      .map(id => ({
+        [reverse ? 'target' : 'source']: id,
+        [reverse ? 'source' : 'target']: Math.round(Math.random() * (id - 1))
+      }))
   };
 }
