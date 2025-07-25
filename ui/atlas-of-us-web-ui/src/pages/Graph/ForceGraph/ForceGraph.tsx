@@ -2,105 +2,142 @@ import R3fForceGraph from 'r3f-forcegraph';
 import SpriteText from 'three-spritetext';
 
 import { useFrame } from "@react-three/fiber";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfaces.interface';
 
 
 export interface GraphData {
-  nodes: Neo4jNodeExtendedForUI[],
-  links: Neo4jRelationshipExtendedForUI[]
+  nodes: Neo4jNode[],
+  links: Neo4jRelationship[]
 }
 
-export interface Neo4jNodeExtendedForUI extends Neo4jNode {
-  collapsed?: boolean;
-  childLinks?: any[];
-}
-
-export interface Neo4jRelationshipExtendedForUI extends Neo4jRelationship {
-  collapsed?: boolean;
-  childLinks?: any[];
-}
-
-//THIS GUY WILL BE UPDATED WHEN WE START USING NEO4J GRAPH DATA
 export function ForceGraph({ neo4jResponse }: { neo4jResponse: Neo4jApiResponse }) {
   const fgRef = useRef(null);
   useFrame(() => (fgRef.current.tickFrame()));
+  const [highlightNodes, setHighlightNodes] = useState(new Set());
+  const [highlightLinks, setHighlightLinks] = useState(new Set());
+  const [activeNodes, setActiveNodes] = useState(new Set());
+  const [activeLinks, setActiveLinks] = useState(new Set());
 
-  const graphData = {
-    nodes: [...neo4jResponse.affiliates, neo4jResponse.nodeRoot],
-    links: neo4jResponse.relationships
-  } as GraphData;
-
-  console.log(graphData)
-
-  const rootId = neo4jResponse.nodeRoot.ElementId;
-
-  const nodesById = useMemo(() => {
-    const nodesById = Object.fromEntries(graphData.nodes.map(node => [node.ElementId, node]));
-
-    // link parent/children
-    graphData.nodes.forEach(node => {
-      node.collapsed = node.ElementId !== rootId;
-      node.childLinks = [];
-    });
-    graphData.links.forEach(link => nodesById[link.StartElementId].childLinks.push(link));
-
-    return nodesById;
-  }, [graphData]);
-
-  const getPrunedTree = useCallback(() => {
-    const visibleNodes = [];
-    const visibleLinks = [];
-    const visited = new Set();
+  const {graphData, nodesById} = useMemo(() => {
+    const allNodes = [...neo4jResponse.affiliates, neo4jResponse.nodeRoot];
+    const relationships = neo4jResponse.relationships;
     
-    (function traverseTree(node = nodesById[rootId]) {
-      if (visited.has(node.ElementId)) return;
-      visited.add(node.ElementId);
+    const nodesById = new Map();
+    
+    allNodes.forEach(node => {
+      nodesById.set(node.ElementId, {
+        node: node,
+        outgoing: [] as string[], //list of relationships starting at this node
+        incoming: [] as string[], //list of relationships ending at this node
+        neighbors: new Set() // set of all nodes which have a relationship with this node one way or the other
+      });
+    });
+    
+    // Populate relationships
+    relationships.forEach(rel => {
+      const startNode = nodesById.get(rel.StartElementId);
+      const endNode = nodesById.get(rel.EndElementId);
       
-      visibleNodes.push(node);
-      if (node.collapsed) return;
-      visibleLinks.push(...node.childLinks);
-      node.childLinks
-        .map(link => ((typeof link.target) === 'object') ? link.target : nodesById[link.EndElementId]) // get child node
-        .forEach(traverseTree);
-    })();
+      if (startNode) {
+        startNode.outgoing.push(rel.ElementId);
+        if (endNode) {
+          startNode.neighbors.add(rel.EndElementId);
+        }
+      }
+      if (endNode) {
+        endNode.incoming.push(rel.ElementId);
+        if (startNode) {
+          endNode.neighbors.add(rel.StartElementId);
+        }
+      }
+    });
+    
+    return {
+      graphData: {
+        nodes: allNodes,
+        links: relationships
+      }as GraphData,
+      nodesById
+    };
+  }, [neo4jResponse]);
 
-    return { nodes: visibleNodes, links: visibleLinks };
-  }, [nodesById]);
+  
 
-  const [prunedTree, setPrunedTree] = useState(getPrunedTree());
+  const handleNodeClick = (node: Neo4jNode) => {
+    setActiveNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(node.ElementId)) {
+        newSet.delete(node.ElementId);
+      } else {
+        newSet.add(node.ElementId);
+      }
+      return newSet;
+    });
+  }
 
-  const handleNodeClick = useCallback((node: Neo4jNodeExtendedForUI) => {
-    node.collapsed = !node.collapsed; // toggle collapse state
-    setPrunedTree(getPrunedTree())
-  }, []);
+  const handleRelationshipClick = (relationship: Neo4jRelationship) => {
+    setActiveLinks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(relationship.ElementId)) {
+        newSet.delete(relationship.ElementId);
+      } else {
+        newSet.add(relationship.ElementId);
+      }
+      return newSet;
+    })
+  }
+
+  const handleNodeHover = (node: Neo4jNode) => {
+    highlightNodes.clear();
+    highlightLinks.clear();
+    if (node) {
+      highlightNodes.add(node.ElementId);
+      const nodeData = nodesById.get(node.ElementId);
+      if (nodeData) {
+        nodeData.neighbors.forEach((neighborId: string) => {
+          highlightNodes.add(neighborId);
+        });
+      }
+      setHighlightNodes(new Set(highlightNodes));
+    }
+  };
+
+  const handleLinkHover = (link: Neo4jRelationship) => {
+    highlightNodes.clear();
+    highlightLinks.clear();
+    if (link) {
+      highlightLinks.add(link.ElementId);
+      highlightNodes.add(link.StartElementId);
+      highlightNodes.add(link.EndElementId);
+    }
+    setHighlightLinks(new Set(highlightLinks));
+    setHighlightNodes(new Set(highlightNodes));
+  };
 
   return <R3fForceGraph
     ref={fgRef}
-    graphData={prunedTree}
+    graphData={graphData}
     nodeId={"ElementId"}
     linkSource={"StartElementId"}
     linkTarget={"EndElementId"}
-    linkDirectionalParticles={1}
-    linkDirectionalParticleWidth={0.2}
+    linkWidth={link => highlightLinks.has(link.ElementId) || activeLinks.has(link.ElementId) ? 4 : 1}
+    linkDirectionalParticles={link => highlightLinks.has(link.ElementId) || activeLinks.has(link.ElementId) ? 4 : 0}
+    linkDirectionalParticleWidth={4}
     onNodeClick={handleNodeClick}
+    onNodeHover={handleNodeHover}
+    onLinkHover={handleLinkHover}
+    onLinkClick={handleRelationshipClick}
     nodeThreeObject={node => {
-          const sprite = new SpriteText(node.Props.name);
-          sprite.color = !node.childLinks.length ? 'green' : node.collapsed ? 'red' : 'yellow';
-          sprite.textHeight = 8;
-          return sprite;
-        }}
+      const isActive = activeNodes.has(node.ElementId);
+      const isHovered =  highlightNodes.has(node.ElementId)
+      const sprite = new SpriteText(node.Props.name);
+      sprite.color = (
+        isActive ? 'rgb(255,0,0,1)' : isHovered ? 'rgba(0,255,255,0.6)' : 'rgba(255,255,255,0.6)'
+      )
+      sprite.textHeight = isActive ? 8 : isHovered ? 6 : 3;
+      return sprite;
+    }}
   />;
 }
 
-export function genRandomTree(N = 300, reverse = false) {
-  return {
-    nodes: [...Array(N).keys()].map(i => ({ id: i })),
-    links: [...Array(N).keys()]
-      .filter(id => id)
-      .map(id => ({
-        [reverse ? 'target' : 'source']: id,
-        [reverse ? 'source' : 'target']: Math.round(Math.random() * (id - 1))
-      }))
-  };
-}

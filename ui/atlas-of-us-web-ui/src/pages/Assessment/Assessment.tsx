@@ -46,7 +46,7 @@ export function Assessment() {
     const graphUtils = new GraphUtils(http);
     
     useEffect(() => {
-        graphUtils.loadMostRelatedNodeBySearch('programming', 2).then((data) => {
+        graphUtils.loadNodeById('4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4', 2).then((data) => {
             setGraphData(data);
         });
     }, []);
