@@ -207,7 +207,7 @@ export function Assessment() {
                                 
                                 // Calculate appropriate distance based on largest dimension
                                 const maxDimension = Math.max(width, height, depth);
-                                const distance = maxDimension * 1; // Adjust multiplier as needed
+                                const distance = maxDimension * 1.25; // Adjust multiplier as needed
                                 
                                 // Offset target upward to position graph in top half of screen
                                 const targetOffset = height * 0.5; // Move target up by 75% of graph height
