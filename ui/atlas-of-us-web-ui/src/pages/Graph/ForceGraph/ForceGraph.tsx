@@ -2,8 +2,10 @@ import R3fForceGraph from 'r3f-forcegraph';
 import SpriteText from 'three-spritetext';
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfaces.interface';
+import { HttpService } from '../../../services/http-service';
+import { GraphUtils } from '../graph-utils';
 
 
 export interface GraphData {
@@ -11,7 +13,17 @@ export interface GraphData {
   links: Neo4jRelationship[]
 }
 
-export function ForceGraph({ neo4jResponse }: { neo4jResponse: Neo4jApiResponse }) {
+export function ForceGraph({ initialNodeId }: { initialNodeId: string }) {
+  const http = new HttpService();
+  const graphUtils = new GraphUtils(http);
+  const [neo4jResponse, setNeo4jResponse] = useState({} as Neo4jApiResponse);
+  
+  useEffect(() => {
+      graphUtils.loadNodeById(initialNodeId, 2).then((data) => {
+          setNeo4jResponse(data);
+      });
+  }, []);
+
   const fgRef = useRef(null);
   useFrame(() => (fgRef.current.tickFrame()));
   const [highlightNodes, setHighlightNodes] = useState(new Set());
@@ -20,6 +32,10 @@ export function ForceGraph({ neo4jResponse }: { neo4jResponse: Neo4jApiResponse 
   const [activeLinks, setActiveLinks] = useState(new Set());
 
   const {graphData, nodesById} = useMemo(() => {
+    if (!neo4jResponse.affiliates || !neo4jResponse.nodeRoot || !neo4jResponse.relationships) {
+      return { graphData: { nodes: [], links: [] }, nodesById: new Map() };
+    }
+    
     const allNodes = [...neo4jResponse.affiliates, neo4jResponse.nodeRoot];
     const relationships = neo4jResponse.relationships;
     

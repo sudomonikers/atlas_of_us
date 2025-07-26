@@ -1,7 +1,7 @@
 import "./assessment.css";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Canvas } from "@react-three/fiber";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Step1 } from "./Step1/Step1";
 import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
@@ -15,8 +15,6 @@ import { StepSkillsAbilities } from "./StepSkillsAbilities/StepSkillsAbilities";
 import { AssessmentWorld, WorldState } from "./AssessmentWorld";
 import { ForceGraph } from "../Graph/ForceGraph/ForceGraph";
 import { TrackballControls } from "@react-three/drei";
-import { GraphUtils } from "../Graph/graph-utils";
-import { HttpService } from "../../services/http-service";
 
 interface StepResponse {
     stepId: string;
@@ -41,16 +39,6 @@ export interface StepProps {
 }
 
 export function Assessment() {
-    const [graphData, setGraphData] = useState(null);
-    const http = new HttpService();
-    const graphUtils = new GraphUtils(http);
-    
-    useEffect(() => {
-        graphUtils.loadNodeById('4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4', 2).then((data) => {
-            setGraphData(data);
-        });
-    }, []);
-    
     const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
     const [worldState, setWorldState] = useState<WorldState>({
@@ -200,7 +188,7 @@ export function Assessment() {
                         setWorldState={setWorldState}
                         targetWorldState={targetWorldState}
                     />
-                    {graphData && <ForceGraph neo4jResponse={graphData} />}
+                    <ForceGraph initialNodeId={'4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4'} />
                 </Canvas>
                 {renderCurrentStep()}
             </div>
