@@ -13,7 +13,10 @@ export interface GraphData {
   links: Neo4jRelationship[]
 }
 
-export function ForceGraph({ initialNodeId }: { initialNodeId: string }) {
+export function ForceGraph({ initialNodeId, onBoundingBoxChange }: { 
+  initialNodeId: string;
+  onBoundingBoxChange?: (boundingBox: any) => void;
+}) {
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
   const [neo4jResponse, setNeo4jResponse] = useState({} as Neo4jApiResponse);
@@ -112,6 +115,13 @@ export function ForceGraph({ initialNodeId }: { initialNodeId: string }) {
     
     // Load more nodes related to the clicked node
     loadMoreNodesById(node.ElementId, 1);
+    
+    
+    // Calculate and send bounding box to parent
+    if (onBoundingBoxChange) {
+      const boundingBox = calculateBoundingBox();
+      onBoundingBoxChange(boundingBox);
+    }
   }
 
   const handleRelationshipClick = (relationship: Neo4jRelationship) => {

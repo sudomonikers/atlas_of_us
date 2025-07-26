@@ -1,7 +1,7 @@
 import "./assessment.css";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Canvas } from "@react-three/fiber";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Step1 } from "./Step1/Step1";
 import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
@@ -39,6 +39,7 @@ export interface StepProps {
 }
 
 export function Assessment() {
+    const controlsRef = useRef(null);
     const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
     const [worldState, setWorldState] = useState<WorldState>({
@@ -182,13 +183,54 @@ export function Assessment() {
             <NavBar />
             <div className="in-nav-container assessment-container">
                 <Canvas className="assessment-canvas" flat camera={{ position: [0, 0, 180], far: 5000 }}>
-                    <TrackballControls />
+                    <TrackballControls ref={controlsRef} />
                     <AssessmentWorld 
                         worldState={worldState}
                         setWorldState={setWorldState}
                         targetWorldState={targetWorldState}
                     />
-                    <ForceGraph initialNodeId={'4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4'} />
+                    <ForceGraph 
+                        initialNodeId={'4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4'} 
+                        onBoundingBoxChange={(boundingBox) => {
+                            if (boundingBox && controlsRef.current) {
+                                // Calculate center of bounding box
+                                const center = {
+                                    x: (boundingBox.x[0] + boundingBox.x[1]) / 2,
+                                    y: (boundingBox.y[0] + boundingBox.y[1]) / 2,
+                                    z: (boundingBox.z[0] + boundingBox.z[1]) / 2
+                                };
+                                
+                                // Calculate bounding box dimensions
+                                const width = boundingBox.x[1] - boundingBox.x[0];
+                                const height = boundingBox.y[1] - boundingBox.y[0];
+                                const depth = boundingBox.z[1] - boundingBox.z[0];
+                                
+                                // Calculate appropriate distance based on largest dimension
+                                const maxDimension = Math.max(width, height, depth);
+                                const distance = maxDimension * 1; // Adjust multiplier as needed
+                                
+                                // Offset target upward to position graph in top half of screen
+                                const targetOffset = height * 0.5; // Move target up by 75% of graph height
+                                const adjustedTarget = {
+                                    x: center.x,
+                                    y: center.y - targetOffset,
+                                    z: center.z
+                                };
+                                
+                                // Position camera at an angle above and behind the adjusted target
+                                const cameraPosition = {
+                                    x: adjustedTarget.x + distance * 0.5,
+                                    y: adjustedTarget.y + distance * 0.3,
+                                    z: adjustedTarget.z + distance
+                                };
+                                
+                                // Move camera and set target
+                                controlsRef.current.object.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+                                controlsRef.current.target.set(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
+                                controlsRef.current.update();
+                            }
+                        }}
+                    />
                 </Canvas>
                 {renderCurrentStep()}
             </div>
