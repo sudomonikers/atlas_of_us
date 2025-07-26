@@ -19,17 +19,36 @@ export function ForceGraph({ initialNodeId }: { initialNodeId: string }) {
   const [neo4jResponse, setNeo4jResponse] = useState({} as Neo4jApiResponse);
   
   useEffect(() => {
-      graphUtils.loadNodeById(initialNodeId, 2).then((data) => {
+      graphUtils.loadNodeById(initialNodeId, 1).then((data) => {
           setNeo4jResponse(data);
       });
   }, []);
 
+  const loadMoreNodesById = async (nodeId: string, depth: number = 1) => {
+    const data = await graphUtils.loadNodeById(nodeId, depth);
+    
+    // Get existing ElementIds to avoid duplicates
+    const existingAffiliateIds = new Set(neo4jResponse.affiliates?.map(node => node.ElementId) || []);
+    const existingRelationshipIds = new Set(neo4jResponse.relationships?.map(rel => rel.ElementId) || []);
+    
+    // Filter out duplicates
+    const newAffiliates = data.affiliates.filter(node => !existingAffiliateIds.has(node.ElementId));
+    const newRelationships = data.relationships.filter(rel => !existingRelationshipIds.has(rel.ElementId));
+    
+    // Create new state object (don't mutate existing)
+    setNeo4jResponse(prev => ({
+      ...prev,
+      affiliates: [...(prev.affiliates || []), ...newAffiliates],
+      relationships: [...(prev.relationships || []), ...newRelationships]
+    }));
+  }
+
   const fgRef = useRef(null);
   useFrame(() => (fgRef.current.tickFrame()));
-  const [highlightNodes, setHighlightNodes] = useState(new Set());
-  const [highlightLinks, setHighlightLinks] = useState(new Set());
-  const [activeNodes, setActiveNodes] = useState(new Set());
-  const [activeLinks, setActiveLinks] = useState(new Set());
+  const [highlightNodes, setHighlightNodes] = useState(new Set<string>());
+  const [highlightLinks, setHighlightLinks] = useState(new Set<string>());
+  const [activeNodes, setActiveNodes] = useState(new Set<string>());
+  const [activeLinks, setActiveLinks] = useState(new Set<string>());
 
   const {graphData, nodesById} = useMemo(() => {
     if (!neo4jResponse.affiliates || !neo4jResponse.nodeRoot || !neo4jResponse.relationships) {
@@ -90,6 +109,9 @@ export function ForceGraph({ initialNodeId }: { initialNodeId: string }) {
       }
       return newSet;
     });
+    
+    // Load more nodes related to the clicked node
+    loadMoreNodesById(node.ElementId, 1);
   }
 
   const handleRelationshipClick = (relationship: Neo4jRelationship) => {
@@ -130,6 +152,21 @@ export function ForceGraph({ initialNodeId }: { initialNodeId: string }) {
     setHighlightLinks(new Set(highlightLinks));
     setHighlightNodes(new Set(highlightNodes));
   };
+
+  const calculateBoundingBox = (nodeIdsToInclude: Set<string> = new Set()) => {
+    //Returns the current bounding box of the nodes in the graph, 
+    //formatted as { x: [<num>, <num>], y: [<num>, <num>], z: [<num>, <num>] }. 
+    // If no nodes are found, returns null. Accepts an optional argument to define a custom node filter: node => <boolean>, 
+    // which should return a truthy value if the node is to be included. 
+    // This can be useful to calculate the bounding box of a portion of the graph.
+    let boundingBox;
+    if (!nodeIdsToInclude.size) {
+      boundingBox = fgRef.current.getGraphBbox()
+    } else {
+      boundingBox = fgRef.current.getGraphBbox((node: Neo4jNode) => nodeIdsToInclude.has(node.ElementId))
+    }
+    return boundingBox;
+  }
 
   return <R3fForceGraph
     ref={fgRef}
