@@ -1,11 +1,12 @@
 import R3fForceGraph from 'r3f-forcegraph';
 import SpriteText from 'three-spritetext';
 
-import { useFrame, useThree } from "@react-three/fiber";
+import { Camera, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfaces.interface';
 import { HttpService } from '../../../services/http-service';
 import { GraphUtils } from '../graph-utils';
+import { TrackballControls } from 'three/examples/jsm/Addons.js';
 
 
 export interface GraphData {
@@ -46,7 +47,10 @@ export function ForceGraph({ initialNodeId }: {
   }
 
   const fgRef = useRef(null);
-  const { camera, controls } = useThree();
+  const { camera, controls } = useThree() as {
+    camera: Camera;
+    controls: TrackballControls;
+  };  
   useFrame(() => (fgRef.current.tickFrame()));
   const [highlightNodes, setHighlightNodes] = useState(new Set<string>());
   const [highlightLinks, setHighlightLinks] = useState(new Set<string>());
@@ -117,7 +121,7 @@ export function ForceGraph({ initialNodeId }: {
     loadMoreNodesById(node.ElementId, 1);
     
     // Center camera on the entire graph
-    centerCameraOnMesh();
+    centerCameraOnMesh(activeNodes);
   }
 
   const handleRelationshipClick = (relationship: Neo4jRelationship) => {
@@ -205,12 +209,9 @@ export function ForceGraph({ initialNodeId }: {
     camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
     camera.lookAt(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
     camera.updateProjectionMatrix();
-    
-    // Update controls if they exist (TrackballControls)
-    if (controls && 'target' in controls) {
-      (controls as any).target.set(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
-      (controls as any).update();
-    }
+
+    controls.target.set(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
+    controls.update();
   }
 
   return <R3fForceGraph
