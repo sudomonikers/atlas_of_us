@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import './dialogue.css';
+import { useGlobal } from "../../../../GlobalProvider";
 
 interface DialogueProps {
     text: string;
@@ -7,12 +8,21 @@ interface DialogueProps {
 }
 
 export function Dialogue({ text, onNext }: DialogueProps) {
+    const [dialogueActive, setDialogueActive] = useState(true);
     const [currentText, setCurrentText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [showEnterPrompt, setShowEnterPrompt] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const textRef = useRef<HTMLDivElement>(null);
-    
+    const { graphToggled } = useGlobal();
+    const initialGraphToggled = useRef(graphToggled);
+
+    useEffect(() => {
+        if (graphToggled > initialGraphToggled.current) {
+            setDialogueActive(false)
+        }
+    }, [graphToggled])
+
     useEffect(() => {
         setIsTyping(true);
         setShowEnterPrompt(false);
@@ -27,14 +37,14 @@ export function Dialogue({ text, onNext }: DialogueProps) {
                 clearInterval(intervalRef.current!);
             }
         }, 15);
-        
+
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
         };
     }, [text]);
-    
+
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
             if (event.key === 'Enter') {
@@ -54,13 +64,20 @@ export function Dialogue({ text, onNext }: DialogueProps) {
                 }
             }
         };
-        
-        window.addEventListener('keydown', handleKeyPress);
+
+        if (dialogueActive) {
+            window.addEventListener('keydown', handleKeyPress);
+        }
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [isTyping, onNext, text]);
-    
+    }, [isTyping, onNext, text, dialogueActive]);
+
     return (
-        <div className="link-dialogue">
+        <div className={`link-dialogue ${!dialogueActive ? 'collapsed' : ''}`}>
+            {!dialogueActive && (
+                <div className="dialogue-toggle-arrow" onClick={() => setDialogueActive(true)}>
+                    ▲
+                </div>
+            )}
             <div className="link-text" ref={textRef}>
                 {currentText}
                 {isTyping && <span className="cursor">|</span>}

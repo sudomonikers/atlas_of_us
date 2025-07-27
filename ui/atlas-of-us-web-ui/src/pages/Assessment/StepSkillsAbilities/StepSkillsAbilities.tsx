@@ -69,7 +69,10 @@ export function StepSkillsAbilities({ onStepComplete }: StepProps) {
 
     return (
         <>
-            <Dialogue text={dialogueText} onNext={showTutorial ? onStepComplete : handleDialogueNext} />
+            <Dialogue 
+                text={dialogueText} 
+                onNext={showTutorial ? onStepComplete : handleDialogueNext} 
+            />
             {showTutorial && (
                 <TutorialCard
                     text={tutorialText}

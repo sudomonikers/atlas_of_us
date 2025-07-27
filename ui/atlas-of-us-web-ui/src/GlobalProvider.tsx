@@ -12,6 +12,8 @@ interface GlobalContextType {
   setSearchText: (text: string) => void;
   loggedIn: boolean;
   setLoggedIn: (loggedIn: boolean) => void;
+  graphToggled: number;
+  setGraphToggled: (counter: number) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType>(null);
@@ -22,6 +24,7 @@ interface GlobalProviderProps {
 
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [searchText, setSearchText] = useState("");
+  const [graphToggled, setGraphToggled] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false);
   const [jwtChecked, setJwtChecked] = useState(false);
 
@@ -52,6 +55,8 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
     setSearchText,
     loggedIn,
     setLoggedIn,
+    graphToggled,
+    setGraphToggled
   };
 
   return (

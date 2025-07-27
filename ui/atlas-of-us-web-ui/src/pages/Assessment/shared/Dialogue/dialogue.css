@@ -16,6 +16,11 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: transform 1s ease-in-out, opacity 1s ease-in-out;
+}
+
+.link-dialogue.collapsed {
+    transform: translateX(-50%) translateY(calc(300px + 10% + 30px));
 }
 
 .link-text {
@@ -149,4 +154,23 @@
     border-radius: 4px;
     font-weight: bold;
     color: #9bb5ff;
+}
+
+.dialogue-toggle-arrow {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0px;
+    align-items: center;
+    color: #9bb5ff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px rgba(155, 181, 255, 0.5);
+    user-select: none;
+}
+
+.dialogue-toggle-arrow:hover {
+    color: #ffffff;
+    text-shadow: 0 0 15px rgba(155, 181, 255, 0.8);
 }

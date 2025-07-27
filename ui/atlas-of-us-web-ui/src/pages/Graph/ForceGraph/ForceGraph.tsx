@@ -18,7 +18,7 @@ export interface GraphData {
 export function ForceGraph({ initialNodeId }: {
   initialNodeId: string | null;
 }) {
-  const { searchText } = useGlobal();
+  const { searchText, graphToggled, setGraphToggled } = useGlobal();
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
   const [neo4jResponse, setNeo4jResponse] = useState({} as Neo4jApiResponse);
@@ -121,6 +121,9 @@ export function ForceGraph({ initialNodeId }: {
 
 
   const handleNodeClick = (node: Neo4jNode) => {
+    console.log('updating global state')
+    setGraphToggled(graphToggled + 1);
+    
     setActiveNodes(prev => {
       const newSet = new Set(prev);
       if (newSet.has(node.ElementId)) {
@@ -139,6 +142,9 @@ export function ForceGraph({ initialNodeId }: {
   }
 
   const handleRelationshipClick = (relationship: Neo4jRelationship) => {
+        console.log('updating global state')
+    setGraphToggled(graphToggled + 1);
+    
     setActiveLinks(prev => {
       const newSet = new Set(prev);
       if (newSet.has(relationship.ElementId)) {
