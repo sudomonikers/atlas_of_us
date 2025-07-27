@@ -89,6 +89,23 @@ export function TutorialCard({
         }
     }, [targetElement, position, autoPosition]);
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter' && showNextButton && onNext) {
+                event.preventDefault();
+                event.stopPropagation();
+                onNext();
+            } else if (event.key === 'Escape' && onClose) {
+                event.preventDefault();
+                event.stopPropagation();
+                onClose();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onNext, onClose, showNextButton]);
+
     const handleNext = () => {
         if (onNext) onNext();
     };
@@ -128,6 +145,7 @@ export function TutorialCard({
                             <button 
                                 className="tutorial-card__button tutorial-card__button--primary"
                                 onClick={handleNext}
+                                autoFocus
                             >
                                 Next
                             </button>

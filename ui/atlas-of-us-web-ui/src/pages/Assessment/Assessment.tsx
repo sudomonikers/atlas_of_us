@@ -49,6 +49,7 @@ export interface StepProps {
 export function Assessment() {
     const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
+    const [initialNodeId, setInitialNodeId] = useState<string | null>(null);
     const [worldState, setWorldState] = useState<WorldState>({
         skyColor: '#1a1a2e',
         starIntensity: 4,
@@ -145,7 +146,6 @@ export function Assessment() {
             nextStepRules: [
                 { condition: () => true, nextStep: 'StepSkillsAbilities' }
             ],
-            nodeId: '4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4',
             component: StepSkillsAbilities
         },
     ];
@@ -191,6 +191,10 @@ export function Assessment() {
                 console.log(`Branching to step ${rule.nextStep}`);
                 
                 setCurrentStep(rule.nextStep);
+                
+                // Update initialNodeId based on the new step
+                const nextStepConfig = stepConfigs.find(config => config.stepId === rule.nextStep);
+                setInitialNodeId(nextStepConfig?.nodeId || null);
                 break;
             }
         }
@@ -223,17 +227,10 @@ export function Assessment() {
                         setWorldState={setWorldState}
                         targetWorldState={targetWorldState}
                     />
-                    {(() => {
-                        const currentStepConfig = stepConfigs.find(config => config.stepId === currentStep);
-                        const nodeId = currentStepConfig?.nodeId;
-                        
-                        return nodeId ? (
-                            <ForceGraph 
-                                key={currentStep} // Force re-render when step changes
-                                initialNodeId={nodeId} 
-                            />
-                        ) : null;
-                    })()}
+                    <ForceGraph 
+                        key={currentStep} // Force re-render when step changes 
+                        initialNodeId={initialNodeId} 
+                    />
                 </Canvas>
                 {renderCurrentStep()}
             </div>

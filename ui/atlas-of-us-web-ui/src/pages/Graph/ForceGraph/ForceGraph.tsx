@@ -16,7 +16,7 @@ export interface GraphData {
 }
 
 export function ForceGraph({ initialNodeId }: {
-  initialNodeId: string;
+  initialNodeId: string | null;
 }) {
   const { searchText } = useGlobal();
   const http = new HttpService();
@@ -25,14 +25,15 @@ export function ForceGraph({ initialNodeId }: {
 
   //load the initial data based on component input
   useEffect(() => {
-    graphUtils.loadNodeById(initialNodeId, 1).then((data) => {
-      setNeo4jResponse(data);
-    });
-  }, []);
+    if (initialNodeId) {
+      graphUtils.loadNodeById(initialNodeId, 1).then((data) => {
+        setNeo4jResponse(data);
+      });
+    }
+  }, [initialNodeId]);
 
   //load new data if the user types in the input bar
   useEffect(() => {
-    console.log('here', searchText)
     if (searchText) {
       graphUtils.loadMostRelatedNodeBySearch(searchText, 2).then((data) => {
         setNeo4jResponse(data);
@@ -64,7 +65,7 @@ export function ForceGraph({ initialNodeId }: {
     camera: Camera;
     controls: TrackballControls;
   };
-  useFrame(() => (fgRef.current.tickFrame()));
+  useFrame(() => (fgRef?.current?.tickFrame()));
   const [highlightNodes, setHighlightNodes] = useState(new Set<string>());
   const [highlightLinks, setHighlightLinks] = useState(new Set<string>());
   const [activeNodes, setActiveNodes] = useState(new Set<string>());
