@@ -12,7 +12,7 @@ export function Step2({ onNext }: StepProps) {
     };
 
     const handleSubmit = () => {
-        onNext(userResponse);
+        onNext({ text: userResponse });
     };
 
     const handleKeyPress = (event: React.KeyboardEvent) => {

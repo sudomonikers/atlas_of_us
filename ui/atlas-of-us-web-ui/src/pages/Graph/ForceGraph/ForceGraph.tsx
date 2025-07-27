@@ -1,7 +1,7 @@
 import R3fForceGraph from 'r3f-forcegraph';
 import SpriteText from 'three-spritetext';
 
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfaces.interface';
 import { HttpService } from '../../../services/http-service';
@@ -13,9 +13,8 @@ export interface GraphData {
   links: Neo4jRelationship[]
 }
 
-export function ForceGraph({ initialNodeId, onBoundingBoxChange }: { 
+export function ForceGraph({ initialNodeId }: { 
   initialNodeId: string;
-  onBoundingBoxChange?: (boundingBox: any) => void;
 }) {
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
@@ -47,6 +46,7 @@ export function ForceGraph({ initialNodeId, onBoundingBoxChange }: {
   }
 
   const fgRef = useRef(null);
+  const { camera, controls } = useThree();
   useFrame(() => (fgRef.current.tickFrame()));
   const [highlightNodes, setHighlightNodes] = useState(new Set<string>());
   const [highlightLinks, setHighlightLinks] = useState(new Set<string>());
@@ -116,12 +116,8 @@ export function ForceGraph({ initialNodeId, onBoundingBoxChange }: {
     // Load more nodes related to the clicked node
     loadMoreNodesById(node.ElementId, 1);
     
-    
-    // Calculate and send bounding box to parent
-    if (onBoundingBoxChange) {
-      const boundingBox = calculateBoundingBox();
-      onBoundingBoxChange(boundingBox);
-    }
+    // Center camera on the entire graph
+    centerCameraOnMesh();
   }
 
   const handleRelationshipClick = (relationship: Neo4jRelationship) => {
@@ -163,19 +159,58 @@ export function ForceGraph({ initialNodeId, onBoundingBoxChange }: {
     setHighlightNodes(new Set(highlightNodes));
   };
 
-  const calculateBoundingBox = (nodeIdsToInclude: Set<string> = new Set()) => {
-    //Returns the current bounding box of the nodes in the graph, 
-    //formatted as { x: [<num>, <num>], y: [<num>, <num>], z: [<num>, <num>] }. 
-    // If no nodes are found, returns null. Accepts an optional argument to define a custom node filter: node => <boolean>, 
-    // which should return a truthy value if the node is to be included. 
-    // This can be useful to calculate the bounding box of a portion of the graph.
+  const centerCameraOnMesh = (nodeIdsToInclude: Set<string> = new Set()) => {
+    // Calculate bounding box of the graph or subset of nodes
     let boundingBox;
     if (!nodeIdsToInclude.size) {
       boundingBox = fgRef.current.getGraphBbox()
     } else {
       boundingBox = fgRef.current.getGraphBbox((node: Neo4jNode) => nodeIdsToInclude.has(node.ElementId))
     }
-    return boundingBox;
+    
+    if (!boundingBox) return;
+    
+    // Calculate center of bounding box
+    const center = {
+      x: (boundingBox.x[0] + boundingBox.x[1]) / 2,
+      y: (boundingBox.y[0] + boundingBox.y[1]) / 2,
+      z: (boundingBox.z[0] + boundingBox.z[1]) / 2
+    };
+    
+    // Calculate bounding box dimensions
+    const width = boundingBox.x[1] - boundingBox.x[0];
+    const height = boundingBox.y[1] - boundingBox.y[0];
+    const depth = boundingBox.z[1] - boundingBox.z[0];
+    
+    // Calculate appropriate distance based on largest dimension
+    const maxDimension = Math.max(width, height, depth);
+    const distance = maxDimension * 1.25;
+    
+    // Offset target upward to position graph in top half of screen
+    const targetOffset = height * 0.5;
+    const adjustedTarget = {
+      x: center.x,
+      y: center.y - targetOffset,
+      z: center.z
+    };
+    
+    // Position camera at an angle above and behind the adjusted target
+    const cameraPosition = {
+      x: adjustedTarget.x + distance * 0.5,
+      y: adjustedTarget.y + distance * 0.3,
+      z: adjustedTarget.z + distance
+    };
+    
+    // Move camera and set target
+    camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    camera.lookAt(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
+    camera.updateProjectionMatrix();
+    
+    // Update controls if they exist (TrackballControls)
+    if (controls && 'target' in controls) {
+      (controls as any).target.set(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
+      (controls as any).update();
+    }
   }
 
   return <R3fForceGraph

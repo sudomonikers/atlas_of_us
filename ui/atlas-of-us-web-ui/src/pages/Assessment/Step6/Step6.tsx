@@ -1,15 +1,15 @@
 import { StepProps } from "../Assessment";
 import { Dialogue } from "../shared/Dialogue/Dialogue";
-import { useEffect } from "react";
 
 export function Step6({ onNext, onFunctionCall }: StepProps) {
     const dialogueText = "Let's start with your skills and abilities. This is usally everyone's favorite. What are you good at?";
     
-    useEffect(() => {
+    const handleDialogueNext = () => {
         if (onFunctionCall) {
             onFunctionCall('transitionToSky');
         }
-    }, []);
+        onNext({});
+    };
     
-    return <Dialogue text={dialogueText} onNext={onNext} />;
+    return <Dialogue text={dialogueText} onNext={handleDialogueNext} />;
 }

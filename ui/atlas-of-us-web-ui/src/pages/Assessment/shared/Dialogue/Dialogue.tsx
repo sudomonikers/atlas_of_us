@@ -38,6 +38,8 @@ export function Dialogue({ text, onNext }: DialogueProps) {
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
             if (event.key === 'Enter') {
+                event.preventDefault();
+                event.stopPropagation();
                 if (isTyping) {
                     // Finish typing immediately
                     if (intervalRef.current) {

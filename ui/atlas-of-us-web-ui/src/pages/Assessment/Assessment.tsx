@@ -1,7 +1,7 @@
 import "./assessment.css";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Canvas } from "@react-three/fiber";
-import { useState, useRef } from "react";
+import React, { useState } from "react";
 import { Step1 } from "./Step1/Step1";
 import { Step2 } from "./Step2/Step2";
 import { Step3 } from "./Step3/Step3";
@@ -15,6 +15,8 @@ import { StepSkillsAbilities } from "./StepSkillsAbilities/StepSkillsAbilities";
 import { AssessmentWorld, WorldState } from "./AssessmentWorld";
 import { ForceGraph } from "../Graph/ForceGraph/ForceGraph";
 import { TrackballControls } from "@react-three/drei";
+import { StepAndrew } from "./StepAndrew/StepAndrew";
+import { StepYou } from "./StepYou/StepYou";
 
 interface StepResponse {
     stepId: string;
@@ -22,24 +24,29 @@ interface StepResponse {
     timestamp: Date;
 }
 
+interface OnNextResponse {
+    text?: string;
+    functionCall?: string;
+}
+
 interface BranchingRule {
-    condition: (response: string) => boolean;
+    condition: (response: OnNextResponse) => boolean;
     nextStep: string;
 }
 
 interface StepConfig {
     stepId: string;
-    branchingRules?: BranchingRule[];
-    defaultNext?: string;
+    nextStepRules: BranchingRule[];
+    nodeId?: string;
+    component: React.ComponentType<StepProps>;
 }
 
 export interface StepProps {
-    onNext: (response?: string) => void;
-    onFunctionCall?: (functionName: string) => void;
+    onNext: (response?: OnNextResponse) => void;
+    onFunctionCall: (functionName: string) => void;
 }
 
 export function Assessment() {
-    const controlsRef = useRef(null);
     const [currentStep, setCurrentStep] = useState('Step1');
     const [responses, setResponses] = useState<StepResponse[]>([]);
     const [worldState, setWorldState] = useState<WorldState>({
@@ -57,48 +64,89 @@ export function Assessment() {
     const stepConfigs: StepConfig[] = [
         {
             stepId: 'Step1',
-            defaultNext: 'Step2'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'Step2' }
+            ],
+            component: Step1
         },
         {
             stepId: 'Step2',
-            branchingRules: [
+            nextStepRules: [
                 {
-                    condition: (response: string) => response.trim() === "",
+                    condition: (response: OnNextResponse) => !response?.text || response.text.trim() === "",
                     nextStep: 'Step2Choice1'
                 },
                 {
-                    condition: (response: string) => response.trim() !== "",
+                    condition: (response: OnNextResponse) => response?.text && response.text.trim() !== "",
                     nextStep: 'Step2Choice2'
                 }
-            ]
+            ],
+            component: Step2
         },
         {
             stepId: 'Step2Choice1',
-            defaultNext: 'Step3'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'Step3' }
+            ],
+            component: Step2Choice1
         },
         {
             stepId: 'Step2Choice2',
-            defaultNext: 'Step3'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'Step3' }
+            ],
+            component: Step2Choice2
         },
         {
             stepId: 'Step3',
-            defaultNext: 'Step4'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'Step4' }
+            ],
+            component: Step3
         },
         {
             stepId: 'Step4',
-            defaultNext: 'Step5'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'Step5' }
+            ],
+            component: Step4
         },
         {
             stepId: 'Step5',
-            defaultNext: 'Step6'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'Step6' }
+            ],
+            component: Step5
         },
         {
             stepId: 'Step6',
-            defaultNext: 'StepSkillsAbilities'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'StepAndrew' }
+            ],
+            component: Step6
+        },
+        {
+            stepId: 'StepAndrew',
+            nextStepRules: [
+                { condition: () => true, nextStep: 'StepYou' }
+            ],
+            nodeId: '4:104a550c-096d-4b60-8b88-a2870c8ebe3f:0',
+            component: StepAndrew
+        },
+        {
+            stepId: 'StepYou',
+            nextStepRules: [
+                { condition: () => true, nextStep: 'StepSkillsAbilities' }
+            ],
+            component: StepYou
         },
         {
             stepId: 'StepSkillsAbilities',
-            defaultNext: 'StepSkillsAbilities'
+            nextStepRules: [
+                { condition: () => true, nextStep: 'StepSkillsAbilities' }
+            ],
+            nodeId: '4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4',
+            component: StepSkillsAbilities
         },
     ];
     
@@ -111,126 +159,81 @@ export function Assessment() {
                     cameraTarget: [0, 20, 0]
                 });
                 break;
+            case 'loadNodesById':
+                console.log('Loading nodes...');
+                // Add any specific logic for loading skills nodes
+                break;
             default:
                 console.warn(`Unknown function call: ${functionName}`);
         }
     };
     
-    const handleStepComplete = (stepId: string, response: string = '') => {
+    const handleStepComplete = (stepId: string, response: OnNextResponse = {}) => {
+        // Handle function call if present
+        if (response.functionCall) {
+            handleFunctionCall(response.functionCall);
+        }
+        
+        // Store response for tracking
         const stepResponse: StepResponse = {
             stepId,
-            response,
+            response: response.text || '',
             timestamp: new Date()
         };
         
         setResponses(prev => [...prev, stepResponse]);
         
+        // Navigate based on branching rules
         const stepConfig = stepConfigs.find(config => config.stepId === stepId);
-        let nextStep = stepConfig?.defaultNext || stepId + 1;
-        
-        if (stepConfig?.branchingRules) {
-            for (const rule of stepConfig.branchingRules) {
-                if (rule.condition(response)) {
-                    nextStep = rule.nextStep;
-                    break;
-                }
+        for (const rule of stepConfig.nextStepRules) {
+            if (rule.condition(response)) {
+                console.log(`Step ${stepId} completed with response:`, response);
+                console.log(`Branching to step ${rule.nextStep}`);
+                
+                setCurrentStep(rule.nextStep);
+                break;
             }
         }
-        
-        console.log(`Step ${stepId} completed with response:`, response);
-        console.log(`Branching to step ${nextStep}`);
-        
-        setCurrentStep(nextStep);
     };
     
     const renderCurrentStep = () => {
-        switch(currentStep) {
-            case 'Step1':
-                return <Step1 onNext={() => handleStepComplete('Step1')} />;
-            case 'Step2':
-                return <Step2 onNext={(response) => handleStepComplete('Step2', response)} />;
-            case 'Step2Choice1':
-                return <Step2Choice1 onNext={() => handleStepComplete('Step2Choice1')} />;
-            case 'Step2Choice2':
-                return <Step2Choice2 onNext={() => handleStepComplete('Step2Choice2')} />;
-            case 'Step3':
-                return <Step3 onNext={() => handleStepComplete('Step3')} />;
-            case 'Step4':
-                return <Step4 onNext={() => handleStepComplete('Step4')} />;
-            case 'Step5':
-                return <Step5 onNext={() => handleStepComplete('Step5')} />;
-            case 'Step6':
-                return <Step6 onNext={() => handleStepComplete('Step6')} onFunctionCall={handleFunctionCall} />;
-            case 'StepSkillsAbilities':
-                return <StepSkillsAbilities onNext={() => handleStepComplete('StepSkillsAbilities')} onFunctionCall={handleFunctionCall} />;
-    
-            default:
-                return <div className="link-dialogue">Assessment complete!</div>;
+        const stepConfig = stepConfigs.find(config => config.stepId === currentStep);
+        
+        if (!stepConfig) {
+            return <div className="link-dialogue">Assessment complete!</div>;
         }
+        
+        const Component = stepConfig.component;
+        const props: StepProps = {
+            onNext: (response?: OnNextResponse) => handleStepComplete(currentStep, response || {}),
+            onFunctionCall: handleFunctionCall
+        };
+        
+        return <Component {...props} />;
     };
-
-
-
-
-
-
-    
-
-
 
     return (
         <>
             <NavBar />
             <div className="in-nav-container assessment-container">
                 <Canvas className="assessment-canvas" flat camera={{ position: [0, 0, 180], far: 5000 }}>
-                    <TrackballControls ref={controlsRef} />
+                    <TrackballControls makeDefault />
                     <AssessmentWorld 
                         worldState={worldState}
                         setWorldState={setWorldState}
                         targetWorldState={targetWorldState}
                     />
-                    <ForceGraph 
-                        initialNodeId={'4:104a550c-096d-4b60-8b88-a2870c8ebe3f:4'} 
-                        onBoundingBoxChange={(boundingBox) => {
-                            if (boundingBox && controlsRef.current) {
-                                // Calculate center of bounding box
-                                const center = {
-                                    x: (boundingBox.x[0] + boundingBox.x[1]) / 2,
-                                    y: (boundingBox.y[0] + boundingBox.y[1]) / 2,
-                                    z: (boundingBox.z[0] + boundingBox.z[1]) / 2
-                                };
-                                
-                                // Calculate bounding box dimensions
-                                const width = boundingBox.x[1] - boundingBox.x[0];
-                                const height = boundingBox.y[1] - boundingBox.y[0];
-                                const depth = boundingBox.z[1] - boundingBox.z[0];
-                                
-                                // Calculate appropriate distance based on largest dimension
-                                const maxDimension = Math.max(width, height, depth);
-                                const distance = maxDimension * 1.25; // Adjust multiplier as needed
-                                
-                                // Offset target upward to position graph in top half of screen
-                                const targetOffset = height * 0.5; // Move target up by 75% of graph height
-                                const adjustedTarget = {
-                                    x: center.x,
-                                    y: center.y - targetOffset,
-                                    z: center.z
-                                };
-                                
-                                // Position camera at an angle above and behind the adjusted target
-                                const cameraPosition = {
-                                    x: adjustedTarget.x + distance * 0.5,
-                                    y: adjustedTarget.y + distance * 0.3,
-                                    z: adjustedTarget.z + distance
-                                };
-                                
-                                // Move camera and set target
-                                controlsRef.current.object.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-                                controlsRef.current.target.set(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
-                                controlsRef.current.update();
-                            }
-                        }}
-                    />
+                    {(() => {
+                        const currentStepConfig = stepConfigs.find(config => config.stepId === currentStep);
+                        const nodeId = currentStepConfig?.nodeId;
+                        
+                        return nodeId ? (
+                            <ForceGraph 
+                                key={currentStep} // Force re-render when step changes
+                                initialNodeId={nodeId} 
+                            />
+                        ) : null;
+                    })()}
                 </Canvas>
                 {renderCurrentStep()}
             </div>
