@@ -42,7 +42,7 @@ interface StepConfig {
 }
 
 export interface StepProps {
-    onNext: (response?: OnNextResponse) => void;
+    onStepComplete: (response?: OnNextResponse) => void;
     onFunctionCall: (functionName: string) => void;
 }
 
@@ -205,7 +205,7 @@ export function Assessment() {
         
         const Component = stepConfig.component;
         const props: StepProps = {
-            onNext: (response?: OnNextResponse) => handleStepComplete(currentStep, response || {}),
+            onStepComplete: (response?: OnNextResponse) => handleStepComplete(currentStep, response || {}),
             onFunctionCall: handleFunctionCall
         };
         

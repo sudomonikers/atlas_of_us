@@ -2,7 +2,7 @@ import { StepProps } from "../Assessment";
 import { Dialogue } from "../shared/Dialogue/Dialogue";
 import { useState } from "react";
 
-export function Step2({ onNext }: StepProps) {
+export function Step2({ onStepComplete }: StepProps) {
     const [userResponse, setUserResponse] = useState("");
     const [showInput, setShowInput] = useState(false);
     const dialogueText = "Humans are a combination of so many things. We are complex creatures with a lot going on. If you were to describe yourself how would you do it? Pretend you are trying to create an exact clone of YOU, and to do so you need to tell the company doing so everything about you. No seriously. Go ahead and do it now. I pinky promise we won't actually clone you... Probably. ";
@@ -12,7 +12,7 @@ export function Step2({ onNext }: StepProps) {
     };
 
     const handleSubmit = () => {
-        onNext({ text: userResponse });
+        onStepComplete({ text: userResponse });
     };
 
     const handleKeyPress = (event: React.KeyboardEvent) => {
