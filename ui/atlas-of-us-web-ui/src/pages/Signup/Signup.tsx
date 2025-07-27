@@ -34,7 +34,7 @@ export function Signup() {
         const responseBody = await response.json();
         localStorage.setItem("jwt", responseBody);
         setLoggedIn(true);
-        navigate("/Graph");
+        navigate("/Assessment");
       } else {
         console.error("Login failed");
         // Handle login failure (e.g., display an error message)
