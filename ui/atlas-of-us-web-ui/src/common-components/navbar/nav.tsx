@@ -36,7 +36,7 @@ export function NavBar() {
       <nav>
         <input
           type="text"
-          id="input"
+          id="globalInput"
           className="nav-input"
           onChange={(e) => debouncedSetSearchText(e.target.value)}
         />

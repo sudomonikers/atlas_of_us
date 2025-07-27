@@ -7,6 +7,7 @@ import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfa
 import { HttpService } from '../../../services/http-service';
 import { GraphUtils } from '../graph-utils';
 import { TrackballControls } from 'three/examples/jsm/Addons.js';
+import { useGlobal } from '../../../GlobalProvider';
 
 
 export interface GraphData {
@@ -14,30 +15,42 @@ export interface GraphData {
   links: Neo4jRelationship[]
 }
 
-export function ForceGraph({ initialNodeId }: { 
+export function ForceGraph({ initialNodeId }: {
   initialNodeId: string;
 }) {
+  const { searchText } = useGlobal();
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
   const [neo4jResponse, setNeo4jResponse] = useState({} as Neo4jApiResponse);
-  
+
+  //load the initial data based on component input
   useEffect(() => {
-      graphUtils.loadNodeById(initialNodeId, 1).then((data) => {
-          setNeo4jResponse(data);
-      });
+    graphUtils.loadNodeById(initialNodeId, 1).then((data) => {
+      setNeo4jResponse(data);
+    });
   }, []);
+
+  //load new data if the user types in the input bar
+  useEffect(() => {
+    console.log('here', searchText)
+    if (searchText) {
+      graphUtils.loadMostRelatedNodeBySearch(searchText, 2).then((data) => {
+        setNeo4jResponse(data);
+      });
+    }
+  }, [searchText]);
 
   const loadMoreNodesById = async (nodeId: string, depth: number = 1) => {
     const data = await graphUtils.loadNodeById(nodeId, depth);
-    
+
     // Get existing ElementIds to avoid duplicates
     const existingAffiliateIds = new Set(neo4jResponse.affiliates?.map(node => node.ElementId) || []);
     const existingRelationshipIds = new Set(neo4jResponse.relationships?.map(rel => rel.ElementId) || []);
-    
+
     // Filter out duplicates
     const newAffiliates = data.affiliates.filter(node => !existingAffiliateIds.has(node.ElementId));
     const newRelationships = data.relationships.filter(rel => !existingRelationshipIds.has(rel.ElementId));
-    
+
     // Create new state object (don't mutate existing)
     setNeo4jResponse(prev => ({
       ...prev,
@@ -50,23 +63,23 @@ export function ForceGraph({ initialNodeId }: {
   const { camera, controls } = useThree() as {
     camera: Camera;
     controls: TrackballControls;
-  };  
+  };
   useFrame(() => (fgRef.current.tickFrame()));
   const [highlightNodes, setHighlightNodes] = useState(new Set<string>());
   const [highlightLinks, setHighlightLinks] = useState(new Set<string>());
   const [activeNodes, setActiveNodes] = useState(new Set<string>());
   const [activeLinks, setActiveLinks] = useState(new Set<string>());
 
-  const {graphData, nodesById} = useMemo(() => {
+  const { graphData, nodesById } = useMemo(() => {
     if (!neo4jResponse.affiliates || !neo4jResponse.nodeRoot || !neo4jResponse.relationships) {
       return { graphData: { nodes: [], links: [] }, nodesById: new Map() };
     }
-    
+
     const allNodes = [...neo4jResponse.affiliates, neo4jResponse.nodeRoot];
     const relationships = neo4jResponse.relationships;
-    
+
     const nodesById = new Map();
-    
+
     allNodes.forEach(node => {
       nodesById.set(node.ElementId, {
         node: node,
@@ -75,12 +88,12 @@ export function ForceGraph({ initialNodeId }: {
         neighbors: new Set() // set of all nodes which have a relationship with this node one way or the other
       });
     });
-    
+
     // Populate relationships
     relationships.forEach(rel => {
       const startNode = nodesById.get(rel.StartElementId);
       const endNode = nodesById.get(rel.EndElementId);
-      
+
       if (startNode) {
         startNode.outgoing.push(rel.ElementId);
         if (endNode) {
@@ -94,17 +107,17 @@ export function ForceGraph({ initialNodeId }: {
         }
       }
     });
-    
+
     return {
       graphData: {
         nodes: allNodes,
         links: relationships
-      }as GraphData,
+      } as GraphData,
       nodesById
     };
   }, [neo4jResponse]);
 
-  
+
 
   const handleNodeClick = (node: Neo4jNode) => {
     setActiveNodes(prev => {
@@ -116,10 +129,10 @@ export function ForceGraph({ initialNodeId }: {
       }
       return newSet;
     });
-    
+
     // Load more nodes related to the clicked node
     loadMoreNodesById(node.ElementId, 1);
-    
+
     // Center camera on the entire graph
     centerCameraOnMesh(activeNodes);
   }
@@ -171,25 +184,25 @@ export function ForceGraph({ initialNodeId }: {
     } else {
       boundingBox = fgRef.current.getGraphBbox((node: Neo4jNode) => nodeIdsToInclude.has(node.ElementId))
     }
-    
+
     if (!boundingBox) return;
-    
+
     // Calculate center of bounding box
     const center = {
       x: (boundingBox.x[0] + boundingBox.x[1]) / 2,
       y: (boundingBox.y[0] + boundingBox.y[1]) / 2,
       z: (boundingBox.z[0] + boundingBox.z[1]) / 2
     };
-    
+
     // Calculate bounding box dimensions
     const width = boundingBox.x[1] - boundingBox.x[0];
     const height = boundingBox.y[1] - boundingBox.y[0];
     const depth = boundingBox.z[1] - boundingBox.z[0];
-    
+
     // Calculate appropriate distance based on largest dimension
     const maxDimension = Math.max(width, height, depth);
     const distance = maxDimension * 1.25;
-    
+
     // Offset target upward to position graph in top half of screen
     const targetOffset = height * 0.5;
     const adjustedTarget = {
@@ -197,14 +210,14 @@ export function ForceGraph({ initialNodeId }: {
       y: center.y - targetOffset,
       z: center.z
     };
-    
+
     // Position camera at an angle above and behind the adjusted target
     const cameraPosition = {
       x: adjustedTarget.x + distance * 0.5,
       y: adjustedTarget.y + distance * 0.3,
       z: adjustedTarget.z + distance
     };
-    
+
     // Move camera and set target
     camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
     camera.lookAt(adjustedTarget.x, adjustedTarget.y, adjustedTarget.z);
@@ -214,29 +227,31 @@ export function ForceGraph({ initialNodeId }: {
     controls.update();
   }
 
-  return <R3fForceGraph
-    ref={fgRef}
-    graphData={graphData}
-    nodeId={"ElementId"}
-    linkSource={"StartElementId"}
-    linkTarget={"EndElementId"}
-    linkWidth={link => highlightLinks.has(link.ElementId) || activeLinks.has(link.ElementId) ? 4 : 1}
-    linkDirectionalParticles={link => highlightLinks.has(link.ElementId) || activeLinks.has(link.ElementId) ? 4 : 0}
-    linkDirectionalParticleWidth={4}
-    onNodeClick={handleNodeClick}
-    onNodeHover={handleNodeHover}
-    onLinkHover={handleLinkHover}
-    onLinkClick={handleRelationshipClick}
-    nodeThreeObject={node => {
-      const isActive = activeNodes.has(node.ElementId);
-      const isHovered =  highlightNodes.has(node.ElementId)
-      const sprite = new SpriteText(node.Props.name);
-      sprite.color = (
-        isActive ? 'rgb(255,0,0,1)' : isHovered ? 'rgba(0,255,255,0.6)' : 'rgba(255,255,255,0.6)'
-      )
-      sprite.textHeight = isActive ? 8 : isHovered ? 6 : 3;
-      return sprite;
-    }}
-  />;
+  return <>
+    {graphData.nodes.length && <R3fForceGraph
+      ref={fgRef}
+      graphData={graphData}
+      nodeId={"ElementId"}
+      linkSource={"StartElementId"}
+      linkTarget={"EndElementId"}
+      linkWidth={link => highlightLinks.has(link.ElementId) || activeLinks.has(link.ElementId) ? 4 : 1}
+      linkDirectionalParticles={link => highlightLinks.has(link.ElementId) || activeLinks.has(link.ElementId) ? 4 : 0}
+      linkDirectionalParticleWidth={4}
+      onNodeClick={handleNodeClick}
+      onNodeHover={handleNodeHover}
+      onLinkHover={handleLinkHover}
+      onLinkClick={handleRelationshipClick}
+      nodeThreeObject={node => {
+        const isActive = activeNodes.has(node.ElementId);
+        const isHovered = highlightNodes.has(node.ElementId)
+        const sprite = new SpriteText(node.Props.name);
+        sprite.color = (
+          isActive ? 'rgb(255,0,0,1)' : isHovered ? 'rgba(0,255,255,0.6)' : 'rgba(255,255,255,0.6)'
+        )
+        sprite.textHeight = isActive ? 8 : isHovered ? 6 : 3;
+        return sprite;
+      }}
+    />};
+  </>
 }
 

@@ -22,7 +22,7 @@
     background: linear-gradient(45deg, #9bb5ff, #6c5ce7, #9bb5ff);
     border-radius: 17px;
     z-index: -1;
-    opacity: 0.3;
+    opacity: 1;
     animation: tutorialGlow 3s ease-in-out infinite alternate;
 }
 
@@ -107,38 +107,39 @@
     position: absolute;
     width: 0;
     height: 0;
-    border: 12px solid transparent;
+    border: 15px solid transparent;
+    filter: drop-shadow(0 0 8px rgba(155, 181, 255, 0.8));
 }
 
 .tutorial-card--top .tutorial-card__arrow {
-    bottom: -24px;
+    bottom: -30px;
     left: 50%;
     transform: translateX(-50%);
-    border-top-color: rgba(155, 181, 255, 0.4);
+    border-top-color: #9bb5ff;
     border-bottom: none;
 }
 
 .tutorial-card--bottom .tutorial-card__arrow {
-    top: -24px;
+    top: -30px;
     left: 50%;
     transform: translateX(-50%);
-    border-bottom-color: rgba(155, 181, 255, 0.4);
+    border-bottom-color: #9bb5ff;
     border-top: none;
 }
 
 .tutorial-card--left .tutorial-card__arrow {
-    right: -24px;
+    right: -30px;
     top: 50%;
     transform: translateY(-50%);
-    border-left-color: rgba(155, 181, 255, 0.4);
+    border-left-color: #9bb5ff;
     border-right: none;
 }
 
 .tutorial-card--right .tutorial-card__arrow {
-    left: -24px;
+    left: -30px;
     top: 50%;
     transform: translateY(-50%);
-    border-right-color: rgba(155, 181, 255, 0.4);
+    border-right-color: #9bb5ff;
     border-left: none;
 }
 
