@@ -11,12 +11,11 @@ import { Step4 } from "./Step4/Step4";
 import { Step5 } from "./Step5/Step5";
 import { Step6 } from "./Step6/Step6";
 import { StepSkillsAbilities } from "./StepSkillsAbilities/StepSkillsAbilities";
+import { StepYou } from "./StepYou/StepYou";
 
 import { AssessmentWorld, WorldState } from "./AssessmentWorld";
 import { ForceGraph } from "../Graph/ForceGraph/ForceGraph";
 import { TrackballControls } from "@react-three/drei";
-import { StepAndrew } from "./StepAndrew/StepAndrew";
-import { StepYou } from "./StepYou/StepYou";
 
 interface StepResponse {
     stepId: string;
@@ -122,17 +121,10 @@ export function Assessment() {
         {
             stepId: 'Step6',
             nextStepRules: [
-                { condition: () => true, nextStep: 'StepAndrew' }
-            ],
-            component: Step6
-        },
-        {
-            stepId: 'StepAndrew',
-            nextStepRules: [
                 { condition: () => true, nextStep: 'StepYou' }
             ],
-            nodeId: '4:104a550c-096d-4b60-8b88-a2870c8ebe3f:0',
-            component: StepAndrew
+            nodeId: '4:b476f271-2fae-4ff8-9d53-640f0dd4144a:0',
+            component: Step6
         },
         {
             stepId: 'StepYou',

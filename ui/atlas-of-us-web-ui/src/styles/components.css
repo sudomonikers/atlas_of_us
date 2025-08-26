@@ -112,7 +112,6 @@
 }
 
 .card-cosmic:hover {
-  transform: translateY(-4px);
   box-shadow: var(--glass-shadow-hover);
 }
 

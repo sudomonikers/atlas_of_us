@@ -31,10 +31,7 @@ export function Login() {
         const responseBody = await response.json();
         localStorage.setItem("jwt", responseBody);
         setLoggedIn(true);
-        navigate("/Graph");
-      } else {
-        console.error("Login failed");
-        // Handle login failure (e.g., display an error message)
+        navigate("/Home");
       }
     } catch (error) {
       console.error("Login error:", error);
