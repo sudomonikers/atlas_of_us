@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # EC2 Deployment Script for Atlas of Us API
 # This script deploys the dockerized application to an EC2 instance
 
