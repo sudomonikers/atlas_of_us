@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { jwtDecode } from "jwt-decode";
+import { Neo4jApiResponse } from "./pages/Graph/graph-interfaces.interface";
 
 interface GlobalContextType {
   searchText: string;
@@ -14,6 +15,9 @@ interface GlobalContextType {
   setLoggedIn: (loggedIn: boolean) => void;
   graphToggled: number;
   setGraphToggled: (counter: number) => void;
+  logout: () => void;
+  profileData: Neo4jApiResponse;
+  setProfileData: (profileData: Neo4jApiResponse) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType>(null);
@@ -27,6 +31,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [graphToggled, setGraphToggled] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false);
   const [jwtChecked, setJwtChecked] = useState(false);
+  const [profileData, setProfileData] = useState([] as unknown as Neo4jApiResponse);
 
   useEffect(() => {
     const jwt = localStorage.getItem("jwt");
@@ -50,13 +55,21 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
     setJwtChecked(true);
   }, [setLoggedIn]);
 
+  const logout = () => {
+    localStorage.removeItem("jwt");
+    setLoggedIn(false);
+  };
+
   const value: GlobalContextType = {
     searchText,
     setSearchText,
     loggedIn,
     setLoggedIn,
     graphToggled,
-    setGraphToggled
+    setGraphToggled,
+    logout,
+    profileData,
+    setProfileData
   };
 
   return (

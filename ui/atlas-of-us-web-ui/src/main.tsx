@@ -13,7 +13,6 @@ import { Contact } from './pages/Contact/Contact.tsx';
 import { PageNotFound } from './pages/PageNotFound/PageNotFound.tsx';
 import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
 import { Blog } from './pages/Blog/Blog.tsx';
-import { Home } from './pages/Home/Home.tsx';
 import { Assessment } from './pages/Assessment/Assessment.tsx';
 
 interface PrivateRouteProps {
@@ -34,8 +33,7 @@ createRoot(document.getElementById('root')!).render(
   <GlobalProvider>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/Home" />} />
-        <Route path="/Home" element={<Home />} />
+        <Route path="/" element={<Navigate to="/Graph" replace />} />
         <Route path="/Login" element={<Login />} />
         <Route path="/Signup" element={<Signup />} />
         <Route path="/Profile" element={
@@ -49,7 +47,11 @@ createRoot(document.getElementById('root')!).render(
           </PrivateRoute>
         } />
         <Route path="/Community" element={<Community />} />
-        <Route path="/Graph" element={<Graph />} />
+        <Route path="/Graph" element={
+          <PrivateRoute>
+            <Graph />
+          </PrivateRoute>
+        } />
         <Route path="/Roadmap" element={<Roadmap />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Blog" element={<Blog />} />

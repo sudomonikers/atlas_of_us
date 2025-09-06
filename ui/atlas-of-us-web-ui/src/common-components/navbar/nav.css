@@ -185,3 +185,57 @@ ul li:nth-child(6n + 6) a:before {
   transform-origin: 50px 75px;
   transform: translateY(-25px) rotate(-45deg);
 }
+
+/* Logout button styling */
+.logout-item {
+  margin-top: 20px;
+}
+
+.logout-button {
+  color: #fff;
+  background: none;
+  border: none;
+  font-size: 3em; 
+  padding: 5px 20px;
+  display: inline-flex;
+  font-weight: 700;
+  transition: 0.5s;
+  cursor: pointer;
+  font-family: "Cairo", sans-serif;
+}
+
+.logout-button:hover {
+  color: #242424;
+  background: transparent;
+}
+
+.logout-button:before {
+  font-family: "Mochiy Pop One", sans-serif;
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 5em; 
+  color: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 500px;
+  transition: letter-spacing 0.5s, left 0.5s;
+}
+
+.logout-button:hover:before {
+  content: attr(data-text);
+  opacity: 1;
+  left: 50%;
+  letter-spacing: 10px;
+  width: 1400px; /* Smaller than the 1800px of other nav items */
+  height: 1400px;
+  background: #ff4757; /* Red background for logout */
+}

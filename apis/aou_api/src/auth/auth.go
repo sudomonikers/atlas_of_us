@@ -73,7 +73,7 @@ func Login(c *gin.Context) {
 		return
 	}
 	if len(result) != 1 {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": "Username and password combo not found!"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Username and password combo not found!"})
 		return
 	}
 

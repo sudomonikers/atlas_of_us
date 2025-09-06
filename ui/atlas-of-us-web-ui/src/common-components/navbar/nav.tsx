@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { useGlobal } from '../../GlobalProvider';
 
 export function NavBar() {
-  const { setSearchText, loggedIn } = useGlobal();
+  const { setSearchText, loggedIn, logout } = useGlobal();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -28,6 +28,11 @@ export function NavBar() {
   };
 
   const handleNavigation = () => {
+    setMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
     setMenuOpen(false);
   };
 
@@ -120,6 +125,17 @@ export function NavBar() {
                 Blog
               </Link>
             </li>
+            {loggedIn && (
+              <li className="logout-item">
+                <button
+                  className="logout-button"
+                  onClick={handleLogout}
+                  data-text="Logout"
+                >
+                  Logout
+                </button>
+              </li>
+            )}
           </ul>
         </div>
       )}
