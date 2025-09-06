@@ -40,10 +40,7 @@ npm run deploy       # Build and deploy to S3
 ### Backend Development (API)
 ```bash
 cd apis/aou_api/
-go build -o main ./src/               # Build the application
-docker-compose up --build             # Run with embeddings service
-go fmt ./...                          # Format code
-go vet ./...                         # Vet code
+docker-compose up --build
 ./deploy-ec2.sh                      # Deploy to EC2
 ```
 
@@ -54,12 +51,6 @@ terraform init       # Initialize Terraform
 terraform plan       # Plan infrastructure changes
 terraform apply      # Apply changes
 terraform destroy    # Destroy infrastructure (use with caution)
-```
-
-### Database Operations
-```bash
-cd database/helper_scripts/
-go run recreate_db.go    # Recreate database from schema files
 ```
 
 ## Architecture Details
