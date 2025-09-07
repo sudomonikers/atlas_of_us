@@ -1,0 +1,6 @@
+[package]
+name = "atlas_of_us_rest_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
