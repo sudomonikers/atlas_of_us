@@ -123,7 +123,7 @@ export function Assessment() {
             nextStepRules: [
                 { condition: () => true, nextStep: 'StepYou' }
             ],
-            nodeId: '4:b476f271-2fae-4ff8-9d53-640f0dd4144a:0',
+            nodeId: '4:4106f26a-d5ce-4dc3-9b5e-a5515404286b:144',
             component: Step6
         },
         {

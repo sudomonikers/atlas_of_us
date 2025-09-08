@@ -5,6 +5,7 @@ use axum::{
 };
 use neo4rs::{Graph, Query};
 use serde_json::{json, Value};
+use crate::common::neo4j_utils::map_bolt4_to_bolt5;
 
 pub async fn get_user_profile(
     Path(username): Path<String>,
@@ -17,13 +18,32 @@ pub async fn get_user_profile(
         UNWIND coalesce(r, [null]) AS unwound_relationships
         UNWIND coalesce(m, [null]) AS unwound_affiliates
         WITH 
-            node,
-            collect(distinct unwound_relationships) AS relationships, 
-            collect(distinct unwound_affiliates) AS affiliatedNodes
+            {
+                id: id(node),
+                elementId: elementId(node), 
+                labels: labels(node),
+                props: properties(node)
+            } AS nodeWithMeta,
+            collect(distinct case when unwound_relationships is not null then {
+                id: id(unwound_relationships),
+                elementId: elementId(unwound_relationships),
+                startId: id(startNode(unwound_relationships)),
+                startElementId: elementId(startNode(unwound_relationships)),
+                endId: id(endNode(unwound_relationships)),
+                endElementId: elementId(endNode(unwound_relationships)),
+                type: type(unwound_relationships),
+                props: properties(unwound_relationships)
+            } else null end) AS relationshipsWithMeta,
+            collect(distinct case when unwound_affiliates is not null then {
+                id: id(unwound_affiliates),
+                elementId: elementId(unwound_affiliates),
+                labels: labels(unwound_affiliates),
+                props: properties(unwound_affiliates)
+            } else null end) AS affiliatedNodesWithMeta
         RETURN 
-            node,
-            relationships,
-            affiliatedNodes
+            nodeWithMeta AS node,
+            relationshipsWithMeta AS relationships,
+            affiliatedNodesWithMeta AS affiliatedNodes
     ";
 
     let mut query = Query::new(query_string.to_string());
@@ -45,7 +65,9 @@ pub async fn get_user_profile(
                 }));
             }
 
-            Ok(Json(json!(profile_data)))
+            // Map to Bolt5 format
+            let bolt5_data = map_bolt4_to_bolt5(profile_data);
+            Ok(Json(bolt5_data))
         }
         Err(e) => {
             tracing::error!("ERROR AT get_user_profile: {}", e);

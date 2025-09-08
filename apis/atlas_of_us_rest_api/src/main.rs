@@ -14,6 +14,10 @@ use axum::{
 use common::handlers::{create_embedding_from_text, return_s3_object, upload_s3_object};
 use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
 use domains::profile::handlers::get_user_profile;
+use domains::graph::handlers::{
+    get_nodes, get_node_with_relationships_by_search_term, create_node, create_relationship,
+    update_node, update_relationship, get_similar_nodes
+};
 use dotenvy::dotenv;
 use neo4rs::*;
 use serde_json::json;
@@ -24,26 +28,27 @@ async fn main() {
     // Install rustls crypto provider
     let _ = rustls::crypto::ring::default_provider().install_default();
 
-    // Load environment variables from .env file
     dotenv().ok();
 
     let config: Config = ConfigBuilder::default()
         .uri(std::env::var("NEO4J_URI").unwrap_or_else(|_| "127.0.0.1:7687".to_string()))
-        .user(std::env::var("NEO4J_USERNAME").unwrap_or_else(|_| "neo4j".to_string()))
+        .user(std::env::var("NEO4J_USER").unwrap_or_else(|_| "neo4j".to_string()))
         .password(std::env::var("NEO4J_PASSWORD").unwrap_or_else(|_| "neo4j".to_string()))
         .db(std::env::var("NEO4J_DATABASE").unwrap_or_else(|_| "neo4j".to_string()))
         .fetch_size(500)
         .max_connections(10)
         .build()
-        .unwrap();
-    let graph: Graph = Graph::connect(config).await.unwrap();
+        .expect("Failed to build Neo4j config");
+    
+    println!("Attempting to connect to Neo4j...");
+    let graph: Graph = Graph::connect(config).expect("Failed to connect to Neo4j");
 
     let cors: CorsLayer = CorsLayer::new()
         .allow_origin(
             std::env::var("ALLOWED_ORIGIN")
-                .unwrap()
+                .expect("ALLOWED_ORIGIN environment variable not set")
                 .parse::<HeaderValue>()
-                .unwrap(),
+                .expect("Invalid ALLOWED_ORIGIN value"),
         )
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_credentials(true)
@@ -74,23 +79,16 @@ async fn main() {
 
     // Graph management routes
     let graph_management_routes: Router<Graph> = Router::new()
-        // Graph management routes
-        .route("/api/secure/graph/get-nodes", get(placeholder_handler))
+        .route("/api/secure/graph/get-nodes", get(get_nodes))
         .route(
             "/api/secure/graph/get-node-with-relationships-by-search-term",
-            get(placeholder_handler),
+            get(get_node_with_relationships_by_search_term),
         )
-        .route("/api/secure/graph/create-node", post(placeholder_handler))
-        .route("/api/secure/graph/update-node", put(placeholder_handler))
-        .route(
-            "/api/secure/graph/create-relationship",
-            post(placeholder_handler),
-        )
-        .route(
-            "/api/secure/graph/update-relationship",
-            put(placeholder_handler),
-        )
-        .route("/api/secure/graph/similar-nodes", post(placeholder_handler))
+        .route("/api/secure/graph/create-node", post(create_node))
+        .route("/api/secure/graph/update-node", put(update_node))
+        .route("/api/secure/graph/create-relationship", post(create_relationship))
+        .route("/api/secure/graph/update-relationship", put(update_relationship))
+        .route("/api/secure/graph/similar-nodes", post(get_similar_nodes))
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 
     let profile_routes: Router<Graph> = Router::new()
