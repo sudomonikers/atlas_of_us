@@ -13,6 +13,7 @@ use axum::{
 };
 use common::handlers::{create_embedding_from_text, return_s3_object, upload_s3_object};
 use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
+use domains::profile::handlers::get_user_profile;
 use dotenvy::dotenv;
 use neo4rs::*;
 use serde_json::json;
@@ -57,7 +58,7 @@ async fn main() {
 
     // Auth routes
     let auth_routes: Router<Graph> = Router::new()
-        .route("/api/", get(healthcheck))
+        .route("/api/healthcheck", get(healthcheck))
         .route("/api/register", post(signup))
         .route("/api/login", post(login));
 
@@ -92,11 +93,16 @@ async fn main() {
         .route("/api/secure/graph/similar-nodes", post(placeholder_handler))
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 
+    let profile_routes: Router<Graph> = Router::new()
+        .route("/api/secure/profile/user-profile/{username}", get(get_user_profile))
+        .route_layer(middleware::from_fn(jwt_auth_middleware));
+    
     let app: Router = Router::new()
         .merge(swagger_documentation_routes)
         .merge(auth_routes)
         .merge(helper_routes)
         .merge(graph_management_routes)
+        .merge(profile_routes)
         .layer(cors)
         .with_state(graph);
 
