@@ -35,7 +35,7 @@ async fn main() {
    let graph: Graph = Graph::connect(config).await.unwrap();
 
     let cors: CorsLayer = CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin(std::env::var("ALLOWED_ORIGIN").unwrap().parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
@@ -69,7 +69,7 @@ async fn main() {
         
         // Base API routes (no authentication required)
         .route("/api/", get(healthcheck))
-        .route("/api/sign-up", post(signup))
+        .route("/api/register", post(signup))
         .route("/api/login", post(login))
         .merge(secure_routes)
         .layer(cors)

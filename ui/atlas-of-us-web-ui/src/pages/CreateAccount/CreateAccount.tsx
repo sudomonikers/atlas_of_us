@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "./login.css";
+import "./createAccount.css";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Link, useNavigate } from "react-router";
 import { useGlobal } from "../../GlobalProvider";
@@ -9,7 +9,7 @@ import { AssessmentWorld, WorldState } from "../Assessment/AssessmentWorld";
 
 function CameraAnimation(): null {
   useFrame(({ camera }) => {
-    const time = Date.now() * 0.00005; // Slow rotation speed
+    const time = Date.now() * 0.00005;
     const radius = 180;
     camera.position.x = Math.cos(time) * radius;
     camera.position.z = Math.sin(time) * radius;
@@ -19,7 +19,7 @@ function CameraAnimation(): null {
   return null;
 }
 
-export function Login() {
+export function CreateAccount() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const httpService = new HttpService();
 
@@ -27,6 +27,9 @@ export function Login() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const { setLoggedIn, setProfileData } = useGlobal();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,11 +45,37 @@ export function Login() {
     cameraTarget: [0, 0, 0]
   });
 
-  async function handleLogin() {
+  async function handleCreateAccount() {
     setLoading(true);
     setError("");
+    
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    if (!phoneNumber.trim()) {
+      setError("Phone number is required.");
+      setLoading(false);
+      return;
+    }
+
+    const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      setError("Please enter a valid phone number.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch(`${apiBaseUrl}/login`, {
+      const response = await fetch(`${apiBaseUrl}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,11 +83,13 @@ export function Login() {
         body: JSON.stringify({
           username,
           password,
+          email,
+          phone: phoneNumber,
         }),
       });
 
       if (response.ok) {
-        console.log("Logged in successfully");
+        console.log("Account created successfully");
         const responseBody = await response.json();
         localStorage.setItem("jwt", responseBody.token);
         
@@ -69,30 +100,23 @@ export function Login() {
             setLoggedIn(true);
             setProfileData(response);
             setLoading(false);
-            if (response.nodeRoot.Props?.assessmentComplete) {
-              navigate("/Graph");
-            } else {
-              navigate("/Assessment");
-            }
+            navigate("/Assessment");
           });
       } else {
-        let errorMessage = "Login failed. Please try again.";
-        console.log(response)
+        let errorMessage = "Account creation failed. Please try again.";
         
-        if (response.status === 401) {
-          errorMessage = "Invalid username or password.";
-        } else if (response.status === 403) {
-          errorMessage = "Access forbidden. Please check your credentials.";
+        if (response.status === 400) {
+          errorMessage = "Invalid input. Please check your information.";
+        } else if (response.status === 409) {
+          errorMessage = "Username or email already exists.";
         } else if (response.status === 500) {
           errorMessage = "Server error. Please try again later.";
-        } else if (response.status === 404) {
-          errorMessage = "Login service not found.";
         }
         
         throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Create account error:", error);
       setLoading(false);
       setError(error instanceof Error ? error.message : "An unexpected error occurred.");
     }
@@ -102,8 +126,8 @@ export function Login() {
     <>
       <NavBar />
       <div className="in-nav-container">
-        <div className="login-world-container">
-          <Canvas className="login-world-canvas" flat camera={{ position: [0, 0, 180], far: 5000 }}>
+        <div className="create-account-world-container">
+          <Canvas className="create-account-world-canvas" flat camera={{ position: [0, 0, 180], far: 5000 }}>
             <CameraAnimation />
             <AssessmentWorld 
               worldState={worldState}
@@ -113,11 +137,23 @@ export function Login() {
           </Canvas>
         </div>
         
-        <div className="login-container card-cosmic">
-          <h1 className="text-h1">Welcome Back!</h1>
-          <p className="text-body-large">Time to see who you are, and who you might become...</p>
+        <div className="create-account-container card-cosmic">
+          <h1 className="text-h1">Welcome to Atlas of Us!</h1>
+          <p className="text-body-large">Begin your journey of self-discovery and growth...</p>
           <br />
           <div className="mb-md">
+
+            <input
+              className="input-cosmic"
+              id="email"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="mb-md">
+
             <input
               className="input-cosmic"
               id="username"
@@ -128,26 +164,46 @@ export function Login() {
             />
           </div>
           <div className="mb-md">
+
+            <input
+              className="input-cosmic"
+              id="phoneNumber"
+              type="tel"
+              placeholder="Phone Number"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+          </div>
+          <div className="mb-md">
+
             <input
               className="input-cosmic"
               id="password"
               type="password"
-              placeholder="Password"
+              placeholder="Password (minimum 6 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+          <div className="mb-md">
+
+            <input
+              className="input-cosmic"
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
           <div className="mt-lg flex-center gap-md">
-            <button className="btn-cosmic interactive-particle" type="button" onClick={handleLogin} disabled={loading}>
+            <button className="btn-cosmic interactive-particle" type="button" onClick={handleCreateAccount} disabled={loading}>
               {loading ? (
                 <div className="spinner" style={{ width: '20px', height: '20px', border: '2px solid transparent', borderTop: '2px solid currentColor', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </button>
-            <a className="btn-glass interactive-particle" href="#">
-              Forgot Password?
-            </a>
           </div>
           {error && (
             <div className="error-message text-body" style={{ color: 'var(--color-error, #ff4444)', textAlign: 'center', marginTop: 'var(--space-md)' }}>
@@ -159,10 +215,9 @@ export function Login() {
             <div className="or-text">OR</div>
             <div className="line"></div>
           </div>
-          <h2 className="text-h2">New Here?</h2>
+          <h2 className="text-h2">Already Have an Account?</h2>
           <p className="text-body">
-            <Link className="btn-glass interactive-particle" to="/Create">Create an account to experience the joy of
-            clairvoyance.</Link> 
+            <Link className="btn-glass interactive-particle" to="/Login">Sign in to continue your journey.</Link> 
           </p>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Community } from './pages/Community/Community.tsx';
 import { Login } from './pages/Login/Login.tsx';
 import { Signup } from './pages/Signup/Signup.tsx';
+import { CreateAccount } from './pages/CreateAccount/CreateAccount.tsx';
 import { Profile } from './pages/Profile/Profile.tsx';
 import { Graph } from './pages/Graph/Graph.tsx';
 import { Roadmap } from './pages/Roadmap/Roadmap.tsx';
@@ -36,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/" element={<Navigate to="/Graph" replace />} />
         <Route path="/Login" element={<Login />} />
         <Route path="/Signup" element={<Signup />} />
+        <Route path="/Create" element={<CreateAccount />} />
         <Route path="/Profile" element={
           <PrivateRoute>
             <Profile />

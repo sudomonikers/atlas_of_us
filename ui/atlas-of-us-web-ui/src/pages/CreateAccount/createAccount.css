@@ -1,6 +1,6 @@
 @import '../../styles/design-tokens.css';
 
-.login-world-container {
+.create-account-world-container {
   overflow: hidden;
   background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
   position: absolute;
@@ -11,7 +11,7 @@
   z-index: 1;
 }
 
-.login-container {
+.create-account-container {
   margin-top: 30px;
   width: fit-content;
   min-width: 400px;
@@ -36,7 +36,7 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .login-container {
+  .create-account-container {
     width: 90%;
     min-width: unset;
     margin: var(--space-xl) auto 0 auto;
