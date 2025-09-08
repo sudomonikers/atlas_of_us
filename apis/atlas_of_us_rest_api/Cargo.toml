@@ -19,3 +19,9 @@ base64 = "0.22.1"
 jsonwebtoken = "9.3.1"
 argon2 = "0.5.3"
 validator = { version = "0.20.0", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+aws-config = { version = "1.0", features = ["behavior-version-latest", "rustls"] }
+aws-sdk-s3 = { version = "1.0", features = ["rustls"] }
+aws-smithy-types = "1.0"
+infer = "0.16"
+rustls = { version = "0.23", features = ["ring"] }

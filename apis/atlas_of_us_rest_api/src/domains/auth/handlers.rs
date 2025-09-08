@@ -1,14 +1,10 @@
-use axum::{
-    extract::State,
-    response::Json,
-    http::StatusCode,
-};
+use axum::{extract::State, http::StatusCode, response::Json};
 use neo4rs::Graph;
-use validator::Validate;
 use std::collections::HashMap;
+use validator::Validate;
 
-use crate::domains::auth::models::{LoginRequest, SignUpRequest, AuthResponse, ErrorResponse};
-use crate::domains::auth::utils::{hash_password, verify_password, generate_token};
+use crate::domains::auth::models::{AuthResponse, ErrorResponse, LoginRequest, SignUpRequest};
+use crate::domains::auth::utils::{generate_token, hash_password, verify_password};
 
 pub async fn healthcheck() -> Json<serde_json::Value> {
     Json(serde_json::json!("ok"))
@@ -30,19 +26,28 @@ pub async fn login(
 
     // Query user from Neo4j
     let mut params = HashMap::new();
-    params.insert("username".to_string(), serde_json::Value::String(login_req.username.clone()));
+    params.insert(
+        "username".to_string(),
+        serde_json::Value::String(login_req.username.clone()),
+    );
 
-    let rows = match graph.execute(neo4rs::query(
-        "MATCH (n:Person) WHERE n.username = $username RETURN n.password"
-    ).param("username", login_req.username.clone())).await {
+    let rows = match graph
+        .execute(
+            neo4rs::query("MATCH (n:Person) WHERE n.username = $username RETURN n.password")
+                .param("username", login_req.username.clone()),
+        )
+        .await
+    {
         Ok(mut result) => {
             let mut rows = Vec::new();
-            while let Some(row) = result.next().await.map_err(|_| (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "internal server error".to_string(),
-                }),
-            ))? {
+            while let Some(row) = result.next().await.map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "internal server error".to_string(),
+                    }),
+                )
+            })? {
                 rows.push(row);
             }
             rows
@@ -122,18 +127,26 @@ pub async fn signup(
     }
 
     // Check if username or phone already exists
-    let rows = match graph.execute(neo4rs::query(
-        "MATCH (n:Person) WHERE n.phone = $phone OR n.username = $username RETURN n"
-    ).param("username", signup_req.username.clone())
-     .param("phone", signup_req.phone.clone())).await {
+    let rows = match graph
+        .execute(
+            neo4rs::query(
+                "MATCH (n:Person) WHERE n.phone = $phone OR n.username = $username RETURN n",
+            )
+            .param("username", signup_req.username.clone())
+            .param("phone", signup_req.phone.clone()),
+        )
+        .await
+    {
         Ok(mut result) => {
             let mut rows = Vec::new();
-            while let Some(row) = result.next().await.map_err(|_| (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "internal server error".to_string(),
-                }),
-            ))? {
+            while let Some(row) = result.next().await.map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "internal server error".to_string(),
+                    }),
+                )
+            })? {
                 rows.push(row);
             }
             rows
@@ -171,11 +184,17 @@ pub async fn signup(
     };
 
     // Create user
-    match graph.run(neo4rs::query(
-        "CREATE (p:Person:L3 { username: $username, password: $password, phone: $phone })"
-    ).param("username", signup_req.username.clone())
-     .param("password", hashed_password)
-     .param("phone", signup_req.phone.clone())).await {
+    match graph
+        .run(
+            neo4rs::query(
+                "CREATE (p:Person:L3 { username: $username, password: $password, phone: $phone })",
+            )
+            .param("username", signup_req.username.clone())
+            .param("password", hashed_password)
+            .param("phone", signup_req.phone.clone()),
+        )
+        .await
+    {
         Ok(_) => {
             // Generate JWT token
             match generate_token(&signup_req.username) {

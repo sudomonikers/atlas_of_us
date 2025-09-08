@@ -31,8 +31,8 @@ pub struct ErrorResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JwtClaims {
-    pub sub: String,    // Subject (username)
-    pub exp: usize,     // Expiration time
-    pub iat: usize,     // Issued at
-    pub iss: String,    // Issuer (username for compatibility with Go version)
+    pub sub: String, // Subject (username)
+    pub exp: usize,  // Expiration time
+    pub iat: usize,  // Issued at
+    pub iss: String, // Issuer (username for compatibility with Go version)
 }
