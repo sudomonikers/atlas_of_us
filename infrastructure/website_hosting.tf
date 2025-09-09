@@ -318,7 +318,7 @@ resource "aws_cloudfront_distribution" "api_cdn" {
     origin_id   = "api-ec2-origin"
 
     custom_origin_config {
-      http_port              = 8080
+      http_port              = 8000
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]

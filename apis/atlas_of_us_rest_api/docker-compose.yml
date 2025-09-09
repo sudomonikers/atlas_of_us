@@ -20,7 +20,7 @@ services:
 
   # Atlas of Us Rust API
   api:
-    build: .
+    image: atlas-of-us-api:latest
     container_name: atlas_rust_api
     ports:
       - "8000:8000"
@@ -28,6 +28,14 @@ services:
       - .env
     environment:
       - EMBEDDING_ENDPOINT=http://embeddings:8080/embedding
+      - NEO4J_URI=${NEO4J_URI}
+      - NEO4J_USER=${NEO4J_USER}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - NEO4J_DATABASE=${NEO4J_DATABASE}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_REGION=${AWS_REGION}
     depends_on:
       embeddings:
         condition: service_healthy

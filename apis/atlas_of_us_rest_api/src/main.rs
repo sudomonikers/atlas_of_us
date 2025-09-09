@@ -25,6 +25,7 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
+    println!("starting main loop");
     // Install rustls crypto provider
     let _ = rustls::crypto::ring::default_provider().install_default();
 

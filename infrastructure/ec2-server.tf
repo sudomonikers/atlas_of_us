@@ -43,10 +43,10 @@ resource "aws_security_group" "api_server_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Custom API port (if your Go API runs on a different port)
+  # Custom API port (exposes api)
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 8000
+    to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
