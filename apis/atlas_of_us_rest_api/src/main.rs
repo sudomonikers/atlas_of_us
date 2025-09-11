@@ -26,7 +26,16 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
-    println!("starting main loop");
+    // Initialize tracing
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            std::env::var("RUST_LOG")
+                .unwrap_or_else(|_| "info".to_string())
+        )
+        .init();
+
+    tracing::info!("Starting Atlas of Us REST API");
+    
     // Install rustls crypto provider
     let _ = rustls::crypto::ring::default_provider().install_default();
 
@@ -42,7 +51,7 @@ async fn main() {
         .build()
         .expect("Failed to build Neo4j config");
     
-    println!("Attempting to connect to Neo4j...");
+    tracing::info!("Attempting to connect to Neo4j...");
     let graph: Graph = Graph::connect(config).expect("Failed to connect to Neo4j");
 
     let cors: CorsLayer = CorsLayer::new()
@@ -107,7 +116,7 @@ async fn main() {
         .layer(cors)
         .with_state(graph);
 
-    println!("Server listening on port 8000");
+    tracing::info!("Server listening on port 8000");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
