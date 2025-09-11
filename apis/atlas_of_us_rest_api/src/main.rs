@@ -12,6 +12,7 @@ use axum::{
     routing::{get, post, put},
 };
 use common::handlers::{create_embedding_from_text, return_s3_object, upload_s3_object};
+use common::logging_middleware::logging_middleware;
 use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
 use domains::profile::handlers::get_user_profile;
 use domains::graph::handlers::{
@@ -102,6 +103,7 @@ async fn main() {
         .merge(helper_routes)
         .merge(graph_management_routes)
         .merge(profile_routes)
+        .layer(middleware::from_fn(logging_middleware))
         .layer(cors)
         .with_state(graph);
 

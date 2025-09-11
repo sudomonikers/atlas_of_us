@@ -16,7 +16,6 @@ struct ImageData {
 
 #[derive(Debug, Deserialize)]
 struct ImageGenerationResponse {
-    created: u64,
     data: Vec<ImageData>,
 }
 
