@@ -11,7 +11,7 @@ Atlas of Us is a personal growth application built around a comprehensive knowle
 This is a multi-component system with distinct layers:
 
 ### Core Components
-- **APIs** (`apis/aou_api/`): Go-based REST API server with Neo4j integration
+- **APIs** (`apis/atlas_of_us_rest_api/`): Rust-based REST API server with Neo4j integration
 - **UI** (`ui/atlas-of-us-web-ui/`): React/TypeScript frontend with 3D graph visualization
 - **Infrastructure** (`infrastructure/`): Terraform configuration for AWS deployment
 - **Database** (`database/`): Neo4j graph database schema and migration files
@@ -39,9 +39,13 @@ npm run deploy       # Build and deploy to S3
 
 ### Backend Development (API)
 ```bash
-cd apis/aou_api/
+cd apis/atlas_of_us_rest_api/
+# Local development
+cargo run
+# or with Docker (Apple Silicon for local dev)
 docker-compose up --build
-./deploy-ec2.sh                      # Deploy to EC2
+# Deploy to EC2 (cross-compiles to x86_64)
+./deploy-ec2.sh
 ```
 
 ### Infrastructure Management
@@ -55,13 +59,13 @@ terraform destroy    # Destroy infrastructure (use with caution)
 
 ## Architecture Details
 
-### API Server (Go)
-- **Framework**: Gin with middleware for JWT auth, CORS, and logging
-- **Database**: Neo4j with connection pooling and retry logic
+### API Server (Rust)
+- **Framework**: Axum with async/await and middleware for JWT auth, CORS, and logging
+- **Database**: Neo4j with connection pooling via neo4rs driver (max 10 connections)
 - **External Services**: llama-cpp embeddings service, S3 storage
 - **Security**: JWT-based authentication for secure routes
-- **Documentation**: Swagger docs at `/swagger/index.html`
 - **Deployment**: Docker containers on EC2 (shuts down at 12 AM EST for cost savings)
+- **Architecture**: Domain-driven design with auth, profile, and graph modules
 
 ### Frontend (React/TypeScript)
 - **Framework**: React 19 with TypeScript and Vite
