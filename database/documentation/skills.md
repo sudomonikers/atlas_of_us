@@ -1,0 +1,86 @@
+# Skills
+
+Skills represent learned abilities to perform tasks or activities effectively. Skills are developed through practice and experience, measured using the Dreyfus Model of Skill Acquisition, which describes the progression from rigid rule-following to fluid expertise.
+
+## **Skill Properties**
+
+- **name** (string) - The skill identifier (e.g., "Board Evaluation", "Strategic Planning")
+- **description** (string) - What this skill encompasses and why it's important
+- **how_to_develop** (string) - Practical guidance on how to develop this skill, including recommended practice methods, exercises, or approaches
+- **novice_level** (string) - What characterizes performance at this level and how to progress beyond it
+- **advanced_beginner_level** (string) - What characterizes performance at this level and how to progress beyond it
+- **competent_level** (string) - What characterizes performance at this level and how to progress beyond it
+- **proficient_level** (string) - What characterizes performance at this level and how to progress beyond it
+- **expert_level** (string) - What characterizes performance at this level and what mastery looks like
+
+## **Dreyfus Model Levels**
+
+1. **Novice** - Follows rigid rules, no discretionary judgment
+2. **Advanced Beginner** - Begins recognizing patterns from experience
+3. **Competent** - Can troubleshoot and make deliberate choices
+4. **Proficient** - Sees situations holistically, uses maxims and intuition
+5. **Expert** - Operates from deep tacit understanding, performance is fluid and intuitive
+
+## **Skill Prerequisites**
+
+Skills can have multiple types of prerequisites:
+
+**Required Skills:**
+
+```jsx
+CREATE (s1:Skill {name: 'Advanced Calculation'})-[:REQUIRES_SKILL {min_dreyfus_level: 'Competent'}]->(s2:Skill {name: 'Tactical Calculation'})
+```
+
+**Required Knowledge:**
+
+```jsx
+CREATE (s:Skill {name: 'Board Evaluation'})-[:REQUIRES_KNOWLEDGE {min_bloom_level: 'Apply'}]->(k:Knowledge {name: 'Positional Concepts'})
+```
+
+**Required Traits:**
+
+```jsx
+CREATE (s:Skill {name: 'Pattern Recognition Skills'})-[:REQUIRES_TRAIT {min_score: 50}]->(t:Trait {name: 'Pattern Recognition'})
+```
+
+## **Example Skill Node**
+
+```jsx
+MERGE (s:Skill {
+  name: 'Board Evaluation',
+  description: 'The ability to assess a chess position and determine which side has the advantage, considering material, piece activity, king safety, pawn structure, and strategic factors',
+  how_to_develop: 'Practice evaluating positions from master games before seeing the next move. Study annotated games with detailed positional explanations. Use the "guess the move" method with grandmaster games. Analyze your own games focusing on critical positions. Work with a coach or stronger player for feedback on your evaluations.',
+  novice_level: 'Counts material and uses basic rules (e.g., "knights on the rim are dim"). Struggles when material is equal. Follows checklists mechanically without understanding context. Progress by studying simple positions with clear advantages and learning basic positional factors beyond material.',
+  advanced_beginner_level: 'Recognizes common patterns like weak pawns, open files, and piece placement issues. Can identify obvious positional advantages but struggles with complex or unclear positions. Beginning to see multiple factors simultaneously. Progress by analyzing increasingly complex positions and learning how factors interact.',
+  competent_level: 'Systematically evaluates multiple factors (material, development, king safety, pawn structure, piece activity) and weighs them deliberately. Can handle most positions methodically, though it requires conscious effort. Makes sound judgments in familiar position types. Progress by building pattern recognition in diverse positions and developing intuition through extensive analysis.',
+  proficient_level: 'Quickly grasps the key features of a position intuitively. Sees positions holistically rather than as a checklist. Accurately evaluates complex positions where multiple factors conflict. Recognizes subtle positional nuances. Progress by studying master-level games, working on positions where the evaluation is unclear, and developing deeper strategic understanding.',
+  expert_level: 'Evaluates positions instantly and accurately through deep intuitive understanding. Perceives subtle imbalances that others miss. Fluidly weighs contradictory factors without conscious deliberation. Can explain evaluations clearly but operates primarily from tacit knowledge. Evaluation becomes second nature and highly reliable even in novel positions.'
+})
+```
+
+## **Usage in Graph**
+
+When a person has a skill at a specific Dreyfus level:
+
+```jsx
+CREATE (person:Person {name: 'John'})-[:HAS_SKILL {dreyfus_level: 'Competent'}]->(s:Skill {name: 'Board Evaluation'})
+```
+
+When a domain level requires a skill at a minimum Dreyfus level:
+
+```jsx
+CREATE (level:Domain_Level)-[:REQUIRES_SKILL {dreyfus_level: 'Proficient'}]->(s:Skill {name: 'Board Evaluation'})
+```
+
+When a skill requires other skills, knowledge, or traits:
+
+```jsx
+MERGE (s_advanced:Skill {name: 'Board Evaluation'})
+MERGE (s_basic:Skill {name: 'Tactical Calculation'})
+MERGE (k:Knowledge {name: 'Positional Concepts'})
+MERGE (t:Trait {name: 'Pattern Recognition'})
+
+CREATE (s_advanced)-[:REQUIRES_SKILL {min_dreyfus_level: 'Advanced Beginner'}]->(s_basic)
+CREATE (s_advanced)-[:REQUIRES_KNOWLEDGE {min_bloom_level: 'Apply'}]->(k)
+CREATE (s_advanced)-[:REQUIRES_TRAIT {min_score: 60}]->(t)
+```
