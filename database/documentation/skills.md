@@ -2,6 +2,64 @@
 
 Skills represent learned abilities to perform tasks or activities effectively. Skills are developed through practice and experience, measured using the Dreyfus Model of Skill Acquisition, which describes the progression from rigid rule-following to fluid expertise.
 
+## **Atomic Node Principle**
+
+**IMPORTANT:** Each skill node must represent a SINGLE, atomic ability. Do not combine multiple skills into one node using "and" or similar conjunctions.
+
+**Bad Examples:**
+- "Debugging and Testing" (should be two nodes: "Debugging" and "Testing")
+- "Planning and Execution" (should be two nodes: "Planning" and "Execution")
+- "Communication and Collaboration" (should be two nodes: "Communication" and "Collaboration")
+
+**Good Examples:**
+- "Debugging"
+- "Planning"
+- "Communication"
+
+If you find yourself using "and" in a node name, split it into separate nodes and use prerequisite relationships to connect them if needed.
+
+## **Domain-Specific vs Generic Skills**
+
+**IMPORTANT:** Skill nodes should generally be domain-specific because the actual practice and application differs between domains. Use domain prefixes to avoid conflicts.
+
+**When to make skills DOMAIN-SPECIFIC (most cases):**
+
+Skills are domain-specific when the actual practice, techniques, or application differs between domains:
+
+- "Chess Tactical Calculation" vs "Go Reading" - Different board states, pieces, rules
+- "Python Debugging" vs "JavaScript Debugging" - Different tools, error types, stack traces
+- "Chess Position Evaluation" - Specific to chess board positions and piece values
+- "Programming Code Review" - Specific to reading and analyzing code
+
+**Use domain prefixes for domain-specific skills:**
+- "Chess Tactical Calculation" (not just "Tactical Calculation")
+- "Python Debugging" (not just "Debugging")
+- "Programming Refactoring" (not just "Refactoring")
+
+**When to make skills GENERIC (rare cases):**
+
+Only make skills generic when the exact same practice and application applies identically across multiple domains:
+
+- "Problem Solving" - General cognitive skill applicable everywhere
+- "Decision Making" - General skill used in all domains
+- "Time Management" - Same practice across all contexts
+
+**Examples:**
+
+```cypher
+// Domain-specific skill (typical case)
+MERGE (s:Skill {name: 'Chess Tactical Calculation'})
+SET s.description = 'The ability to visualize and calculate sequences of moves, considering opponent responses and evaluating resulting positions',
+    s.how_to_develop = 'Practice chess tactics puzzles, analyze tactical positions...'
+
+// Generic skill (rare case)
+MERGE (s:Skill {name: 'Problem Solving'})
+SET s.description = 'The ability to identify problems, analyze root causes, and develop effective solutions',
+    s.how_to_develop = 'Practice breaking down complex problems systematically...'
+```
+
+**Default approach:** When in doubt, make skills domain-specific with a domain prefix.
+
 ## **Skill Properties**
 
 - **name** (string) - The skill identifier (e.g., "Board Evaluation", "Strategic Planning")

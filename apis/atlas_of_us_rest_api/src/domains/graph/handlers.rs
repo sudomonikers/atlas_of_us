@@ -620,7 +620,7 @@ pub async fn get_similar_nodes(
     // Validate that exactly one of nodeId or embedding is provided
     let has_node_id = request.node_id.is_some();
     let has_embedding = request.embedding.is_some() && !request.embedding.as_ref().unwrap().is_empty();
-    
+
     if (!has_node_id && !has_embedding) || (has_node_id && has_embedding) {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -639,6 +639,90 @@ pub async fn get_similar_nodes(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"error": "internal server error"}))
             ))
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetDomainParams {
+    pub name: String,
+}
+
+pub async fn get_domain(
+    Query(params): Query<GetDomainParams>,
+    State(graph): State<Graph>,
+) -> Result<Json<Value>, StatusCode> {
+    let query_string = r#"
+        MATCH (domain:Domain {name: $name})
+        OPTIONAL MATCH (domain)-[:HAS_DOMAIN_LEVEL]->(level:Domain_Level)
+
+        // Get knowledge requirements for each level
+        OPTIONAL MATCH (level)-[kr:REQUIRES_KNOWLEDGE]->(k:Knowledge)
+
+        // Get skill requirements for each level
+        OPTIONAL MATCH (level)-[sr:REQUIRES_SKILL]->(s:Skill)
+
+        // Get trait requirements for each level
+        OPTIONAL MATCH (level)-[tr:REQUIRES_TRAIT]->(t:Trait)
+
+        // Get milestone requirements for each level
+        OPTIONAL MATCH (level)-[mr:REQUIRES_MILESTONE]->(m:Milestone)
+
+        WITH domain, level,
+             collect(DISTINCT {
+                 node: properties(k),
+                 relationship: properties(kr)
+             }) AS knowledge,
+             collect(DISTINCT {
+                 node: properties(s),
+                 relationship: properties(sr)
+             }) AS skills,
+             collect(DISTINCT {
+                 node: properties(t),
+                 relationship: properties(tr)
+             }) AS traits,
+             collect(DISTINCT {
+                 node: properties(m),
+                 relationship: properties(mr)
+             }) AS milestones
+
+        ORDER BY level.level
+
+        WITH domain,
+             collect({
+                 level: properties(level),
+                 knowledge: [item IN knowledge WHERE item.node IS NOT NULL],
+                 skills: [item IN skills WHERE item.node IS NOT NULL],
+                 traits: [item IN traits WHERE item.node IS NOT NULL],
+                 milestones: [item IN milestones WHERE item.node IS NOT NULL]
+             }) AS levels
+
+        RETURN {
+            domain: properties(domain),
+            levels: levels
+        } AS result
+    "#;
+
+    let mut query = Neo4jQuery::new(query_string.to_string());
+    query = query.param("name", params.name);
+
+    match graph.execute(query).await {
+        Ok(mut result) => {
+            if let Ok(Some(row)) = result.next().await {
+                let domain_data: Value = row.get("result").unwrap_or(json!(null));
+
+                if domain_data.is_null() {
+                    return Err(StatusCode::NOT_FOUND);
+                }
+
+                Ok(Json(domain_data))
+            } else {
+                Err(StatusCode::NOT_FOUND)
+            }
+        }
+        Err(e) => {
+            tracing::error!("Error in get_domain: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }

@@ -1,6 +1,64 @@
-# Knowledge 
+# Knowledge
 
 Knowledge represents information, concepts, facts, and understanding that can be acquired through learning, study, and experience. Knowledge is measured using Bloom's Taxonomy, which describes increasing levels of cognitive complexity.
+
+## **Atomic Node Principle**
+
+**IMPORTANT:** Each knowledge node must represent a SINGLE, atomic concept. Do not combine multiple concepts into one node using "and" or similar conjunctions.
+
+**Bad Examples:**
+- "Logical and Analytical Thinking" (should be two nodes: "Logical Thinking" and "Analytical Thinking")
+- "Variables and Data Types" (should be two nodes: "Variables" and "Data Types")
+- "Opening Principles and Strategies" (should be two nodes: "Opening Principles" and "Opening Strategies")
+
+**Good Examples:**
+- "Logical Thinking"
+- "Variables"
+- "Opening Principles"
+
+If you find yourself using "and" in a node name, split it into separate nodes and use prerequisite relationships to connect them if needed.
+
+## **Domain-Specific vs Generic Knowledge**
+
+**IMPORTANT:** Knowledge nodes should generally be domain-specific because the actual content being learned differs between domains. Use domain prefixes to avoid conflicts.
+
+**When to make knowledge DOMAIN-SPECIFIC (most cases):**
+
+Knowledge is domain-specific when the actual content, facts, or concepts differ between domains:
+
+- "Chess Opening Principles" vs "Go Opening Principles" - Completely different strategic concepts
+- "Python Variables" vs "JavaScript Variables" - Different syntax, scoping rules, behaviors
+- "Chess Tactical Patterns" - Specific to chess piece movements and board positions
+- "Programming Design Patterns" - Specific to software architecture
+
+**Use domain prefixes for domain-specific knowledge:**
+- "Chess Opening Principles" (not just "Opening Principles")
+- "Python Variables" (not just "Variables")
+- "Programming Algorithms" (not just "Algorithms")
+
+**When to make knowledge GENERIC (rare cases):**
+
+Only make knowledge generic when the exact same content applies identically across multiple domains:
+
+- "Mathematical Logic" - Same regardless of application domain
+- "Boolean Algebra" - Same in programming, electronics, mathematics
+- "Newton's Laws of Motion" - Same in physics regardless of context
+
+**Examples:**
+
+```cypher
+// Domain-specific knowledge (typical case)
+MERGE (k:Knowledge {name: 'Chess Opening Principles'})
+SET k.description = 'Fundamental strategic concepts for the opening phase of a chess game, including piece development, center control, and king safety',
+    k.how_to_learn = 'Study annotated chess games focusing on opening play...'
+
+// Generic knowledge (rare case)
+MERGE (k:Knowledge {name: 'Boolean Algebra'})
+SET k.description = 'Mathematical logic dealing with binary values and logical operations',
+    k.how_to_learn = 'Study truth tables, logical operators, and De Morgan\'s laws...'
+```
+
+**Default approach:** When in doubt, make knowledge domain-specific with a domain prefix.
 
 ## **Knowledge Properties**
 

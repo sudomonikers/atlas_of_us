@@ -127,20 +127,19 @@ Return Cypher code that creates all relationships (level requirements and prereq
 // ------------------------------------------------------------
 // Level 1 (Novice) Requirements
 // ------------------------------------------------------------
-
-MATCH (level1:Domain_Level {level: 1, name: 'Novice'})
+MATCH (level1:Domain_Level {level: 1, name: 'Rock Climbing Novice'})
 MATCH (k:Knowledge {name: 'Climbing Knots and Hitches'})
 CREATE (level1)-[:REQUIRES_KNOWLEDGE {bloom_level: 'Remember'}]->(k);
 
-MATCH (level1:Domain_Level {level: 1, name: 'Novice'})
+MATCH (level1:Domain_Level {level: 1, name: 'Rock Climbing Novice'})
 MATCH (s:Skill {name: 'Footwork Technique'})
 CREATE (level1)-[:REQUIRES_SKILL {dreyfus_level: 'Novice'}]->(s);
 
-MATCH (level1:Domain_Level {level: 1, name: 'Novice'})
+MATCH (level1:Domain_Level {level: 1, name: 'Rock Climbing Novice'})
 MATCH (t:Trait {name: 'Physical Strength'})
 CREATE (level1)-[:REQUIRES_TRAIT {min_score: 30}]->(t);
 
-MATCH (level1:Domain_Level {level: 1, name: 'Novice'})
+MATCH (level1:Domain_Level {level: 1, name: 'Rock Climbing Novice'})
 MATCH (m:Milestone {name: 'Complete First Indoor Climb'})
 CREATE (level1)-[:REQUIRES_MILESTONE {any_of: false}]->(m);
 
@@ -201,6 +200,7 @@ Before returning your output, verify:
 - Be thoughtful about prerequisite chains - they should reflect genuine dependencies
 - Milestones should have realistic prerequisites (skills/knowledge needed to achieve them)
 - The orchestrator will validate for circular dependencies via MCP after you return
+- **IMPORTANT:** Properly escape single quotes in strings by using backslash (e.g., `'it\'s'` for "it's")
 
 ## Instructions
 

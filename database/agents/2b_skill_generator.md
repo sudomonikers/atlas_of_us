@@ -63,10 +63,10 @@ Generate Skill nodes covering the full progression:
 
 ## Node Creation Pattern
 
-**ALWAYS use MERGE on name:**
+**ALWAYS use MERGE on name with ON CREATE SET:**
 - MERGE ensures no duplicate nodes (name is unique)
-- Use SET to add/update all other properties
-- This pattern works whether creating new or updating existing nodes
+- Use ON CREATE SET to add properties only when creating new nodes
+- This prevents overwriting properties if the node already exists from another domain
 
 ## Output Format
 
@@ -77,24 +77,24 @@ Return Cypher code creating all Skill nodes:
 // Agent 2b: Skill Nodes
 // ============================================================
 
-// All nodes use MERGE on name, then SET all properties including Dreyfus levels
+// All nodes use MERGE on name, then ON CREATE SET all properties including Dreyfus levels
 MERGE (s_footwork:Skill {name: 'Footwork Technique'})
-SET s_footwork.description = 'The ability to place feet precisely and efficiently on holds, transfer weight smoothly, and use different parts of the climbing shoe effectively. Good footwork is fundamental to climbing efficiency and progression.',
-    s_footwork.how_to_develop = 'Practice on easy terrain focusing exclusively on feet rather than hands. Climb below your limit and watch where you place your feet. Take climbing technique classes. Film yourself and compare to experienced climbers. Expect 3-6 months of deliberate practice to develop solid foundational footwork.',
-    s_footwork.novice_level = 'Can place feet on large holds. Often looks down. Movement is deliberate and cautious. To progress: Practice on easy terrain focusing on foot placement.',
-    s_footwork.advanced_beginner_level = 'Uses edging and smearing on moderate holds. Beginning to trust feet more. To progress: Climb below your limit focusing on precise placement.',
-    s_footwork.competent_level = 'Consistently places feet precisely without looking. Smooth weight transfer. To progress: Work on dynamic footwork and micro-adjustments.',
-    s_footwork.proficient_level = 'Fluid weight transfer during complex sequences. Footwork is automatic. To progress: Refine subtle weight shifts.',
-    s_footwork.expert_level = 'Footwork is intuitive and seamless, maximizing efficiency on all terrain. Makes micro-adjustments unconsciously.';
+ON CREATE SET s_footwork.description = 'The ability to place feet precisely and efficiently on holds, transfer weight smoothly, and use different parts of the climbing shoe effectively. Good footwork is fundamental to climbing efficiency and progression.',
+              s_footwork.how_to_develop = 'Practice on easy terrain focusing exclusively on feet rather than hands. Climb below your limit and watch where you place your feet. Take climbing technique classes. Film yourself and compare to experienced climbers. Expect 3-6 months of deliberate practice to develop solid foundational footwork.',
+              s_footwork.novice_level = 'Can place feet on large holds. Often looks down. Movement is deliberate and cautious. To progress: Practice on easy terrain focusing on foot placement.',
+              s_footwork.advanced_beginner_level = 'Uses edging and smearing on moderate holds. Beginning to trust feet more. To progress: Climb below your limit focusing on precise placement.',
+              s_footwork.competent_level = 'Consistently places feet precisely without looking. Smooth weight transfer. To progress: Work on dynamic footwork and micro-adjustments.',
+              s_footwork.proficient_level = 'Fluid weight transfer during complex sequences. Footwork is automatic. To progress: Refine subtle weight shifts.',
+              s_footwork.expert_level = 'Footwork is intuitive and seamless, maximizing efficiency on all terrain. Makes micro-adjustments unconsciously.';
 
 MERGE (s_belaying:Skill {name: 'Belaying'})
-SET s_belaying.description = 'Managing the rope to protect a climber from falling, including proper technique, attention, communication, and quick reactions in case of a fall.',
-    s_belaying.how_to_develop = 'Take formal belay certification course at climbing gym. Practice under supervision until movements become automatic. Belay many different climbers to experience varied scenarios. Expected time to competence: 4-8 hours of instruction plus 20-30 practice sessions.',
-    s_belaying.novice_level = 'Follows belay instructions rigidly. Requires constant supervision. Nervous and slow reactions. To progress: Practice basic technique under supervision.',
-    s_belaying.advanced_beginner_level = 'Can belay independently with occasional guidance. Recognizes common scenarios. To progress: Belay variety of climbers and situations.',
-    s_belaying.competent_level = 'Confident belaying in most situations. Quick reactions. Good communication. To progress: Handle edge cases and emergency scenarios.',
-    s_belaying.proficient_level = 'Seamless belaying with excellent anticipation. Adapts to different climber styles intuitively. To progress: Mentor newer belayers.',
-    s_belaying.expert_level = 'Mastery of all belay techniques and devices. Instinctive reactions to any situation. Can teach and certify others.';
+ON CREATE SET s_belaying.description = 'Managing the rope to protect a climber from falling, including proper technique, attention, communication, and quick reactions in case of a fall.',
+              s_belaying.how_to_develop = 'Take formal belay certification course at climbing gym. Practice under supervision until movements become automatic. Belay many different climbers to experience varied scenarios. Expected time to competence: 4-8 hours of instruction plus 20-30 practice sessions.',
+              s_belaying.novice_level = 'Follows belay instructions rigidly. Requires constant supervision. Nervous and slow reactions. To progress: Practice basic technique under supervision.',
+              s_belaying.advanced_beginner_level = 'Can belay independently with occasional guidance. Recognizes common scenarios. To progress: Belay variety of climbers and situations.',
+              s_belaying.competent_level = 'Confident belaying in most situations. Quick reactions. Good communication. To progress: Handle edge cases and emergency scenarios.',
+              s_belaying.proficient_level = 'Seamless belaying with excellent anticipation. Adapts to different climber styles intuitively. To progress: Mentor newer belayers.',
+              s_belaying.expert_level = 'Mastery of all belay techniques and devices. Instinctive reactions to any situation. Can teach and certify others.';
 
 // ... more skill nodes
 ```
@@ -103,14 +103,14 @@ SET s_belaying.description = 'Managing the rope to protect a climber from fallin
 
 Before returning output, verify:
 - [ ] Coverage spans novice to master progression
-- [ ] All nodes use MERGE on name, then SET for other properties
+- [ ] All nodes use MERGE on name, then ON CREATE SET for other properties
 - [ ] Each node has: name, description, how_to_develop, AND all 5 Dreyfus levels
 - [ ] Dreyfus levels are specific to this skill (not generic)
 - [ ] Descriptions focus on what the skill enables (doing, not knowing)
 - [ ] how_to_develop includes practical practice methods
 - [ ] No redundant or overlapping skills
 - [ ] Cypher syntax is valid (escaped strings)
-- [ ] All statements end with semicolons (MERGE and SET statements)
+- [ ] All statements end with semicolons (MERGE and ON CREATE SET statements)
 
 ## Important Notes
 
@@ -118,9 +118,10 @@ Before returning output, verify:
 - Dreyfus levels should be specific to this skill, not generic descriptions
 - Be comprehensive but not exhaustive
 - Skills should be at appropriate granularity
-- All nodes use MERGE + SET pattern
+- All nodes use MERGE + ON CREATE SET pattern
 - Consider both physical and mental skills
 - Include progression from basic to expert-level skills
+- **IMPORTANT:** Properly escape single quotes in strings by using backslash (e.g., `'it\'s'` for "it's")
 
 ## Instructions
 

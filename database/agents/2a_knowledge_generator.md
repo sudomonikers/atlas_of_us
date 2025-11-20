@@ -65,10 +65,10 @@ Generate Knowledge nodes covering the full progression:
 
 ## Node Creation Pattern
 
-**ALWAYS use MERGE on name:**
+**ALWAYS use MERGE on name with ON CREATE SET:**
 - MERGE ensures no duplicate nodes (name is unique)
-- Use SET to add/update all other properties
-- This pattern works whether creating new or updating existing nodes
+- Use ON CREATE SET to add properties only when creating new nodes
+- This prevents overwriting properties if the node already exists from another domain
 
 ## Output Format
 
@@ -79,26 +79,26 @@ Return Cypher code creating all Knowledge nodes:
 // Agent 2a: Knowledge Nodes
 // ============================================================
 
-// All nodes use MERGE on name, then SET all properties including Bloom levels
+// All nodes use MERGE on name, then ON CREATE SET all properties including Bloom levels
 MERGE (k_physics:Knowledge {name: 'Physics Principles'})
-SET k_physics.description = 'Fundamental physics concepts relevant to climbing: gravity, friction, force vectors, and mechanical advantage',
-    k_physics.how_to_learn = 'Study basic physics textbooks with focus on forces and mechanics. Apply concepts while climbing to reinforce understanding. Expected time: 1-2 months of study.',
-    k_physics.remember_level = 'Recall basic physics concepts like gravity, friction, force vectors',
-    k_physics.understand_level = 'Explain how physics principles apply to climbing movements and safety',
-    k_physics.apply_level = 'Use physics principles to analyze climbing techniques and improve efficiency',
-    k_physics.analyze_level = 'Break down complex movements to understand force distribution and mechanical advantage',
-    k_physics.evaluate_level = 'Judge the effectiveness of different techniques based on physics principles',
-    k_physics.create_level = 'Design training exercises based on physics to improve specific climbing skills';
+ON CREATE SET k_physics.description = 'Fundamental physics concepts relevant to climbing: gravity, friction, force vectors, and mechanical advantage',
+              k_physics.how_to_learn = 'Study basic physics textbooks with focus on forces and mechanics. Apply concepts while climbing to reinforce understanding. Expected time: 1-2 months of study.',
+              k_physics.remember_level = 'Recall basic physics concepts like gravity, friction, force vectors',
+              k_physics.understand_level = 'Explain how physics principles apply to climbing movements and safety',
+              k_physics.apply_level = 'Use physics principles to analyze climbing techniques and improve efficiency',
+              k_physics.analyze_level = 'Break down complex movements to understand force distribution and mechanical advantage',
+              k_physics.evaluate_level = 'Judge the effectiveness of different techniques based on physics principles',
+              k_physics.create_level = 'Design training exercises based on physics to improve specific climbing skills';
 
 MERGE (k_knots:Knowledge {name: 'Climbing Knots and Hitches'})
-SET k_knots.description = 'Essential knots used in climbing: figure-eight, clove hitch, munter hitch, prusik. Understanding these knots is critical for safety in all climbing disciplines.',
-    k_knots.how_to_learn = 'Practice daily with rope until muscle memory develops. Take formal instruction from certified climbing instructor. Expected time to proficiency: 2-3 weeks of regular practice.',
-    k_knots.remember_level = 'Recall the names and basic forms of essential climbing knots',
-    k_knots.understand_level = 'Explain when and why each knot is used, and what makes each knot safe',
-    k_knots.apply_level = 'Tie all essential knots correctly in realistic climbing scenarios',
-    k_knots.analyze_level = 'Inspect knots tied by others and identify errors or safety issues',
-    k_knots.evaluate_level = 'Judge the appropriateness of knot choice in novel situations',
-    k_knots.create_level = 'Teach knot-tying to beginners with clear explanations and safety emphasis';
+ON CREATE SET k_knots.description = 'Essential knots used in climbing: figure-eight, clove hitch, munter hitch, prusik. Understanding these knots is critical for safety in all climbing disciplines.',
+              k_knots.how_to_learn = 'Practice daily with rope until muscle memory develops. Take formal instruction from certified climbing instructor. Expected time to proficiency: 2-3 weeks of regular practice.',
+              k_knots.remember_level = 'Recall the names and basic forms of essential climbing knots',
+              k_knots.understand_level = 'Explain when and why each knot is used, and what makes each knot safe',
+              k_knots.apply_level = 'Tie all essential knots correctly in realistic climbing scenarios',
+              k_knots.analyze_level = 'Inspect knots tied by others and identify errors or safety issues',
+              k_knots.evaluate_level = 'Judge the appropriateness of knot choice in novel situations',
+              k_knots.create_level = 'Teach knot-tying to beginners with clear explanations and safety emphasis';
 
 // ... more knowledge nodes
 ```
@@ -107,14 +107,14 @@ SET k_knots.description = 'Essential knots used in climbing: figure-eight, clove
 
 Before returning output, verify:
 - [ ] Coverage spans novice to master progression
-- [ ] All nodes use MERGE on name, then SET for other properties
+- [ ] All nodes use MERGE on name, then ON CREATE SET for other properties
 - [ ] Each node has: name, description, how_to_learn, AND all 6 Bloom levels
 - [ ] Bloom levels are specific to this knowledge (not generic)
 - [ ] Descriptions are specific to this domain
 - [ ] how_to_learn includes practical, actionable guidance
 - [ ] No redundant or overlapping knowledge nodes
 - [ ] Cypher syntax is valid (escaped strings)
-- [ ] All statements end with semicolons (MERGE and SET statements)
+- [ ] All statements end with semicolons (MERGE and ON CREATE SET statements)
 
 ## Important Notes
 
@@ -122,8 +122,9 @@ Before returning output, verify:
 - Bloom levels should be specific to this knowledge, not generic descriptions
 - Be comprehensive but not exhaustive
 - Knowledge should be at appropriate granularity (not too broad, not too narrow)
-- All nodes use MERGE + SET pattern
+- All nodes use MERGE + ON CREATE SET pattern
 - Consider the full arc from beginner to master
+- **IMPORTANT:** Properly escape single quotes in strings by using backslash (e.g., `'it\'s'` for "it's")
 
 ## Instructions
 

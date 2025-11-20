@@ -14,7 +14,11 @@ import { useThree } from "@react-three/fiber";
 const http = new HttpService();
 const graphUtils = new GraphUtils(http);
 
-export const Constellation = () => {
+interface ConstellationProps {
+  onDomainClick?: (domainName: string) => void;
+}
+
+export const Constellation = ({ onDomainClick }: ConstellationProps) => {
   const threeContext = useThree();
   // Reload data when searchText changes
   const { searchText } = useGlobal();
@@ -39,11 +43,17 @@ export const Constellation = () => {
       if (!searchTerm.length && !nodeId) {
         searchTerm = "Programming";
       }
-      
-      const graphData = nodeId 
+
+      const graphData = nodeId
         ? await graphUtils.loadNodeById(nodeId, 2)
         : await graphUtils.loadMostRelatedNodeBySearch(searchTerm, 2);
       console.log(graphData);
+
+      // Check if the root node is a Domain and open the viewer if so
+      const isDomain = graphData.nodeRoot?.Labels?.includes("Domain");
+      if (isDomain && graphData.nodeRoot?.Props?.name && onDomainClick) {
+        onDomainClick(graphData.nodeRoot.Props.name);
+      }
       
       const image = await http.getS3Object(
         "atlas-of-us-general-bucket",
@@ -182,6 +192,7 @@ export const Constellation = () => {
           }
           onNodeClick={toggleActive}
           onSphereReload={handleSphereClick}
+          onDomainClick={onDomainClick}
         />
       ))}
       {/* Render lines for active meshes */}

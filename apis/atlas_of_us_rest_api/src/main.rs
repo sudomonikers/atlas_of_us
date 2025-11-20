@@ -17,7 +17,7 @@ use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
 use domains::profile::handlers::get_user_profile;
 use domains::graph::handlers::{
     get_nodes, get_node_with_relationships_by_search_term, create_node, create_relationship,
-    update_node, update_relationship, get_similar_nodes
+    update_node, update_relationship, get_similar_nodes, get_domain
 };
 use dotenvy::dotenv;
 use neo4rs::*;
@@ -100,6 +100,7 @@ async fn main() {
         .route("/api/secure/graph/create-relationship", post(create_relationship))
         .route("/api/secure/graph/update-relationship", put(update_relationship))
         .route("/api/secure/graph/similar-nodes", post(get_similar_nodes))
+        .route("/api/secure/graph/domain", get(get_domain))
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 
     let profile_routes: Router<Graph> = Router::new()

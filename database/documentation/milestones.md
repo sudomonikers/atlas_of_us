@@ -2,6 +2,22 @@
 
 Milestones represent binary accomplishments or achievements that a person either has or has not completed. Unlike skills and knowledge which exist on a spectrum, milestones are concrete markers of achievement.
 
+## **Atomic Node Principle**
+
+**IMPORTANT:** Each milestone node must represent a SINGLE, atomic accomplishment. Do not combine multiple achievements into one node using "and" or similar conjunctions.
+
+**Bad Examples:**
+- "Complete First Project and Deploy to Production" (should be two nodes: "Complete First Project" and "Deploy Project to Production")
+- "Win Tournament and Achieve Rating" (should be two nodes: "Win Tournament" and "Achieve Target Rating")
+- "Publish Paper and Present at Conference" (should be two nodes: "Publish Paper" and "Present at Conference")
+
+**Good Examples:**
+- "Complete First Project"
+- "Win Tournament"
+- "Publish Paper"
+
+If you find yourself using "and" in a node name, split it into separate nodes and use prerequisite relationships to connect them if needed.
+
 ## Milestone Properties
 
 - **name** (string) - The milestone identifier (e.g., "Tournament Participation", "2200+ ELO", "Published Analysis")

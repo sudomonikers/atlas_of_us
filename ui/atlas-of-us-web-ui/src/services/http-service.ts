@@ -3,6 +3,7 @@ import type {
   Neo4jNode,
   Neo4jRelationship,
 } from "../pages/Graph/graph-interfaces.interface";
+import type { DomainData } from "../pages/Graph/DomainTree/domain-interfaces";
 
 //service class for fetching data and mapping it for ui consumption
 export class HttpService {
@@ -56,11 +57,36 @@ export class HttpService {
       return mappedBody;
     } catch (err) {
       console.error(err);
-      return { 
+      return {
         nodeRoot: {},
         relationships: [],
         affiliates: []
       } as Neo4jApiResponse;
+    }
+  }
+
+  async fetchDomain(domainName: string): Promise<DomainData | null> {
+    try {
+      const response = await fetch(
+        `${this.API_BASE}/secure/graph/domain?name=${encodeURIComponent(domainName)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data as DomainData;
+    } catch (err) {
+      console.error("Error fetching domain:", err);
+      return null;
     }
   }
 }

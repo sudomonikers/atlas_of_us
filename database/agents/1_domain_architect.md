@@ -116,54 +116,63 @@ CREATE (d:Domain {
 
 // Create Domain Levels
 CREATE (level1:Domain_Level {
-  domain: '{domain_name}',
   level: 1,
-  name: 'Novice',
+  name: '{domain_name} Novice',
   description: '{what characterizes someone at this level in this specific domain}'
 });
 
 CREATE (level2:Domain_Level {
-  domain: '{domain_name}',
   level: 2,
-  name: 'Developing',
+  name: '{domain_name} Developing',
   description: '{what characterizes someone at this level in this specific domain}'
 });
 
 CREATE (level3:Domain_Level {
-  domain: '{domain_name}',
   level: 3,
-  name: 'Competent',
+  name: '{domain_name} Competent',
   description: '{what characterizes someone at this level in this specific domain}'
 });
 
 CREATE (level4:Domain_Level {
-  domain: '{domain_name}',
   level: 4,
-  name: 'Advanced',
+  name: '{domain_name} Advanced',
   description: '{what characterizes someone at this level in this specific domain}'
 });
 
 CREATE (level5:Domain_Level {
-  domain: '{domain_name}',
   level: 5,
-  name: 'Master',
+  name: '{domain_name} Master',
   description: '{what characterizes someone at this level in this specific domain}'
 });
 
 // Connect Domain to Levels
+MATCH (d:Domain {name: '{domain_name}'})
+MATCH (level1:Domain_Level {name: '{domain_name} Novice'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level1);
+
+MATCH (d:Domain {name: '{domain_name}'})
+MATCH (level2:Domain_Level {name: '{domain_name} Developing'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level2);
+
+MATCH (d:Domain {name: '{domain_name}'})
+MATCH (level3:Domain_Level {name: '{domain_name} Competent'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level3);
+
+MATCH (d:Domain {name: '{domain_name}'})
+MATCH (level4:Domain_Level {name: '{domain_name} Advanced'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level4);
+
+MATCH (d:Domain {name: '{domain_name}'})
+MATCH (level5:Domain_Level {name: '{domain_name} Master'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level5);
 ```
 
 ## Validation Checklist
 
 Before returning your output, verify:
-- [ ] Exactly 5 levels defined with names: Novice, Developing, Competent, Advanced, Master
-- [ ] Each level has: domain (string), level (number), name (string), description (string)
-- [ ] Each level's domain property matches the domain name exactly
+- [ ] Exactly 5 levels defined with names: {Domain} Novice, {Domain} Developing, {Domain} Competent, {Domain} Advanced, {Domain} Master
+- [ ] Each level has: level (number), name (string), description (string)
+- [ ] Each level's name is domain-specific (e.g., "Chess Novice" not just "Novice")
 - [ ] Each level description is domain-specific and meaningful
 - [ ] Domain has: name, description, level_count (5), created_date, scope_included, scope_excluded
 - [ ] Scope clearly defines included/excluded boundaries
@@ -192,45 +201,54 @@ CREATE (d:Domain {
 
 // Create Domain Levels
 CREATE (level1:Domain_Level {
-  domain: 'Rock Climbing',
   level: 1,
-  name: 'Novice',
+  name: 'Rock Climbing Novice',
   description: 'Learning basic movements, safety systems, and climbing on easy routes with clear holds'
 });
 
 CREATE (level2:Domain_Level {
-  domain: 'Rock Climbing',
   level: 2,
-  name: 'Developing',
+  name: 'Rock Climbing Developing',
   description: 'Developing consistent technique, climbing moderate routes, and beginning to lead climb'
 });
 
 CREATE (level3:Domain_Level {
-  domain: 'Rock Climbing',
   level: 3,
-  name: 'Competent',
+  name: 'Rock Climbing Competent',
   description: 'Climbing difficult routes consistently, developing personal style, and tackling varied climbing disciplines'
 });
 
 CREATE (level4:Domain_Level {
-  domain: 'Rock Climbing',
   level: 4,
-  name: 'Advanced',
+  name: 'Rock Climbing Advanced',
   description: 'Pushing personal limits on very difficult routes, mentoring others, and contributing to the climbing community'
 });
 
 CREATE (level5:Domain_Level {
-  domain: 'Rock Climbing',
   level: 5,
-  name: 'Master',
+  name: 'Rock Climbing Master',
   description: 'Operating at the highest levels of difficulty, establishing new routes, and advancing the sport'
 });
 
 // Connect Domain to Levels
+MATCH (d:Domain {name: 'Rock Climbing'})
+MATCH (level1:Domain_Level {name: 'Rock Climbing Novice'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level1);
+
+MATCH (d:Domain {name: 'Rock Climbing'})
+MATCH (level2:Domain_Level {name: 'Rock Climbing Developing'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level2);
+
+MATCH (d:Domain {name: 'Rock Climbing'})
+MATCH (level3:Domain_Level {name: 'Rock Climbing Competent'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level3);
+
+MATCH (d:Domain {name: 'Rock Climbing'})
+MATCH (level4:Domain_Level {name: 'Rock Climbing Advanced'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level4);
+
+MATCH (d:Domain {name: 'Rock Climbing'})
+MATCH (level5:Domain_Level {name: 'Rock Climbing Master'})
 CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level5);
 ```
 
@@ -240,7 +258,7 @@ CREATE (d)-[:HAS_DOMAIN_LEVEL]->(level5);
 - Different domains can have vastly different requirements at the same level name
 - Level descriptions should be specific and meaningful, not generic
 - The domain should be specific enough to be meaningful but broad enough to have depth
-- **IMPORTANT:** Properly escape single quotes in strings by using double-single-quotes (e.g., `'it''s'` for "it's")
+- **IMPORTANT:** Properly escape single quotes in strings by using backslash (e.g., `'it\'s'` for "it's")
 - All string property values must be single-quoted
 - Array elements must be single-quoted strings
 - Numbers and booleans are unquoted

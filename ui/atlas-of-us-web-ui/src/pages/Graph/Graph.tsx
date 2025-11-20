@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -6,6 +7,8 @@ import galaxyBackground from "../../assets/galaxy.jpeg";
 import { NavBar } from "../../common-components/navbar/nav";
 import { Constellation } from "./constellation/constellation";
 import { ParticleSystem } from "./particles/particles";
+import { DomainTree } from "./DomainTree/DomainTree";
+import "./Graph.css";
 
 
 //Background
@@ -25,7 +28,6 @@ function Background(): null {
 }
 
 export const Graph = () => {
-
   return (
     <div>
       <NavBar />
@@ -54,11 +56,18 @@ export const Graph = () => {
           {/* Background */}
           <Background />
 
+          {/* Lighting for 3D objects */}
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[10, 10, 5]} intensity={1} />
+
           {/* Particle System */}
           <ParticleSystem />
 
-          {/* Constellation */}
-          <Constellation />
+          {/* Domain Tree */}
+          <DomainTree
+            domainName="Chess"
+            position={new THREE.Vector3(0, 0, 0)}
+          />
         </Canvas>
       </div>
     </div>

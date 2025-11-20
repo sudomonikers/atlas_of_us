@@ -69,10 +69,10 @@ Generate Milestone nodes covering the full progression:
 
 ## Node Creation Pattern
 
-**ALWAYS use MERGE on name:**
+**ALWAYS use MERGE on name with ON CREATE SET:**
 - MERGE ensures no duplicate nodes (name is unique)
-- Use SET to add/update all other properties
-- This pattern works whether creating new or updating existing nodes
+- Use ON CREATE SET to add properties only when creating new nodes
+- This prevents overwriting properties if the node already exists from another domain
 
 ## Output Format
 
@@ -83,18 +83,18 @@ Return Cypher code creating all Milestone nodes:
 // Agent 2d: Milestone Nodes
 // ============================================================
 
-// All nodes use MERGE on name, then SET properties
+// All nodes use MERGE on name, then ON CREATE SET properties
 MERGE (m_first:Milestone {name: 'Complete First Indoor Climb'})
-SET m_first.description = 'Successfully climb and complete a route in an indoor gym while properly belayed. This foundational milestone marks entry into the sport and demonstrates basic safety awareness.',
-    m_first.how_to_achieve = 'Take an introductory belay class at a climbing gym. Learn basic climbing movement on easy terrain. Focus on completing the route (reaching the top) rather than difficulty. Most people achieve this in their first 1-2 sessions.';
+ON CREATE SET m_first.description = 'Successfully climb and complete a route in an indoor gym while properly belayed. This foundational milestone marks entry into the sport and demonstrates basic safety awareness.',
+              m_first.how_to_achieve = 'Take an introductory belay class at a climbing gym. Learn basic climbing movement on easy terrain. Focus on completing the route (reaching the top) rather than difficulty. Most people achieve this in their first 1-2 sessions.';
 
 MERGE (m_belay:Milestone {name: 'Pass Belay Certification'})
-SET m_belay.description = 'Successfully complete belay certification test at a climbing facility, demonstrating competence in all belay techniques and safety protocols.',
-    m_belay.how_to_achieve = 'Take formal belay instruction (typically 1-2 hours). Practice belay technique under supervision. Pass written and practical exam covering belay device use, rope management, communication, and catch techniques. Required at most gyms before belaying independently.';
+ON CREATE SET m_belay.description = 'Successfully complete belay certification test at a climbing facility, demonstrating competence in all belay techniques and safety protocols.',
+              m_belay.how_to_achieve = 'Take formal belay instruction (typically 1-2 hours). Practice belay technique under supervision. Pass written and practical exam covering belay device use, rope management, communication, and catch techniques. Required at most gyms before belaying independently.';
 
 MERGE (m_outdoor:Milestone {name: 'Complete First Outdoor Climb'})
-SET m_outdoor.description = 'Successfully complete a single-pitch outdoor route on real rock with proper safety systems, demonstrating ability to apply gym skills in natural environment.',
-    m_outdoor.how_to_achieve = 'Build solid gym climbing foundation first (3-6 months). Take outdoor climbing course or go with experienced mentor. Learn outdoor-specific skills: route finding, anchor assessment, rock quality evaluation. Start with well-established beginner routes. Expect this 4-12 months after starting climbing.';
+ON CREATE SET m_outdoor.description = 'Successfully complete a single-pitch outdoor route on real rock with proper safety systems, demonstrating ability to apply gym skills in natural environment.',
+              m_outdoor.how_to_achieve = 'Build solid gym climbing foundation first (3-6 months). Take outdoor climbing course or go with experienced mentor. Learn outdoor-specific skills: route finding, anchor assessment, rock quality evaluation. Start with well-established beginner routes. Expect this 4-12 months after starting climbing.';
 
 // ... more milestones across all levels
 ```
@@ -105,13 +105,13 @@ Before returning output, verify:
 - [ ] Coverage spans novice to master progression
 - [ ] Each milestone is specific and measurable
 - [ ] Each milestone is binary (achieved or not)
-- [ ] All nodes use MERGE on name, then SET for other properties
+- [ ] All nodes use MERGE on name, then ON CREATE SET for other properties
 - [ ] Each node has: name (in MERGE), description, how_to_achieve (in SET)
 - [ ] Milestones are motivating and meaningful
 - [ ] Variety in milestone types
 - [ ] No vague or subjective milestones
 - [ ] Cypher syntax is valid (escaped strings)
-- [ ] All statements end with semicolons (MERGE and SET statements)
+- [ ] All statements end with semicolons (MERGE and ON CREATE SET statements)
 
 ## Important Notes
 
@@ -119,9 +119,10 @@ Before returning output, verify:
 - Early milestones should be accessible and motivating
 - Later milestones should be aspirational and significant
 - Provide variety - not all "achieve rating X"
-- All nodes use MERGE + SET pattern
+- All nodes use MERGE + ON CREATE SET pattern
 - Consider both solo achievements and collaborative/community milestones
 - Milestones mark progress, not just skill level
+- **IMPORTANT:** Properly escape single quotes in strings by using backslash (e.g., `'it\'s'` for "it's")
 
 ## Instructions
 

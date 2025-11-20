@@ -1,0 +1,360 @@
+/* Skill Tree Domain Title */
+.skill-tree-domain-title {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  padding: 2rem 3rem;
+  border-radius: 2rem;
+  border: 3px solid rgba(255, 215, 0, 0.7);
+  box-shadow:
+    0 0 50px rgba(255, 215, 0, 0.5),
+    inset 0 0 30px rgba(255, 215, 0, 0.1);
+  min-width: 400px;
+  pointer-events: none;
+}
+
+.skill-tree-domain-title h2 {
+  margin: 0;
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: 3rem;
+  background: linear-gradient(135deg, #ffd700 0%, #fff4a3 50%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+  letter-spacing: 0.12em;
+}
+
+.skill-tree-domain-title p {
+  margin: 1rem 0 0 0;
+  color: rgba(255, 215, 0, 0.9);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Level Marker Styles */
+.skill-tree-level-marker {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(30, 30, 50, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  border: 2px solid rgba(107, 114, 128, 0.6);
+  box-shadow: 0 0 20px rgba(107, 114, 128, 0.3);
+  pointer-events: none;
+  text-align: center;
+  min-width: 120px;
+}
+
+.skill-tree-level-marker .level-number {
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: 1.5rem;
+  color: #fbbf24;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+}
+
+.skill-tree-level-marker .level-name {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Skill Node Label */
+.skill-node-label {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.95) 100%);
+  backdrop-filter: blur(15px);
+  padding: 0.75rem 1.25rem;
+  border-radius: 1rem;
+  border: 2px solid;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  max-width: 250px;
+}
+
+.skill-node-label.knowledge {
+  border-color: #a855f7;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+}
+
+.skill-node-label.skill {
+  border-color: #3b82f6;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.skill-node-label.trait {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+.skill-node-label.milestone {
+  border-color: #f59e0b;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.skill-node-label .node-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.skill-node-label .node-name {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Skill Node Details Panel */
+.skill-node-details {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.97) 0%, rgba(20, 20, 40, 0.97) 100%);
+  backdrop-filter: blur(20px);
+  padding: 2rem;
+  border-radius: 1.5rem;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 0 50px rgba(0, 0, 0, 0.8),
+    inset 0 0 30px rgba(255, 255, 255, 0.05);
+  min-width: 400px;
+  max-width: 500px;
+  max-height: 600px;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.skill-node-details .detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.skill-node-details .detail-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.skill-node-details .detail-header h3 {
+  margin: 0;
+  flex: 1;
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: 1.5rem;
+  color: white;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.skill-node-details .close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.skill-node-details .close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.skill-node-details .detail-type {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.skill-node-details .type-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.skill-node-details .type-badge.knowledge {
+  background: rgba(147, 51, 234, 0.2);
+  border: 1px solid #9333ea;
+  color: #c084fc;
+}
+
+.skill-node-details .type-badge.skill {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid #3b82f6;
+  color: #60a5fa;
+}
+
+.skill-node-details .type-badge.trait {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #34d399;
+}
+
+.skill-node-details .type-badge.milestone {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+}
+
+.skill-node-details .level-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid #fbbf24;
+  color: #fbbf24;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.skill-node-details .detail-content {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.skill-node-details .description {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.skill-node-details .requirement {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.skill-node-details .requirement strong {
+  color: #fbbf24;
+  margin-right: 0.5rem;
+}
+
+.skill-node-details .how-to {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.skill-node-details .how-to strong {
+  display: block;
+  color: #60a5fa;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.skill-node-details .how-to p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Skill Tree Legend */
+.skill-tree-legend {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(20, 20, 40, 0.9) 100%);
+  backdrop-filter: blur(15px);
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  min-width: 200px;
+}
+
+.skill-tree-legend h4 {
+  margin: 0 0 1rem 0;
+  font-family: 'Mochiy Pop One', sans-serif;
+  font-size: 1rem;
+  color: white;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.skill-tree-legend .legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skill-tree-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.skill-tree-legend .legend-dot {
+  font-size: 1.3rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.skill-tree-legend .legend-dot.knowledge {
+  background: rgba(147, 51, 234, 0.2);
+  border: 2px solid #9333ea;
+  box-shadow: 0 0 10px rgba(147, 51, 234, 0.3);
+}
+
+.skill-tree-legend .legend-dot.skill {
+  background: rgba(59, 130, 246, 0.2);
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.skill-tree-legend .legend-dot.trait {
+  background: rgba(16, 185, 129, 0.2);
+  border: 2px solid #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.skill-tree-legend .legend-dot.milestone {
+  background: rgba(245, 158, 11, 0.2);
+  border: 2px solid #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+/* Custom scrollbar for detail panel */
+.skill-node-details::-webkit-scrollbar {
+  width: 8px;
+}
+
+.skill-node-details::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.skill-node-details::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.skill-node-details::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

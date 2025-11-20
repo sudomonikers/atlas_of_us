@@ -1,0 +1,32 @@
+/* Back button for 3D Domain Tree */
+.close-domain-3d-btn {
+  position: fixed;
+  top: 80px;
+  left: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(102, 126, 234, 0.5);
+  border-radius: 2rem;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close-domain-3d-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+  border-color: #00ff99;
+  box-shadow: 0 0 20px rgba(0, 255, 153, 0.3);
+  transform: translateX(-5px);
+}
+
+.close-domain-3d-btn:active {
+  transform: translateX(-5px) scale(0.98);
+}

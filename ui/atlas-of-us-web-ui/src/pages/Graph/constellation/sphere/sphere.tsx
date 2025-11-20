@@ -12,6 +12,7 @@ export interface SphereProps {
   onNodeClick?: (elementId: string, activeState: boolean) => void;
   nodeData?: Neo4jNode;
   onSphereReload?: (elementId: string, newLocation: THREE.Vector3) => void; //used to reload data in the Graph component (sets the data to the node which the user wants to explore more, called from the Html when the sphere is active)
+  onDomainClick?: (domainName: string) => void; //used to open the domain viewer overlay
 }
 
 export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
@@ -22,7 +23,8 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
       isParentNode = false,
       nodeData,
       onNodeClick,
-      onSphereReload
+      onSphereReload,
+      onDomainClick
     },
     ref
   ) => {
@@ -106,6 +108,16 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
       }
     };
 
+    // Check if this node is a Domain
+    const isDomain = nodeData?.Labels?.includes("Domain") || false;
+
+    const handleViewDomain = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isDomain && nodeData?.Props?.name && onDomainClick) {
+        onDomainClick(nodeData.Props.name);
+      }
+    };
+
     return (
       <mesh
         ref={combinedRef}
@@ -141,7 +153,16 @@ export const Sphere = forwardRef<THREE.Mesh, SphereProps>(
                 <div className="info-box-property">
                   <span>Description:</span> {nodeData.Props.description}
                 </div>
-                <button onClick={() => onSphereReload(nodeData.ElementId, meshRef.current.getWorldPosition(new THREE.Vector3()))}>Load {nodeData.Props.name}</button>
+                <div className="info-box-buttons">
+                  <button onClick={() => onSphereReload(nodeData.ElementId, meshRef.current.getWorldPosition(new THREE.Vector3()))}>
+                    Load {nodeData.Props.name}
+                  </button>
+                  {isDomain && (
+                    <button className="view-domain-btn" onClick={handleViewDomain}>
+                      View Domain Tree
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </Html>

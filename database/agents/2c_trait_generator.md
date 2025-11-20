@@ -29,7 +29,8 @@ Traits represent inherent or intrinsic qualities that exist on a continuous spec
 
 ## Your Task
 
-Identify 2-6 traits most relevant to this domain:
+Identify all relevant traits for this domain:
+Here are some examples to consider, but make sure you are coming up with each trait for this domain, not just ones in this list.
 
 **Trait Categories to Consider:**
 
@@ -48,10 +49,8 @@ Identify 2-6 traits most relevant to this domain:
 ## Important Guidelines
 
 **Do NOT over-specify traits:**
-- Most domains should have 2-6 traits total
 - Choose only traits that significantly impact domain performance
-- Avoid listing every possible trait
-- Focus on what truly differentiates success in this domain
+- Avoid listing every possible trait (but make sure we are comprehensive)
 
 **Traits vs Skills/Knowledge:**
 - Traits are inherent characteristics (though they can be developed)
@@ -61,10 +60,10 @@ Identify 2-6 traits most relevant to this domain:
 
 ## Node Creation Pattern
 
-**ALWAYS use MERGE on name:**
+**ALWAYS use MERGE on name with ON CREATE SET:**
 - MERGE ensures no duplicate nodes (name is unique)
-- Use SET to add/update all other properties
-- This pattern works whether creating new or updating existing nodes
+- Use ON CREATE SET to add properties only when creating new nodes
+- This prevents overwriting properties if the node already exists from another domain
 
 ## Output Format
 
@@ -75,22 +74,22 @@ Return Cypher code creating trait nodes:
 // Agent 2c: Trait Nodes
 // ============================================================
 
-// All nodes use MERGE on name, then SET properties (typically only 2-6 traits total)
+// All nodes use MERGE on name, then ON CREATE SET properties (typically only 2-6 traits total)
 MERGE (t_strength:Trait {name: 'Physical Strength'})
-SET t_strength.description = 'Upper body and core strength for pulling, pushing, and maintaining body tension on climbing holds',
-    t_strength.measurement_criteria = 'Assessed through pull-ups, campus board testing, and core strength exercises. Low (0-25): Cannot do pull-ups. Moderate (26-50): Can do 5-10 pull-ups. High (51-75): Can do 15+ pull-ups with control. Exceptional (76-100): Can do one-arm pull-ups and advanced campus board movements.';
+ON CREATE SET t_strength.description = 'Upper body and core strength for pulling, pushing, and maintaining body tension on climbing holds',
+              t_strength.measurement_criteria = 'Assessed through pull-ups, campus board testing, and core strength exercises. Low (0-25): Cannot do pull-ups. Moderate (26-50): Can do 5-10 pull-ups. High (51-75): Can do 15+ pull-ups with control. Exceptional (76-100): Can do one-arm pull-ups and advanced campus board movements.';
 
 MERGE (t_flexibility:Trait {name: 'Flexibility'})
-SET t_flexibility.description = 'Range of motion in hips, shoulders, and legs enabling efficient movement and reaching distant holds',
-    t_flexibility.measurement_criteria = 'Assessed through standard flexibility tests and ability to achieve high steps and splits. Low (0-25): Limited range of motion, cannot reach high steps. Moderate (26-50): Average flexibility, can reach moderately high steps. High (51-75): Good range of motion, comfortable with high steps. Exceptional (76-100): Exceptional flexibility, can achieve splits and extreme positions.';
+ON CREATE SET t_flexibility.description = 'Range of motion in hips, shoulders, and legs enabling efficient movement and reaching distant holds',
+              t_flexibility.measurement_criteria = 'Assessed through standard flexibility tests and ability to achieve high steps and splits. Low (0-25): Limited range of motion, cannot reach high steps. Moderate (26-50): Average flexibility, can reach moderately high steps. High (51-75): Good range of motion, comfortable with high steps. Exceptional (76-100): Exceptional flexibility, can achieve splits and extreme positions.';
 
 MERGE (t_problem_solving:Trait {name: 'Problem Solving Ability'})
-SET t_problem_solving.description = 'Ability to analyze movement problems, identify solutions, and adapt strategies on complex routes',
-    t_problem_solving.measurement_criteria = 'Assessed through ability to read routes and solve movement puzzles. Low (0-25): Struggles to visualize sequences. Moderate (26-50): Can work through problems with trial and error. High (51-75): Quickly identifies efficient sequences. Exceptional (76-100): Intuitively solves complex movement problems others cannot.';
+ON CREATE SET t_problem_solving.description = 'Ability to analyze movement problems, identify solutions, and adapt strategies on complex routes',
+              t_problem_solving.measurement_criteria = 'Assessed through ability to read routes and solve movement puzzles. Low (0-25): Struggles to visualize sequences. Moderate (26-50): Can work through problems with trial and error. High (51-75): Quickly identifies efficient sequences. Exceptional (76-100): Intuitively solves complex movement problems others cannot.';
 
 MERGE (t_risk:Trait {name: 'Risk Tolerance'})
-SET t_risk.description = 'Comfort with height, exposure, and potential falls in climbing situations',
-    t_risk.measurement_criteria = 'Assessed through comfort climbing at height and willingness to attempt challenging moves above protection. Low (0-25): Significant fear of heights, freezes on climbs. Moderate (26-50): Manageable anxiety, can push through fear. High (51-75): Comfortable at height, minimal anxiety. Exceptional (76-100): No fear response, comfortable in extreme exposure.';
+ON CREATE SET t_risk.description = 'Comfort with height, exposure, and potential falls in climbing situations',
+              t_risk.measurement_criteria = 'Assessed through comfort climbing at height and willingness to attempt challenging moves above protection. Low (0-25): Significant fear of heights, freezes on climbs. Moderate (26-50): Manageable anxiety, can push through fear. High (51-75): Comfortable at height, minimal anxiety. Exceptional (76-100): No fear response, comfortable in extreme exposure.';
 
 // ... typically only 2-6 traits total
 ```
@@ -98,23 +97,22 @@ SET t_risk.description = 'Comfort with height, exposure, and potential falls in 
 ## Validation Checklist
 
 Before returning output, verify:
-- [ ] Only 2-6 traits total (do not over-specify)
-- [ ] Traits are truly relevant to domain success
-- [ ] All nodes use MERGE on name, then SET for other properties
+- [ ] All nodes use MERGE on name, then ON CREATE SET for other properties
 - [ ] Each node has: name (in MERGE), description, measurement_criteria (in SET)
 - [ ] Measurement criteria spans 0-100 scale clearly
 - [ ] Avoided listing skills or knowledge as traits
 - [ ] Cypher syntax is valid (escaped strings)
-- [ ] All statements end with semicolons (MERGE and SET statements)
+- [ ] All statements end with semicolons (MERGE and ON CREATE SET statements)
 
 ## Important Notes
 
 - **Quality over quantity** - Only include traits that truly matter
-- All nodes use MERGE + SET pattern
+- All nodes use MERGE + ON CREATE SET pattern
 - Traits represent WHO someone is, not what they know or can do
 - Consider both natural abilities and developable characteristics
 - Measurement should be practical and observable
 - Different domains may use the same traits differently
+- **IMPORTANT:** Properly escape single quotes in strings by using backslash (e.g., `'it\'s'` for "it's")
 
 ## Instructions
 
