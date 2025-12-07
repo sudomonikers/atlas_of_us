@@ -2,6 +2,12 @@
 
 import type { Camera, CanvasNode, Connection, NodeType } from './skill-tree-types';
 import { COLORS, FONTS, NODE_RADIUS } from './skill-tree-constants';
+import { renderBackground, generateBackgroundState } from './skill-tree-background';
+
+// Cache background state to avoid regenerating every frame
+let cachedBackgroundState: ReturnType<typeof generateBackgroundState> | null = null;
+let cachedDomainName: string | null = null;
+let cachedBackgroundSize = { width: 0, height: 0 };
 
 // Coordinate transformation utilities
 export function worldToScreen(
@@ -63,19 +69,33 @@ export function render(
   connections: Connection[],
   camera: Camera,
   hoveredNode: CanvasNode | null,
-  selectedNode: CanvasNode | null
+  selectedNode: CanvasNode | null,
+  domainName: string = 'Default',
+  time: number = 0
 ) {
   // Use CSS dimensions (context is already scaled by DPR)
   const dpr = window.devicePixelRatio || 1;
   const width = ctx.canvas.width / dpr;
   const height = ctx.canvas.height / dpr;
 
-  // Clear and draw background
-  ctx.fillStyle = COLORS.background;
-  ctx.fillRect(0, 0, width, height);
+  // Generate or reuse cached background state
+  if (
+    cachedDomainName !== domainName ||
+    cachedBackgroundSize.width !== width ||
+    cachedBackgroundSize.height !== height
+  ) {
+    cachedBackgroundState = generateBackgroundState(domainName, width, height);
+    cachedDomainName = domainName;
+    cachedBackgroundSize = { width, height };
+  }
 
-  // Draw subtle grid
-  drawGrid(ctx, camera, width, height);
+  // Draw procedural background
+  if (cachedBackgroundState) {
+    renderBackground(ctx, cachedBackgroundState, time);
+  } else {
+    ctx.fillStyle = COLORS.background;
+    ctx.fillRect(0, 0, width, height);
+  }
 
   // Draw connections
   connections.forEach(conn => {
@@ -95,41 +115,6 @@ export function render(
     const isSelected = node === selectedNode;
     drawNode(ctx, node, camera, width, height, isHovered, isSelected);
   });
-}
-
-function drawGrid(
-  ctx: CanvasRenderingContext2D,
-  camera: Camera,
-  width: number,
-  height: number
-) {
-  const gridSize = 100;
-  const scaledGridSize = gridSize * camera.zoom;
-
-  if (scaledGridSize < 20) return; // Don't draw grid when zoomed out too far
-
-  ctx.strokeStyle = COLORS.gridLine;
-  ctx.lineWidth = 1;
-
-  // Calculate grid offset based on camera position
-  const offsetX = (width / 2 - camera.x * camera.zoom) % scaledGridSize;
-  const offsetY = (height / 2 - camera.y * camera.zoom) % scaledGridSize;
-
-  // Vertical lines
-  for (let x = offsetX; x < width; x += scaledGridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-  }
-
-  // Horizontal lines
-  for (let y = offsetY; y < height; y += scaledGridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
 }
 
 function drawConnection(

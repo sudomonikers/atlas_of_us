@@ -18,6 +18,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode }: Skil
   const layoutRef = useRef<LayoutResult | null>(null);
   const rafRef = useRef<number>(0);
   const cameraRef = useRef({ x: 0, y: 0, zoom: CAMERA.INITIAL_ZOOM });
+  const timeRef = useRef<number>(0);
 
   const [canvasState, setCanvasState] = useState<CanvasState>({
     camera: { x: 0, y: 0, zoom: CAMERA.INITIAL_ZOOM },
@@ -49,7 +50,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode }: Skil
     }
   }, [domainData]);
 
-  // Render loop
+  // Animation loop for twinkling stars
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -57,28 +58,36 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode }: Skil
 
     if (!canvas || !ctx || !layout) return;
 
-    // Cancel any pending frame
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-    }
+    let animating = true;
 
-    rafRef.current = requestAnimationFrame(() => {
+    const animate = (timestamp: number) => {
+      if (!animating) return;
+
+      timeRef.current = timestamp;
+
       render(
         ctx,
         layout.nodes,
         layout.connections,
         canvasState.camera,
         canvasState.hoveredNode,
-        selectedNode
+        selectedNode,
+        domainData.domain.name,
+        timestamp
       );
-    });
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
 
     return () => {
+      animating = false;
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [canvasState, selectedNode]);
+  }, [canvasState, selectedNode, domainData.domain.name]);
 
   // Handle resize
   useEffect(() => {
