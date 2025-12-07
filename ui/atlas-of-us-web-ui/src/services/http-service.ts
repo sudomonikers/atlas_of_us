@@ -3,7 +3,7 @@ import type {
   Neo4jNode,
   Neo4jRelationship,
 } from "../pages/Graph/graph-interfaces.interface";
-import type { DomainData } from "../pages/Graph/DomainTree/domain-interfaces";
+import type { DomainData } from "../pages/Domain/domain-interfaces";
 
 //service class for fetching data and mapping it for ui consumption
 export class HttpService {

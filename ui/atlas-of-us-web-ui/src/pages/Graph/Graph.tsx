@@ -5,9 +5,7 @@ import * as THREE from "three";
 
 import galaxyBackground from "../../assets/galaxy.jpeg";
 import { NavBar } from "../../common-components/navbar/nav";
-import { Constellation } from "./constellation/constellation";
 import { ParticleSystem } from "./particles/particles";
-import { DomainTree } from "./DomainTree/DomainTree";
 import "./Graph.css";
 
 
@@ -28,6 +26,8 @@ function Background(): null {
 }
 
 export const Graph = () => {
+  const [isDomainTreeHovered, setIsDomainTreeHovered] = useState(false);
+
   return (
     <div>
       <NavBar />
@@ -51,6 +51,7 @@ export const Graph = () => {
             maxDistance={1500}
             enableDamping={true}
             dampingFactor={0.05}
+            enabled={!isDomainTreeHovered}
           />
 
           {/* Background */}
@@ -62,12 +63,6 @@ export const Graph = () => {
 
           {/* Particle System */}
           <ParticleSystem />
-
-          {/* Domain Tree */}
-          <DomainTree
-            domainName="Chess"
-            position={new THREE.Vector3(0, 0, 0)}
-          />
         </Canvas>
       </div>
     </div>

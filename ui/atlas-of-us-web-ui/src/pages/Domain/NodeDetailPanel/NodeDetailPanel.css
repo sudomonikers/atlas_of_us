@@ -1,0 +1,307 @@
+.node-detail-panel {
+  position: fixed;
+  top: var(--nav-height);
+  right: 0;
+  width: 400px;
+  height: calc(100vh - var(--nav-height));
+  background: var(--glass-backdrop);
+  backdrop-filter: var(--glass-blur);
+  border-left: var(--glass-border);
+  transform: translateX(100%);
+  transition: transform var(--duration-normal) var(--ease-gentle);
+  z-index: var(--z-modal);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.node-detail-panel.open {
+  transform: translateX(0);
+}
+
+/* Close button */
+.panel-close-btn {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--star-text);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.panel-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Header */
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  padding-right: var(--space-2xl);
+  border-bottom: var(--glass-border);
+}
+
+.panel-header.knowledge {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), transparent);
+}
+
+.panel-header.skill {
+  background: linear-gradient(135deg, rgba(0, 255, 153, 0.2), transparent);
+}
+
+.panel-header.trait {
+  background: linear-gradient(135deg, rgba(255, 0, 204, 0.2), transparent);
+}
+
+.panel-header.milestone {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), transparent);
+}
+
+.panel-header.level {
+  background: linear-gradient(135deg, rgba(155, 181, 255, 0.2), transparent);
+}
+
+.node-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.panel-header.knowledge .node-icon {
+  color: var(--violet-deep);
+}
+
+.panel-header.skill .node-icon {
+  color: var(--star-green);
+}
+
+.panel-header.trait .node-icon {
+  color: var(--pulsar-pink);
+}
+
+.panel-header.milestone .node-icon {
+  color: #FFD700;
+}
+
+.panel-header.level .node-icon {
+  color: var(--nebula-blue);
+}
+
+.panel-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--moon-text);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
+}
+
+.panel-title {
+  font-family: var(--font-primary);
+  font-size: var(--text-h4);
+  color: var(--star-text);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+/* Content */
+.panel-content {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+.panel-description {
+  font-size: var(--text-body);
+  color: var(--moon-text);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--space-lg);
+}
+
+/* Requirement sections */
+.requirement-section {
+  margin-bottom: var(--space-lg);
+}
+
+.requirement-title {
+  font-family: var(--font-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  color: var(--star-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-sm);
+}
+
+.requirement-note {
+  font-size: var(--text-small);
+  color: var(--moon-text);
+  margin: var(--space-sm) 0 0;
+}
+
+.requirement-note strong {
+  color: var(--star-text);
+}
+
+/* Bloom's Taxonomy Ladder */
+.bloom-ladder,
+.dreyfus-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bloom-step,
+.dreyfus-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
+  transition: all var(--duration-fast);
+}
+
+.bloom-step.required,
+.dreyfus-step.required {
+  background: rgba(102, 126, 234, 0.15);
+  border-left-color: var(--violet-deep);
+}
+
+.dreyfus-step.required {
+  background: rgba(0, 255, 153, 0.15);
+  border-left-color: var(--star-green);
+}
+
+.bloom-step.current,
+.dreyfus-step.current {
+  background: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.dreyfus-step.current {
+  background: rgba(0, 255, 153, 0.3);
+  box-shadow: 0 0 10px rgba(0, 255, 153, 0.3);
+}
+
+.step-number {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-bold);
+  color: var(--moon-text);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+}
+
+.bloom-step.required .step-number,
+.dreyfus-step.required .step-number {
+  color: var(--star-text);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.step-label {
+  font-size: var(--text-small);
+  color: var(--moon-text);
+}
+
+.bloom-step.required .step-label,
+.dreyfus-step.required .step-label {
+  color: var(--star-text);
+}
+
+/* Score bar for traits */
+.score-bar-container {
+  margin: var(--space-sm) 0;
+}
+
+.score-bar {
+  position: relative;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: visible;
+}
+
+.score-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pulsar-pink), var(--violet-bright));
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal);
+}
+
+.score-bar-marker {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 20px;
+  background: var(--star-text);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.score-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
+  font-size: var(--text-caption);
+  color: var(--moon-text);
+}
+
+.score-value {
+  color: var(--star-text);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Milestone badge */
+.milestone-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.milestone-icon {
+  width: 24px;
+  height: 24px;
+  color: #FFD700;
+}
+
+.milestone-badge span {
+  font-size: var(--text-body);
+  color: var(--star-text);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .node-detail-panel {
+    width: 100%;
+    max-width: 400px;
+  }
+}

@@ -15,6 +15,7 @@ import { PageNotFound } from './pages/PageNotFound/PageNotFound.tsx';
 import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
 import { Blog } from './pages/Blog/Blog.tsx';
 import { Assessment } from './pages/Assessment/Assessment.tsx';
+import { Domain } from './pages/Domain/Domain.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -54,6 +55,8 @@ createRoot(document.getElementById('root')!).render(
             <Graph />
           </PrivateRoute>
         } />
+        <Route path="/Domain" element={<Domain />} />
+        <Route path="/Domain/:domainName" element={<Domain />} />
         <Route path="/Roadmap" element={<Roadmap />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Blog" element={<Blog />} />
