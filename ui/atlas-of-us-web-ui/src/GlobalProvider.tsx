@@ -6,7 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { jwtDecode } from "jwt-decode";
-import { Neo4jApiResponse } from "./pages/Graph/graph-interfaces.interface";
+import { Neo4jApiResponse } from "./pages/graph_pages/Graph/graph-interfaces.interface";
 
 interface GlobalContextType {
   searchText: string;

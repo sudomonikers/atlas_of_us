@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
-import { NavBar } from "../../common-components/navbar/nav";
-import { HttpService } from "../../services/http-service";
-import { useGlobal } from "../../GlobalProvider";
+import { NavBar } from "../../../common-components/navbar/nav";
+import { HttpService } from "../../../services/http-service";
+import { useGlobal } from "../../../GlobalProvider";
 import type { DomainData } from "./domain-interfaces";
 import type { Neo4jRelationship } from "../Graph/graph-interfaces.interface";
 import { SkillTreeCanvas } from "./SkillTree/SkillTreeCanvas";
