@@ -314,48 +314,9 @@ pub async fn create_node(
         }
     }
 
-    // Generate mascot image
-    let image_prompt = format!(
-        "A minimalistic black-and-white line drawing of '{}'. The sketch is drawn with elegant, simple outlines, with no shading or extra details. The style is similar to high-fashion sketches, emphasizing grace.",
-        text_to_embed
-    );
-
-    let image_bytes = match generate_image(&image_prompt).await {
-        Ok(img) => img,
-        Err(e) => {
-            tracing::error!("Failed to generate image: {}", e);
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to generate image"}))
-            ));
-        }
-    };
-
-    // Upload image to S3
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let image_name = format!("{}_{}.png", name, timestamp);
-    
-    let s3_bucket = env::var("S3_BUCKET").unwrap_or_default();
-    let upload_params = UploadParams {
-        bucket: s3_bucket,
-        key: image_name.clone(),
-    };
-
-    if let Err(e) = upload_object_to_s3(upload_params, image_bytes).await {
-        tracing::error!("Failed to upload image to S3: {}", e);
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": "failed to upload image to S3"}))
-        ));
-    }
-
     // Add embedding and image to properties
     let mut final_properties = request.properties.clone();
     final_properties.insert("embedding".to_string(), json!(embedding));
-    final_properties.insert("image".to_string(), json!(image_name));
 
     // Build labels string and SET clauses
     let label_string = format!(":{}", request.labels.join(":"));
@@ -770,10 +731,6 @@ pub async fn delete_relationship(
     }
 }
 
-// ============================================
-// Domain Creator Endpoints
-// ============================================
-
 #[derive(Debug, Deserialize)]
 pub struct SearchNodesParams {
     pub query: String,
@@ -1066,23 +1023,6 @@ pub async fn create_domain(
                 tracing::error!("Error creating domain level: {}", e);
                 // Continue but log the error
             }
-        }
-    }
-
-    // Create NEXT_DOMAIN_LEVEL relationships between consecutive levels
-    for i in 0..level_element_ids.len().saturating_sub(1) {
-        let link_query = Neo4jQuery::new(
-            r#"
-            MATCH (l1:Domain_Level), (l2:Domain_Level)
-            WHERE elementId(l1) = $level1Id AND elementId(l2) = $level2Id
-            CREATE (l1)-[:NEXT_DOMAIN_LEVEL]->(l2)
-            "#.to_string()
-        )
-        .param("level1Id", level_element_ids[i].clone())
-        .param("level2Id", level_element_ids[i + 1].clone());
-
-        if let Err(e) = graph.run(link_query).await {
-            tracing::error!("Error linking domain levels: {}", e);
         }
     }
 

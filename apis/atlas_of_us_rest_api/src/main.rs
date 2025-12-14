@@ -89,13 +89,14 @@ async fn main() {
         .route("/api/secure/graph/update-node", put(update_node))
         .route("/api/secure/graph/create-relationship", post(create_relationship))
         .route("/api/secure/graph/update-relationship", put(update_relationship))
-        .route("/api/secure/graph/similar-nodes", post(get_similar_nodes))
-        .route("/api/secure/graph/domain", get(get_domain))
         .route("/api/secure/graph/delete-relationship", post(delete_relationship))
-        // Domain Creator endpoints
+        .route("/api/secure/graph/similar-nodes", post(get_similar_nodes))
         .route("/api/secure/graph/search-nodes", get(search_nodes))
+        // Domain endpoints
+        .route("/api/secure/graph/domain", get(get_domain))
         .route("/api/secure/graph/validate-domain-name", get(validate_domain_name))
         .route("/api/secure/graph/create-domain", post(create_domain))
+        //middleware
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 
     let profile_routes: Router<Graph> = Router::new()

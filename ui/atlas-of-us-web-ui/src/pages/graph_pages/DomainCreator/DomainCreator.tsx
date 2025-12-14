@@ -22,6 +22,7 @@ import "./DomainCreator.css";
 
 export function DomainCreator() {
   const navigate = useNavigate();
+  const httpService = new HttpService();
   const { loggedIn } = useGlobal();
 
   // Main domain state
@@ -33,6 +34,7 @@ export function DomainCreator() {
   const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(false);
   const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
   const [isLevelConfigOpen, setIsLevelConfigOpen] = useState(false);
+  const [isDomainAvailable, setIsDomainAvailable] = useState(true);
   const [nodeTypeToAdd, setNodeTypeToAdd] = useState<NodeType>('knowledge');
   const [isSaving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -41,8 +43,14 @@ export function DomainCreator() {
   const currentLevel = domain.levels[selectedLevelIndex];
 
   // Update domain name
-  const handleDomainNameChange = useCallback((name: string) => {
+  const handleDomainNameChange = useCallback(async (name: string) => {
     setDomain(prev => ({ ...prev, name }));
+    const validation = await httpService.validateDomainName(capitalizeFirstLetter(name));
+    if (!validation.available) {
+      setIsDomainAvailable(false);
+    } else {
+      setIsDomainAvailable(true);
+    }
   }, []);
 
   // Update domain description
@@ -253,10 +261,8 @@ export function DomainCreator() {
     setSaving(true);
     setSaveError(null);
 
-    const httpService = new HttpService();
-
     // Validate domain name is available
-    const validation = await httpService.validateDomainName(domain.name.trim());
+    const validation = await httpService.validateDomainName(capitalizeFirstLetter(domain.name));
     if (!validation) {
       setSaveError("Failed to validate domain name");
       setSaving(false);
@@ -328,6 +334,11 @@ export function DomainCreator() {
                 value={domain.name}
                 onChange={(e) => handleDomainNameChange(e.target.value)}
               />
+              {!isDomainAvailable && (
+                <div className="domain-name-error">
+                  Domain is already taken!
+                </div>
+              )}
             </div>
             <button
               className="save-btn btn-cosmic"
@@ -477,4 +488,17 @@ function getNodeArrayKey(type: NodeType): 'knowledge' | 'skills' | 'traits' | 'm
     case 'trait': return 'traits';
     case 'milestone': return 'milestones';
   }
+}
+
+//helper to cap first letter and lowercase rest
+function capitalizeFirstLetter(string: string) {
+  if (string.length === 0) {
+    return "";
+  }
+  // Get the first character and convert it to uppercase
+  const firstLetter = string.charAt(0).toUpperCase();
+  // Get the rest of the string starting from the second character
+  const restOfString = string.slice(1).toLowerCase();
+  // Combine them
+  return (firstLetter + restOfString).trim();
 }

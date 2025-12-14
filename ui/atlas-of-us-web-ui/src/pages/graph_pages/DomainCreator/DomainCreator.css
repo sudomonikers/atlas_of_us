@@ -131,6 +131,11 @@
   font-size: 0.9rem;
 }
 
+.domain-name-error {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+}
+
 /* Level tabs */
 .level-tabs {
   display: flex;

@@ -145,12 +145,6 @@ CREATE (chess)-[:HAS_DOMAIN_LEVEL]->(level3)
 CREATE (chess)-[:HAS_DOMAIN_LEVEL]->(level4)
 CREATE (chess)-[:HAS_DOMAIN_LEVEL]->(level5)
 
-// Connect Levels in ascending order
-CREATE (level1)-[:NEXT_DOMAIN_LEVEL]->(level2)
-CREATE (level2)-[:NEXT_DOMAIN_LEVEL]->(level3)
-CREATE (level3)-[:NEXT_DOMAIN_LEVEL]->(level4)
-CREATE (level4)-[:NEXT_DOMAIN_LEVEL]->(level5)
-
 // MERGE all shared nodes (no level properties on the nodes themselves)
 MERGE (k_piece_movements:Knowledge {name: 'Piece Movements'})
 MERGE (k_basic_rules:Knowledge {name: 'Basic Rules'})
