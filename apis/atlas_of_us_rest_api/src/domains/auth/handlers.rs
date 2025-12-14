@@ -14,7 +14,6 @@ pub async fn login(
     State(graph): State<Graph>,
     Json(login_req): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // Validate request
     if let Err(_) = login_req.validate() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -86,7 +85,6 @@ pub async fn login(
     // Verify password
     match verify_password(&login_req.password, &stored_password) {
         Ok(true) => {
-            // Generate JWT token
             match generate_token(&login_req.username) {
                 Ok(token) => Ok(Json(AuthResponse { token })),
                 Err(_) => Err((
@@ -116,7 +114,6 @@ pub async fn signup(
     State(graph): State<Graph>,
     Json(signup_req): Json<SignUpRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // Validate request
     if let Err(_) = signup_req.validate() {
         return Err((
             StatusCode::BAD_REQUEST,

@@ -1,4 +1,4 @@
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import { useEffect, useRef, useState } from "react";
 import './blog.css';
 

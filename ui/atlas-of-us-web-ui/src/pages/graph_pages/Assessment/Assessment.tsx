@@ -1,5 +1,5 @@
 import "./assessment.css";
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import { Canvas } from "@react-three/fiber";
 import React, { useState } from "react";
 import { Step1 } from "./Step1/Step1";

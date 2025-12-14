@@ -1,4 +1,4 @@
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import "./roadmap.css";
 
 export function Roadmap() {

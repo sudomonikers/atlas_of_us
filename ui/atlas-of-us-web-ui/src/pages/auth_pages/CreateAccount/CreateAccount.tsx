@@ -1,11 +1,11 @@
 import { useState } from "react";
 import "./createAccount.css";
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import { Link, useNavigate } from "react-router";
-import { useGlobal } from "../../GlobalProvider";
-import { HttpService } from "../../services/http-service";
+import { useGlobal } from "../../../GlobalProvider";
+import { HttpService } from "../../../services/http-service";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { AssessmentWorld, WorldState } from "../Assessment/AssessmentWorld";
+import { AssessmentWorld, WorldState } from "../../graph_pages/Assessment/AssessmentWorld";
 
 function CameraAnimation(): null {
   useFrame(({ camera }) => {

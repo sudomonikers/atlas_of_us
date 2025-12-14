@@ -3,8 +3,8 @@ import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
-import galaxyBackground from "../../assets/galaxy.jpeg";
-import { NavBar } from "../../common-components/navbar/nav";
+import galaxyBackground from "../../../assets/galaxy.jpeg";
+import { NavBar } from "../../../common-components/navbar/nav";
 import { ParticleSystem } from "./particles/particles";
 import "./Graph.css";
 

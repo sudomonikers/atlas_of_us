@@ -152,4 +152,173 @@ export class HttpService {
       return { success: false, error: 'Network error' };
     }
   }
+
+  // Domain Creator endpoints
+  async searchNodes(
+    query: string,
+    labels?: string[],
+    limit?: number
+  ): Promise<{ nodes: SearchNodeResult[] } | null> {
+    try {
+      const params = new URLSearchParams({ query });
+      if (labels && labels.length > 0) {
+        params.set('labels', labels.join(','));
+      }
+      if (limit) {
+        params.set('limit', limit.toString());
+      }
+
+      const response = await fetch(
+        `${this.API_BASE}/secure/graph/search-nodes?${params}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Error searching nodes:', err);
+      return null;
+    }
+  }
+
+  async validateDomainName(name: string): Promise<{ available: boolean; existingDomainElementId?: string } | null> {
+    try {
+      const response = await fetch(
+        `${this.API_BASE}/secure/graph/validate-domain-name?name=${encodeURIComponent(name)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Error validating domain name:', err);
+      return null;
+    }
+  }
+
+  async createDomain(request: CreateDomainRequest): Promise<CreateDomainResponse> {
+    try {
+      const response = await fetch(`${this.API_BASE}/secure/graph/create-domain`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || 'Failed to create domain' };
+      }
+
+      const data = await response.json();
+      return { success: true, domain: data.domain, createdNodes: data.createdNodes };
+    } catch (err) {
+      console.error('Error creating domain:', err);
+      return { success: false, error: 'Network error' };
+    }
+  }
+}
+
+// Types for domain creator API
+export interface SearchNodeResult {
+  elementId: string;
+  labels: string[];
+  props: {
+    name: string;
+    description?: string;
+    how_to_learn?: string;
+    how_to_develop?: string;
+    measurement_criteria?: string;
+    how_to_achieve?: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface NewNodeData {
+  name: string;
+  description: string;
+  how_to_learn?: string;
+  how_to_develop?: string;
+  measurement_criteria?: string;
+  how_to_achieve?: string;
+}
+
+export interface KnowledgeRequirement {
+  nodeElementId?: string;
+  newNode?: NewNodeData;
+  bloom_level: string;
+}
+
+export interface SkillRequirement {
+  nodeElementId?: string;
+  newNode?: NewNodeData;
+  dreyfus_level: string;
+}
+
+export interface TraitRequirement {
+  nodeElementId?: string;
+  newNode?: NewNodeData;
+  min_score: number;
+}
+
+export interface MilestoneRequirement {
+  nodeElementId?: string;
+  newNode?: NewNodeData;
+}
+
+export interface LevelRequirements {
+  knowledge: KnowledgeRequirement[];
+  skills: SkillRequirement[];
+  traits: TraitRequirement[];
+  milestones: MilestoneRequirement[];
+}
+
+export interface DomainLevelRequest {
+  level: number;
+  name: string;
+  description?: string;
+  points_required: number;
+  requirements: LevelRequirements;
+}
+
+export interface CreateDomainRequest {
+  domain: {
+    name: string;
+    description: string;
+  };
+  levels: DomainLevelRequest[];
+}
+
+export interface CreateDomainResponse {
+  success: boolean;
+  domain?: {
+    elementId: string;
+    name: string;
+  };
+  createdNodes?: Array<{
+    elementId: string;
+    name: string;
+    labels: string[];
+  }>;
+  error?: string;
 }

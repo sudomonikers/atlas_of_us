@@ -1,7 +1,7 @@
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import "./contact.css";
-import contactImage from "../../assets/contact-image2.png";
-import githubLogo from "../../assets/github-mark.png";
+import contactImage from "../../../assets/contact-image2.png";
+import githubLogo from "../../../assets/github-mark.png";
 import { useRef } from "react";
 import { Link } from "react-router";
 

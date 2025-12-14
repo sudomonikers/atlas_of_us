@@ -1,12 +1,12 @@
 import "./profile.css";
 import { useEffect, useState } from "react";
-import { NavBar } from "../../common-components/navbar/nav";
-import { HttpService } from "../../services/http-service";
+import { NavBar } from "../../../common-components/navbar/nav";
+import { HttpService } from "../../../services/http-service";
 import { jwtDecode } from "jwt-decode";
 import { Neo4jApiResponse, Neo4jNode } from "../Graph/graph-interfaces.interface";
-import { NeuroticTraits } from "../../common/maps/personality.map";
-import { DreyfusLevelsOfAquisition } from "../../common/enums/dreyfus-skill-aquisition.enum";
-import { Bloom6Levels } from "../../common/enums/blooms-6-levels.enum";
+import { NeuroticTraits } from "../../../common/maps/personality.map";
+import { DreyfusLevelsOfAquisition } from "../../../common/enums/dreyfus-skill-aquisition.enum";
+import { Bloom6Levels } from "../../../common/enums/blooms-6-levels.enum";
 import { BLOOM_MAPPINGS, DREYFUS_MAPPINGS } from "./profile-mappings";
 
 export function Profile() {

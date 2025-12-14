@@ -1,4 +1,4 @@
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import WidgetBot from "./DiscordEmbed/DiscordEmbed";
 import "./community.css";
 

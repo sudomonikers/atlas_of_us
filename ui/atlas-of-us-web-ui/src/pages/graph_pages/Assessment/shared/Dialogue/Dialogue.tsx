@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import './dialogue.css';
-import { useGlobal } from "../../../../GlobalProvider";
+import { useGlobal } from "../../../../../GlobalProvider";
 
 interface DialogueProps {
     text: string;

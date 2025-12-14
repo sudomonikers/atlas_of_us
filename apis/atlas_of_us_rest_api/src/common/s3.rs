@@ -46,7 +46,6 @@ pub async fn get_s3_object(
         })?
         .into_bytes();
 
-    // Detect content type from the data
     let content_type = infer::get(&data)
         .map(|kind| kind.mime_type())
         .unwrap_or("application/octet-stream")

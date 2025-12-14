@@ -1,8 +1,8 @@
 import "./signup.css";
 import { useNavigate } from "react-router";
-import { NavBar } from "../../common-components/navbar/nav";
+import { NavBar } from "../../../common-components/navbar/nav";
 import { useState } from "react";
-import { useGlobal } from "../../GlobalProvider";
+import { useGlobal } from "../../../GlobalProvider";
 
 export function Signup() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;

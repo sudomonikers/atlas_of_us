@@ -8,7 +8,6 @@ use axum::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
     },
     middleware::{self},
-    response::Json,
     routing::{get, post, put},
 };
 use common::handlers::{create_embedding_from_text, return_s3_object, upload_s3_object};
@@ -17,16 +16,15 @@ use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
 use domains::profile::handlers::get_user_profile;
 use domains::graph::handlers::{
     get_nodes, get_node_with_relationships_by_search_term, create_node, create_relationship,
-    update_node, update_relationship, get_similar_nodes, get_domain, delete_relationship
+    update_node, update_relationship, get_similar_nodes, get_domain, delete_relationship,
+    search_nodes, validate_domain_name, create_domain
 };
 use dotenvy::dotenv;
 use neo4rs::*;
-use serde_json::json;
 use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing
     tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG")
@@ -36,7 +34,6 @@ async fn main() {
 
     tracing::info!("Starting Atlas of Us REST API");
     
-    // Install rustls crypto provider
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     dotenv().ok();
@@ -64,13 +61,6 @@ async fn main() {
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE, Method::OPTIONS])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
-
-    // Placeholder handlers - these will be implemented later
-    let placeholder_handler = || async { Json(json!({"message": "Handler not implemented yet"})) };
-
-    //Swagger routes
-    let swagger_documentation_routes: Router<Graph> =
-        Router::new().route("/swagger/{*path}", get(placeholder_handler));
 
     // Auth routes
     let auth_routes: Router<Graph> = Router::new()
@@ -102,6 +92,10 @@ async fn main() {
         .route("/api/secure/graph/similar-nodes", post(get_similar_nodes))
         .route("/api/secure/graph/domain", get(get_domain))
         .route("/api/secure/graph/delete-relationship", post(delete_relationship))
+        // Domain Creator endpoints
+        .route("/api/secure/graph/search-nodes", get(search_nodes))
+        .route("/api/secure/graph/validate-domain-name", get(validate_domain_name))
+        .route("/api/secure/graph/create-domain", post(create_domain))
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 
     let profile_routes: Router<Graph> = Router::new()
@@ -109,7 +103,6 @@ async fn main() {
         .route_layer(middleware::from_fn(jwt_auth_middleware));
     
     let app: Router = Router::new()
-        .merge(swagger_documentation_routes)
         .merge(auth_routes)
         .merge(helper_routes)
         .merge(graph_management_routes)

@@ -19,15 +19,13 @@ struct ImageGenerationResponse {
     data: Vec<ImageData>,
 }
 
-/// Generates an image using DALL-E API and returns the image bytes
 pub async fn generate_image(text_to_generate_image_from: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    // This function should be updated to use gpt-4o when it becomes available as it is much better
     let image_generation_endpoint = env::var("IMAGE_GEN_ENDPOINT")
         .map_err(|_| "IMAGE_GEN_ENDPOINT environment variable not set")?;
-    
-    let openai_api_key = env::var("OPENAI_API_KEY")
-        .map_err(|_| "OPENAI_API_KEY environment variable not set")?;
+    let image_generation_api_key = env::var("IMAGE_GEN_API_KEY")
+        .map_err(|_| "IMAGE_GEN_API_KEY environment variable not set")?;
 
+    
     let request_body = ImageGenerationRequest {
         model: "dall-e-3".to_string(),
         prompt: text_to_generate_image_from.to_string(),
@@ -39,7 +37,7 @@ pub async fn generate_image(text_to_generate_image_from: &str) -> Result<Vec<u8>
     let response = client
         .post(&image_generation_endpoint)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", openai_api_key))
+        .header("Authorization", format!("Bearer {}", image_generation_api_key))
         .json(&request_body)
         .send()
         .await?;

@@ -29,12 +29,11 @@ pub fn generate_token(username: &str) -> Result<String, jsonwebtoken::errors::Er
         .expect("Time went backwards")
         .as_secs() as usize;
 
-    // Token expires in 24 hours (24 * 60 minutes as in Go version)
     let expiration = now + (24 * 60 * 60);
 
     let claims = JwtClaims {
         sub: username.to_string(),
-        iss: username.to_string(), // For compatibility with Go version
+        iss: username.to_string(),
         exp: expiration,
         iat: now,
     };

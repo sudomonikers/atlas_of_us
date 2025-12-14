@@ -1,14 +1,14 @@
 import "./constellation.css";
 import React, { useRef, createRef, useState, useEffect } from "react";
 import * as THREE from "three";
-import { HttpService } from "../../../services/http-service";
+import { HttpService } from "../../../../services/http-service";
 import { GraphUtils } from "../graph-utils";
 import type {
   Neo4jRelationship,
 } from "../graph-interfaces.interface";
 import { Sphere, SphereProps } from "./sphere/sphere";
 import { RelationshipLine } from "./relationship-line/relationship-liine";
-import { useGlobal } from "../../../GlobalProvider";
+import { useGlobal } from "../../../../GlobalProvider";
 import { useThree } from "@react-three/fiber";
 
 const http = new HttpService();

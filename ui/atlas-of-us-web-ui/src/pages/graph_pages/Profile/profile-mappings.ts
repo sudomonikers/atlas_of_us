@@ -1,5 +1,5 @@
-import { Bloom6Levels } from "../../common/enums/blooms-6-levels.enum"
-import { DreyfusLevelsOfAquisition } from "../../common/enums/dreyfus-skill-aquisition.enum"
+import { Bloom6Levels } from "../../../common/enums/blooms-6-levels.enum"
+import { DreyfusLevelsOfAquisition } from "../../../common/enums/dreyfus-skill-aquisition.enum"
 
 export const DREYFUS_MAPPINGS = {
   [DreyfusLevelsOfAquisition.NOVICE]: {

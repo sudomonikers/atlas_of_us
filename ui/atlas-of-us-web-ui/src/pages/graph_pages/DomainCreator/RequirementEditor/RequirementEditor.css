@@ -1,0 +1,320 @@
+/* Requirement Editor styles */
+
+.requirement-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.requirement-editor {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  background: rgba(20, 20, 35, 0.98);
+  border: 1px solid rgba(100, 223, 223, 0.2);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Header */
+.editor-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(100, 223, 223, 0.1);
+}
+
+.header-info {
+  flex: 1;
+}
+
+.node-type-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: rgba(var(--type-color-rgb, 100, 223, 223), 0.15);
+  border: 1px solid var(--type-color, #64dfdf);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--type-color, #64dfdf);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.editor-header h3 {
+  font-family: 'Mochiy Pop One', cursive;
+  font-size: 1.1rem;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Description */
+.node-description {
+  padding: 0.75rem 1.25rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(100, 223, 223, 0.1);
+}
+
+.node-description p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+}
+
+/* New node badge */
+.new-node-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(74, 222, 128, 0.1);
+  border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+  font-size: 0.8rem;
+}
+
+/* Content */
+.editor-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.requirement-section {
+  /* Contains the requirement editor for each type */
+}
+
+.requirement-section label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin-bottom: 0.5rem;
+}
+
+.requirement-hint {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 1rem;
+}
+
+/* Level selector (Bloom/Dreyfus) */
+.level-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.level-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(100, 100, 120, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.level-option:hover {
+  background: rgba(var(--type-color-rgb, 100, 223, 223), 0.05);
+  border-color: rgba(var(--type-color-rgb, 100, 223, 223), 0.3);
+}
+
+.level-option.active {
+  background: rgba(var(--type-color-rgb, 100, 223, 223), 0.1);
+  border-color: var(--type-color, #64dfdf);
+}
+
+.level-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(100, 100, 120, 0.2);
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.level-option.active .level-number {
+  background: var(--type-color, #64dfdf);
+  color: #0d0d15;
+}
+
+.level-name {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.level-option.active .level-name {
+  color: var(--type-color, #64dfdf);
+}
+
+/* Score selector (Traits) */
+.score-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.score-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: rgba(100, 100, 120, 0.3);
+  border-radius: 4px;
+  outline: none;
+}
+
+.score-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--type-color, #c77dff);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(199, 125, 255, 0.4);
+}
+
+.score-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--type-color, #c77dff);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(199, 125, 255, 0.4);
+}
+
+.score-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 70px;
+}
+
+.score-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--type-color, #c77dff);
+}
+
+.score-max {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.score-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Milestone info */
+.milestone-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.milestone-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: rgba(224, 170, 255, 0.1);
+  border-radius: 50%;
+  color: var(--type-color, #e0aaff);
+  margin-bottom: 1rem;
+}
+
+.milestone-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+}
+
+/* Footer */
+.editor-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(100, 223, 223, 0.1);
+}
+
+.remove-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 100, 100, 0.1);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-btn:hover {
+  background: rgba(255, 100, 100, 0.2);
+  border-color: rgba(255, 100, 100, 0.5);
+}
+
+.save-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(100, 223, 223, 0.2);
+  border: 1px solid rgba(100, 223, 223, 0.4);
+  border-radius: 8px;
+  color: var(--accent-primary, #64dfdf);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-btn:hover {
+  background: rgba(100, 223, 223, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+  .requirement-editor {
+    margin: 1rem;
+  }
+
+  .editor-footer {
+    flex-direction: column;
+  }
+
+  .remove-btn {
+    justify-content: center;
+  }
+}

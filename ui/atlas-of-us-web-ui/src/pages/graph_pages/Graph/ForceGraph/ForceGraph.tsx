@@ -4,10 +4,10 @@ import SpriteText from 'three-spritetext';
 import { Camera, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Neo4jApiResponse, Neo4jNode, Neo4jRelationship } from '../graph-interfaces.interface';
-import { HttpService } from '../../../services/http-service';
+import { HttpService } from '../../../../services/http-service';
 import { GraphUtils } from '../graph-utils';
 import { TrackballControls } from 'three/examples/jsm/Addons.js';
-import { useGlobal } from '../../../GlobalProvider';
+import { useGlobal } from '../../../../GlobalProvider';
 
 
 export interface GraphData {

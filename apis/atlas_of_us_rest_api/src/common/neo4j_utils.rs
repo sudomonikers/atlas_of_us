@@ -12,7 +12,6 @@ pub fn json_value_to_bolt_type(value: &Value) -> BoltType {
             } else if let Some(f) = n.as_f64() {
                 BoltType::from(f)
             } else {
-                // Fallback to string representation for edge cases
                 BoltType::from(n.to_string().as_str())
             }
         }
@@ -33,17 +32,13 @@ pub fn json_value_to_bolt_type(value: &Value) -> BoltType {
 /// Maps neo4rs node data from Bolt4 to Bolt5 format
 pub fn map_bolt4_to_bolt5_node(node_data: &Value) -> Value {
     if let Some(obj) = node_data.as_object() {
-        // Extract metadata fields if they exist
         let id = obj.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
         let element_id = obj.get("elementId").and_then(|v| v.as_str()).unwrap_or("");
         let labels = obj.get("labels").and_then(|v| v.as_array()).cloned().unwrap_or_default();
         
-        // Handle props - check if it's nested under "props" key
         let props = if let Some(nested_props) = obj.get("props") {
-            // If props is nested, use the nested object
             nested_props.clone()
         } else {
-            // Otherwise, collect all non-metadata fields
             let mut props_map = serde_json::Map::new();
             for (key, value) in obj {
                 if !matches!(key.as_str(), "id" | "elementId" | "labels") {
@@ -60,15 +55,12 @@ pub fn map_bolt4_to_bolt5_node(node_data: &Value) -> Value {
             "Props": props
         })
     } else {
-        // Fallback for non-object nodes
         node_data.clone()
     }
 }
 
-/// Maps neo4rs relationship data from Bolt4 to Bolt5 format
 pub fn map_bolt4_to_bolt5_relationship(rel_data: &Value) -> Value {
     if let Some(obj) = rel_data.as_object() {
-        // Extract metadata fields if they exist
         let id = obj.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
         let element_id = obj.get("elementId").and_then(|v| v.as_str()).unwrap_or("");
         let start_id = obj.get("startId").and_then(|v| v.as_i64()).unwrap_or(0);
@@ -77,12 +69,9 @@ pub fn map_bolt4_to_bolt5_relationship(rel_data: &Value) -> Value {
         let end_element_id = obj.get("endElementId").and_then(|v| v.as_str()).unwrap_or("");
         let rel_type = obj.get("type").and_then(|v| v.as_str()).unwrap_or("");
         
-        // Handle props - check if it's nested under "props" key
         let props = if let Some(nested_props) = obj.get("props") {
-            // If props is nested, use the nested object
             nested_props.clone()
         } else {
-            // Otherwise, collect all non-metadata fields
             let mut props_map = serde_json::Map::new();
             for (key, value) in obj {
                 if !matches!(key.as_str(), "id" | "elementId" | "startId" | "startElementId" | "endId" | "endElementId" | "type") {
@@ -103,7 +92,6 @@ pub fn map_bolt4_to_bolt5_relationship(rel_data: &Value) -> Value {
             "Props": props
         })
     } else {
-        // Fallback for non-object relationships
         rel_data.clone()
     }
 }
@@ -122,19 +110,16 @@ pub fn map_bolt4_to_bolt5(data: Vec<Value>) -> Value {
         .unwrap_or(false);
 
     if is_complex {
-        // Handle complex query results
         let mut bolt5_results = Vec::new();
 
         for node_result in data {
             if let Some(obj) = node_result.as_object() {
                 let mut values = Vec::new();
                 
-                // Map node
                 if let Some(node) = obj.get("node") {
                     values.push(map_bolt4_to_bolt5_node(node));
                 }
                 
-                // Map relationships
                 if let Some(relationships) = obj.get("relationships") {
                     if let Some(rel_array) = relationships.as_array() {
                         let mapped_rels: Vec<Value> = rel_array.iter()
@@ -146,7 +131,6 @@ pub fn map_bolt4_to_bolt5(data: Vec<Value>) -> Value {
                     }
                 }
                 
-                // Map affiliated nodes
                 if let Some(affiliated_nodes) = obj.get("affiliatedNodes") {
                     if let Some(nodes_array) = affiliated_nodes.as_array() {
                         let mapped_nodes: Vec<Value> = nodes_array.iter()
@@ -167,19 +151,15 @@ pub fn map_bolt4_to_bolt5(data: Vec<Value>) -> Value {
 
         json!(bolt5_results)
     } else {
-        // Handle simple arrays - detect if it's nodes or relationships
         let first_item = &data[0];
         
         if let Some(obj) = first_item.as_object() {
-            // Check if it looks like a relationship (has startId, endId, type)
             let is_relationship = obj.contains_key("startId") || obj.contains_key("type") || obj.contains_key("Type");
             
             if is_relationship {
-                // Map as relationships
                 let mapped_rels: Vec<Value> = data.iter().map(map_bolt4_to_bolt5_relationship).collect();
                 json!(mapped_rels)
             } else {
-                // Map as nodes
                 let mapped_nodes: Vec<Value> = data.iter().map(map_bolt4_to_bolt5_node).collect();
                 json!(mapped_nodes)
             }
