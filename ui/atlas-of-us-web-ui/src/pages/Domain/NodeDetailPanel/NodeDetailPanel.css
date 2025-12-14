@@ -298,10 +298,214 @@
   color: var(--star-text);
 }
 
+/* Completion Section */
+.completion-section {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: var(--glass-border);
+}
+
+.completion-status {
+  text-align: center;
+}
+
+.completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(0, 255, 153, 0.2);
+  border: 1px solid rgba(0, 255, 153, 0.4);
+  border-radius: var(--radius-full);
+  color: var(--star-green);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-sm);
+}
+
+.check-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.completion-level {
+  font-size: var(--text-body);
+  color: var(--moon-text);
+  margin: var(--space-sm) 0;
+}
+
+.remove-progress-btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 100, 100, 0.2);
+  border: 1px solid rgba(255, 100, 100, 0.4);
+  border-radius: var(--radius-md);
+  color: #ff6b6b;
+  font-size: var(--text-body);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  margin-top: var(--space-md);
+}
+
+.remove-progress-btn:hover:not(:disabled) {
+  background: rgba(255, 100, 100, 0.3);
+  border-color: rgba(255, 100, 100, 0.6);
+}
+
+.remove-progress-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mark Complete Section */
+.mark-complete-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.level-selector label,
+.score-selector label {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--moon-text);
+  margin-bottom: var(--space-xs);
+}
+
+.level-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.level-option {
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--moon-text);
+  font-size: var(--text-small);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.level-option:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.level-option.selected {
+  background: rgba(102, 126, 234, 0.3);
+  border-color: var(--violet-deep);
+  color: var(--star-text);
+}
+
+/* Score Selector */
+.score-input-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.score-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  outline: none;
+}
+
+.score-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--pulsar-pink);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
+}
+
+.score-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--pulsar-pink);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
+}
+
+.score-display {
+  min-width: 40px;
+  text-align: center;
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-bold);
+  color: var(--star-text);
+}
+
+.milestone-prompt {
+  font-size: var(--text-small);
+  color: var(--moon-text);
+  text-align: center;
+  margin: 0;
+}
+
+.mark-complete-btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: linear-gradient(135deg, var(--violet-deep), var(--nebula-blue));
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--star-text);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.mark-complete-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.mark-complete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Login Prompt */
+.login-prompt {
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.login-prompt p {
+  font-size: var(--text-small);
+  color: var(--moon-text);
+  margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .node-detail-panel {
     width: 100%;
     max-width: 400px;
+  }
+
+  .level-options {
+    flex-direction: column;
+  }
+
+  .level-option {
+    width: 100%;
+    text-align: center;
   }
 }

@@ -49,12 +49,12 @@ function calculateLevelLayout(level: DomainLevel, levelIndex: number): CanvasNod
   const levelCenterX = levelIndex * LAYOUT.LEVEL_SPACING + LAYOUT.PADDING;
 
   // Gather all requirement nodes with their types
-  const sections: { type: NodeType; items: DomainRequirement[] }[] = [
-    { type: 'knowledge', items: level.knowledge || [] },
-    { type: 'skill', items: level.skills || [] },
-    { type: 'trait', items: level.traits || [] },
-    { type: 'milestone', items: level.milestones || [] },
-  ].filter(s => s.items.length > 0);
+  const sections = ([
+    { type: 'knowledge' as NodeType, items: level.knowledge || [] },
+    { type: 'skill' as NodeType, items: level.skills || [] },
+    { type: 'trait' as NodeType, items: level.traits || [] },
+    { type: 'milestone' as NodeType, items: level.milestones || [] },
+  ] as { type: NodeType; items: DomainRequirement[] }[]).filter(s => s.items.length > 0);
 
   // Calculate total height needed with grid layout
   let totalHeight = LAYOUT.LEVEL_HEADER_OFFSET;
@@ -138,6 +138,7 @@ function createCanvasNode(
       dreyfusLevel: rel.dreyfus_level as string | undefined,
       minScore: rel.min_score as number | undefined,
     },
+    elementId: requirement.nodeElementId,
     originalData: node as Record<string, unknown>,
   };
 }

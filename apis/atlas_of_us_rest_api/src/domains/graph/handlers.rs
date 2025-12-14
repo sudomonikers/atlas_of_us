@@ -671,18 +671,22 @@ pub async fn get_domain(
         WITH domain, level,
              collect(DISTINCT {
                  node: properties(k),
+                 nodeElementId: elementId(k),
                  relationship: properties(kr)
              }) AS knowledge,
              collect(DISTINCT {
                  node: properties(s),
+                 nodeElementId: elementId(s),
                  relationship: properties(sr)
              }) AS skills,
              collect(DISTINCT {
                  node: properties(t),
+                 nodeElementId: elementId(t),
                  relationship: properties(tr)
              }) AS traits,
              collect(DISTINCT {
                  node: properties(m),
+                 nodeElementId: elementId(m),
                  relationship: properties(mr)
              }) AS milestones
 
@@ -723,6 +727,45 @@ pub async fn get_domain(
         Err(e) => {
             tracing::error!("Error in get_domain: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeleteRelationshipRequest {
+    #[serde(rename = "relationshipElementId")]
+    pub relationship_element_id: String,
+}
+
+pub async fn delete_relationship(
+    State(graph): State<Graph>,
+    Json(request): Json<DeleteRelationshipRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let query_string = r#"
+        MATCH ()-[r]->()
+        WHERE elementId(r) = $relId
+        DELETE r
+        RETURN count(r) AS deleted
+    "#;
+
+    let mut query = Neo4jQuery::new(query_string.to_string());
+    query = query.param("relId", request.relationship_element_id);
+
+    match graph.execute(query).await {
+        Ok(mut result) => {
+            if let Ok(Some(row)) = result.next().await {
+                let deleted: i64 = row.get("deleted").unwrap_or(0);
+                Ok(Json(json!({ "deleted": deleted })))
+            } else {
+                Ok(Json(json!({ "deleted": 0 })))
+            }
+        }
+        Err(e) => {
+            tracing::error!("Error deleting relationship: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "internal server error"}))
+            ))
         }
     }
 }

@@ -16,6 +16,8 @@ export interface CanvasNode {
     dreyfusLevel?: string;
     minScore?: number;
   };
+  // Neo4j element ID for user progress tracking
+  elementId?: string;
   // Original data for detail panel
   originalData?: Record<string, unknown>;
 }

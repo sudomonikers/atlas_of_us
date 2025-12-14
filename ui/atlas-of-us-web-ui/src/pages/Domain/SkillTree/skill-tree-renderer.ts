@@ -71,7 +71,8 @@ export function render(
   hoveredNode: CanvasNode | null,
   selectedNode: CanvasNode | null,
   domainName: string = 'Default',
-  time: number = 0
+  time: number = 0,
+  completedNodeIds: Set<string> = new Set()
 ) {
   // Use CSS dimensions (context is already scaled by DPR)
   const dpr = window.devicePixelRatio || 1;
@@ -107,13 +108,15 @@ export function render(
   const specialNodes = [hoveredNode, selectedNode].filter(Boolean) as CanvasNode[];
 
   regularNodes.forEach(node => {
-    drawNode(ctx, node, camera, width, height, false, false);
+    const isCompleted = node.elementId ? completedNodeIds.has(node.elementId) : false;
+    drawNode(ctx, node, camera, width, height, false, false, isCompleted);
   });
 
   specialNodes.forEach(node => {
     const isHovered = node === hoveredNode;
     const isSelected = node === selectedNode;
-    drawNode(ctx, node, camera, width, height, isHovered, isSelected);
+    const isCompleted = node.elementId ? completedNodeIds.has(node.elementId) : false;
+    drawNode(ctx, node, camera, width, height, isHovered, isSelected, isCompleted);
   });
 }
 
@@ -166,7 +169,8 @@ function drawNode(
   width: number,
   height: number,
   isHovered: boolean,
-  isSelected: boolean
+  isSelected: boolean,
+  isCompleted: boolean = false
 ) {
   const screenPos = worldToScreen(node.x, node.y, camera, width, height);
   const scaledRadius = node.radius * camera.zoom;
@@ -177,29 +181,29 @@ function drawNode(
   const color = getNodeColor(node.type);
   const glowColor = getGlowColor(node.type);
 
-  // Always draw ambient glow for mystical effect
-  const baseIntensity = isSelected ? 1.5 : isHovered ? 1.2 : 0.8;
+  // Completed nodes get enhanced glow
+  const baseIntensity = isCompleted ? 1.8 : isSelected ? 1.5 : isHovered ? 1.2 : 0.8;
   drawGlow(ctx, screenPos, scaledRadius, glowColor, baseIntensity);
 
   // Draw shape based on type
   switch (node.type) {
     case 'knowledge':
-      drawHexagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
+      drawHexagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
       break;
     case 'skill':
-      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
+      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
       break;
     case 'trait':
-      drawDiamond(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
+      drawDiamond(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
       break;
     case 'milestone':
-      drawOctagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
+      drawOctagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
       break;
     case 'level':
       drawRoundedRect(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
       break;
     default:
-      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
+      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
   }
 
   // Draw label when zoomed in enough
@@ -245,7 +249,8 @@ function drawHexagon(
   radius: number,
   color: string,
   isSelected: boolean,
-  isHovered: boolean
+  isHovered: boolean,
+  isCompleted: boolean = false
 ) {
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
@@ -257,20 +262,22 @@ function drawHexagon(
   }
   ctx.closePath();
 
-  // Dark fill with bright edge
-  ctx.fillStyle = 'rgba(13, 13, 21, 0.8)';
+  // Completed: solid color fill; Incomplete: dark fill
+  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
+  ctx.globalAlpha = isCompleted ? 0.6 : 1;
   ctx.fill();
+  ctx.globalAlpha = 1;
 
   // Glowing stroke
   ctx.strokeStyle = color;
-  ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
+  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
   ctx.shadowColor = color;
-  ctx.shadowBlur = isSelected ? 15 : isHovered ? 12 : 8;
+  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
 
   // Inner details - small rune-like marks
-  drawInnerRune(ctx, center, radius * 0.5, color);
+  drawInnerRune(ctx, center, radius * 0.5, isCompleted ? '#ffffff' : color);
 }
 
 function drawCircle(
@@ -279,25 +286,28 @@ function drawCircle(
   radius: number,
   color: string,
   isSelected: boolean,
-  isHovered: boolean
+  isHovered: boolean,
+  isCompleted: boolean = false
 ) {
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
 
-  ctx.fillStyle = 'rgba(13, 13, 21, 0.8)';
+  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
+  ctx.globalAlpha = isCompleted ? 0.6 : 1;
   ctx.fill();
+  ctx.globalAlpha = 1;
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
+  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
   ctx.shadowColor = color;
-  ctx.shadowBlur = isSelected ? 15 : isHovered ? 12 : 8;
+  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
 
   // Inner ring
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius * 0.6, 0, Math.PI * 2);
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = isCompleted ? '#ffffff' : color;
   ctx.lineWidth = 1;
   ctx.globalAlpha = 0.5;
   ctx.stroke();
@@ -310,7 +320,8 @@ function drawDiamond(
   radius: number,
   color: string,
   isSelected: boolean,
-  isHovered: boolean
+  isHovered: boolean,
+  isCompleted: boolean = false
 ) {
   ctx.beginPath();
   ctx.moveTo(center.x, center.y - radius);
@@ -319,13 +330,15 @@ function drawDiamond(
   ctx.lineTo(center.x - radius, center.y);
   ctx.closePath();
 
-  ctx.fillStyle = 'rgba(13, 13, 21, 0.8)';
+  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
+  ctx.globalAlpha = isCompleted ? 0.6 : 1;
   ctx.fill();
+  ctx.globalAlpha = 1;
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
+  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
   ctx.shadowColor = color;
-  ctx.shadowBlur = isSelected ? 15 : isHovered ? 12 : 8;
+  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
 
@@ -337,7 +350,7 @@ function drawDiamond(
   ctx.lineTo(center.x, center.y + innerR);
   ctx.lineTo(center.x - innerR, center.y);
   ctx.closePath();
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = isCompleted ? '#ffffff' : color;
   ctx.lineWidth = 1;
   ctx.globalAlpha = 0.5;
   ctx.stroke();
@@ -350,7 +363,8 @@ function drawOctagon(
   radius: number,
   color: string,
   isSelected: boolean,
-  isHovered: boolean
+  isHovered: boolean,
+  isCompleted: boolean = false
 ) {
   ctx.beginPath();
   for (let i = 0; i < 8; i++) {
@@ -362,18 +376,20 @@ function drawOctagon(
   }
   ctx.closePath();
 
-  ctx.fillStyle = 'rgba(13, 13, 21, 0.8)';
+  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
+  ctx.globalAlpha = isCompleted ? 0.6 : 1;
   ctx.fill();
+  ctx.globalAlpha = 1;
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
+  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
   ctx.shadowColor = color;
-  ctx.shadowBlur = isSelected ? 15 : isHovered ? 12 : 8;
+  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
 
   // Star in center
-  drawStar(ctx, center, radius * 0.4, color);
+  drawStar(ctx, center, radius * 0.4, isCompleted ? '#ffffff' : color);
 }
 
 function drawRoundedRect(

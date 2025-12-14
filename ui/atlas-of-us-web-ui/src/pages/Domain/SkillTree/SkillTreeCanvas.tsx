@@ -10,9 +10,10 @@ interface SkillTreeCanvasProps {
   domainData: DomainData;
   onNodeSelect: (node: CanvasNode | null) => void;
   selectedNode: CanvasNode | null;
+  completedNodeIds?: Set<string>;
 }
 
-export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode }: SkillTreeCanvasProps) {
+export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, completedNodeIds = new Set() }: SkillTreeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef<LayoutResult | null>(null);
@@ -73,7 +74,8 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode }: Skil
         canvasState.hoveredNode,
         selectedNode,
         domainData.domain.name,
-        timestamp
+        timestamp,
+        completedNodeIds
       );
 
       rafRef.current = requestAnimationFrame(animate);
@@ -87,7 +89,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode }: Skil
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [canvasState, selectedNode, domainData.domain.name]);
+  }, [canvasState, selectedNode, domainData.domain.name, completedNodeIds]);
 
   // Handle resize
   useEffect(() => {

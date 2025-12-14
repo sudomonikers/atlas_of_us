@@ -6,6 +6,7 @@ export interface DomainRequirement {
     description?: string;
     [key: string]: unknown;
   };
+  nodeElementId?: string;
   relationship: {
     [key: string]: unknown;
   };

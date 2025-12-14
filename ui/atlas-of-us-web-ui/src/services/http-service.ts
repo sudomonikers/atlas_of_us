@@ -89,4 +89,67 @@ export class HttpService {
       return null;
     }
   }
+
+  async createUserProgress(
+    userElementId: string,
+    targetNodeElementId: string,
+    nodeType: 'knowledge' | 'skill' | 'trait' | 'milestone',
+    properties: { bloom_level?: string; dreyfus_level?: string; score?: number; date?: string }
+  ): Promise<{ success: boolean; error?: string }> {
+    const relationshipType: Record<string, string> = {
+      knowledge: 'HAS_KNOWLEDGE',
+      skill: 'HAS_SKILL',
+      trait: 'HAS_TRAIT',
+      milestone: 'ACHIEVED'
+    };
+
+    try {
+      const response = await fetch(`${this.API_BASE}/secure/graph/create-relationship`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: JSON.stringify({
+          sourceId: userElementId,
+          targetId: targetNodeElementId,
+          type: relationshipType[nodeType],
+          properties
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || 'Failed to create progress' };
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Error creating user progress:', err);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  async deleteUserProgress(relationshipElementId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.API_BASE}/secure/graph/delete-relationship`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: JSON.stringify({ relationshipElementId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || 'Failed to delete progress' };
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting user progress:', err);
+      return { success: false, error: 'Network error' };
+    }
+  }
 }
