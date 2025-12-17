@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useNavigate, useParams } from "react-router";
 import { NavBar } from "../../../common-components/navbar/nav";
 import { useGlobal } from "../../../GlobalProvider";
-import { HttpService, type CreateDomainRequest } from "../../../services/http-service";
+import { HttpService, type CreateDomainRequest, type UpdateDomainRequest } from "../../../services/http-service";
 import { CreatorCanvas } from "./CreatorCanvas/CreatorCanvas";
 import { NodeSearchPanel } from "./NodeSearchPanel/NodeSearchPanel";
 import { NodeCreationModal } from "./NodeCreationModal/NodeCreationModal";
@@ -16,17 +16,27 @@ import {
   createEmptyDomain,
   searchResultToEditableNode,
   createNewNode,
+  domainDataToEditableDomain,
 } from "./domain-creator-interfaces";
 import type { SearchNodeResult } from "../../../services/http-service";
 import "./DomainCreator.css";
 
 export function DomainCreator() {
   const navigate = useNavigate();
+  const { domainName } = useParams<{ domainName?: string }>();
   const httpService = new HttpService();
   const { loggedIn } = useGlobal();
 
+  // Determine if we're in edit mode
+  const isEditMode = Boolean(domainName);
+
   // Main domain state
   const [domain, setDomain] = useState<EditableDomain>(createEmptyDomain);
+  const [originalDomainName, setOriginalDomainName] = useState<string>('');
+  const [isLoadingDomain, setIsLoadingDomain] = useState(false);
+
+  // Track removed nodes for edit mode (to delete user progress)
+  const [removedNodeElementIds, setRemovedNodeElementIds] = useState<string[]>([]);
 
   // UI state
   const [selectedLevelIndex, setSelectedLevelIndex] = useState<number>(0);
@@ -42,16 +52,45 @@ export function DomainCreator() {
   // Current level helper
   const currentLevel = domain.levels[selectedLevelIndex];
 
+  // Fetch existing domain in edit mode
+  useEffect(() => {
+    if (!domainName || !loggedIn) return;
+
+    const loadDomain = async () => {
+      setIsLoadingDomain(true);
+      const data = await httpService.fetchDomain(domainName);
+
+      if (data) {
+        const editableDomain = domainDataToEditableDomain(data);
+        setDomain(editableDomain);
+        setOriginalDomainName(data.name);
+      } else {
+        setSaveError(`Domain "${domainName}" not found`);
+      }
+
+      setIsLoadingDomain(false);
+    };
+
+    loadDomain();
+  }, [domainName, loggedIn]);
+
   // Update domain name
   const handleDomainNameChange = useCallback(async (name: string) => {
     setDomain(prev => ({ ...prev, name }));
+
+    // In edit mode, skip validation if name is unchanged
+    if (isEditMode && capitalizeFirstLetter(name) === originalDomainName) {
+      setIsDomainAvailable(true);
+      return;
+    }
+
     const validation = await httpService.validateDomainName(capitalizeFirstLetter(name));
-    if (!validation.available) {
+    if (!validation?.available) {
       setIsDomainAvailable(false);
     } else {
       setIsDomainAvailable(true);
     }
-  }, []);
+  }, [isEditMode, originalDomainName]);
 
   // Update domain description
   const handleDomainDescriptionChange = useCallback((description: string) => {
@@ -89,15 +128,58 @@ export function DomainCreator() {
     setIsSearchPanelOpen(false);
   }, [selectedLevelIndex]);
 
-  // Add new node from modal
-  const handleAddNewNode = useCallback((
+  // Add new node from modal - creates node in database immediately
+  const handleAddNewNode = useCallback(async (
     name: string,
     description: string,
     type: NodeType,
-    typeSpecificProps: EditableNode['typeSpecificProps']
+    typeSpecificProps: {
+      howToLearn?: string;
+      howToDevelop?: string;
+      measurementCriteria?: string;
+      howToAchieve?: string;
+    }
   ) => {
-    const node = createNewNode(type, name, description);
-    node.typeSpecificProps = typeSpecificProps;
+    // Build properties for API call (snake_case for backend)
+    const properties: Record<string, unknown> = {
+      name,
+      description,
+    };
+
+    // Add type-specific properties
+    if (type === 'knowledge' && typeSpecificProps.howToLearn) {
+      properties.how_to_learn = typeSpecificProps.howToLearn;
+    } else if (type === 'skill' && typeSpecificProps.howToDevelop) {
+      properties.how_to_develop = typeSpecificProps.howToDevelop;
+    } else if (type === 'trait' && typeSpecificProps.measurementCriteria) {
+      properties.measurement_criteria = typeSpecificProps.measurementCriteria;
+    } else if (type === 'milestone' && typeSpecificProps.howToAchieve) {
+      properties.how_to_achieve = typeSpecificProps.howToAchieve;
+    }
+
+    // Map NodeType to Neo4j label
+    const labelMap: Record<NodeType, string> = {
+      knowledge: 'Knowledge',
+      skill: 'Skill',
+      trait: 'Trait',
+      milestone: 'Milestone',
+    };
+
+    // Create node in database
+    const result = await httpService.createNode([labelMap[type]], properties);
+
+    if (!result.success || !result.node) {
+      setSaveError(result.error || 'Failed to create node');
+      return;
+    }
+
+    // Create EditableNode with elementId from API response
+    const node = createNewNode(type, name, description, result.node.elementId);
+    // Add type-specific props to node
+    node.howToLearn = typeSpecificProps.howToLearn;
+    node.howToDevelop = typeSpecificProps.howToDevelop;
+    node.measurementCriteria = typeSpecificProps.measurementCriteria;
+    node.howToAchieve = typeSpecificProps.howToAchieve;
 
     setDomain(prev => ({
       ...prev,
@@ -117,18 +199,27 @@ export function DomainCreator() {
 
   // Remove node from level
   const handleRemoveNode = useCallback((nodeId: string, type: NodeType) => {
-    setDomain(prev => ({
-      ...prev,
-      levels: prev.levels.map((level, i) => {
-        if (i !== selectedLevelIndex) return level;
+    setDomain(prev => {
+      const key = getNodeArrayKey(type);
+      const nodeToRemove = prev.levels[selectedLevelIndex][key].find(n => n.id === nodeId);
 
-        const key = getNodeArrayKey(type);
-        return {
-          ...level,
-          [key]: level[key].filter(n => n.id !== nodeId),
-        };
-      }),
-    }));
+      // Track removed nodes with elementId for edit mode (to delete user progress)
+      if (nodeToRemove?.elementId) {
+        setRemovedNodeElementIds(ids => [...ids, nodeToRemove.elementId!]);
+      }
+
+      return {
+        ...prev,
+        levels: prev.levels.map((level, i) => {
+          if (i !== selectedLevelIndex) return level;
+
+          return {
+            ...level,
+            [key]: level[key].filter(n => n.id !== nodeId),
+          };
+        }),
+      };
+    });
 
     if (selectedNode?.id === nodeId) {
       setSelectedNode(null);
@@ -139,7 +230,7 @@ export function DomainCreator() {
   const handleUpdateNodeRequirement = useCallback((
     nodeId: string,
     type: NodeType,
-    requirement: EditableNode['requirement']
+    requirement: Partial<EditableNode>
   ) => {
     setDomain(prev => ({
       ...prev,
@@ -150,7 +241,7 @@ export function DomainCreator() {
         return {
           ...level,
           [key]: level[key].map(n =>
-            n.id === nodeId ? { ...n, requirement } : n
+            n.id === nodeId ? { ...n, ...requirement } : n
           ),
         };
       }),
@@ -158,7 +249,7 @@ export function DomainCreator() {
 
     // Update selected node if it's the one being edited
     if (selectedNode?.id === nodeId) {
-      setSelectedNode(prev => prev ? { ...prev, requirement } : null);
+      setSelectedNode(prev => prev ? { ...prev, ...requirement } : null);
     }
   }, [selectedLevelIndex, selectedNode]);
 
@@ -197,11 +288,11 @@ export function DomainCreator() {
     return errors;
   }, [domain]);
 
-  // Convert domain to API request format
-  const domainToRequest = useCallback((): CreateDomainRequest => {
+  // Convert domain to API request format for create
+  const domainToCreateRequest = useCallback((): CreateDomainRequest => {
     return {
       domain: {
-        name: domain.name.trim(),
+        name: capitalizeFirstLetter(domain.name.trim()),
         description: domain.description.trim(),
       },
       levels: domain.levels.map(level => ({
@@ -211,44 +302,59 @@ export function DomainCreator() {
         points_required: level.pointsRequired,
         requirements: {
           knowledge: level.knowledge.map(n => ({
-            nodeElementId: n.isNew ? undefined : n.elementId,
-            newNode: n.isNew ? {
-              name: n.name,
-              description: n.description,
-              how_to_learn: n.typeSpecificProps.how_to_learn,
-            } : undefined,
-            bloom_level: n.requirement.bloomLevel || 'Remember',
+            nodeElementId: n.elementId,
+            bloom_level: n.bloomLevel || 'Remember',
           })),
           skills: level.skills.map(n => ({
-            nodeElementId: n.isNew ? undefined : n.elementId,
-            newNode: n.isNew ? {
-              name: n.name,
-              description: n.description,
-              how_to_develop: n.typeSpecificProps.how_to_develop,
-            } : undefined,
-            dreyfus_level: n.requirement.dreyfusLevel || 'Novice',
+            nodeElementId: n.elementId,
+            dreyfus_level: n.dreyfusLevel || 'Novice',
           })),
           traits: level.traits.map(n => ({
-            nodeElementId: n.isNew ? undefined : n.elementId,
-            newNode: n.isNew ? {
-              name: n.name,
-              description: n.description,
-              measurement_criteria: n.typeSpecificProps.measurement_criteria,
-            } : undefined,
-            min_score: n.requirement.minScore || 50,
+            nodeElementId: n.elementId,
+            min_score: n.minScore || 50,
           })),
           milestones: level.milestones.map(n => ({
-            nodeElementId: n.isNew ? undefined : n.elementId,
-            newNode: n.isNew ? {
-              name: n.name,
-              description: n.description,
-              how_to_achieve: n.typeSpecificProps.how_to_achieve,
-            } : undefined,
+            nodeElementId: n.elementId,
           })),
         },
       })),
     };
   }, [domain]);
+
+  // Convert domain to API request format for update
+  const domainToUpdateRequest = useCallback((): UpdateDomainRequest => {
+    return {
+      domainElementId: domain.elementId!,
+      domain: {
+        name: capitalizeFirstLetter(domain.name.trim()),
+        description: domain.description.trim(),
+      },
+      levels: domain.levels.map(level => ({
+        level: level.level,
+        name: level.name,
+        description: level.description || undefined,
+        points_required: level.pointsRequired,
+        requirements: {
+          knowledge: level.knowledge.map(n => ({
+            nodeElementId: n.elementId,
+            bloom_level: n.bloomLevel || 'Remember',
+          })),
+          skills: level.skills.map(n => ({
+            nodeElementId: n.elementId,
+            dreyfus_level: n.dreyfusLevel || 'Novice',
+          })),
+          traits: level.traits.map(n => ({
+            nodeElementId: n.elementId,
+            min_score: n.minScore || 50,
+          })),
+          milestones: level.milestones.map(n => ({
+            nodeElementId: n.elementId,
+          })),
+        },
+      })),
+      removedNodeElementIds,
+    };
+  }, [domain, removedNodeElementIds]);
 
   // Save domain
   const handleSave = useCallback(async () => {
@@ -261,32 +367,43 @@ export function DomainCreator() {
     setSaving(true);
     setSaveError(null);
 
-    // Validate domain name is available
-    const validation = await httpService.validateDomainName(capitalizeFirstLetter(domain.name));
-    if (!validation) {
-      setSaveError("Failed to validate domain name");
-      setSaving(false);
-      return;
-    }
+    if (isEditMode && domain.elementId) {
+      // Edit mode: update existing domain
+      const request = domainToUpdateRequest();
+      const result = await httpService.updateDomain(request);
 
-    if (!validation.available) {
-      setSaveError("A domain with this name already exists");
-      setSaving(false);
-      return;
-    }
-
-    // Create the domain
-    const request = domainToRequest();
-    const result = await httpService.createDomain(request);
-
-    if (result.success && result.domain) {
-      navigate(`/Domain/${encodeURIComponent(result.domain.name)}`);
+      if (result.success && result.domain) {
+        navigate(`/Domain/${encodeURIComponent(result.domain.name)}`);
+      } else {
+        setSaveError(result.error || "Failed to update domain");
+      }
     } else {
-      setSaveError(result.error || "Failed to create domain");
+      // Create mode: validate name and create new domain
+      const validation = await httpService.validateDomainName(capitalizeFirstLetter(domain.name));
+      if (!validation) {
+        setSaveError("Failed to validate domain name");
+        setSaving(false);
+        return;
+      }
+
+      if (!validation.available) {
+        setSaveError("A domain with this name already exists");
+        setSaving(false);
+        return;
+      }
+
+      const request = domainToCreateRequest();
+      const result = await httpService.createDomain(request);
+
+      if (result.success && result.domain) {
+        navigate(`/Domain/${encodeURIComponent(result.domain.name)}`);
+      } else {
+        setSaveError(result.error || "Failed to create domain");
+      }
     }
 
     setSaving(false);
-  }, [domain.name, validateDomain, domainToRequest, navigate]);
+  }, [domain.name, domain.elementId, isEditMode, validateDomain, domainToCreateRequest, domainToUpdateRequest, navigate]);
 
   // Count total nodes
   const totalNodeCount = useMemo(() => {
@@ -304,10 +421,25 @@ export function DomainCreator() {
         <div className="in-nav-container">
           <div className="domain-creator-login-required">
             <h2>Login Required</h2>
-            <p>You must be logged in to create a domain.</p>
+            <p>You must be logged in to {isEditMode ? 'edit' : 'create'} a domain.</p>
             <button onClick={() => navigate("/Login")} className="btn-cosmic">
               Go to Login
             </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Loading state for edit mode
+  if (isLoadingDomain) {
+    return (
+      <>
+        <NavBar />
+        <div className="in-nav-container">
+          <div className="domain-creator-loading">
+            <div className="loading-spinner"></div>
+            <p>Loading domain...</p>
           </div>
         </div>
       </>
@@ -345,7 +477,7 @@ export function DomainCreator() {
               onClick={handleSave}
               disabled={isSaving}
             >
-              {isSaving ? "Saving..." : "Save Domain"}
+              {isSaving ? "Saving..." : isEditMode ? "Update Domain" : "Save Domain"}
             </button>
           </div>
 

@@ -38,6 +38,28 @@
   color: var(--star-text);
 }
 
+.domain-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--glass-backdrop);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--moon-text);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  flex-shrink: 0;
+}
+
+.domain-edit-btn:hover {
+  background: rgba(100, 223, 223, 0.2);
+  border-color: var(--nebula-cyan);
+  color: var(--nebula-cyan);
+}
+
 .domain-title-btn {
   display: flex;
   align-items: center;

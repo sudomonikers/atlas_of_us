@@ -313,8 +313,8 @@ function drawNode(
     drawNodeLabel(ctx, screenPos, node, radius, camera.zoom);
   }
 
-  // Draw "new" badge if node is new
-  if (node.isNew && camera.zoom > 0.6) {
+  // Draw "new" badge if node is new (no elementId means it was just created)
+  if (!node.elementId && camera.zoom > 0.6) {
     drawNewBadge(ctx, screenPos, radius);
   }
 }
@@ -486,12 +486,12 @@ function drawNodeLabel(
     ctx.fillStyle = COLORS.labelTextDim;
 
     let badgeText = '';
-    if (node.requirement.bloomLevel) {
-      badgeText = node.requirement.bloomLevel;
-    } else if (node.requirement.dreyfusLevel) {
-      badgeText = node.requirement.dreyfusLevel;
-    } else if (node.requirement.minScore !== undefined) {
-      badgeText = `${node.requirement.minScore}+`;
+    if (node.bloomLevel) {
+      badgeText = node.bloomLevel;
+    } else if (node.dreyfusLevel) {
+      badgeText = node.dreyfusLevel;
+    } else if (node.minScore !== undefined) {
+      badgeText = `${node.minScore}+`;
     }
 
     if (badgeText) {

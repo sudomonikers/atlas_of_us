@@ -1,6 +1,13 @@
 import { useState } from 'react';
-import type { NodeType, EditableNode } from '../domain-creator-interfaces';
+import type { NodeType } from '../domain-creator-interfaces';
 import './NodeCreationModal.css';
+
+interface TypeSpecificProps {
+  howToLearn?: string;
+  howToDevelop?: string;
+  measurementCriteria?: string;
+  howToAchieve?: string;
+}
 
 interface NodeCreationModalProps {
   onClose: () => void;
@@ -8,7 +15,7 @@ interface NodeCreationModalProps {
     name: string,
     description: string,
     type: NodeType,
-    typeSpecificProps: EditableNode['typeSpecificProps']
+    typeSpecificProps: TypeSpecificProps
   ) => void;
   initialType: NodeType;
 }
@@ -20,24 +27,24 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   milestone: 'Milestone',
 };
 
-const TYPE_SPECIFIC_FIELDS: Record<NodeType, { key: keyof EditableNode['typeSpecificProps']; label: string; placeholder: string }> = {
+const TYPE_SPECIFIC_FIELDS: Record<NodeType, { key: keyof TypeSpecificProps; label: string; placeholder: string }> = {
   knowledge: {
-    key: 'how_to_learn',
+    key: 'howToLearn',
     label: 'How to Learn',
     placeholder: 'Describe how someone can learn this knowledge...',
   },
   skill: {
-    key: 'how_to_develop',
+    key: 'howToDevelop',
     label: 'How to Develop',
     placeholder: 'Describe how someone can develop this skill...',
   },
   trait: {
-    key: 'measurement_criteria',
+    key: 'measurementCriteria',
     label: 'Measurement Criteria',
     placeholder: 'Describe how this trait is measured (0-100 scale)...',
   },
   milestone: {
-    key: 'how_to_achieve',
+    key: 'howToAchieve',
     label: 'How to Achieve',
     placeholder: 'Describe how someone can achieve this milestone...',
   },
@@ -74,7 +81,7 @@ export function NodeCreationModal({
   const handleSave = () => {
     if (!validate()) return;
 
-    const typeSpecificProps: EditableNode['typeSpecificProps'] = {};
+    const typeSpecificProps: TypeSpecificProps = {};
     if (typeSpecificValue.trim()) {
       typeSpecificProps[typeField.key] = typeSpecificValue.trim();
     }

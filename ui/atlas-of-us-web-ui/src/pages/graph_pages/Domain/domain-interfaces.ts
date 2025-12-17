@@ -1,35 +1,38 @@
-// Interface for domain data returned from /api/secure/graph/domain endpoint
+// Unified domain data format - used by both viewer and creator
 
-export interface DomainRequirement {
-  node: {
-    name: string;
-    description?: string;
-    [key: string]: unknown;
-  };
-  nodeElementId?: string;
-  relationship: {
-    [key: string]: unknown;
-  };
+export type NodeType = 'knowledge' | 'skill' | 'trait' | 'milestone';
+
+export interface DomainNode {
+  elementId: string;
+  type: NodeType;
+  name: string;
+  description?: string;
+  // Type-specific props
+  howToLearn?: string;        // knowledge
+  howToDevelop?: string;      // skill
+  measurementCriteria?: string; // trait
+  howToAchieve?: string;      // milestone
+  // Requirement (from relationship)
+  bloomLevel?: string;        // knowledge requirement
+  dreyfusLevel?: string;      // skill requirement
+  minScore?: number;          // trait requirement
 }
 
 export interface DomainLevel {
-  level: {
-    level: number;
-    name: string;
-    description?: string;
-    [key: string]: unknown;
-  };
-  knowledge: DomainRequirement[];
-  skills: DomainRequirement[];
-  traits: DomainRequirement[];
-  milestones: DomainRequirement[];
+  elementId: string;
+  level: number;
+  name: string;
+  description?: string;
+  pointsRequired: number;
+  knowledge: DomainNode[];
+  skills: DomainNode[];
+  traits: DomainNode[];
+  milestones: DomainNode[];
 }
 
 export interface DomainData {
-  domain: {
-    name: string;
-    description?: string;
-    [key: string]: unknown;
-  };
+  elementId: string;
+  name: string;
+  description?: string;
   levels: DomainLevel[];
 }

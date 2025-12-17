@@ -1,6 +1,6 @@
 // Layout algorithm for positioning nodes in the skill tree
 
-import type { DomainData, DomainLevel, DomainRequirement } from '../domain-interfaces';
+import type { DomainData, DomainLevel, DomainNode } from '../domain-interfaces';
 import type { CanvasNode, Connection, LayoutResult, NodeType } from './skill-tree-types';
 import { LAYOUT, NODE_RADIUS } from './skill-tree-constants';
 
@@ -14,7 +14,7 @@ export function calculateLayout(domainData: DomainData): LayoutResult {
 
   // Sort levels by level number
   const sortedLevels = [...domainData.levels].sort(
-    (a, b) => a.level.level - b.level.level
+    (a, b) => a.level - b.level
   );
 
   // Calculate layout for each level
@@ -54,7 +54,7 @@ function calculateLevelLayout(level: DomainLevel, levelIndex: number): CanvasNod
     { type: 'skill' as NodeType, items: level.skills || [] },
     { type: 'trait' as NodeType, items: level.traits || [] },
     { type: 'milestone' as NodeType, items: level.milestones || [] },
-  ] as { type: NodeType; items: DomainRequirement[] }[]).filter(s => s.items.length > 0);
+  ] as { type: NodeType; items: DomainNode[] }[]).filter(s => s.items.length > 0);
 
   // Calculate total height needed with grid layout
   let totalHeight = LAYOUT.LEVEL_HEADER_OFFSET;
@@ -70,14 +70,19 @@ function calculateLevelLayout(level: DomainLevel, levelIndex: number): CanvasNod
   // Create level header node
   const levelHeader: CanvasNode = {
     id: `level-${levelIndex}`,
-    name: level.level.name || `Level ${level.level.level}`,
-    description: level.level.description as string | undefined,
+    name: level.name || `Level ${level.level}`,
+    description: level.description,
     type: 'level',
     levelIndex,
     x: levelCenterX,
     y: currentY,
     radius: NODE_RADIUS.level,
-    originalData: level.level as Record<string, unknown>,
+    originalData: {
+      level: level.level,
+      name: level.name,
+      description: level.description,
+      pointsRequired: level.pointsRequired,
+    },
   };
   nodes.push(levelHeader);
   currentY += LAYOUT.LEVEL_HEADER_OFFSET;
@@ -115,31 +120,28 @@ function calculateLevelLayout(level: DomainLevel, levelIndex: number): CanvasNod
 }
 
 function createCanvasNode(
-  requirement: DomainRequirement,
+  domainNode: DomainNode,
   type: NodeType,
   levelIndex: number,
   x: number,
   y: number
 ): CanvasNode {
-  const node = requirement.node;
-  const rel = requirement.relationship;
-
   return {
-    id: `${type}-${levelIndex}-${node.name}`,
-    name: node.name,
-    description: node.description,
+    id: `${type}-${levelIndex}-${domainNode.name}`,
+    name: domainNode.name,
+    description: domainNode.description,
     type,
     levelIndex,
     x,
     y,
     radius: NODE_RADIUS[type],
     requirement: {
-      bloomLevel: rel.bloom_level as string | undefined,
-      dreyfusLevel: rel.dreyfus_level as string | undefined,
-      minScore: rel.min_score as number | undefined,
+      bloomLevel: domainNode.bloomLevel,
+      dreyfusLevel: domainNode.dreyfusLevel,
+      minScore: domainNode.minScore,
     },
-    elementId: requirement.nodeElementId,
-    originalData: node as Record<string, unknown>,
+    elementId: domainNode.elementId,
+    originalData: domainNode as unknown as Record<string, unknown>,
   };
 }
 

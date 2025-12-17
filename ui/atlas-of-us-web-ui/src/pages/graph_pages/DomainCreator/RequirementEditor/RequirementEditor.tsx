@@ -6,7 +6,7 @@ import './RequirementEditor.css';
 interface RequirementEditorProps {
   node: EditableNode;
   onClose: () => void;
-  onUpdate: (requirement: EditableNode['requirement']) => void;
+  onUpdate: (requirement: Partial<EditableNode>) => void;
   onRemove: () => void;
 }
 
@@ -17,17 +17,17 @@ export function RequirementEditor({
   onRemove,
 }: RequirementEditorProps) {
   const [bloomLevel, setBloomLevel] = useState<BloomLevel>(
-    node.requirement.bloomLevel || 'Remember'
+    node.bloomLevel || 'Remember'
   );
   const [dreyfusLevel, setDreyfusLevel] = useState<DreyfusLevel>(
-    node.requirement.dreyfusLevel || 'Novice'
+    node.dreyfusLevel || 'Novice'
   );
   const [minScore, setMinScore] = useState<number>(
-    node.requirement.minScore || 50
+    node.minScore || 50
   );
 
   const handleSave = () => {
-    const requirement: EditableNode['requirement'] = {};
+    const requirement: Partial<EditableNode> = {};
 
     if (node.type === 'knowledge') {
       requirement.bloomLevel = bloomLevel;
@@ -61,6 +61,9 @@ export function RequirementEditor({
     return labels[node.type];
   };
 
+  // Check if node is new (no elementId means it was just created)
+  const isNew = !node.elementId;
+
   return (
     <div className="requirement-editor-overlay" onClick={onClose}>
       <div
@@ -89,7 +92,7 @@ export function RequirementEditor({
         )}
 
         {/* New badge */}
-        {node.isNew && (
+        {isNew && (
           <div className="new-node-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />

@@ -154,6 +154,42 @@ export class HttpService {
   }
 
   // Domain Creator endpoints
+  async createNode(
+    labels: string[],
+    properties: Record<string, unknown>
+  ): Promise<CreateNodeResponse> {
+    try {
+      const response = await fetch(`${this.API_BASE}/secure/graph/create-node`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: JSON.stringify({ labels, properties }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || errorData.details || 'Failed to create node' };
+      }
+
+      const data = await response.json();
+      // Response is an array of nodes with PascalCase keys (ElementId, Labels, Props)
+      const nodeData = data[0];
+      return {
+        success: true,
+        node: {
+          elementId: nodeData.ElementId,
+          labels: nodeData.Labels,
+          props: nodeData.Props,
+        },
+      };
+    } catch (err) {
+      console.error('Error creating node:', err);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
   async searchNodes(
     query: string,
     labels?: string[],
@@ -234,6 +270,35 @@ export class HttpService {
       return { success: true, domain: data.domain, createdNodes: data.createdNodes };
     } catch (err) {
       console.error('Error creating domain:', err);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  async updateDomain(request: UpdateDomainRequest): Promise<UpdateDomainResponse> {
+    try {
+      const response = await fetch(`${this.API_BASE}/secure/graph/update-domain`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || 'Failed to update domain' };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        domain: data.domain,
+        createdNodes: data.createdNodes,
+        affectedUserProgressCount: data.affectedUserProgressCount,
+      };
+    } catch (err) {
+      console.error('Error updating domain:', err);
       return { success: false, error: 'Network error' };
     }
   }
@@ -320,5 +385,40 @@ export interface CreateDomainResponse {
     name: string;
     labels: string[];
   }>;
+  error?: string;
+}
+
+export interface CreateNodeResponse {
+  success: boolean;
+  node?: {
+    elementId: string;
+    labels: string[];
+    props: Record<string, unknown>;
+  };
+  error?: string;
+}
+
+export interface UpdateDomainRequest {
+  domainElementId: string;
+  domain: {
+    name: string;
+    description: string;
+  };
+  levels: DomainLevelRequest[];
+  removedNodeElementIds: string[];
+}
+
+export interface UpdateDomainResponse {
+  success: boolean;
+  domain?: {
+    elementId: string;
+    name: string;
+  };
+  createdNodes?: Array<{
+    elementId: string;
+    name: string;
+    labels: string[];
+  }>;
+  affectedUserProgressCount?: number;
   error?: string;
 }

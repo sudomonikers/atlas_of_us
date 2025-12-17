@@ -1,33 +1,35 @@
 // Types for the Domain Creator UI
+// Aligned with unified DomainData format from Domain viewer
+
+import type { DomainData, DomainNode, DomainLevel } from '../Domain/domain-interfaces';
 
 export type NodeType = 'knowledge' | 'skill' | 'trait' | 'milestone';
 export type BloomLevel = 'Remember' | 'Understand' | 'Apply' | 'Analyze' | 'Evaluate' | 'Create';
 export type DreyfusLevel = 'Novice' | 'Advanced Beginner' | 'Competent' | 'Proficient' | 'Expert';
 
 // Node that can be added to a domain (either existing or new)
+// If elementId is present, node exists in database; otherwise it's pending creation
 export interface EditableNode {
-  id: string;                    // Temporary client ID (uuid)
-  elementId?: string;            // Neo4j ID if existing node
-  isNew: boolean;                // True if created in this session
+  id: string;                    // Temporary client ID (uuid) for tracking during editing
+  elementId?: string;            // Neo4j ID - present if node exists in database
   type: NodeType;
   name: string;
   description: string;
-  typeSpecificProps: {
-    how_to_learn?: string;       // Knowledge
-    how_to_develop?: string;     // Skill
-    measurement_criteria?: string; // Trait
-    how_to_achieve?: string;     // Milestone
-  };
-  requirement: {
-    bloomLevel?: BloomLevel;
-    dreyfusLevel?: DreyfusLevel;
-    minScore?: number;
-  };
+  // Type-specific props (aligned with unified format)
+  howToLearn?: string;           // Knowledge
+  howToDevelop?: string;         // Skill
+  measurementCriteria?: string;  // Trait
+  howToAchieve?: string;         // Milestone
+  // Requirement (aligned with unified format)
+  bloomLevel?: BloomLevel;
+  dreyfusLevel?: DreyfusLevel;
+  minScore?: number;
 }
 
-// A level in the domain being created
+// A level in the domain being created/edited
 export interface EditableDomainLevel {
   id: string;                    // Temporary client ID
+  elementId?: string;            // Neo4j ID - present if level exists in database
   level: number;                 // 1-5
   name: string;
   description: string;
@@ -38,8 +40,9 @@ export interface EditableDomainLevel {
   milestones: EditableNode[];
 }
 
-// The domain being created
+// The domain being created/edited
 export interface EditableDomain {
+  elementId?: string;            // Neo4j ID - present if domain exists in database
   name: string;
   description: string;
   levels: EditableDomainLevel[];
@@ -130,22 +133,19 @@ export function searchResultToEditableNode(
   return {
     id: crypto.randomUUID(),
     elementId: result.elementId,
-    isNew: false,
     type,
     name: result.props.name,
     description: result.props.description || '',
-    typeSpecificProps: {
-      how_to_learn: result.props.how_to_learn,
-      how_to_develop: result.props.how_to_develop,
-      measurement_criteria: result.props.measurement_criteria,
-      how_to_achieve: result.props.how_to_achieve,
-    },
-    requirement: getDefaultRequirement(type),
+    howToLearn: result.props.how_to_learn,
+    howToDevelop: result.props.how_to_develop,
+    measurementCriteria: result.props.measurement_criteria,
+    howToAchieve: result.props.how_to_achieve,
+    ...getDefaultRequirement(type),
   };
 }
 
 // Helper to get default requirement based on type
-export function getDefaultRequirement(type: NodeType): EditableNode['requirement'] {
+export function getDefaultRequirement(type: NodeType): Partial<EditableNode> {
   switch (type) {
     case 'knowledge':
       return { bloomLevel: 'Remember' };
@@ -158,15 +158,63 @@ export function getDefaultRequirement(type: NodeType): EditableNode['requirement
   }
 }
 
-// Helper to create a new node
-export function createNewNode(type: NodeType, name: string, description: string): EditableNode {
+// Helper to create a new node (elementId will be set after API creation)
+export function createNewNode(
+  type: NodeType,
+  name: string,
+  description: string,
+  elementId?: string
+): EditableNode {
   return {
     id: crypto.randomUUID(),
-    isNew: true,
+    elementId,
     type,
     name,
     description,
-    typeSpecificProps: {},
-    requirement: getDefaultRequirement(type),
+    ...getDefaultRequirement(type),
+  };
+}
+
+// Convert DomainNode (from API) to EditableNode
+function domainNodeToEditableNode(node: DomainNode): EditableNode {
+  return {
+    id: crypto.randomUUID(),
+    elementId: node.elementId,
+    type: node.type,
+    name: node.name,
+    description: node.description || '',
+    howToLearn: node.howToLearn,
+    howToDevelop: node.howToDevelop,
+    measurementCriteria: node.measurementCriteria,
+    howToAchieve: node.howToAchieve,
+    bloomLevel: node.bloomLevel as BloomLevel | undefined,
+    dreyfusLevel: node.dreyfusLevel as DreyfusLevel | undefined,
+    minScore: node.minScore,
+  };
+}
+
+// Convert DomainLevel (from API) to EditableDomainLevel
+function domainLevelToEditableLevel(level: DomainLevel): EditableDomainLevel {
+  return {
+    id: crypto.randomUUID(),
+    elementId: level.elementId,
+    level: level.level,
+    name: level.name,
+    description: level.description || '',
+    pointsRequired: level.pointsRequired,
+    knowledge: level.knowledge.map(domainNodeToEditableNode),
+    skills: level.skills.map(domainNodeToEditableNode),
+    traits: level.traits.map(domainNodeToEditableNode),
+    milestones: level.milestones.map(domainNodeToEditableNode),
+  };
+}
+
+// Convert DomainData (from API) to EditableDomain for edit mode
+export function domainDataToEditableDomain(data: DomainData): EditableDomain {
+  return {
+    elementId: data.elementId,
+    name: data.name,
+    description: data.description || '',
+    levels: data.levels.map(domainLevelToEditableLevel),
   };
 }

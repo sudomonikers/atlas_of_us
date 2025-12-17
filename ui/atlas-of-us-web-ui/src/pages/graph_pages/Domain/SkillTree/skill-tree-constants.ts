@@ -28,14 +28,14 @@ export const COLORS = {
   knowledge: '#64dfdf',     // cyan/teal
   skill: '#80ffdb',         // bright mint
   trait: '#c77dff',         // soft purple
-  milestone: '#e0aaff',     // light lavender
+  milestone: '#FFD700',     // yellow
   level: '#48bfe3',         // sky blue
 
   // Node glow colors - intense halos
   knowledgeGlow: 'rgba(100, 223, 223, 0.6)',
   skillGlow: 'rgba(128, 255, 219, 0.6)',
   traitGlow: 'rgba(199, 125, 255, 0.6)',
-  milestoneGlow: 'rgba(224, 170, 255, 0.6)',
+  milestoneGlow: 'rgba(255, 215, 0, 0.6)',
   levelGlow: 'rgba(72, 191, 227, 0.6)',
 
   // Connection lines - subtle energy

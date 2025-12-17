@@ -162,8 +162,6 @@ export function CreatorCanvas({
   }, [camera, allNodes, level, onSelectNode]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-
     const container = containerRef.current;
     if (!container) return;
 

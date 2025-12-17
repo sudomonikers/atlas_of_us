@@ -63,6 +63,11 @@ createRoot(document.getElementById('root')!).render(
             <DomainCreator />
           </PrivateRoute>
         } />
+        <Route path="/DomainCreator/:domainName" element={
+          <PrivateRoute>
+            <DomainCreator />
+          </PrivateRoute>
+        } />
         <Route path="/Roadmap" element={<Roadmap />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Blog" element={<Blog />} />

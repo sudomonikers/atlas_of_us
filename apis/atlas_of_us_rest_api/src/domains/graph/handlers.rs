@@ -613,6 +613,7 @@ pub async fn get_domain(
     Query(params): Query<GetDomainParams>,
     State(graph): State<Graph>,
 ) -> Result<Json<Value>, StatusCode> {
+    // Unified flat format: all node properties and requirements merged into single objects
     let query_string = r#"
         MATCH (domain:Domain {name: $name})
         OPTIONAL MATCH (domain)-[:HAS_DOMAIN_LEVEL]->(level:Domain_Level)
@@ -630,41 +631,58 @@ pub async fn get_domain(
         OPTIONAL MATCH (level)-[mr:REQUIRES_MILESTONE]->(m:Milestone)
 
         WITH domain, level,
-             collect(DISTINCT {
-                 node: properties(k),
-                 nodeElementId: elementId(k),
-                 relationship: properties(kr)
-             }) AS knowledge,
-             collect(DISTINCT {
-                 node: properties(s),
-                 nodeElementId: elementId(s),
-                 relationship: properties(sr)
-             }) AS skills,
-             collect(DISTINCT {
-                 node: properties(t),
-                 nodeElementId: elementId(t),
-                 relationship: properties(tr)
-             }) AS traits,
-             collect(DISTINCT {
-                 node: properties(m),
-                 nodeElementId: elementId(m),
-                 relationship: properties(mr)
-             }) AS milestones
+             collect(DISTINCT CASE WHEN k IS NOT NULL THEN {
+                 elementId: elementId(k),
+                 type: 'knowledge',
+                 name: k.name,
+                 description: k.description,
+                 howToLearn: k.how_to_learn,
+                 bloomLevel: kr.bloom_level
+             } ELSE NULL END) AS knowledge,
+             collect(DISTINCT CASE WHEN s IS NOT NULL THEN {
+                 elementId: elementId(s),
+                 type: 'skill',
+                 name: s.name,
+                 description: s.description,
+                 howToDevelop: s.how_to_develop,
+                 dreyfusLevel: sr.dreyfus_level
+             } ELSE NULL END) AS skills,
+             collect(DISTINCT CASE WHEN t IS NOT NULL THEN {
+                 elementId: elementId(t),
+                 type: 'trait',
+                 name: t.name,
+                 description: t.description,
+                 measurementCriteria: t.measurement_criteria,
+                 minScore: tr.min_score
+             } ELSE NULL END) AS traits,
+             collect(DISTINCT CASE WHEN m IS NOT NULL THEN {
+                 elementId: elementId(m),
+                 type: 'milestone',
+                 name: m.name,
+                 description: m.description,
+                 howToAchieve: m.how_to_achieve
+             } ELSE NULL END) AS milestones
 
         ORDER BY level.level
 
         WITH domain,
-             collect({
-                 level: properties(level),
-                 knowledge: [item IN knowledge WHERE item.node IS NOT NULL],
-                 skills: [item IN skills WHERE item.node IS NOT NULL],
-                 traits: [item IN traits WHERE item.node IS NOT NULL],
-                 milestones: [item IN milestones WHERE item.node IS NOT NULL]
-             }) AS levels
+             collect(CASE WHEN level IS NOT NULL THEN {
+                 elementId: elementId(level),
+                 level: level.level,
+                 name: level.name,
+                 description: level.description,
+                 pointsRequired: level.total_points_required,
+                 knowledge: [item IN knowledge WHERE item IS NOT NULL],
+                 skills: [item IN skills WHERE item IS NOT NULL],
+                 traits: [item IN traits WHERE item IS NOT NULL],
+                 milestones: [item IN milestones WHERE item IS NOT NULL]
+             } ELSE NULL END) AS levels
 
         RETURN {
-            domain: properties(domain),
-            levels: levels
+            elementId: elementId(domain),
+            name: domain.name,
+            description: domain.description,
+            levels: [l IN levels WHERE l IS NOT NULL]
         } AS result
     "#;
 
@@ -1273,4 +1291,334 @@ async fn create_component_node(
             Err(format!("Database error: {}", e))
         }
     }
+}
+
+// Request type for update_domain
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UpdateDomainRequest {
+    #[serde(rename = "domainElementId")]
+    pub domain_element_id: String,
+    pub domain: DomainInfo,
+    pub levels: Vec<DomainLevel>,
+    #[serde(rename = "removedNodeElementIds")]
+    pub removed_node_element_ids: Vec<String>,
+}
+
+pub async fn update_domain(
+    State(graph): State<Graph>,
+    Json(request): Json<UpdateDomainRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // Validate request
+    if request.domain.name.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "Domain name is required"}))
+        ));
+    }
+
+    if request.levels.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "At least one level is required"}))
+        ));
+    }
+
+    // Verify domain exists
+    let verify_query = Neo4jQuery::new(
+        "MATCH (d:Domain) WHERE elementId(d) = $domainId RETURN d.name AS name".to_string()
+    ).param("domainId", request.domain_element_id.clone());
+
+    match graph.execute(verify_query).await {
+        Ok(mut result) => {
+            if result.next().await.ok().flatten().is_none() {
+                return Err((
+                    StatusCode::NOT_FOUND,
+                    Json(json!({"error": "Domain not found"}))
+                ));
+            }
+        }
+        Err(e) => {
+            tracing::error!("Error verifying domain: {}", e);
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "Failed to verify domain"}))
+            ));
+        }
+    }
+
+    // Delete user progress for removed nodes
+    let mut affected_user_count: i64 = 0;
+    if !request.removed_node_element_ids.is_empty() {
+        let delete_progress_query = Neo4jQuery::new(
+            r#"
+            UNWIND $nodeIds AS nodeId
+            MATCH (u:User)-[r:HAS_KNOWLEDGE|HAS_SKILL|HAS_TRAIT|ACHIEVED]->(n)
+            WHERE elementId(n) = nodeId
+            DELETE r
+            RETURN count(r) AS deletedCount
+            "#.to_string()
+        ).param("nodeIds", request.removed_node_element_ids.clone());
+
+        match graph.execute(delete_progress_query).await {
+            Ok(mut result) => {
+                if let Ok(Some(row)) = result.next().await {
+                    affected_user_count = row.get("deletedCount").unwrap_or(0);
+                }
+            }
+            Err(e) => {
+                tracing::error!("Error deleting user progress: {}", e);
+                // Continue anyway - non-critical
+            }
+        }
+    }
+
+    // Update domain properties
+    let update_domain_query = Neo4jQuery::new(
+        r#"
+        MATCH (d:Domain) WHERE elementId(d) = $domainId
+        SET d.name = $name, d.description = $description
+        RETURN elementId(d) AS elementId
+        "#.to_string()
+    )
+    .param("domainId", request.domain_element_id.clone())
+    .param("name", request.domain.name.clone())
+    .param("description", request.domain.description.clone());
+
+    if let Err(e) = graph.run(update_domain_query).await {
+        tracing::error!("Error updating domain: {}", e);
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "Failed to update domain"}))
+        ));
+    }
+
+    // Delete old Domain_Level nodes and their relationships
+    let delete_levels_query = Neo4jQuery::new(
+        r#"
+        MATCH (d:Domain)-[:HAS_DOMAIN_LEVEL]->(l:Domain_Level)
+        WHERE elementId(d) = $domainId
+        DETACH DELETE l
+        "#.to_string()
+    ).param("domainId", request.domain_element_id.clone());
+
+    if let Err(e) = graph.run(delete_levels_query).await {
+        tracing::error!("Error deleting old levels: {}", e);
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "Failed to delete old levels"}))
+        ));
+    }
+
+    let mut created_nodes: Vec<CreatedNodeInfo> = Vec::new();
+
+    // Create new Domain Levels and link to domain
+    let mut level_element_ids: Vec<String> = Vec::new();
+
+    for level in &request.levels {
+        let level_description = level.description.clone().unwrap_or_default();
+
+        let create_level_query = Neo4jQuery::new(
+            r#"
+            MATCH (d:Domain) WHERE elementId(d) = $domainId
+            CREATE (l:Domain_Level {
+                level: $level,
+                name: $name,
+                description: $description,
+                total_points_required: $points
+            })
+            CREATE (d)-[:HAS_DOMAIN_LEVEL]->(l)
+            RETURN elementId(l) AS elementId
+            "#.to_string()
+        )
+        .param("domainId", request.domain_element_id.clone())
+        .param("level", level.level)
+        .param("name", level.name.clone())
+        .param("description", level_description)
+        .param("points", level.points_required);
+
+        match graph.execute(create_level_query).await {
+            Ok(mut result) => {
+                if let Ok(Some(row)) = result.next().await {
+                    let id: String = row.get("elementId").unwrap_or_default();
+                    level_element_ids.push(id);
+                }
+            }
+            Err(e) => {
+                tracing::error!("Error creating domain level: {}", e);
+            }
+        }
+    }
+
+    // Process requirements for each level (same logic as create_domain)
+    for (level_idx, level) in request.levels.iter().enumerate() {
+        if level_idx >= level_element_ids.len() {
+            continue;
+        }
+        let level_element_id = &level_element_ids[level_idx];
+
+        // Process Knowledge requirements
+        for knowledge_req in &level.requirements.knowledge {
+            let node_id = if let Some(existing_id) = &knowledge_req.node_element_id {
+                existing_id.clone()
+            } else if let Some(new_node) = &knowledge_req.new_node {
+                match create_component_node(&graph, "Knowledge", new_node).await {
+                    Ok(id) => {
+                        created_nodes.push(CreatedNodeInfo {
+                            element_id: id.clone(),
+                            name: new_node.name.clone(),
+                            labels: vec!["Knowledge".to_string()],
+                        });
+                        id
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to create knowledge node: {}", e);
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            };
+
+            let rel_query = Neo4jQuery::new(
+                r#"
+                MATCH (l:Domain_Level), (k:Knowledge)
+                WHERE elementId(l) = $levelId AND elementId(k) = $nodeId
+                CREATE (l)-[:REQUIRES_KNOWLEDGE {bloom_level: $bloomLevel}]->(k)
+                "#.to_string()
+            )
+            .param("levelId", level_element_id.clone())
+            .param("nodeId", node_id)
+            .param("bloomLevel", knowledge_req.bloom_level.clone());
+
+            if let Err(e) = graph.run(rel_query).await {
+                tracing::error!("Error creating knowledge requirement: {}", e);
+            }
+        }
+
+        // Process Skill requirements
+        for skill_req in &level.requirements.skills {
+            let node_id = if let Some(existing_id) = &skill_req.node_element_id {
+                existing_id.clone()
+            } else if let Some(new_node) = &skill_req.new_node {
+                match create_component_node(&graph, "Skill", new_node).await {
+                    Ok(id) => {
+                        created_nodes.push(CreatedNodeInfo {
+                            element_id: id.clone(),
+                            name: new_node.name.clone(),
+                            labels: vec!["Skill".to_string()],
+                        });
+                        id
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to create skill node: {}", e);
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            };
+
+            let rel_query = Neo4jQuery::new(
+                r#"
+                MATCH (l:Domain_Level), (s:Skill)
+                WHERE elementId(l) = $levelId AND elementId(s) = $nodeId
+                CREATE (l)-[:REQUIRES_SKILL {dreyfus_level: $dreyfusLevel}]->(s)
+                "#.to_string()
+            )
+            .param("levelId", level_element_id.clone())
+            .param("nodeId", node_id)
+            .param("dreyfusLevel", skill_req.dreyfus_level.clone());
+
+            if let Err(e) = graph.run(rel_query).await {
+                tracing::error!("Error creating skill requirement: {}", e);
+            }
+        }
+
+        // Process Trait requirements
+        for trait_req in &level.requirements.traits {
+            let node_id = if let Some(existing_id) = &trait_req.node_element_id {
+                existing_id.clone()
+            } else if let Some(new_node) = &trait_req.new_node {
+                match create_component_node(&graph, "Trait", new_node).await {
+                    Ok(id) => {
+                        created_nodes.push(CreatedNodeInfo {
+                            element_id: id.clone(),
+                            name: new_node.name.clone(),
+                            labels: vec!["Trait".to_string()],
+                        });
+                        id
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to create trait node: {}", e);
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            };
+
+            let rel_query = Neo4jQuery::new(
+                r#"
+                MATCH (l:Domain_Level), (t:Trait)
+                WHERE elementId(l) = $levelId AND elementId(t) = $nodeId
+                CREATE (l)-[:REQUIRES_TRAIT {min_score: $minScore}]->(t)
+                "#.to_string()
+            )
+            .param("levelId", level_element_id.clone())
+            .param("nodeId", node_id)
+            .param("minScore", trait_req.min_score);
+
+            if let Err(e) = graph.run(rel_query).await {
+                tracing::error!("Error creating trait requirement: {}", e);
+            }
+        }
+
+        // Process Milestone requirements
+        for milestone_req in &level.requirements.milestones {
+            let node_id = if let Some(existing_id) = &milestone_req.node_element_id {
+                existing_id.clone()
+            } else if let Some(new_node) = &milestone_req.new_node {
+                match create_component_node(&graph, "Milestone", new_node).await {
+                    Ok(id) => {
+                        created_nodes.push(CreatedNodeInfo {
+                            element_id: id.clone(),
+                            name: new_node.name.clone(),
+                            labels: vec!["Milestone".to_string()],
+                        });
+                        id
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to create milestone node: {}", e);
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            };
+
+            let rel_query = Neo4jQuery::new(
+                r#"
+                MATCH (l:Domain_Level), (m:Milestone)
+                WHERE elementId(l) = $levelId AND elementId(m) = $nodeId
+                CREATE (l)-[:REQUIRES_MILESTONE]->(m)
+                "#.to_string()
+            )
+            .param("levelId", level_element_id.clone())
+            .param("nodeId", node_id);
+
+            if let Err(e) = graph.run(rel_query).await {
+                tracing::error!("Error creating milestone requirement: {}", e);
+            }
+        }
+    }
+
+    Ok(Json(json!({
+        "success": true,
+        "domain": {
+            "elementId": request.domain_element_id,
+            "name": request.domain.name
+        },
+        "createdNodes": created_nodes,
+        "affectedUserProgressCount": affected_user_count
+    })))
 }

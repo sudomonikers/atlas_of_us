@@ -17,7 +17,7 @@ use domains::profile::handlers::get_user_profile;
 use domains::graph::handlers::{
     get_nodes, get_node_with_relationships_by_search_term, create_node, create_relationship,
     update_node, update_relationship, get_similar_nodes, get_domain, delete_relationship,
-    search_nodes, validate_domain_name, create_domain
+    search_nodes, validate_domain_name, create_domain, update_domain
 };
 use dotenvy::dotenv;
 use neo4rs::*;
@@ -96,6 +96,7 @@ async fn main() {
         .route("/api/secure/graph/domain", get(get_domain))
         .route("/api/secure/graph/validate-domain-name", get(validate_domain_name))
         .route("/api/secure/graph/create-domain", post(create_domain))
+        .route("/api/secure/graph/update-domain", put(update_domain))
         //middleware
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 

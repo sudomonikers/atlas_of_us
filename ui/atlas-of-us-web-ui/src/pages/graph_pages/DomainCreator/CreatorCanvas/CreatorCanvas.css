@@ -133,7 +133,7 @@
 }
 
 .legend-shape.octagon {
-  border-color: #e0aaff;
+  border-color: #FFD700;
   clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
   background: rgba(224, 170, 255, 0.2);
 }

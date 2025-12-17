@@ -73,7 +73,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, comple
         canvasState.camera,
         canvasState.hoveredNode,
         selectedNode,
-        domainData.domain.name,
+        domainData.name,
         timestamp,
         completedNodeIds
       );
@@ -89,7 +89,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, comple
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [canvasState, selectedNode, domainData.domain.name, completedNodeIds]);
+  }, [canvasState, selectedNode, domainData.name, completedNodeIds]);
 
   // Handle resize
   useEffect(() => {
