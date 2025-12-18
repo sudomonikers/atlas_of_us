@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { JSX, useState } from 'react';
 import type { CanvasNode } from '../SkillTree/skill-tree-types';
-import type { Neo4jRelationship } from '../../Graph/graph-interfaces.interface';
 import { BLOOM_LEVELS, DREYFUS_LEVELS } from '../SkillTree/skill-tree-constants';
 import './NodeDetailPanel.css';
 
@@ -8,7 +7,11 @@ interface NodeDetailPanelProps {
   node: CanvasNode | null;
   onClose: () => void;
   isCompleted: boolean;
-  userRelationship: Neo4jRelationship | null;
+  relationshipElementId?: string;
+  userScore?: number;
+  userBloomLevel?: string;
+  userDreyfusLevel?: string;
+  userDate?: string;
   onMarkComplete: (node: CanvasNode, levelOrScore: string | number) => Promise<void>;
   onRemoveProgress: (relationshipElementId: string) => Promise<void>;
   isLoggedIn: boolean;
@@ -18,59 +21,69 @@ export function NodeDetailPanel({
   node,
   onClose,
   isCompleted,
-  userRelationship,
+  relationshipElementId,
+  userScore,
+  userBloomLevel,
+  userDreyfusLevel,
+  userDate,
   onMarkComplete,
   onRemoveProgress,
   isLoggedIn
 }: NodeDetailPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  const [traitScore, setTraitScore] = useState<number>(50);
+  const [score, setScore] = useState<number>(50);
+
+  const hasProgress = !!relationshipElementId;
 
   if (!node) return null;
 
-  const handleMarkComplete = async () => {
+  // Get the value to display/use - prefer local state if user changed it, else use prop
+  const displayLevel = selectedLevel ?? userBloomLevel ?? userDreyfusLevel ?? null;
+  const displayScore = score !== 50 || userScore === undefined ? score : userScore;
+
+  const handleSave = async () => {
     if (!node || isSubmitting) return;
-
     setIsSubmitting(true);
-    try {
-      let levelOrScore: string | number;
 
+    try {
+      let value: string | number;
       if (node.type === 'knowledge') {
-        levelOrScore = selectedLevel || node.requirement?.bloomLevel || 'Remember';
+        value = selectedLevel || userBloomLevel || node.requirement?.bloomLevel || 'Remember';
       } else if (node.type === 'skill') {
-        levelOrScore = selectedLevel || node.requirement?.dreyfusLevel || 'Novice';
+        value = selectedLevel || userDreyfusLevel || node.requirement?.dreyfusLevel || 'Novice';
       } else if (node.type === 'trait') {
-        levelOrScore = traitScore;
+        value = score;
       } else {
-        levelOrScore = new Date().toISOString().split('T')[0];
+        value = new Date().toISOString().split('T')[0];
       }
-
-      await onMarkComplete(node, levelOrScore);
+      await onMarkComplete(node, value);
       setSelectedLevel(null);
+      setScore(50);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleRemoveProgress = async () => {
-    if (!userRelationship || isSubmitting) return;
-
+  const handleRemove = async () => {
+    if (!relationshipElementId || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await onRemoveProgress(userRelationship.ElementId);
+      await onRemoveProgress(relationshipElementId);
+      setSelectedLevel(null);
+      setScore(50);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getUserLevel = (): string | number | null => {
-    if (!userRelationship?.Props) return null;
-    return userRelationship.Props.bloom_level ||
-           userRelationship.Props.dreyfus_level ||
-           userRelationship.Props.score ||
-           userRelationship.Props.date ||
-           null;
+  const getUserDisplay = () => userBloomLevel || userDreyfusLevel || userScore || userDate || null;
+
+  const canSave = () => {
+    if (isSubmitting) return false;
+    if (node.type === 'knowledge') return !!(selectedLevel || userBloomLevel);
+    if (node.type === 'skill') return !!(selectedLevel || userDreyfusLevel);
+    return true;
   };
 
   return (
@@ -84,37 +97,29 @@ export function NodeDetailPanel({
       <div className={`panel-header ${node.type}`}>
         <NodeIcon type={node.type} />
         <div className="panel-header-text">
-          <span className="panel-type-badge">{formatNodeType(node.type)}</span>
+          <span className="panel-type-badge">{node.type.charAt(0).toUpperCase() + node.type.slice(1)}</span>
           <h2 className="panel-title">{node.name}</h2>
         </div>
       </div>
 
       <div className="panel-content">
-        {node.description && (
-          <p className="panel-description">{node.description}</p>
-        )}
+        {node.description && <p className="panel-description">{node.description}</p>}
 
         {node.type === 'knowledge' && node.requirement?.bloomLevel && (
-          <BloomRequirement level={node.requirement.bloomLevel} />
+          <RequirementLadder levels={BLOOM_LEVELS} required={node.requirement.bloomLevel} title="Bloom's Taxonomy" />
         )}
 
         {node.type === 'skill' && node.requirement?.dreyfusLevel && (
-          <DreyfusRequirement level={node.requirement.dreyfusLevel} />
+          <RequirementLadder levels={DREYFUS_LEVELS} required={node.requirement.dreyfusLevel} title="Dreyfus Model" />
         )}
 
         {node.type === 'trait' && node.requirement?.minScore !== undefined && (
           <TraitRequirement minScore={node.requirement.minScore} />
         )}
 
-        {node.type === 'milestone' && (
-          <MilestoneInfo />
-        )}
+        {node.type === 'milestone' && <MilestoneInfo />}
+        {node.type === 'level' && <LevelInfo />}
 
-        {node.type === 'level' && (
-          <LevelInfo node={node} />
-        )}
-
-        {/* Completion Section - Only for non-level nodes when logged in */}
         {isLoggedIn && node.type !== 'level' && (
           <div className="completion-section">
             <h3 className="requirement-title">Your Progress</h3>
@@ -125,88 +130,77 @@ export function NodeDetailPanel({
                   <svg viewBox="0 0 24 24" fill="currentColor" className="check-icon">
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   </svg>
-                  <span>Completed</span>
+                  <span>Requirement Met</span>
                 </div>
                 <p className="completion-level">
-                  {node.type === 'knowledge' && `Level: ${getUserLevel()}`}
-                  {node.type === 'skill' && `Level: ${getUserLevel()}`}
-                  {node.type === 'trait' && `Score: ${getUserLevel()}`}
-                  {node.type === 'milestone' && `Achieved: ${getUserLevel()}`}
+                  {node.type === 'trait' ? `Your Score: ${getUserDisplay()}` : `Your Level: ${getUserDisplay()}`}
                 </p>
-                <button
-                  className="remove-progress-btn"
-                  onClick={handleRemoveProgress}
-                  disabled={isSubmitting}
-                >
+                <button className="remove-progress-btn" onClick={handleRemove} disabled={isSubmitting}>
                   {isSubmitting ? 'Removing...' : 'Remove Progress'}
                 </button>
               </div>
             ) : (
               <div className="mark-complete-section">
-                {node.type === 'knowledge' && (
-                  <div className="level-selector">
-                    <label>Select your Bloom level:</label>
-                    <div className="level-options">
-                      {BLOOM_LEVELS.map((level) => (
-                        <button
-                          key={level}
-                          className={`level-option ${selectedLevel === level ? 'selected' : ''}`}
-                          onClick={() => setSelectedLevel(level)}
-                        >
-                          {level}
-                        </button>
-                      ))}
-                    </div>
+                {hasProgress && (
+                  <div className="partial-progress-notice">
+                    <span className="partial-badge">In Progress</span>
+                    <p>
+                      Current: {getUserDisplay()}
+                      {node.type === 'knowledge' && ` (need ${node.requirement?.bloomLevel})`}
+                      {node.type === 'skill' && ` (need ${node.requirement?.dreyfusLevel})`}
+                      {node.type === 'trait' && ` (need ${node.requirement?.minScore}+)`}
+                    </p>
                   </div>
                 )}
 
+                {node.type === 'knowledge' && (
+                  <LevelSelector
+                    levels={BLOOM_LEVELS}
+                    selected={displayLevel}
+                    onSelect={setSelectedLevel}
+                    label={hasProgress ? 'Update your Bloom level:' : 'Select your Bloom level:'}
+                  />
+                )}
+
                 {node.type === 'skill' && (
-                  <div className="level-selector">
-                    <label>Select your Dreyfus level:</label>
-                    <div className="level-options">
-                      {DREYFUS_LEVELS.map((level) => (
-                        <button
-                          key={level}
-                          className={`level-option ${selectedLevel === level ? 'selected' : ''}`}
-                          onClick={() => setSelectedLevel(level)}
-                        >
-                          {level}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <LevelSelector
+                    levels={DREYFUS_LEVELS}
+                    selected={displayLevel}
+                    onSelect={setSelectedLevel}
+                    label={hasProgress ? 'Update your Dreyfus level:' : 'Select your Dreyfus level:'}
+                  />
                 )}
 
                 {node.type === 'trait' && (
                   <div className="score-selector">
-                    <label>Rate your level (0-100):</label>
+                    <label>{hasProgress ? 'Update your score (0-100):' : 'Rate your level (0-100):'}</label>
                     <div className="score-input-container">
                       <input
                         type="range"
                         min="0"
                         max="100"
-                        value={traitScore}
-                        onChange={(e) => setTraitScore(parseInt(e.target.value))}
+                        value={displayScore}
+                        onChange={(e) => setScore(parseInt(e.target.value))}
                         className="score-slider"
                       />
-                      <span className="score-display">{traitScore}</span>
+                      <span className="score-display">{displayScore}</span>
                     </div>
                   </div>
                 )}
 
                 {node.type === 'milestone' && (
-                  <p className="milestone-prompt">
-                    Mark this milestone as achieved to track your progress.
-                  </p>
+                  <p className="milestone-prompt">Mark this milestone as achieved to track your progress.</p>
                 )}
 
-                <button
-                  className="mark-complete-btn"
-                  onClick={handleMarkComplete}
-                  disabled={isSubmitting || (node.type === 'knowledge' && !selectedLevel) || (node.type === 'skill' && !selectedLevel)}
-                >
-                  {isSubmitting ? 'Saving...' : node.type === 'milestone' ? 'Mark Achieved' : 'Mark Complete'}
+                <button className="mark-complete-btn" onClick={handleSave} disabled={!canSave()}>
+                  {isSubmitting ? 'Saving...' : hasProgress ? 'Update Progress' : 'Save Progress'}
                 </button>
+
+                {hasProgress && (
+                  <button className="remove-progress-btn" onClick={handleRemove} disabled={isSubmitting}>
+                    {isSubmitting ? 'Removing...' : 'Remove Progress'}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -222,97 +216,46 @@ export function NodeDetailPanel({
   );
 }
 
-function NodeIcon({ type }: { type: CanvasNode['type'] }) {
-  switch (type) {
-    case 'knowledge':
-      return (
-        <svg className="node-icon" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-      );
-    case 'skill':
-      return (
-        <svg className="node-icon" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-          <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" fill="none" />
-        </svg>
-      );
-    case 'trait':
-      return (
-        <svg className="node-icon" viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
-        </svg>
-      );
-    case 'milestone':
-      return (
-        <svg className="node-icon" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L8 8H2l5 6-2 8 7-4 7 4-2-8 5-6h-6l-4-6z" />
-        </svg>
-      );
-    case 'level':
-      return (
-        <svg className="node-icon" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
-          <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" />
-        </svg>
-      );
-    default:
-      return null;
-  }
+function NodeIcon({ type }: { type: string }) {
+  const icons: Record<string, JSX.Element> = {
+    knowledge: <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />,
+    skill: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" fill="none" /></>,
+    trait: <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />,
+    milestone: <path d="M12 2L8 8H2l5 6-2 8 7-4 7 4-2-8 5-6h-6l-4-6z" />,
+    level: <><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" /><path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" /></>,
+  };
+  return <svg className="node-icon" viewBox="0 0 24 24" fill="currentColor">{icons[type]}</svg>;
 }
 
-function formatNodeType(type: CanvasNode['type']): string {
-  return type.charAt(0).toUpperCase() + type.slice(1);
-}
-
-function BloomRequirement({ level }: { level: string }) {
-  const currentIndex = BLOOM_LEVELS.indexOf(level as typeof BLOOM_LEVELS[number]);
-
+function RequirementLadder({ levels, required, title }: { levels: readonly string[]; required: string; title: string }) {
+  const requiredIndex = levels.indexOf(required);
   return (
     <div className="requirement-section">
-      <h3 className="requirement-title">Bloom's Taxonomy Requirement</h3>
+      <h3 className="requirement-title">{title} Requirement</h3>
       <div className="bloom-ladder">
-        {BLOOM_LEVELS.map((bloomLevel, index) => (
-          <div
-            key={bloomLevel}
-            className={`bloom-step ${index <= currentIndex ? 'required' : ''} ${
-              index === currentIndex ? 'current' : ''
-            }`}
-          >
-            <span className="step-number">{index + 1}</span>
-            <span className="step-label">{bloomLevel}</span>
+        {levels.map((level, i) => (
+          <div key={level} className={`bloom-step ${i <= requiredIndex ? 'required' : ''} ${i === requiredIndex ? 'current' : ''}`}>
+            <span className="step-number">{i + 1}</span>
+            <span className="step-label">{level}</span>
           </div>
         ))}
       </div>
-      <p className="requirement-note">
-        You need to reach the <strong>{level}</strong> level of understanding.
-      </p>
+      <p className="requirement-note">You need to reach the <strong>{required}</strong> level.</p>
     </div>
   );
 }
 
-function DreyfusRequirement({ level }: { level: string }) {
-  const currentIndex = DREYFUS_LEVELS.indexOf(level as typeof DREYFUS_LEVELS[number]);
-
+function LevelSelector({ levels, selected, onSelect, label }: { levels: readonly string[]; selected: string | null; onSelect: (l: string) => void; label: string }) {
   return (
-    <div className="requirement-section">
-      <h3 className="requirement-title">Dreyfus Model Requirement</h3>
-      <div className="dreyfus-ladder">
-        {DREYFUS_LEVELS.map((dreyfusLevel, index) => (
-          <div
-            key={dreyfusLevel}
-            className={`dreyfus-step ${index <= currentIndex ? 'required' : ''} ${
-              index === currentIndex ? 'current' : ''
-            }`}
-          >
-            <span className="step-number">{index + 1}</span>
-            <span className="step-label">{dreyfusLevel}</span>
-          </div>
+    <div className="level-selector">
+      <label>{label}</label>
+      <div className="level-options">
+        {levels.map((level) => (
+          <button key={level} className={`level-option ${selected === level ? 'selected' : ''}`} onClick={() => onSelect(level)}>
+            {level}
+          </button>
         ))}
       </div>
-      <p className="requirement-note">
-        You need to reach the <strong>{level}</strong> level of proficiency.
-      </p>
     </div>
   );
 }
@@ -323,14 +266,8 @@ function TraitRequirement({ minScore }: { minScore: number }) {
       <h3 className="requirement-title">Trait Requirement</h3>
       <div className="score-bar-container">
         <div className="score-bar">
-          <div
-            className="score-bar-fill"
-            style={{ width: `${minScore}%` }}
-          />
-          <div
-            className="score-bar-marker"
-            style={{ left: `${minScore}%` }}
-          />
+          <div className="score-bar-fill" style={{ width: `${minScore}%` }} />
+          <div className="score-bar-marker" style={{ left: `${minScore}%` }} />
         </div>
         <div className="score-labels">
           <span>0</span>
@@ -338,9 +275,7 @@ function TraitRequirement({ minScore }: { minScore: number }) {
           <span>100</span>
         </div>
       </div>
-      <p className="requirement-note">
-        Minimum score of <strong>{minScore}</strong> required.
-      </p>
+      <p className="requirement-note">Minimum score of <strong>{minScore}</strong> required.</p>
     </div>
   );
 }
@@ -355,20 +290,16 @@ function MilestoneInfo() {
         </svg>
         <span>Binary Achievement</span>
       </div>
-      <p className="requirement-note">
-        This milestone is either achieved or not achieved. Complete the requirements to unlock.
-      </p>
+      <p className="requirement-note">This milestone is either achieved or not achieved.</p>
     </div>
   );
 }
 
-function LevelInfo({ node }: { node: CanvasNode }) {
+function LevelInfo() {
   return (
     <div className="requirement-section">
       <h3 className="requirement-title">Domain Level</h3>
-      <p className="requirement-note">
-        This represents a progression level in the domain. Complete the knowledge, skills, traits, and milestones connected to this level to advance.
-      </p>
+      <p className="requirement-note">Complete the knowledge, skills, traits, and milestones connected to this level to advance.</p>
     </div>
   );
 }

@@ -366,12 +366,13 @@ pub async fn create_relationship(
         .map(|key| format!("r.{} = ${}", key, key))
         .collect();
     
+    // Use MERGE to update existing relationship or create if not exists
     let query_string = if set_clauses.is_empty() {
         format!(
             r#"
             MATCH (source), (target)
             WHERE elementId(source) = $sourceId AND elementId(target) = $targetId
-            CREATE (source)-[r:{}]->(target)
+            MERGE (source)-[r:{}]->(target)
             RETURN {{id: id(r), elementId: elementId(r), startId: id(startNode(r)), startElementId: elementId(startNode(r)), endId: id(endNode(r)), endElementId: elementId(endNode(r)), type: type(r), props: properties(r)}} AS relationship
             "#,
             request.relationship_type
@@ -381,7 +382,7 @@ pub async fn create_relationship(
             r#"
             MATCH (source), (target)
             WHERE elementId(source) = $sourceId AND elementId(target) = $targetId
-            CREATE (source)-[r:{}]->(target)
+            MERGE (source)-[r:{}]->(target)
             SET {}
             RETURN {{id: id(r), elementId: elementId(r), startId: id(startNode(r)), startElementId: elementId(startNode(r)), endId: id(endNode(r)), endElementId: elementId(endNode(r)), type: type(r), props: properties(r)}} AS relationship
             "#,

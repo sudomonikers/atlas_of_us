@@ -8,6 +8,7 @@ import type { Neo4jRelationship } from "../Graph/graph-interfaces.interface";
 import { SkillTreeCanvas } from "./SkillTree/SkillTreeCanvas";
 import { NodeDetailPanel } from "./NodeDetailPanel/NodeDetailPanel";
 import type { CanvasNode } from "./SkillTree/skill-tree-types";
+import { BLOOM_LEVELS, DREYFUS_LEVELS } from "./SkillTree/skill-tree-constants";
 import "./Domain.css";
 
 export function Domain() {
@@ -21,32 +22,55 @@ export function Domain() {
   const [selectedNode, setSelectedNode] = useState<CanvasNode | null>(null);
   const [showDescription, setShowDescription] = useState(false);
 
-  // Compute completed node IDs from user's profile relationships
-  const completedNodeIds = useMemo(() => {
-    if (!loggedIn || !profileData?.relationships) return new Set<string>();
+  // Build a map of user's progress for each node (elementId -> relationship)
+  const userProgressMap = useMemo(() => {
+    const map = new Map<string, Neo4jRelationship>();
+    if (!loggedIn || !profileData?.relationships) return map;
 
     const completionTypes = ['HAS_KNOWLEDGE', 'HAS_SKILL', 'HAS_TRAIT', 'ACHIEVED'];
-    return new Set(
-      profileData.relationships
-        .filter((r: Neo4jRelationship) => completionTypes.includes(r.Type))
-        .map((r: Neo4jRelationship) => r.EndElementId)
-    );
+    profileData.relationships
+      .filter((r: Neo4jRelationship) => completionTypes.includes(r.Type))
+      .forEach((r: Neo4jRelationship) => map.set(r.EndElementId, r));
+
+    return map;
   }, [loggedIn, profileData?.relationships]);
 
-  // Get user's relationship for a specific node
-  const getUserRelationshipForNode = useCallback((nodeElementId?: string): Neo4jRelationship | null => {
-    if (!loggedIn || !profileData?.relationships || !nodeElementId) return null;
+  // Check if a node's requirement is met
+  const isNodeRequirementMet = useCallback((node: CanvasNode | null): boolean => {
+    if (!node?.elementId) return false;
+    const rel = userProgressMap.get(node.elementId);
+    if (!rel) return false;
 
-    const completionTypes = ['HAS_KNOWLEDGE', 'HAS_SKILL', 'HAS_TRAIT', 'ACHIEVED'];
-    return profileData.relationships.find(
-      (r: Neo4jRelationship) => r.EndElementId === nodeElementId && completionTypes.includes(r.Type)
-    ) || null;
-  }, [loggedIn, profileData?.relationships]);
+    if (node.type === 'knowledge') {
+      if (!node.requirement?.bloomLevel) return true;
+      const userLevel = rel.Props?.bloom_level as string | undefined;
+      if (!userLevel) return false;
+      return BLOOM_LEVELS.indexOf(userLevel as typeof BLOOM_LEVELS[number]) >=
+             BLOOM_LEVELS.indexOf(node.requirement.bloomLevel as typeof BLOOM_LEVELS[number]);
+    }
 
-  // Refresh profile data to get updated relationships
+    if (node.type === 'skill') {
+      if (!node.requirement?.dreyfusLevel) return true;
+      const userLevel = rel.Props?.dreyfus_level as string | undefined;
+      if (!userLevel) return false;
+      return DREYFUS_LEVELS.indexOf(userLevel as typeof DREYFUS_LEVELS[number]) >=
+             DREYFUS_LEVELS.indexOf(node.requirement.dreyfusLevel as typeof DREYFUS_LEVELS[number]);
+    }
+
+    if (node.type === 'trait') {
+      const minScore = node.requirement?.minScore;
+      if (minScore === undefined) return true;
+      const userScore = rel.Props?.score as number | undefined;
+      if (userScore === undefined) return false;
+      return userScore >= minScore;
+    }
+
+    return true; // milestones just need the relationship
+  }, [userProgressMap]);
+
+  // Refresh profile data
   const refreshProfileData = useCallback(async () => {
     if (!loggedIn || !profileData?.nodeRoot?.Props?.username) return;
-
     const httpService = new HttpService();
     const data = await httpService.fetchNodes(
       `secure/profile/user-profile/${profileData.nodeRoot.Props.username}`
@@ -57,24 +81,16 @@ export function Domain() {
   }, [loggedIn, profileData?.nodeRoot?.Props?.username, setProfileData]);
 
   // Handle marking a node as complete
-  const handleMarkComplete = useCallback(async (
-    node: CanvasNode,
-    levelOrScore: string | number
-  ) => {
+  const handleMarkComplete = useCallback(async (node: CanvasNode, levelOrScore: string | number) => {
     if (!loggedIn || !profileData?.nodeRoot?.ElementId || !node.elementId) return;
 
     const httpService = new HttpService();
     const properties: Record<string, string | number> = {};
 
-    if (node.type === 'knowledge') {
-      properties.bloom_level = levelOrScore as string;
-    } else if (node.type === 'skill') {
-      properties.dreyfus_level = levelOrScore as string;
-    } else if (node.type === 'trait') {
-      properties.score = levelOrScore as number;
-    } else if (node.type === 'milestone') {
-      properties.date = new Date().toISOString().split('T')[0];
-    }
+    if (node.type === 'knowledge') properties.bloom_level = levelOrScore as string;
+    else if (node.type === 'skill') properties.dreyfus_level = levelOrScore as string;
+    else if (node.type === 'trait') properties.score = levelOrScore as number;
+    else if (node.type === 'milestone') properties.date = new Date().toISOString().split('T')[0];
 
     const result = await httpService.createUserProgress(
       profileData.nodeRoot.ElementId,
@@ -88,18 +104,17 @@ export function Domain() {
     }
   }, [loggedIn, profileData?.nodeRoot?.ElementId, refreshProfileData]);
 
-  // Handle removing progress from a node
+  // Handle removing progress
   const handleRemoveProgress = useCallback(async (relationshipElementId: string) => {
     if (!loggedIn) return;
-
     const httpService = new HttpService();
     const result = await httpService.deleteUserProgress(relationshipElementId);
-
     if (result.success) {
       await refreshProfileData();
     }
   }, [loggedIn, refreshProfileData]);
 
+  // Fetch domain data
   useEffect(() => {
     if (!domainName) {
       setIsLoading(false);
@@ -119,7 +134,6 @@ export function Domain() {
       } else {
         setError("Failed to fetch domain data");
       }
-
       setIsLoading(false);
     };
 
@@ -131,15 +145,6 @@ export function Domain() {
     if (searchTerm.trim()) {
       navigate(`/Domain/${encodeURIComponent(searchTerm.trim())}`);
     }
-  };
-
-  const handleNodeSelect = (node: CanvasNode | null) => {
-    console.log(node)
-    setSelectedNode(node);
-  };
-
-  const handlePanelClose = () => {
-    setSelectedNode(null);
   };
 
   // Show search box when no domain is specified
@@ -163,11 +168,7 @@ export function Domain() {
                   placeholder="Enter domain name (e.g., Chess, Programming)"
                   autoFocus
                 />
-                <button
-                  type="submit"
-                  className="domain-search-btn"
-                  disabled={!searchTerm.trim()}
-                >
+                <button type="submit" className="domain-search-btn" disabled={!searchTerm.trim()}>
                   Explore
                 </button>
               </form>
@@ -178,11 +179,13 @@ export function Domain() {
     );
   }
 
+  // Get the relationship for the selected node
+  const selectedRelationship = selectedNode?.elementId ? userProgressMap.get(selectedNode.elementId) : undefined;
+
   return (
     <>
       <NavBar />
       <div className="in-nav-container">
-        {/* Floating title overlay */}
         <div className="domain-title-overlay">
           <button className="domain-back-btn" onClick={() => navigate("/Domain")}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -219,7 +222,6 @@ export function Domain() {
           )}
         </div>
 
-        {/* Full-screen canvas */}
         <div className="domain-canvas-wrapper">
           {isLoading && (
             <div className="domain-loading">
@@ -238,19 +240,22 @@ export function Domain() {
           {domainData && !isLoading && (
             <SkillTreeCanvas
               domainData={domainData}
-              onNodeSelect={handleNodeSelect}
+              onNodeSelect={setSelectedNode}
               selectedNode={selectedNode}
-              completedNodeIds={completedNodeIds}
+              userProgressMap={new Map(Array.from(userProgressMap).map(([k, v]) => [k, v.Props]))}
             />
           )}
         </div>
 
-        {/* Side panel */}
         <NodeDetailPanel
           node={selectedNode}
-          onClose={handlePanelClose}
-          isCompleted={selectedNode ? completedNodeIds.has(selectedNode.elementId || '') : false}
-          userRelationship={getUserRelationshipForNode(selectedNode?.elementId)}
+          onClose={() => setSelectedNode(null)}
+          isCompleted={isNodeRequirementMet(selectedNode)}
+          relationshipElementId={selectedRelationship?.ElementId}
+          userScore={selectedRelationship?.Props?.score as number | undefined}
+          userBloomLevel={selectedRelationship?.Props?.bloom_level as string | undefined}
+          userDreyfusLevel={selectedRelationship?.Props?.dreyfus_level as string | undefined}
+          userDate={selectedRelationship?.Props?.date as string | undefined}
           onMarkComplete={handleMarkComplete}
           onRemoveProgress={handleRemoveProgress}
           isLoggedIn={loggedIn}

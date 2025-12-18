@@ -1,8 +1,9 @@
 // Canvas 2D rendering functions for the skill tree
 
 import type { Camera, CanvasNode, Connection, NodeType } from './skill-tree-types';
-import { COLORS, FONTS, NODE_RADIUS } from './skill-tree-constants';
+import { COLORS, FONTS, NODE_RADIUS, BLOOM_LEVELS, DREYFUS_LEVELS } from './skill-tree-constants';
 import { renderBackground, generateBackgroundState } from './skill-tree-background';
+import type { UserProgressMap } from './SkillTreeCanvas';
 
 // Cache background state to avoid regenerating every frame
 let cachedBackgroundState: ReturnType<typeof generateBackgroundState> | null = null;
@@ -62,6 +63,52 @@ function getGlowColor(type: NodeType): string {
   return COLORS[glowKey] || COLORS.knowledgeGlow;
 }
 
+// Check if user's progress meets the node's requirement
+function isNodeRequirementMet(
+  node: CanvasNode,
+  userProgressMap: UserProgressMap
+): boolean {
+  if (!node.elementId) return false;
+
+  const userProgress = userProgressMap.get(node.elementId);
+  if (!userProgress) return false;
+
+  // For knowledge nodes: compare bloom levels
+  if (node.type === 'knowledge' && node.requirement?.bloomLevel) {
+    const userLevel = userProgress.bloom_level as string | undefined;
+    if (!userLevel) return false;
+
+    const requiredIndex = BLOOM_LEVELS.indexOf(node.requirement.bloomLevel as typeof BLOOM_LEVELS[number]);
+    const userIndex = BLOOM_LEVELS.indexOf(userLevel as typeof BLOOM_LEVELS[number]);
+    return userIndex >= requiredIndex;
+  }
+
+  // For skill nodes: compare dreyfus levels
+  if (node.type === 'skill' && node.requirement?.dreyfusLevel) {
+    const userLevel = userProgress.dreyfus_level as string | undefined;
+    if (!userLevel) return false;
+
+    const requiredIndex = DREYFUS_LEVELS.indexOf(node.requirement.dreyfusLevel as typeof DREYFUS_LEVELS[number]);
+    const userIndex = DREYFUS_LEVELS.indexOf(userLevel as typeof DREYFUS_LEVELS[number]);
+    return userIndex >= requiredIndex;
+  }
+
+  // For trait nodes: compare scores
+  if (node.type === 'trait' && node.requirement?.minScore !== undefined) {
+    const userScore = userProgress.score as number | undefined;
+    if (userScore === undefined) return false;
+    return userScore >= node.requirement.minScore;
+  }
+
+  // For milestones: just check if achieved (has relationship)
+  if (node.type === 'milestone') {
+    return true; // Already has a relationship
+  }
+
+  // Default: has relationship = completed
+  return true;
+}
+
 // Main render function
 export function render(
   ctx: CanvasRenderingContext2D,
@@ -72,7 +119,7 @@ export function render(
   selectedNode: CanvasNode | null,
   domainName: string = 'Default',
   time: number = 0,
-  completedNodeIds: Set<string> = new Set()
+  userProgressMap: UserProgressMap = new Map()
 ) {
   // Use CSS dimensions (context is already scaled by DPR)
   const dpr = window.devicePixelRatio || 1;
@@ -108,14 +155,14 @@ export function render(
   const specialNodes = [hoveredNode, selectedNode].filter(Boolean) as CanvasNode[];
 
   regularNodes.forEach(node => {
-    const isCompleted = node.elementId ? completedNodeIds.has(node.elementId) : false;
+    const isCompleted = isNodeRequirementMet(node, userProgressMap);
     drawNode(ctx, node, camera, width, height, false, false, isCompleted);
   });
 
   specialNodes.forEach(node => {
     const isHovered = node === hoveredNode;
     const isSelected = node === selectedNode;
-    const isCompleted = node.elementId ? completedNodeIds.has(node.elementId) : false;
+    const isCompleted = isNodeRequirementMet(node, userProgressMap);
     drawNode(ctx, node, camera, width, height, isHovered, isSelected, isCompleted);
   });
 }

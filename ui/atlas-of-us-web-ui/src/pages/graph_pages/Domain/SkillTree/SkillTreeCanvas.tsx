@@ -6,14 +6,17 @@ import { render, findNodeAtPosition, screenToWorld } from './skill-tree-renderer
 import { CAMERA } from './skill-tree-constants';
 import './SkillTreeCanvas.css';
 
+// User's progress for each node (elementId -> relationship props)
+export type UserProgressMap = Map<string, { [key: string]: unknown }>;
+
 interface SkillTreeCanvasProps {
   domainData: DomainData;
   onNodeSelect: (node: CanvasNode | null) => void;
   selectedNode: CanvasNode | null;
-  completedNodeIds?: Set<string>;
+  userProgressMap?: UserProgressMap;
 }
 
-export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, completedNodeIds = new Set() }: SkillTreeCanvasProps) {
+export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userProgressMap = new Map() }: SkillTreeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef<LayoutResult | null>(null);
@@ -75,7 +78,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, comple
         selectedNode,
         domainData.name,
         timestamp,
-        completedNodeIds
+        userProgressMap
       );
 
       rafRef.current = requestAnimationFrame(animate);
@@ -89,7 +92,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, comple
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [canvasState, selectedNode, domainData.name, completedNodeIds]);
+  }, [canvasState, selectedNode, domainData.name, userProgressMap]);
 
   // Handle resize
   useEffect(() => {
