@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DomainData } from '../domain-interfaces';
-import type { CanvasNode, CanvasState, LayoutResult } from './skill-tree-types';
+import type { CanvasNode, LayoutResult } from './skill-tree-types';
 import { calculateLayout, calculateInitialCamera } from './skill-tree-layout';
 import { render, findNodeAtPosition, screenToWorld } from './skill-tree-renderer';
 import { CAMERA } from './skill-tree-constants';
+import type { UserProgressMap } from './skill-tree-utils';
 import './SkillTreeCanvas.css';
-
-// User's progress for each node (elementId -> relationship props)
-export type UserProgressMap = Map<string, { [key: string]: unknown }>;
 
 interface SkillTreeCanvasProps {
   domainData: DomainData;
@@ -22,15 +20,13 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
   const layoutRef = useRef<LayoutResult | null>(null);
   const rafRef = useRef<number>(0);
   const cameraRef = useRef({ x: 0, y: 0, zoom: CAMERA.INITIAL_ZOOM });
-  const timeRef = useRef<number>(0);
+  const isDraggingRef = useRef(false);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
-  const [canvasState, setCanvasState] = useState<CanvasState>({
-    camera: { x: 0, y: 0, zoom: CAMERA.INITIAL_ZOOM },
-    hoveredNode: null,
-    selectedNode: null,
-    isDragging: false,
-    lastMousePos: { x: 0, y: 0 },
-  });
+  // State for cursor style updates (dragging changes on mouse down/up only)
+  const [hoveredNode, setHoveredNode] = useState<CanvasNode | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Calculate layout when domain data changes
   useEffect(() => {
@@ -40,21 +36,16 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
 
       // Set initial camera position
       if (canvasRef.current) {
-        const initialCamera = calculateInitialCamera(
+        cameraRef.current = calculateInitialCamera(
           layout.bounds,
           canvasRef.current.width,
           canvasRef.current.height
         );
-        cameraRef.current = initialCamera;
-        setCanvasState(prev => ({
-          ...prev,
-          camera: initialCamera,
-        }));
       }
     }
   }, [domainData]);
 
-  // Animation loop for twinkling stars
+  // Animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -67,14 +58,12 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
     const animate = (timestamp: number) => {
       if (!animating) return;
 
-      timeRef.current = timestamp;
-
       render(
         ctx,
         layout.nodes,
         layout.connections,
-        canvasState.camera,
-        canvasState.hoveredNode,
+        cameraRef.current,
+        hoveredNode,
         selectedNode,
         domainData.name,
         timestamp,
@@ -92,7 +81,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [canvasState, selectedNode, domainData.name, userProgressMap]);
+  }, [hoveredNode, selectedNode, domainData.name, userProgressMap]);
 
   // Handle resize
   useEffect(() => {
@@ -114,9 +103,6 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
         if (ctx) {
           ctx.scale(dpr, dpr);
         }
-
-        // Trigger re-render
-        setCanvasState(prev => ({ ...prev }));
       }
     });
 
@@ -124,16 +110,11 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Track drag distance to distinguish clicks from drags
-  const dragStartRef = useRef({ x: 0, y: 0 });
-
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     dragStartRef.current = { x: e.clientX, y: e.clientY };
-    setCanvasState(prev => ({
-      ...prev,
-      isDragging: true,
-      lastMousePos: { x: e.clientX, y: e.clientY },
-    }));
+    isDraggingRef.current = true;
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    setIsDragging(true);
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -145,28 +126,21 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    setCanvasState(prev => {
-      if (prev.isDragging) {
-        const dx = e.clientX - prev.lastMousePos.x;
-        const dy = e.clientY - prev.lastMousePos.y;
+    if (isDraggingRef.current) {
+      const dx = e.clientX - lastMousePosRef.current.x;
+      const dy = e.clientY - lastMousePosRef.current.y;
 
-        const newCamera = {
-          ...prev.camera,
-          x: prev.camera.x - dx / prev.camera.zoom,
-          y: prev.camera.y - dy / prev.camera.zoom,
-        };
-        cameraRef.current = newCamera;
-        return {
-          ...prev,
-          camera: newCamera,
-          lastMousePos: { x: e.clientX, y: e.clientY },
-        };
-      } else {
-        const worldPos = screenToWorld(x, y, prev.camera, rect.width, rect.height);
-        const hoveredNode = findNodeAtPosition(worldPos, layout.nodes);
-        return { ...prev, hoveredNode };
-      }
-    });
+      cameraRef.current = {
+        ...cameraRef.current,
+        x: cameraRef.current.x - dx / cameraRef.current.zoom,
+        y: cameraRef.current.y - dy / cameraRef.current.zoom,
+      };
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    } else {
+      const worldPos = screenToWorld(x, y, cameraRef.current, rect.width, rect.height);
+      const newHoveredNode = findNodeAtPosition(worldPos, layout.nodes);
+      setHoveredNode(prev => prev?.id === newHoveredNode?.id ? prev : newHoveredNode);
+    }
   }, []);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -187,11 +161,14 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
       onNodeSelect(clickedNode);
     }
 
-    setCanvasState(prev => ({ ...prev, isDragging: false }));
+    isDraggingRef.current = false;
+    setIsDragging(false);
   }, [onNodeSelect]);
 
   const handleMouseLeave = useCallback(() => {
-    setCanvasState(prev => ({ ...prev, isDragging: false, hoveredNode: null }));
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    setHoveredNode(null);
   }, []);
 
   // Use native wheel event to properly prevent default browser zoom
@@ -207,21 +184,18 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      setCanvasState(prev => {
-        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.max(CAMERA.MIN_ZOOM, Math.min(CAMERA.MAX_ZOOM, prev.camera.zoom * zoomFactor));
-        const mouseWorldBefore = screenToWorld(mouseX, mouseY, prev.camera, rect.width, rect.height);
-        const newCamera = { ...prev.camera, zoom: newZoom };
-        const mouseWorldAfter = screenToWorld(mouseX, mouseY, newCamera, rect.width, rect.height);
+      const camera = cameraRef.current;
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(CAMERA.MIN_ZOOM, Math.min(CAMERA.MAX_ZOOM, camera.zoom * zoomFactor));
+      const mouseWorldBefore = screenToWorld(mouseX, mouseY, camera, rect.width, rect.height);
+      const newCamera = { ...camera, zoom: newZoom };
+      const mouseWorldAfter = screenToWorld(mouseX, mouseY, newCamera, rect.width, rect.height);
 
-        const finalCamera = {
-          ...newCamera,
-          x: newCamera.x + (mouseWorldBefore.x - mouseWorldAfter.x),
-          y: newCamera.y + (mouseWorldBefore.y - mouseWorldAfter.y),
-        };
-        cameraRef.current = finalCamera;
-        return { ...prev, camera: finalCamera };
-      });
+      cameraRef.current = {
+        ...newCamera,
+        x: newCamera.x + (mouseWorldBefore.x - mouseWorldAfter.x),
+        y: newCamera.y + (mouseWorldBefore.y - mouseWorldAfter.y),
+      };
     };
 
     canvas.addEventListener('wheel', handleWheel, { passive: false });
@@ -238,11 +212,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         style={{
-          cursor: canvasState.isDragging
-            ? 'grabbing'
-            : canvasState.hoveredNode
-            ? 'pointer'
-            : 'grab',
+          cursor: isDragging ? 'grabbing' : hoveredNode ? 'pointer' : 'grab',
         }}
       />
       <div className="skill-tree-legend">

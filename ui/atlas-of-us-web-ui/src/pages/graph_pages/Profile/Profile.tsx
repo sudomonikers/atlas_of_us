@@ -5,7 +5,7 @@ import { HttpService } from "../../../services/http-service";
 import { jwtDecode } from "jwt-decode";
 import { Neo4jApiResponse, Neo4jNode } from "../Graph/graph-interfaces.interface";
 import { NeuroticTraits } from "../../../common/maps/personality.map";
-import { DreyfusLevelsOfAquisition } from "../../../common/enums/dreyfus-skill-aquisition.enum";
+import { DreyfusLevels } from "../../../common/enums/dreyfus-skill-aquisition.enum";
 import { Bloom6Levels } from "../../../common/enums/blooms-6-levels.enum";
 import { BLOOM_MAPPINGS, DREYFUS_MAPPINGS } from "./profile-mappings";
 
@@ -66,7 +66,7 @@ export function Profile() {
                   if (node.Labels.includes("Skill")) {
                     const userRelationship = profileData.relationships.find((r) => r.EndElementId === node.ElementId);
 
-                    const dreyfusLevel = userRelationship.Props["level"] as DreyfusLevelsOfAquisition;
+                    const dreyfusLevel = userRelationship.Props["level"] as DreyfusLevels;
                     const dreyfusMapping = DREYFUS_MAPPINGS[dreyfusLevel];
                     const color = dreyfusMapping ? dreyfusMapping.color : "#000000"; // Default to black if no mapping
           

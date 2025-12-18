@@ -1,6 +1,7 @@
-import { JSX, useState } from 'react';
+import { JSX, useState, useEffect } from 'react';
 import type { CanvasNode } from '../SkillTree/skill-tree-types';
-import { BLOOM_LEVELS, DREYFUS_LEVELS } from '../SkillTree/skill-tree-constants';
+import { BLOOM_LEVELS } from '../../../../common/enums/blooms-6-levels.enum';
+import { DREYFUS_LEVELS } from '../../../../common/enums/dreyfus-skill-aquisition.enum';
 import './NodeDetailPanel.css';
 
 interface NodeDetailPanelProps {
@@ -31,16 +32,18 @@ export function NodeDetailPanel({
   isLoggedIn
 }: NodeDetailPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const [level, setLevel] = useState<string | null>(null);
   const [score, setScore] = useState<number>(50);
+
+  // Reset form state when node changes
+  useEffect(() => {
+    setLevel(userBloomLevel ?? userDreyfusLevel ?? null);
+    setScore(userScore ?? 50);
+  }, [node?.elementId, userBloomLevel, userDreyfusLevel, userScore]);
 
   const hasProgress = !!relationshipElementId;
 
   if (!node) return null;
-
-  // Get the value to display/use - prefer local state if user changed it, else use prop
-  const displayLevel = selectedLevel ?? userBloomLevel ?? userDreyfusLevel ?? null;
-  const displayScore = score !== 50 || userScore === undefined ? score : userScore;
 
   const handleSave = async () => {
     if (!node || isSubmitting) return;
@@ -49,17 +52,15 @@ export function NodeDetailPanel({
     try {
       let value: string | number;
       if (node.type === 'knowledge') {
-        value = selectedLevel || userBloomLevel || node.requirement?.bloomLevel || 'Remember';
+        value = level || node.requirement?.bloomLevel || 'Remember';
       } else if (node.type === 'skill') {
-        value = selectedLevel || userDreyfusLevel || node.requirement?.dreyfusLevel || 'Novice';
+        value = level || node.requirement?.dreyfusLevel || 'Novice';
       } else if (node.type === 'trait') {
         value = score;
       } else {
         value = new Date().toISOString().split('T')[0];
       }
       await onMarkComplete(node, value);
-      setSelectedLevel(null);
-      setScore(50);
     } finally {
       setIsSubmitting(false);
     }
@@ -70,8 +71,6 @@ export function NodeDetailPanel({
     setIsSubmitting(true);
     try {
       await onRemoveProgress(relationshipElementId);
-      setSelectedLevel(null);
-      setScore(50);
     } finally {
       setIsSubmitting(false);
     }
@@ -81,8 +80,7 @@ export function NodeDetailPanel({
 
   const canSave = () => {
     if (isSubmitting) return false;
-    if (node.type === 'knowledge') return !!(selectedLevel || userBloomLevel);
-    if (node.type === 'skill') return !!(selectedLevel || userDreyfusLevel);
+    if (node.type === 'knowledge' || node.type === 'skill') return !!level;
     return true;
   };
 
@@ -156,8 +154,8 @@ export function NodeDetailPanel({
                 {node.type === 'knowledge' && (
                   <LevelSelector
                     levels={BLOOM_LEVELS}
-                    selected={displayLevel}
-                    onSelect={setSelectedLevel}
+                    selected={level}
+                    onSelect={setLevel}
                     label={hasProgress ? 'Update your Bloom level:' : 'Select your Bloom level:'}
                   />
                 )}
@@ -165,8 +163,8 @@ export function NodeDetailPanel({
                 {node.type === 'skill' && (
                   <LevelSelector
                     levels={DREYFUS_LEVELS}
-                    selected={displayLevel}
-                    onSelect={setSelectedLevel}
+                    selected={level}
+                    onSelect={setLevel}
                     label={hasProgress ? 'Update your Dreyfus level:' : 'Select your Dreyfus level:'}
                   />
                 )}
@@ -179,11 +177,11 @@ export function NodeDetailPanel({
                         type="range"
                         min="0"
                         max="100"
-                        value={displayScore}
+                        value={score}
                         onChange={(e) => setScore(parseInt(e.target.value))}
                         className="score-slider"
                       />
-                      <span className="score-display">{displayScore}</span>
+                      <span className="score-display">{score}</span>
                     </div>
                   </div>
                 )}

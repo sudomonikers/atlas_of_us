@@ -68,22 +68,3 @@ export const FONTS = {
   header: '16px "Mochiy Pop One", cursive',
   levelName: '11px Inter, sans-serif',
 };
-
-// Bloom's Taxonomy levels in order
-export const BLOOM_LEVELS = [
-  'Remember',
-  'Understand',
-  'Apply',
-  'Analyze',
-  'Evaluate',
-  'Create',
-] as const;
-
-// Dreyfus Model levels in order
-export const DREYFUS_LEVELS = [
-  'Novice',
-  'Advanced Beginner',
-  'Competent',
-  'Proficient',
-  'Expert',
-] as const;

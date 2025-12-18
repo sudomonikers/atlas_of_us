@@ -1,9 +1,9 @@
 // Canvas 2D rendering functions for the skill tree
 
 import type { Camera, CanvasNode, Connection, NodeType } from './skill-tree-types';
-import { COLORS, FONTS, NODE_RADIUS, BLOOM_LEVELS, DREYFUS_LEVELS } from './skill-tree-constants';
+import { COLORS, FONTS } from './skill-tree-constants';
 import { renderBackground, generateBackgroundState } from './skill-tree-background';
-import type { UserProgressMap } from './SkillTreeCanvas';
+import { isNodeRequirementMet, type UserProgressMap } from './skill-tree-utils';
 
 // Cache background state to avoid regenerating every frame
 let cachedBackgroundState: ReturnType<typeof generateBackgroundState> | null = null;
@@ -63,50 +63,25 @@ function getGlowColor(type: NodeType): string {
   return COLORS[glowKey] || COLORS.knowledgeGlow;
 }
 
-// Check if user's progress meets the node's requirement
-function isNodeRequirementMet(
-  node: CanvasNode,
-  userProgressMap: UserProgressMap
-): boolean {
-  if (!node.elementId) return false;
+// Shared fill/stroke style for all node shapes
+function applyNodeFillAndStroke(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  isCompleted: boolean,
+  isSelected: boolean,
+  isHovered: boolean
+): void {
+  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
+  ctx.globalAlpha = isCompleted ? 0.6 : 1;
+  ctx.fill();
+  ctx.globalAlpha = 1;
 
-  const userProgress = userProgressMap.get(node.elementId);
-  if (!userProgress) return false;
-
-  // For knowledge nodes: compare bloom levels
-  if (node.type === 'knowledge' && node.requirement?.bloomLevel) {
-    const userLevel = userProgress.bloom_level as string | undefined;
-    if (!userLevel) return false;
-
-    const requiredIndex = BLOOM_LEVELS.indexOf(node.requirement.bloomLevel as typeof BLOOM_LEVELS[number]);
-    const userIndex = BLOOM_LEVELS.indexOf(userLevel as typeof BLOOM_LEVELS[number]);
-    return userIndex >= requiredIndex;
-  }
-
-  // For skill nodes: compare dreyfus levels
-  if (node.type === 'skill' && node.requirement?.dreyfusLevel) {
-    const userLevel = userProgress.dreyfus_level as string | undefined;
-    if (!userLevel) return false;
-
-    const requiredIndex = DREYFUS_LEVELS.indexOf(node.requirement.dreyfusLevel as typeof DREYFUS_LEVELS[number]);
-    const userIndex = DREYFUS_LEVELS.indexOf(userLevel as typeof DREYFUS_LEVELS[number]);
-    return userIndex >= requiredIndex;
-  }
-
-  // For trait nodes: compare scores
-  if (node.type === 'trait' && node.requirement?.minScore !== undefined) {
-    const userScore = userProgress.score as number | undefined;
-    if (userScore === undefined) return false;
-    return userScore >= node.requirement.minScore;
-  }
-
-  // For milestones: just check if achieved (has relationship)
-  if (node.type === 'milestone') {
-    return true; // Already has a relationship
-  }
-
-  // Default: has relationship = completed
-  return true;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
 }
 
 // Main render function
@@ -309,21 +284,7 @@ function drawHexagon(
   }
   ctx.closePath();
 
-  // Completed: solid color fill; Incomplete: dark fill
-  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
-  ctx.globalAlpha = isCompleted ? 0.6 : 1;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Glowing stroke
-  ctx.strokeStyle = color;
-  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  // Inner details - small rune-like marks
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
   drawInnerRune(ctx, center, radius * 0.5, isCompleted ? '#ffffff' : color);
 }
 
@@ -339,17 +300,7 @@ function drawCircle(
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
 
-  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
-  ctx.globalAlpha = isCompleted ? 0.6 : 1;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
 
   // Inner ring
   ctx.beginPath();
@@ -377,17 +328,7 @@ function drawDiamond(
   ctx.lineTo(center.x - radius, center.y);
   ctx.closePath();
 
-  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
-  ctx.globalAlpha = isCompleted ? 0.6 : 1;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
 
   // Inner diamond
   const innerR = radius * 0.4;
@@ -423,19 +364,7 @@ function drawOctagon(
   }
   ctx.closePath();
 
-  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
-  ctx.globalAlpha = isCompleted ? 0.6 : 1;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  // Star in center
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
   drawStar(ctx, center, radius * 0.4, isCompleted ? '#ffffff' : color);
 }
 

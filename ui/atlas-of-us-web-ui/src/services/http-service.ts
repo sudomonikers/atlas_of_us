@@ -5,7 +5,18 @@ import type {
 } from "../pages/graph_pages/Graph/graph-interfaces.interface";
 import type { DomainData } from "../pages/graph_pages/Domain/domain-interfaces";
 
-//service class for fetching data and mapping it for ui consumption
+// Singleton instance
+let httpServiceInstance: HttpService | null = null;
+
+// Get or create the singleton HttpService instance
+export function getHttpService(): HttpService {
+  if (!httpServiceInstance) {
+    httpServiceInstance = new HttpService();
+  }
+  return httpServiceInstance;
+}
+
+// Service class for fetching data and mapping it for UI consumption
 export class HttpService {
   API_BASE = import.meta.env.VITE_API_BASE_URL;
   constructor() {}

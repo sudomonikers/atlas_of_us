@@ -1,23 +1,20 @@
 import { Bloom6Levels } from "../../../common/enums/blooms-6-levels.enum"
-import { DreyfusLevelsOfAquisition } from "../../../common/enums/dreyfus-skill-aquisition.enum"
+import { DreyfusLevels } from "../../../common/enums/dreyfus-skill-aquisition.enum"
 
 export const DREYFUS_MAPPINGS = {
-  [DreyfusLevelsOfAquisition.NOVICE]: {
+  [DreyfusLevels.NOVICE]: {
     color: '#FF0000', // Red
   },
-  [DreyfusLevelsOfAquisition.ADV_BEG]: {
+  [DreyfusLevels.ADVANCED_BEGINNER]: {
     color: '#FF7F50', // Coral
   },
-  [DreyfusLevelsOfAquisition.PROFICIENCY]: {
+  [DreyfusLevels.COMPETENT]: {
     color: '#FFD700', // Gold
   },
-  [DreyfusLevelsOfAquisition.COMPETENCE]: {
+  [DreyfusLevels.PROFICIENT]: {
     color: '#ADFF2F', // GreenYellow
   },
-  [DreyfusLevelsOfAquisition.EXPERTISE]: {
-    color: '#32CD32', // LimeGreen
-  },
-  [DreyfusLevelsOfAquisition.MASTERY]: {
+  [DreyfusLevels.EXPERT]: {
     color: '#008000', // Green
   },
 }

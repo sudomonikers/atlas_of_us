@@ -29,11 +29,7 @@ export interface Camera {
 }
 
 export interface CanvasState {
-  camera: Camera;
   hoveredNode: CanvasNode | null;
-  selectedNode: CanvasNode | null;
-  isDragging: boolean;
-  lastMousePos: { x: number; y: number };
 }
 
 export interface Connection {

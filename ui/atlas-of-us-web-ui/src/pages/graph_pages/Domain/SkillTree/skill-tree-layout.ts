@@ -145,22 +145,6 @@ function createCanvasNode(
   };
 }
 
-function groupNodesByType(nodes: CanvasNode[]): Record<NodeType, CanvasNode[]> {
-  const groups: Record<NodeType, CanvasNode[]> = {
-    level: [],
-    knowledge: [],
-    skill: [],
-    trait: [],
-    milestone: [],
-  };
-
-  nodes.forEach(node => {
-    groups[node.type].push(node);
-  });
-
-  return groups;
-}
-
 function calculateBounds(nodes: CanvasNode[]): LayoutResult['bounds'] {
   if (nodes.length === 0) {
     return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
