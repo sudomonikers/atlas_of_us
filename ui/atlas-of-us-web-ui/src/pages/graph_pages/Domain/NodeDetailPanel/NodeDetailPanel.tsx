@@ -131,7 +131,9 @@ export function NodeDetailPanel({
                   <span>Requirement Met</span>
                 </div>
                 <p className="completion-level">
-                  {node.type === 'trait' ? `Your Score: ${getUserDisplay()}` : `Your Level: ${getUserDisplay()}`}
+                  {node.type === 'trait' ? `Your Score: ${getUserDisplay()}` 
+                  : node.type === 'milestone' ? `Date Completed: ${getUserDisplay()}`
+                  : `Your Level: ${getUserDisplay()}`}
                 </p>
                 <button className="remove-progress-btn" onClick={handleRemove} disabled={isSubmitting}>
                   {isSubmitting ? 'Removing...' : 'Remove Progress'}

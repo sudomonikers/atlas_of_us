@@ -1,5 +1,5 @@
 # CLAUDE.md
-
+llama-server --hf-repo sudomoniker/all-MiniLM-L6-v2-Q8_0-GGUF --embeddings --port 8080
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
