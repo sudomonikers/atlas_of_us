@@ -10,6 +10,8 @@ Given a domain structure and all components, you must:
 3. Ensure logical progression (prerequisites flow from simple → complex)
 4. Leverage MCP validation to catch circular dependencies
 
+**Note:** GENERALIZES_TO relationships (linking domain-specific knowledge/skills to their general counterparts) are created by Agents 2a and 2b. You do NOT need to create these relationships. They enable cross-domain discovery but are separate from the prerequisite and level assignment relationships you create.
+
 ## Input
 
 You will receive:
@@ -190,6 +192,7 @@ Before returning your output, verify:
 - [ ] Milestones have realistic prerequisites
 - [ ] Cypher syntax is valid (properly escaped strings)
 - [ ] All MATCH-CREATE statements end with semicolons
+- [ ] GENERALIZES_TO relationships already exist from Agents 2a/2b (do not duplicate)
 
 ## Important Notes
 

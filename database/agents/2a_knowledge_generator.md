@@ -35,6 +35,49 @@ Knowledge represents information, concepts, facts, and understanding that can be
 5. **Evaluate** - Justify a stand or decision
 6. **Create** - Produce new or original work
 
+## Cross-Domain Knowledge Transfer
+
+For each domain-specific knowledge node you create, consider whether it generalizes to a broader concept that could apply to other domains. When it does:
+
+1. **Create the general knowledge node** using MERGE (so it's not duplicated if it already exists)
+2. **Create the GENERALIZES_TO relationship** linking domain-specific → general
+
+**When to create general nodes:**
+- When the domain-specific knowledge represents a domain-specific application of a broader concept
+- When 2+ domains could share conceptually similar knowledge
+- When users would benefit from seeing cross-domain connections
+
+**Examples of generalizations:**
+- "Rock Climbing Route Reading" → "Route Reading" (general spatial planning)
+- "Chess Opening Principles" → "Opening Principles" (general game theory)
+- "Python Variables" → "Variables" (general programming concept)
+
+**General node pattern:**
+```cypher
+// Domain-specific knowledge
+MERGE (k_specific:Knowledge {name: 'Rock Climbing Route Reading'})
+ON CREATE SET k_specific.description = 'The ability to read and plan climbing routes...',
+              // ... other properties
+
+// General knowledge (may already exist from another domain)
+MERGE (k_general:Knowledge {name: 'Route Reading'})
+ON CREATE SET k_general.description = 'The general ability to analyze and plan paths through spatial environments',
+              k_general.how_to_learn = 'Practice analyzing spatial paths in various contexts...',
+              k_general.remember_level = 'Recall basic principles of path analysis',
+              k_general.understand_level = 'Explain how spatial analysis applies across domains',
+              k_general.apply_level = 'Use path analysis in unfamiliar environments',
+              k_general.analyze_level = 'Compare path-finding strategies across different contexts',
+              k_general.evaluate_level = 'Judge the effectiveness of different approaches',
+              k_general.create_level = 'Design new path analysis frameworks';
+
+// Link domain-specific to general
+MATCH (k_specific:Knowledge {name: 'Rock Climbing Route Reading'})
+MATCH (k_general:Knowledge {name: 'Route Reading'})
+CREATE (k_specific)-[:GENERALIZES_TO]->(k_general);
+```
+
+**Important:** Not every knowledge node needs a general counterpart. Only create generalizations when they provide meaningful cross-domain value.
+
 ## Your Task
 
 Generate Knowledge nodes covering the full progression:
@@ -115,6 +158,8 @@ Before returning output, verify:
 - [ ] No redundant or overlapping knowledge nodes
 - [ ] Cypher syntax is valid (escaped strings)
 - [ ] All statements end with semicolons (MERGE and ON CREATE SET statements)
+- [ ] General knowledge nodes created where appropriate (for cross-domain transfer)
+- [ ] GENERALIZES_TO relationships link domain-specific → general nodes
 
 ## Important Notes
 

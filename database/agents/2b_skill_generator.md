@@ -33,6 +33,48 @@ Skills represent learned abilities to perform tasks effectively. Skills are deve
 4. **Proficient** - Sees situations holistically, uses maxims and intuition
 5. **Expert** - Operates from deep tacit understanding, fluid and intuitive
 
+## Cross-Domain Skill Transfer
+
+For each domain-specific skill node you create, consider whether it generalizes to a broader ability that could apply to other domains. When it does:
+
+1. **Create the general skill node** using MERGE (so it's not duplicated if it already exists)
+2. **Create the GENERALIZES_TO relationship** linking domain-specific → general
+
+**When to create general nodes:**
+- When the domain-specific skill represents a domain-specific application of a broader ability
+- When 2+ domains could share conceptually similar skills
+- When users would benefit from seeing cross-domain skill transfer opportunities
+
+**Examples of generalizations:**
+- "Rock Climbing Footwork Technique" → "Footwork Technique" (general movement skill)
+- "Chess Tactical Calculation" → "Tactical Calculation" (general strategic thinking)
+- "Python Debugging" → "Debugging" (general problem-solving skill)
+
+**General node pattern:**
+```cypher
+// Domain-specific skill
+MERGE (s_specific:Skill {name: 'Rock Climbing Footwork Technique'})
+ON CREATE SET s_specific.description = 'The ability to place feet precisely on climbing holds...',
+              // ... other properties
+
+// General skill (may already exist from another domain)
+MERGE (s_general:Skill {name: 'Footwork Technique'})
+ON CREATE SET s_general.description = 'The general ability to place feet precisely and efficiently for optimal movement and balance',
+              s_general.how_to_develop = 'Practice precise foot placement in various movement contexts...',
+              s_general.novice_level = 'Follows basic foot placement rules. Movements are deliberate and cautious.',
+              s_general.advanced_beginner_level = 'Beginning to recognize patterns for efficient foot placement.',
+              s_general.competent_level = 'Consistent foot placement without conscious effort in familiar contexts.',
+              s_general.proficient_level = 'Fluid and adaptive foot placement. Transfers skills to new contexts.',
+              s_general.expert_level = 'Intuitive and seamless footwork. Can teach and analyze technique in others.';
+
+// Link domain-specific to general
+MATCH (s_specific:Skill {name: 'Rock Climbing Footwork Technique'})
+MATCH (s_general:Skill {name: 'Footwork Technique'})
+CREATE (s_specific)-[:GENERALIZES_TO]->(s_general);
+```
+
+**Important:** Not every skill node needs a general counterpart. Only create generalizations when they provide meaningful cross-domain value.
+
 ## Your Task
 
 Generate Skill nodes covering the full progression:
@@ -111,6 +153,8 @@ Before returning output, verify:
 - [ ] No redundant or overlapping skills
 - [ ] Cypher syntax is valid (escaped strings)
 - [ ] All statements end with semicolons (MERGE and ON CREATE SET statements)
+- [ ] General skill nodes created where appropriate (for cross-domain transfer)
+- [ ] GENERALIZES_TO relationships link domain-specific → general nodes
 
 ## Important Notes
 
