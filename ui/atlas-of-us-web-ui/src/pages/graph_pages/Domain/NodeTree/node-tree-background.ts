@@ -1,7 +1,7 @@
-// Procedural pixel art background generator for skill tree
+// Procedural pixel art background generator for node tree
 // Creates a layered scene with sky, clouds, moon, mountains, and trees
 
-import { COLORS } from './skill-tree-constants';
+import { COLORS } from './node-tree-constants';
 
 interface Star {
   x: number;

@@ -1,6 +1,6 @@
-// Shared utilities for skill tree components
+// Shared utilities for node tree components
 
-import type { CanvasNode } from './skill-tree-types';
+import type { CanvasNode } from './node-tree-types';
 import { BLOOM_LEVELS } from '../../../../common/enums/blooms-6-levels.enum';
 import { DREYFUS_LEVELS } from '../../../../common/enums/dreyfus-skill-aquisition.enum';
 

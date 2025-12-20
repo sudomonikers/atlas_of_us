@@ -1,4 +1,4 @@
-// Visual constants for the skill tree canvas
+// Visual constants for the node tree canvas
 
 export const LAYOUT = {
   LEVEL_SPACING: 500,      // Horizontal space between level centers

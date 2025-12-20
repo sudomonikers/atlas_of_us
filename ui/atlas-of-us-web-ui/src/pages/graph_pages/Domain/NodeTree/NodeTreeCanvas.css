@@ -1,4 +1,4 @@
-.skill-tree-container {
+.node-tree-container {
   position: relative;
   width: 100%;
   height: 100%;
@@ -7,14 +7,14 @@
   overflow: hidden;
 }
 
-.skill-tree-canvas {
+.node-tree-canvas {
   display: block;
   width: 100%;
   height: 100%;
 }
 
 /* Legend */
-.skill-tree-legend {
+.node-tree-legend {
   position: absolute;
   bottom: var(--space-md);
   left: var(--space-md);
@@ -79,7 +79,7 @@
 }
 
 /* Controls hint */
-.skill-tree-controls {
+.node-tree-controls {
   position: absolute;
   bottom: var(--space-md);
   right: var(--space-md);

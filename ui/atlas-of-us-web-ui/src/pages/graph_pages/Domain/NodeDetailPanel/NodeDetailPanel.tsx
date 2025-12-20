@@ -1,5 +1,5 @@
 import { JSX, useState, useEffect } from 'react';
-import type { CanvasNode } from '../SkillTree/skill-tree-types';
+import type { CanvasNode } from '../NodeTree/node-tree-types';
 import { BLOOM_LEVELS } from '../../../../common/enums/blooms-6-levels.enum';
 import { DREYFUS_LEVELS } from '../../../../common/enums/dreyfus-skill-aquisition.enum';
 import './NodeDetailPanel.css';

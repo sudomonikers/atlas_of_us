@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DomainData } from '../domain-interfaces';
-import type { CanvasNode, LayoutResult } from './skill-tree-types';
-import { calculateLayout, calculateInitialCamera } from './skill-tree-layout';
-import { render, findNodeAtPosition, screenToWorld } from './skill-tree-renderer';
-import { CAMERA } from './skill-tree-constants';
-import type { UserProgressMap } from './skill-tree-utils';
-import './SkillTreeCanvas.css';
+import type { CanvasNode, LayoutResult } from './node-tree-types';
+import { calculateLayout, calculateInitialCamera } from './node-tree-layout';
+import { render, findNodeAtPosition, screenToWorld } from './node-tree-renderer';
+import { CAMERA } from './node-tree-constants';
+import type { UserProgressMap } from './node-tree-utils';
+import './NodeTreeCanvas.css';
 
-interface SkillTreeCanvasProps {
+interface NodeTreeCanvasProps {
   domainData: DomainData;
   onNodeSelect: (node: CanvasNode | null) => void;
   selectedNode: CanvasNode | null;
   userProgressMap?: UserProgressMap;
 }
 
-export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userProgressMap = new Map() }: SkillTreeCanvasProps) {
+export function NodeTreeCanvas({ domainData, onNodeSelect, selectedNode, userProgressMap = new Map() }: NodeTreeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef<LayoutResult | null>(null);
@@ -203,10 +203,10 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
   }, []);
 
   return (
-    <div ref={containerRef} className="skill-tree-container">
+    <div ref={containerRef} className="node-tree-container">
       <canvas
         ref={canvasRef}
-        className="skill-tree-canvas"
+        className="node-tree-canvas"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -215,7 +215,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
           cursor: isDragging ? 'grabbing' : hoveredNode ? 'pointer' : 'grab',
         }}
       />
-      <div className="skill-tree-legend">
+      <div className="node-tree-legend">
         <div className="legend-item">
           <span className="legend-shape hexagon knowledge"></span>
           <span>Knowledge</span>
@@ -233,7 +233,7 @@ export function SkillTreeCanvas({ domainData, onNodeSelect, selectedNode, userPr
           <span>Milestone</span>
         </div>
       </div>
-      <div className="skill-tree-controls">
+      <div className="node-tree-controls">
         <span className="control-hint">Scroll to zoom | Drag to pan</span>
       </div>
     </div>

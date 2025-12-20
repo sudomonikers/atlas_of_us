@@ -1,9 +1,9 @@
-// Canvas 2D rendering functions for the skill tree
+// Canvas 2D rendering functions for the node tree
 
-import type { Camera, CanvasNode, Connection, NodeType } from './skill-tree-types';
-import { COLORS, FONTS } from './skill-tree-constants';
-import { renderBackground, generateBackgroundState } from './skill-tree-background';
-import { isNodeRequirementMet, type UserProgressMap } from './skill-tree-utils';
+import type { Camera, CanvasNode, Connection, NodeType } from './node-tree-types';
+import { COLORS, FONTS } from './node-tree-constants';
+import { renderBackground, generateBackgroundState } from './node-tree-background';
+import { isNodeRequirementMet, type UserProgressMap } from './node-tree-utils';
 
 // Cache background state to avoid regenerating every frame
 let cachedBackgroundState: ReturnType<typeof generateBackgroundState> | null = null;

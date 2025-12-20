@@ -1,8 +1,8 @@
-// Layout algorithm for positioning nodes in the skill tree
+// Layout algorithm for positioning nodes in the node tree
 
 import type { DomainData, DomainLevel, DomainNode } from '../domain-interfaces';
-import type { CanvasNode, Connection, LayoutResult, NodeType } from './skill-tree-types';
-import { LAYOUT, NODE_RADIUS } from './skill-tree-constants';
+import type { CanvasNode, Connection, LayoutResult, NodeType } from './node-tree-types';
+import { LAYOUT, NODE_RADIUS } from './node-tree-constants';
 
 /**
  * Transform DomainData into positioned CanvasNodes for rendering

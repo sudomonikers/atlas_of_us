@@ -1,4 +1,4 @@
-// Types for the skill tree canvas visualization
+// Types for the node tree canvas visualization
 
 export type NodeType = 'knowledge' | 'skill' | 'trait' | 'milestone' | 'level';
 

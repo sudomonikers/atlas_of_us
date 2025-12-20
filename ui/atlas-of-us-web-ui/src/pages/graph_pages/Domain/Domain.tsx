@@ -5,10 +5,10 @@ import { getHttpService } from "../../../services/http-service";
 import { useGlobal } from "../../../GlobalProvider";
 import type { DomainData } from "./domain-interfaces";
 import type { Neo4jRelationship } from "../Graph/graph-interfaces.interface";
-import { SkillTreeCanvas } from "./SkillTree/SkillTreeCanvas";
+import { NodeTreeCanvas } from "./NodeTree/NodeTreeCanvas";
 import { NodeDetailPanel } from "./NodeDetailPanel/NodeDetailPanel";
-import type { CanvasNode } from "./SkillTree/skill-tree-types";
-import { isNodeRequirementMet, type UserProgressMap } from "./SkillTree/skill-tree-utils";
+import type { CanvasNode } from "./NodeTree/node-tree-types";
+import { isNodeRequirementMet, type UserProgressMap } from "./NodeTree/node-tree-utils";
 import "./Domain.css";
 
 export function Domain() {
@@ -128,7 +128,7 @@ export function Domain() {
             <div className="domain-search-content">
               <h1 className="domain-search-title">Explore Domains</h1>
               <p className="domain-search-subtitle">
-                Search for a domain to explore its skill tree and progression paths
+                Search for a domain to explore its node tree and progression paths
               </p>
               <form className="domain-search-form" onSubmit={handleSearch}>
                 <input
@@ -198,7 +198,7 @@ export function Domain() {
           {isLoading && (
             <div className="domain-loading">
               <div className="loading-spinner"></div>
-              <p>Loading skill tree...</p>
+              <p>Loading node tree...</p>
             </div>
           )}
 
@@ -210,7 +210,7 @@ export function Domain() {
           )}
 
           {domainData && !isLoading && (
-            <SkillTreeCanvas
+            <NodeTreeCanvas
               domainData={domainData}
               onNodeSelect={setSelectedNode}
               selectedNode={selectedNode}
