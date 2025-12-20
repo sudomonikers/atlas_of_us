@@ -60,6 +60,55 @@ SET k.description = 'Mathematical logic dealing with binary values and logical o
 
 **Default approach:** When in doubt, make knowledge domain-specific with a domain prefix.
 
+## **Cross-Domain Knowledge Transfer**
+
+Domain-specific knowledge nodes should link to their general counterpart using the `GENERALIZES_TO` relationship. This enables users to discover how knowledge gained in one domain might apply to others.
+
+**How it works:**
+
+1. Domain-specific knowledge (e.g., "Chess Piece Coordination") links to a general knowledge node (e.g., "Piece Coordination")
+2. Other domain-specific knowledge nodes also link to the same general node (e.g., "Go Piece Coordination" → "Piece Coordination")
+3. Users can traverse from their domain-specific knowledge → general concept → other domains' implementations
+
+**Relationship Direction:**
+```
+(domain_specific)-[:GENERALIZES_TO]->(general)
+```
+
+**Example:**
+```cypher
+// Create domain-specific knowledge nodes
+MERGE (k_chess:Knowledge {name: 'Chess Opening Principles'})
+SET k_chess.description = 'Fundamental strategic concepts for the opening phase of a chess game'
+
+MERGE (k_go:Knowledge {name: 'Go Opening Principles'})
+SET k_go.description = 'Fundamental strategic concepts for the opening phase of a Go game (fuseki)'
+
+MERGE (k_poker:Knowledge {name: 'Poker Opening Strategy'})
+SET k_poker.description = 'Fundamental strategic concepts for opening hands and position in poker'
+
+// Create the general knowledge node
+MERGE (k_general:Knowledge {name: 'Opening Principles'})
+SET k_general.description = 'General strategic concepts for the initial phase of competitive games, focusing on position establishment and resource development'
+
+// Link domain-specific to general
+CREATE (k_chess)-[:GENERALIZES_TO]->(k_general)
+CREATE (k_go)-[:GENERALIZES_TO]->(k_general)
+CREATE (k_poker)-[:GENERALIZES_TO]->(k_general)
+```
+
+**When to create general nodes:**
+
+- When 2+ domains share conceptually similar knowledge
+- When the general concept is meaningful on its own (not just an abstraction for grouping)
+- When users would benefit from seeing cross-domain connections
+
+**General knowledge node naming:**
+
+- Remove domain prefixes (e.g., "Chess Opening Principles" → "Opening Principles")
+- Use clear, generic terminology
+- Avoid overly abstract names that lose meaning
+
 ## **Knowledge Properties**
 
 - **name** (string) - The knowledge identifier (e.g., "Piece Movements", "Opening Principles")

@@ -9,6 +9,16 @@ Any domain can consist of these types of nodes, which are measured in these mann
 
 Each domain has multiple levels. To achieve each level, you must meet specific requirements across skills, traits, knowledge, and milestones.
 
+## Cross-Domain Connections
+
+Domain-specific knowledge and skills should link to general counterparts using the `GENERALIZES_TO` relationship. This enables users to:
+
+- Discover how skills/knowledge from one domain might apply to others
+- Find new domains that leverage their existing expertise
+- Understand the transferable value of their domain-specific abilities
+
+See `knowledge.md` and `skills.md` for detailed documentation on implementing cross-domain connections.
+
 ## Example: Chess Domain
 
 ### Level 1: Novice Player

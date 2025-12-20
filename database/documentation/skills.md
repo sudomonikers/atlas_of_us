@@ -60,6 +60,55 @@ SET s.description = 'The ability to identify problems, analyze root causes, and 
 
 **Default approach:** When in doubt, make skills domain-specific with a domain prefix.
 
+## **Cross-Domain Skill Transfer**
+
+Domain-specific skill nodes should link to their general counterpart using the `GENERALIZES_TO` relationship. This enables users to discover how skills developed in one domain might transfer to others.
+
+**How it works:**
+
+1. Domain-specific skills (e.g., "Chess Tactical Calculation") link to a general skill node (e.g., "Tactical Calculation")
+2. Other domain-specific skill nodes also link to the same general node (e.g., "Go Reading" → "Tactical Calculation")
+3. Users can traverse from their domain-specific skill → general skill → other domains' implementations
+
+**Relationship Direction:**
+```
+(domain_specific)-[:GENERALIZES_TO]->(general)
+```
+
+**Example:**
+```cypher
+// Create domain-specific skill nodes
+MERGE (s_chess:Skill {name: 'Chess Tactical Calculation'})
+SET s_chess.description = 'The ability to visualize and calculate sequences of chess moves'
+
+MERGE (s_go:Skill {name: 'Go Reading'})
+SET s_go.description = 'The ability to visualize and calculate sequences of Go moves'
+
+MERGE (s_poker:Skill {name: 'Poker Hand Reading'})
+SET s_poker.description = 'The ability to deduce opponent hand ranges and calculate optimal plays'
+
+// Create the general skill node
+MERGE (s_general:Skill {name: 'Tactical Calculation'})
+SET s_general.description = 'The general ability to analyze sequential possibilities, evaluate outcomes, and select optimal moves in competitive scenarios'
+
+// Link domain-specific to general
+CREATE (s_chess)-[:GENERALIZES_TO]->(s_general)
+CREATE (s_go)-[:GENERALIZES_TO]->(s_general)
+CREATE (s_poker)-[:GENERALIZES_TO]->(s_general)
+```
+
+**When to create general skill nodes:**
+
+- When 2+ domains share conceptually similar skills
+- When the general skill represents a real transferable ability (not just an abstraction)
+- When users would benefit from seeing cross-domain skill transfer opportunities
+
+**General skill node naming:**
+
+- Remove domain prefixes (e.g., "Chess Tactical Calculation" → "Tactical Calculation")
+- Use clear, generic terminology that describes the transferable ability
+- Avoid overly abstract names that lose meaning
+
 ## **Skill Properties**
 
 - **name** (string) - The skill identifier (e.g., "Board Evaluation", "Strategic Planning")
