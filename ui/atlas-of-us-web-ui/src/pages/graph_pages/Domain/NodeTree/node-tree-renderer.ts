@@ -376,7 +376,7 @@ function drawRoundedRect(
   isSelected: boolean,
   isHovered: boolean
 ) {
-  const width = radius * 2.2;
+  const width = radius * 6.5;
   const height = radius * 1.4;
   const cornerRadius = radius * 0.25;
 
@@ -460,13 +460,15 @@ function drawNodeLabel(
   scaledRadius: number,
   zoom: number
 ) {
-  const labelY = screenPos.y + scaledRadius + 12 * zoom;
-  const maxWidth = 120 * zoom;
+  // Level nodes have labels inside the shape
+  const isLevelNode = node.type === 'level';
+  const labelY = isLevelNode ? screenPos.y : screenPos.y + scaledRadius + 12 * zoom;
+  const maxWidth = isLevelNode ? scaledRadius * 6.2 : 120 * zoom;
 
-  ctx.font = node.type === 'level' ? FONTS.header : FONTS.label;
+  ctx.font = isLevelNode ? FONTS.header : FONTS.label;
   ctx.fillStyle = COLORS.labelText;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
+  ctx.textBaseline = isLevelNode ? 'middle' : 'top';
 
   // Truncate long names
   let displayName = node.name;

@@ -56,8 +56,16 @@ createRoot(document.getElementById('root')!).render(
             <Graph />
           </PrivateRoute>
         } />
-        <Route path="/Domain" element={<Domain />} />
-        <Route path="/Domain/:domainName" element={<Domain />} />
+        <Route path="/Domain" element={
+          <PrivateRoute>
+            <Domain />
+            </PrivateRoute>
+        } />
+        <Route path="/Domain/:domainName" element={
+          <PrivateRoute>
+            <Domain />
+          </PrivateRoute>
+        } />
         <Route path="/DomainCreator" element={
           <PrivateRoute>
             <DomainCreator />
