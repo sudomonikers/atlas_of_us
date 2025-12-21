@@ -1,14 +1,14 @@
 .node-detail-panel {
   position: fixed;
   top: var(--nav-height);
+  left: 0;
   right: 0;
-  width: 400px;
+  width: 100%;
   height: calc(100vh - var(--nav-height));
-  background: var(--glass-backdrop);
-  backdrop-filter: var(--glass-blur);
-  border-left: var(--glass-border);
-  transform: translateX(100%);
-  transition: transform var(--duration-normal) var(--ease-gentle);
+  background: #0a0a1a;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-normal) var(--ease-gentle), visibility var(--duration-normal);
   z-index: var(--z-modal);
   overflow-y: auto;
   display: flex;
@@ -16,16 +16,17 @@
 }
 
 .node-detail-panel.open {
-  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Close button */
 .panel-close-btn {
   position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
-  width: 36px;
-  height: 36px;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -35,6 +36,7 @@
   color: var(--star-text);
   cursor: pointer;
   transition: background var(--duration-fast);
+  z-index: 10;
 }
 
 .panel-close-btn:hover {
@@ -45,8 +47,8 @@
 .panel-header {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-lg);
   padding-right: var(--space-2xl);
   border-bottom: var(--glass-border);
 }
@@ -72,8 +74,8 @@
 }
 
 .node-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
 }
 
@@ -117,7 +119,7 @@
 
 .panel-title {
   font-family: var(--font-primary);
-  font-size: var(--text-h4);
+  font-size: var(--text-h3);
   color: var(--star-text);
   margin: 0;
   line-height: var(--line-height-tight);
@@ -126,7 +128,7 @@
 /* Content */
 .panel-content {
   flex: 1;
-  padding: var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
 }
 
 .panel-description {
@@ -566,9 +568,12 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .node-detail-panel {
-    width: 100%;
-    max-width: 400px;
+  .panel-header {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .panel-content {
+    padding: var(--space-lg) var(--space-md);
   }
 
   .level-options {
