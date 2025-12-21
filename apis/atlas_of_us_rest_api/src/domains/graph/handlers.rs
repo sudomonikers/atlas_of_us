@@ -631,6 +631,10 @@ pub async fn get_domain(
         // Get milestone requirements for each level
         OPTIONAL MATCH (level)-[mr:REQUIRES_MILESTONE]->(m:Milestone)
 
+        // Get GENERALIZES_TO relationships for skills and knowledge
+        OPTIONAL MATCH (s)-[:GENERALIZES_TO]->(generalSkill:Skill)
+        OPTIONAL MATCH (k)-[:GENERALIZES_TO]->(generalKnowledge:Knowledge)
+
         WITH domain, level,
              collect(DISTINCT CASE WHEN k IS NOT NULL THEN {
                  elementId: elementId(k),
@@ -638,7 +642,11 @@ pub async fn get_domain(
                  name: k.name,
                  description: k.description,
                  howToLearn: k.how_to_learn,
-                 bloomLevel: kr.bloom_level
+                 bloomLevel: kr.bloom_level,
+                 generalizesTo: CASE WHEN generalKnowledge IS NOT NULL THEN {
+                     elementId: elementId(generalKnowledge),
+                     name: generalKnowledge.name
+                 } ELSE null END
              } ELSE NULL END) AS knowledge,
              collect(DISTINCT CASE WHEN s IS NOT NULL THEN {
                  elementId: elementId(s),
@@ -646,7 +654,11 @@ pub async fn get_domain(
                  name: s.name,
                  description: s.description,
                  howToDevelop: s.how_to_develop,
-                 dreyfusLevel: sr.dreyfus_level
+                 dreyfusLevel: sr.dreyfus_level,
+                 generalizesTo: CASE WHEN generalSkill IS NOT NULL THEN {
+                     elementId: elementId(generalSkill),
+                     name: generalSkill.name
+                 } ELSE null END
              } ELSE NULL END) AS skills,
              collect(DISTINCT CASE WHEN t IS NOT NULL THEN {
                  elementId: elementId(t),

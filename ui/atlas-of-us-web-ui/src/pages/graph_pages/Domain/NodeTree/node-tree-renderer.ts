@@ -1,6 +1,7 @@
 // Canvas 2D rendering functions for the node tree
 
 import type { Camera, CanvasNode, Connection, NodeType } from './node-tree-types';
+import type { GeneralizationMap } from '../domain-interfaces';
 import { COLORS, FONTS } from './node-tree-constants';
 import { renderBackground, generateBackgroundState } from './node-tree-background';
 import { isNodeRequirementMet, type UserProgressMap } from './node-tree-utils';
@@ -69,17 +70,27 @@ function applyNodeFillAndStroke(
   color: string,
   isCompleted: boolean,
   isSelected: boolean,
-  isHovered: boolean
+  isHovered: boolean,
+  hasGeneralizedCoverage: boolean = false
 ): void {
-  ctx.fillStyle = isCompleted ? color : 'rgba(13, 13, 21, 0.8)';
-  ctx.globalAlpha = isCompleted ? 0.6 : 1;
+  if (isCompleted) {
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.6;
+  } else if (hasGeneralizedCoverage) {
+    // Semi-transparent fill for generalized coverage
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.1;
+  } else {
+    ctx.fillStyle = 'rgba(13, 13, 21, 0.8)';
+    ctx.globalAlpha = 1;
+  }
   ctx.fill();
   ctx.globalAlpha = 1;
 
   ctx.strokeStyle = color;
   ctx.lineWidth = isCompleted ? 3 : isSelected ? 3 : isHovered ? 2.5 : 2;
   ctx.shadowColor = color;
-  ctx.shadowBlur = isCompleted ? 20 : isSelected ? 15 : isHovered ? 12 : 8;
+  ctx.shadowBlur = isCompleted ? 20 : hasGeneralizedCoverage ? 12 : isSelected ? 15 : isHovered ? 12 : 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
 }
@@ -94,7 +105,8 @@ export function render(
   selectedNode: CanvasNode | null,
   domainName: string = 'Default',
   time: number = 0,
-  userProgressMap: UserProgressMap = new Map()
+  userProgressMap: UserProgressMap = new Map(),
+  generalizationMap: GeneralizationMap = new Map()
 ) {
   // Use CSS dimensions (context is already scaled by DPR)
   const dpr = window.devicePixelRatio || 1;
@@ -131,14 +143,16 @@ export function render(
 
   regularNodes.forEach(node => {
     const isCompleted = isNodeRequirementMet(node, userProgressMap);
-    drawNode(ctx, node, camera, width, height, false, false, isCompleted);
+    const hasGeneralizedCoverage = !isCompleted && generalizationMap.has(node.elementId || '');
+    drawNode(ctx, node, camera, width, height, false, false, isCompleted, hasGeneralizedCoverage);
   });
 
   specialNodes.forEach(node => {
     const isHovered = node === hoveredNode;
     const isSelected = node === selectedNode;
     const isCompleted = isNodeRequirementMet(node, userProgressMap);
-    drawNode(ctx, node, camera, width, height, isHovered, isSelected, isCompleted);
+    const hasGeneralizedCoverage = !isCompleted && generalizationMap.has(node.elementId || '');
+    drawNode(ctx, node, camera, width, height, isHovered, isSelected, isCompleted, hasGeneralizedCoverage);
   });
 }
 
@@ -192,7 +206,8 @@ function drawNode(
   height: number,
   isHovered: boolean,
   isSelected: boolean,
-  isCompleted: boolean = false
+  isCompleted: boolean = false,
+  hasGeneralizedCoverage: boolean = false
 ) {
   const screenPos = worldToScreen(node.x, node.y, camera, width, height);
   const scaledRadius = node.radius * camera.zoom;
@@ -203,29 +218,29 @@ function drawNode(
   const color = getNodeColor(node.type);
   const glowColor = getGlowColor(node.type);
 
-  // Completed nodes get enhanced glow
-  const baseIntensity = isCompleted ? 1.8 : isSelected ? 1.5 : isHovered ? 1.2 : 0.8;
+  // Completed and generalized nodes get enhanced glow
+  const baseIntensity = isCompleted ? 1.8 : hasGeneralizedCoverage ? 1.2 : isSelected ? 1.5 : isHovered ? 1.2 : 0.8;
   drawGlow(ctx, screenPos, scaledRadius, glowColor, baseIntensity);
 
   // Draw shape based on type
   switch (node.type) {
     case 'knowledge':
-      drawHexagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
+      drawHexagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted, hasGeneralizedCoverage);
       break;
     case 'skill':
-      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
+      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted, hasGeneralizedCoverage);
       break;
     case 'trait':
-      drawDiamond(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
+      drawDiamond(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted, hasGeneralizedCoverage);
       break;
     case 'milestone':
-      drawOctagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
+      drawOctagon(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted, hasGeneralizedCoverage);
       break;
     case 'level':
       drawRoundedRect(ctx, screenPos, scaledRadius, color, isSelected, isHovered);
       break;
     default:
-      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted);
+      drawCircle(ctx, screenPos, scaledRadius, color, isSelected, isHovered, isCompleted, hasGeneralizedCoverage);
   }
 
   // Draw label when zoomed in enough
@@ -272,7 +287,8 @@ function drawHexagon(
   color: string,
   isSelected: boolean,
   isHovered: boolean,
-  isCompleted: boolean = false
+  isCompleted: boolean = false,
+  hasGeneralizedCoverage: boolean = false
 ) {
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
@@ -284,8 +300,8 @@ function drawHexagon(
   }
   ctx.closePath();
 
-  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
-  drawInnerRune(ctx, center, radius * 0.5, isCompleted ? '#ffffff' : color);
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered, hasGeneralizedCoverage);
+  drawInnerRune(ctx, center, radius * 0.5, isCompleted || hasGeneralizedCoverage ? '#ffffff' : color);
 }
 
 function drawCircle(
@@ -295,17 +311,18 @@ function drawCircle(
   color: string,
   isSelected: boolean,
   isHovered: boolean,
-  isCompleted: boolean = false
+  isCompleted: boolean = false,
+  hasGeneralizedCoverage: boolean = false
 ) {
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
 
-  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered, hasGeneralizedCoverage);
 
   // Inner ring
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius * 0.6, 0, Math.PI * 2);
-  ctx.strokeStyle = isCompleted ? '#ffffff' : color;
+  ctx.strokeStyle = isCompleted || hasGeneralizedCoverage ? '#ffffff' : color;
   ctx.lineWidth = 1;
   ctx.globalAlpha = 0.5;
   ctx.stroke();
@@ -319,7 +336,8 @@ function drawDiamond(
   color: string,
   isSelected: boolean,
   isHovered: boolean,
-  isCompleted: boolean = false
+  isCompleted: boolean = false,
+  hasGeneralizedCoverage: boolean = false
 ) {
   ctx.beginPath();
   ctx.moveTo(center.x, center.y - radius);
@@ -328,7 +346,7 @@ function drawDiamond(
   ctx.lineTo(center.x - radius, center.y);
   ctx.closePath();
 
-  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered, hasGeneralizedCoverage);
 
   // Inner diamond
   const innerR = radius * 0.4;
@@ -338,7 +356,7 @@ function drawDiamond(
   ctx.lineTo(center.x, center.y + innerR);
   ctx.lineTo(center.x - innerR, center.y);
   ctx.closePath();
-  ctx.strokeStyle = isCompleted ? '#ffffff' : color;
+  ctx.strokeStyle = isCompleted || hasGeneralizedCoverage ? '#ffffff' : color;
   ctx.lineWidth = 1;
   ctx.globalAlpha = 0.5;
   ctx.stroke();
@@ -352,7 +370,8 @@ function drawOctagon(
   color: string,
   isSelected: boolean,
   isHovered: boolean,
-  isCompleted: boolean = false
+  isCompleted: boolean = false,
+  hasGeneralizedCoverage: boolean = false
 ) {
   ctx.beginPath();
   for (let i = 0; i < 8; i++) {
@@ -364,8 +383,8 @@ function drawOctagon(
   }
   ctx.closePath();
 
-  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered);
-  drawStar(ctx, center, radius * 0.4, isCompleted ? '#ffffff' : color);
+  applyNodeFillAndStroke(ctx, color, isCompleted, isSelected, isHovered, hasGeneralizedCoverage);
+  drawStar(ctx, center, radius * 0.4, isCompleted || hasGeneralizedCoverage ? '#ffffff' : color);
 }
 
 function drawRoundedRect(

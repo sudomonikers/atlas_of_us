@@ -15,32 +15,46 @@ pub async fn get_user_profile(
         MATCH (node:Person)
         WHERE node.username = $username
         OPTIONAL MATCH (node)-[r]->(m)
-        UNWIND coalesce(r, [null]) AS unwound_relationships
-        UNWIND coalesce(m, [null]) AS unwound_affiliates
-        WITH 
+        WITH node,
+             collect(distinct r) AS rels,
+             collect(distinct m) AS affiliates
+
+        // First, process relationships
+        UNWIND CASE WHEN size(rels) = 0 THEN [null] ELSE rels END AS rel
+        WITH node, affiliates,
+             collect(distinct case when rel is not null then {
+                 id: id(rel),
+                 elementId: elementId(rel),
+                 startId: id(startNode(rel)),
+                 startElementId: elementId(startNode(rel)),
+                 endId: id(endNode(rel)),
+                 endElementId: elementId(endNode(rel)),
+                 type: type(rel),
+                 props: properties(rel)
+             } else null end) AS relationshipsWithMeta
+
+        // Then, process affiliates with their GENERALIZES_TO
+        UNWIND CASE WHEN size(affiliates) = 0 THEN [null] ELSE affiliates END AS affiliate
+        OPTIONAL MATCH (affiliate)-[:GENERALIZES_TO]->(general)
+        WITH node, relationshipsWithMeta,
+             collect(distinct case when affiliate is not null then {
+                 id: id(affiliate),
+                 elementId: elementId(affiliate),
+                 labels: labels(affiliate),
+                 props: properties(affiliate),
+                 generalizesToElementId: case when general is not null then elementId(general) else null end
+             } else null end) AS affiliatedNodesWithMeta
+
+        WITH
             {
                 id: id(node),
-                elementId: elementId(node), 
+                elementId: elementId(node),
                 labels: labels(node),
                 props: properties(node)
             } AS nodeWithMeta,
-            collect(distinct case when unwound_relationships is not null then {
-                id: id(unwound_relationships),
-                elementId: elementId(unwound_relationships),
-                startId: id(startNode(unwound_relationships)),
-                startElementId: elementId(startNode(unwound_relationships)),
-                endId: id(endNode(unwound_relationships)),
-                endElementId: elementId(endNode(unwound_relationships)),
-                type: type(unwound_relationships),
-                props: properties(unwound_relationships)
-            } else null end) AS relationshipsWithMeta,
-            collect(distinct case when unwound_affiliates is not null then {
-                id: id(unwound_affiliates),
-                elementId: elementId(unwound_affiliates),
-                labels: labels(unwound_affiliates),
-                props: properties(unwound_affiliates)
-            } else null end) AS affiliatedNodesWithMeta
-        RETURN 
+            relationshipsWithMeta,
+            affiliatedNodesWithMeta
+        RETURN
             nodeWithMeta AS node,
             relationshipsWithMeta AS relationships,
             affiliatedNodesWithMeta AS affiliatedNodes

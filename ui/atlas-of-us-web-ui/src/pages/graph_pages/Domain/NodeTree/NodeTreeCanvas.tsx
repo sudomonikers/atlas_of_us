@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DomainData } from '../domain-interfaces';
+import type { DomainData, GeneralizationMap } from '../domain-interfaces';
 import type { CanvasNode, LayoutResult } from './node-tree-types';
 import { calculateLayout, calculateInitialCamera } from './node-tree-layout';
 import { render, findNodeAtPosition, screenToWorld } from './node-tree-renderer';
@@ -12,9 +12,10 @@ interface NodeTreeCanvasProps {
   onNodeSelect: (node: CanvasNode | null) => void;
   selectedNode: CanvasNode | null;
   userProgressMap?: UserProgressMap;
+  generalizationMap?: GeneralizationMap;
 }
 
-export function NodeTreeCanvas({ domainData, onNodeSelect, selectedNode, userProgressMap = new Map() }: NodeTreeCanvasProps) {
+export function NodeTreeCanvas({ domainData, onNodeSelect, selectedNode, userProgressMap = new Map(), generalizationMap = new Map() }: NodeTreeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef<LayoutResult | null>(null);
@@ -67,7 +68,8 @@ export function NodeTreeCanvas({ domainData, onNodeSelect, selectedNode, userPro
         selectedNode,
         domainData.name,
         timestamp,
-        userProgressMap
+        userProgressMap,
+        generalizationMap
       );
 
       rafRef.current = requestAnimationFrame(animate);
@@ -81,7 +83,7 @@ export function NodeTreeCanvas({ domainData, onNodeSelect, selectedNode, userPro
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [hoveredNode, selectedNode, domainData.name, userProgressMap]);
+  }, [hoveredNode, selectedNode, domainData.name, userProgressMap, generalizationMap]);
 
   // Handle resize
   useEffect(() => {

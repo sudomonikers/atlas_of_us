@@ -384,6 +384,49 @@
   margin: var(--space-xs) 0 0;
 }
 
+/* Generalization Section - Transferable Skills */
+.generalization-section {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(0, 255, 153, 0.1));
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.generalization-info {
+  margin-top: var(--space-xs);
+}
+
+.generalization-description {
+  font-size: var(--text-small);
+  color: var(--moon-text);
+  margin: 0 0 var(--space-sm);
+}
+
+.generalization-sources-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.generalization-source-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.generalization-source-item .source-name {
+  font-size: var(--text-body);
+  color: var(--star-text);
+  font-weight: var(--font-weight-medium);
+}
+
 /* Mark Complete Section */
 .mark-complete-section {
   display: flex;

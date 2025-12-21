@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router";
 import { NavBar } from "../../../common-components/navbar/nav";
 import { getHttpService } from "../../../services/http-service";
 import { useGlobal } from "../../../GlobalProvider";
-import type { DomainData } from "./domain-interfaces";
-import type { Neo4jRelationship } from "../Graph/graph-interfaces.interface";
+import type { DomainData, GeneralizationMap, GeneralizationSource } from "./domain-interfaces";
+import type { Neo4jRelationship, Neo4jNode } from "../Graph/graph-interfaces.interface";
 import { NodeTreeCanvas } from "./NodeTree/NodeTreeCanvas";
 import { NodeDetailPanel } from "./NodeDetailPanel/NodeDetailPanel";
 import type { CanvasNode } from "./NodeTree/node-tree-types";
@@ -38,6 +38,47 @@ export function Domain() {
 
     return { userProgressMap: propsMap, relationshipIdMap: idMap };
   }, [loggedIn, profileData?.relationships]);
+
+  // Build generalizationMap by matching user's skills/knowledge with domain's via GENERALIZES_TO
+  const generalizationMap = useMemo(() => {
+    const map: GeneralizationMap = new Map();
+    if (!loggedIn || !profileData?.affiliates || !domainData) return map;
+
+    // 1. Build a map of user's generalizations: generalNodeElementId -> user's skill/knowledge info
+    const userGeneralizations = new Map<string, { nodeName: string; nodeElementId: string }>();
+
+    profileData.affiliates.forEach((node: Neo4jNode) => {
+      if (node.GeneralizesToElementId) {
+        userGeneralizations.set(node.GeneralizesToElementId, {
+          nodeName: node.Props?.name || 'Unknown',
+          nodeElementId: node.ElementId
+        });
+      }
+    });
+
+    // 2. For each skill/knowledge in the domain, check if user has matching generalization
+    domainData.levels?.forEach(level => {
+      [...(level.skills || []), ...(level.knowledge || [])].forEach(item => {
+        if (item.generalizesTo) {
+          const userMatch = userGeneralizations.get(item.generalizesTo.elementId);
+          // Only include if user has a DIFFERENT skill/knowledge that shares the same general node
+          if (userMatch && userMatch.nodeElementId !== item.elementId) {
+            const sources = map.get(item.elementId) || [];
+            // Avoid duplicates
+            if (!sources.some(s => s.nodeElementId === item.generalizesTo.elementId)) {
+              sources.push({
+                nodeElementId: item.generalizesTo.elementId,
+                nodeName: item.generalizesTo.name
+              });
+              map.set(item.elementId, sources);
+            }
+          }
+        }
+      });
+    });
+
+    return map;
+  }, [loggedIn, profileData?.affiliates, domainData]);
 
   // Refresh profile data
   const refreshProfileData = useCallback(async () => {
@@ -153,6 +194,7 @@ export function Domain() {
   // Get the progress data for the selected node
   const selectedProgress = selectedNode?.elementId ? userProgressMap.get(selectedNode.elementId) : undefined;
   const selectedRelationshipId = selectedNode?.elementId ? relationshipIdMap.get(selectedNode.elementId) : undefined;
+  const selectedGeneralizationSources = selectedNode?.elementId ? generalizationMap.get(selectedNode.elementId) : undefined;
 
   return (
     <>
@@ -215,6 +257,7 @@ export function Domain() {
               onNodeSelect={setSelectedNode}
               selectedNode={selectedNode}
               userProgressMap={userProgressMap}
+              generalizationMap={generalizationMap}
             />
           )}
         </div>
@@ -231,6 +274,7 @@ export function Domain() {
           onMarkComplete={handleMarkComplete}
           onRemoveProgress={handleRemoveProgress}
           isLoggedIn={loggedIn}
+          generalizationSources={selectedGeneralizationSources}
         />
       </div>
     </>

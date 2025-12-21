@@ -35,25 +35,33 @@ pub fn map_bolt4_to_bolt5_node(node_data: &Value) -> Value {
         let id = obj.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
         let element_id = obj.get("elementId").and_then(|v| v.as_str()).unwrap_or("");
         let labels = obj.get("labels").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-        
+        let generalizes_to_element_id = obj.get("generalizesToElementId").cloned();
+
         let props = if let Some(nested_props) = obj.get("props") {
             nested_props.clone()
         } else {
             let mut props_map = serde_json::Map::new();
             for (key, value) in obj {
-                if !matches!(key.as_str(), "id" | "elementId" | "labels") {
+                if !matches!(key.as_str(), "id" | "elementId" | "labels" | "generalizesToElementId") {
                     props_map.insert(key.clone(), value.clone());
                 }
             }
             json!(props_map)
         };
 
-        json!({
+        let mut result = json!({
             "Id": id,
             "ElementId": element_id,
             "Labels": labels,
             "Props": props
-        })
+        });
+
+        // Add GeneralizesToElementId if present
+        if let Some(gen_id) = generalizes_to_element_id {
+            result["GeneralizesToElementId"] = gen_id;
+        }
+
+        result
     } else {
         node_data.clone()
     }

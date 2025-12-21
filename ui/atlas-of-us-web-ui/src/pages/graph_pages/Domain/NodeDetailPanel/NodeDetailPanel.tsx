@@ -1,5 +1,6 @@
 import { JSX, useState, useEffect } from 'react';
 import type { CanvasNode } from '../NodeTree/node-tree-types';
+import type { GeneralizationSource } from '../domain-interfaces';
 import { BLOOM_LEVELS } from '../../../../common/enums/blooms-6-levels.enum';
 import { DREYFUS_LEVELS } from '../../../../common/enums/dreyfus-skill-aquisition.enum';
 import './NodeDetailPanel.css';
@@ -16,6 +17,7 @@ interface NodeDetailPanelProps {
   onMarkComplete: (node: CanvasNode, levelOrScore: string | number) => Promise<void>;
   onRemoveProgress: (relationshipElementId: string) => Promise<void>;
   isLoggedIn: boolean;
+  generalizationSources?: GeneralizationSource[];
 }
 
 export function NodeDetailPanel({
@@ -29,12 +31,13 @@ export function NodeDetailPanel({
   userDate,
   onMarkComplete,
   onRemoveProgress,
-  isLoggedIn
+  isLoggedIn,
+  generalizationSources
 }: NodeDetailPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [level, setLevel] = useState<string | null>(null);
   const [score, setScore] = useState<number>(50);
-
+  console.log(generalizationSources)
   // Reset form state when node changes
   useEffect(() => {
     setLevel(userBloomLevel ?? userDreyfusLevel ?? null);
@@ -102,6 +105,25 @@ export function NodeDetailPanel({
 
       <div className="panel-content">
         {node.description && <p className="panel-description">{node.description}</p>}
+
+        {/* Show generalization info when user has transferable skills from other domains */}
+        {generalizationSources && generalizationSources.length > 0 && !isCompleted && (
+          <div className="generalization-section">
+            <h3 className="requirement-title">Transferable Skills</h3>
+            <div className="generalization-info">
+              <p className="generalization-description">
+                You have related skills from other domains that may help with this:
+              </p>
+              <ul className="generalization-sources-list">
+                {generalizationSources.map((source, idx) => (
+                  <li key={idx} className="generalization-source-item">
+                    <span className="source-name">{source.nodeName}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {node.type === 'knowledge' && node.requirement?.bloomLevel && (
           <RequirementLadder levels={BLOOM_LEVELS} required={node.requirement.bloomLevel} title="Bloom's Taxonomy" />

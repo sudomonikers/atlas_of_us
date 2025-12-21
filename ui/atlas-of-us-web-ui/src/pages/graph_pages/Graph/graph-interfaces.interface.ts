@@ -5,6 +5,8 @@ export interface Neo4jNode {
   Props: {
     [key: string]: any
   },
+  // Added for GENERALIZES_TO tracking - what general node this skill/knowledge links to
+  GeneralizesToElementId?: string | null,
 }
 
 export interface Neo4jRelationship {

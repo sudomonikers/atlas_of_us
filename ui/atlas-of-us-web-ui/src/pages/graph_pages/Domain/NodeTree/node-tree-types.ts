@@ -20,6 +20,9 @@ export interface CanvasNode {
   elementId?: string;
   // Original data for detail panel
   originalData?: Record<string, unknown>;
+  // Generalization - for nodes where user has related skill/knowledge from another domain
+  hasGeneralizedCoverage?: boolean;
+  generalizationSources?: { nodeName: string; sourceDomain?: string }[];
 }
 
 export interface Camera {
