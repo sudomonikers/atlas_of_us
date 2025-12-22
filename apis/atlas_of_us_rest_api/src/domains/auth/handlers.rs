@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use validator::Validate;
 
 use crate::domains::auth::models::{AuthResponse, ErrorResponse, LoginRequest, SignUpRequest};
-use crate::domains::auth::utils::{generate_token, hash_password, verify_password};
+use crate::domains::auth::services::{generate_token, hash_password, verify_password};
 
 pub async fn healthcheck() -> Json<serde_json::Value> {
     Json(serde_json::json!("ok"))

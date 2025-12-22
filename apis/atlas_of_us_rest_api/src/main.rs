@@ -14,6 +14,7 @@ use common::handlers::{create_embedding_from_text, return_s3_object, upload_s3_o
 use common::logging_middleware::logging_middleware;
 use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
 use domains::profile::handlers::get_user_profile;
+use domains::agent::{agent_health, generate_domain_sse};
 use domains::graph::handlers::{
     get_nodes, get_node_with_relationships_by_search_term, create_node, create_relationship,
     update_node, update_relationship, get_similar_nodes, get_domain, delete_relationship,
@@ -72,19 +73,13 @@ async fn main() {
     let helper_routes: Router<Graph> = Router::new()
         .route("/api/secure/helper/s3-object", get(return_s3_object))
         .route("/api/secure/helper/s3-upload", post(upload_s3_object))
-        .route(
-            "/api/secure/helper/embedding",
-            post(create_embedding_from_text),
-        )
+        .route("/api/secure/helper/embedding", post(create_embedding_from_text))
         .route_layer(middleware::from_fn(jwt_auth_middleware));
 
     // Graph management routes
     let graph_management_routes: Router<Graph> = Router::new()
         .route("/api/secure/graph/get-nodes", get(get_nodes))
-        .route(
-            "/api/secure/graph/get-node-with-relationships-by-search-term",
-            get(get_node_with_relationships_by_search_term),
-        )
+        .route("/api/secure/graph/get-node-with-relationships-by-search-term", get(get_node_with_relationships_by_search_term))
         .route("/api/secure/graph/create-node", post(create_node))
         .route("/api/secure/graph/update-node", put(update_node))
         .route("/api/secure/graph/create-relationship", post(create_relationship))
@@ -103,12 +98,18 @@ async fn main() {
     let profile_routes: Router<Graph> = Router::new()
         .route("/api/secure/profile/user-profile/{username}", get(get_user_profile))
         .route_layer(middleware::from_fn(jwt_auth_middleware));
-    
+
+    // Agent routes for domain generation
+    let agent_routes: Router<Graph> = Router::new()
+        .route("/api/secure/agent/generate-domain", post(generate_domain_sse))
+        .route_layer(middleware::from_fn(jwt_auth_middleware));
+
     let app: Router = Router::new()
         .merge(auth_routes)
         .merge(helper_routes)
         .merge(graph_management_routes)
         .merge(profile_routes)
+        .merge(agent_routes)
         .layer(middleware::from_fn(logging_middleware))
         .layer(cors)
         .with_state(graph);
