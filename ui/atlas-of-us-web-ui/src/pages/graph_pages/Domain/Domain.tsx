@@ -93,7 +93,7 @@ export function Domain() {
   }, [loggedIn, profileData?.nodeRoot?.Props?.username, setProfileData]);
 
   // Handle marking a node as complete
-  const handleMarkComplete = useCallback(async (node: CanvasNode, levelOrScore: string | number) => {
+  const handleMarkComplete = useCallback(async (node: CanvasNode, levelOrScore: string | number, proofUrl?: string) => {
     if (!loggedIn || !profileData?.nodeRoot?.ElementId || !node.elementId) return;
 
     const httpService = getHttpService();
@@ -103,6 +103,11 @@ export function Domain() {
     else if (node.type === 'skill') properties.dreyfus_level = levelOrScore as string;
     else if (node.type === 'trait') properties.score = levelOrScore as number;
     else if (node.type === 'milestone') properties.date = new Date().toISOString().split('T')[0];
+
+    // Add proof URL if provided
+    if (proofUrl) {
+      (properties as Record<string, string | number>).proof_url = proofUrl;
+    }
 
     const result = await httpService.createUserProgress(
       profileData.nodeRoot.ElementId,
@@ -271,6 +276,7 @@ export function Domain() {
           userBloomLevel={selectedProgress?.bloom_level as string | undefined}
           userDreyfusLevel={selectedProgress?.dreyfus_level as string | undefined}
           userDate={selectedProgress?.date as string | undefined}
+          userProofUrl={selectedProgress?.proof_url as string | undefined}
           onMarkComplete={handleMarkComplete}
           onRemoveProgress={handleRemoveProgress}
           isLoggedIn={loggedIn}

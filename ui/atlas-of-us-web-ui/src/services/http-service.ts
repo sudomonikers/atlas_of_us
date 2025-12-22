@@ -105,7 +105,7 @@ export class HttpService {
     userElementId: string,
     targetNodeElementId: string,
     nodeType: 'knowledge' | 'skill' | 'trait' | 'milestone',
-    properties: { bloom_level?: string; dreyfus_level?: string; score?: number; date?: string }
+    properties: { bloom_level?: string; dreyfus_level?: string; score?: number; date?: string; proof_url?: string }
   ): Promise<{ success: boolean; error?: string }> {
     const relationshipType: Record<string, string> = {
       knowledge: 'HAS_KNOWLEDGE',

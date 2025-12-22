@@ -1,8 +1,9 @@
-import { JSX, useState, useEffect } from 'react';
+import { JSX, useState, useEffect, useRef } from 'react';
 import type { CanvasNode } from '../NodeTree/node-tree-types';
 import type { GeneralizationSource } from '../domain-interfaces';
 import { BLOOM_LEVELS } from '../../../../common/enums/blooms-6-levels.enum';
 import { DREYFUS_LEVELS } from '../../../../common/enums/dreyfus-skill-aquisition.enum';
+import { getHttpService } from '../../../../services/http-service';
 import './NodeDetailPanel.css';
 
 interface NodeDetailPanelProps {
@@ -14,7 +15,8 @@ interface NodeDetailPanelProps {
   userBloomLevel?: string;
   userDreyfusLevel?: string;
   userDate?: string;
-  onMarkComplete: (node: CanvasNode, levelOrScore: string | number) => Promise<void>;
+  userProofUrl?: string;
+  onMarkComplete: (node: CanvasNode, levelOrScore: string | number, proofUrl?: string) => Promise<void>;
   onRemoveProgress: (relationshipElementId: string) => Promise<void>;
   isLoggedIn: boolean;
   generalizationSources?: GeneralizationSource[];
@@ -29,6 +31,7 @@ export function NodeDetailPanel({
   userBloomLevel,
   userDreyfusLevel,
   userDate,
+  userProofUrl,
   onMarkComplete,
   onRemoveProgress,
   isLoggedIn,
@@ -37,16 +40,85 @@ export function NodeDetailPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [level, setLevel] = useState<string | null>(null);
   const [score, setScore] = useState<number>(50);
-  console.log(generalizationSources)
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [isFetchingProof, setIsFetchingProof] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Reset form state when node changes
   useEffect(() => {
     setLevel(userBloomLevel ?? userDreyfusLevel ?? null);
     setScore(userScore ?? 50);
+    setProofFile(null);
+    setProofPreview(null);
   }, [node?.elementId, userBloomLevel, userDreyfusLevel, userScore]);
 
   const hasProgress = !!relationshipElementId;
 
   if (!node) return null;
+
+  const handleProofSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProofFile(file);
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => setProofPreview(e.target?.result as string);
+        reader.readAsDataURL(file);
+      } else {
+        setProofPreview(null);
+      }
+    }
+  };
+
+  const removeProofFile = () => {
+    setProofFile(null);
+    setProofPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadProofFile = async (): Promise<string | undefined> => {
+    if (!proofFile || !node) return undefined;
+
+    setIsUploadingProof(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const timestamp = Date.now();
+      const sanitizedName = proofFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      // Sanitize element ID to remove colons and other problematic characters for S3
+      const sanitizedElementId = node.elementId.replace(/[^a-zA-Z0-9-]/g, '_');
+      const key = `proofs/${sanitizedElementId}/${timestamp}_${sanitizedName}`;
+
+      const formData = new FormData();
+      formData.append('file', proofFile);
+
+      const response = await fetch(
+        `${API_BASE}/secure/helper/s3-upload?bucket=atlas-of-us-general-bucket&key=${encodeURIComponent(key)}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload proof');
+      }
+
+      return key;
+    } catch (error) {
+      console.error('Error uploading proof:', error);
+      return undefined;
+    } finally {
+      setIsUploadingProof(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!node || isSubmitting) return;
@@ -63,7 +135,11 @@ export function NodeDetailPanel({
       } else {
         value = new Date().toISOString().split('T')[0];
       }
-      await onMarkComplete(node, value);
+
+      // Upload proof file if selected
+      const proofUrl = await uploadProofFile();
+
+      await onMarkComplete(node, value, proofUrl);
     } finally {
       setIsSubmitting(false);
     }
@@ -80,6 +156,43 @@ export function NodeDetailPanel({
   };
 
   const getUserDisplay = () => userBloomLevel || userDreyfusLevel || userScore || userDate || null;
+
+  const handleViewAttachment = async () => {
+    if (!userProofUrl || isFetchingProof) return;
+
+    setIsFetchingProof(true);
+    try {
+      const httpService = getHttpService();
+      const blob = await httpService.getS3Object('atlas-of-us-general-bucket', userProofUrl);
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Extract filename from the S3 key (format: proofs/{nodeId}/{timestamp}_{filename})
+      const filename = userProofUrl.split('/').pop() || 'attachment';
+      // Remove timestamp prefix if present
+      const cleanFilename = filename.replace(/^\d+_/, '');
+
+      // Check if the file type can be displayed in browser
+      const viewableTypes = ['image/', 'application/pdf'];
+      const canView = viewableTypes.some(type => blob.type.startsWith(type));
+
+      if (canView) {
+        window.open(blobUrl, '_blank');
+      } else {
+        // Trigger download for non-viewable files
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = cleanFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch (error) {
+      console.error('Error fetching attachment:', error);
+    } finally {
+      setIsFetchingProof(false);
+    }
+  };
 
   const canSave = () => {
     if (isSubmitting) return false;
@@ -104,45 +217,59 @@ export function NodeDetailPanel({
       </div>
 
       <div className="panel-content">
-        {node.description && <p className="panel-description">{node.description}</p>}
+        {/* Node Info Container - Description + Requirements + Transferable Skills */}
+        <div className="node-info-container">
+          {node.description && <p className="panel-description">{node.description}</p>}
 
-        {/* Show generalization info when user has transferable skills from other domains */}
-        {generalizationSources && generalizationSources.length > 0 && !isCompleted && (
-          <div className="generalization-section">
-            <h3 className="requirement-title">Transferable Skills</h3>
-            <div className="generalization-info">
-              <p className="generalization-description">
-                You have related skills from other domains that may help with this:
-              </p>
-              <ul className="generalization-sources-list">
-                {generalizationSources.map((source, idx) => (
-                  <li key={idx} className="generalization-source-item">
-                    <span className="source-name">{source.nodeName}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Requirements Row - Model Requirement and Transferable Skills side by side */}
+          {(node.type === 'knowledge' || node.type === 'skill' || node.type === 'trait' || node.type === 'milestone' || node.type === 'level') && (
+            <div className={`requirements-row ${generalizationSources && generalizationSources.length > 0 && !isCompleted ? 'has-transferable' : ''}`}>
+              {/* Model Requirement */}
+              <div className="requirement-column">
+                {node.type === 'knowledge' && node.requirement?.bloomLevel && (
+                  <RequirementLadder levels={BLOOM_LEVELS} required={node.requirement.bloomLevel} title="Bloom's Taxonomy" />
+                )}
+
+                {node.type === 'skill' && node.requirement?.dreyfusLevel && (
+                  <RequirementLadder levels={DREYFUS_LEVELS} required={node.requirement.dreyfusLevel} title="Dreyfus Model" />
+                )}
+
+                {node.type === 'trait' && node.requirement?.minScore !== undefined && (
+                  <TraitRequirement minScore={node.requirement.minScore} />
+                )}
+
+                {node.type === 'milestone' && <MilestoneInfo />}
+                {node.type === 'level' && <LevelInfo />}
+              </div>
+
+              {/* Transferable Skills */}
+              {generalizationSources && generalizationSources.length > 0 && !isCompleted && (
+                <div className="transferable-column">
+                  <div className="generalization-section">
+                    <h3 className="requirement-title">Transferable Skills</h3>
+                    <div className="generalization-info">
+                      <p className="generalization-description">
+                        You have related skills from other domains that may help with this:
+                      </p>
+                      <ul className="generalization-sources-list">
+                        {generalizationSources.map((source, idx) => (
+                          <li key={idx} className="generalization-source-item">
+                            <span className="source-name">{source.nodeName}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {node.type === 'knowledge' && node.requirement?.bloomLevel && (
-          <RequirementLadder levels={BLOOM_LEVELS} required={node.requirement.bloomLevel} title="Bloom's Taxonomy" />
-        )}
-
-        {node.type === 'skill' && node.requirement?.dreyfusLevel && (
-          <RequirementLadder levels={DREYFUS_LEVELS} required={node.requirement.dreyfusLevel} title="Dreyfus Model" />
-        )}
-
-        {node.type === 'trait' && node.requirement?.minScore !== undefined && (
-          <TraitRequirement minScore={node.requirement.minScore} />
-        )}
-
-        {node.type === 'milestone' && <MilestoneInfo />}
-        {node.type === 'level' && <LevelInfo />}
-
+        {/* Your Progress Container - Separate section */}
         {isLoggedIn && node.type !== 'level' && (
-          <div className="completion-section">
-            <h3 className="requirement-title">Your Progress</h3>
+          <div className="progress-container">
+            <h3 className="progress-title">Your Progress</h3>
 
             {isCompleted ? (
               <div className="completion-status">
@@ -153,10 +280,25 @@ export function NodeDetailPanel({
                   <span>Requirement Met</span>
                 </div>
                 <p className="completion-level">
-                  {node.type === 'trait' ? `Your Score: ${getUserDisplay()}` 
+                  {node.type === 'trait' ? `Your Score: ${getUserDisplay()}`
                   : node.type === 'milestone' ? `Date Completed: ${getUserDisplay()}`
                   : `Your Level: ${getUserDisplay()}`}
                 </p>
+
+                {/* Show existing proof if available */}
+                {userProofUrl && (
+                  <div className="existing-proof">
+                    <h4 className="proof-label">Your Proof:</h4>
+                    <button
+                      onClick={handleViewAttachment}
+                      disabled={isFetchingProof}
+                      className="proof-link"
+                    >
+                      {isFetchingProof ? 'Loading...' : 'View Attachment'}
+                    </button>
+                  </div>
+                )}
+
                 <button className="remove-progress-btn" onClick={handleRemove} disabled={isSubmitting}>
                   {isSubmitting ? 'Removing...' : 'Remove Progress'}
                 </button>
@@ -214,8 +356,46 @@ export function NodeDetailPanel({
                   <p className="milestone-prompt">Mark this milestone as achieved to track your progress.</p>
                 )}
 
-                <button className="mark-complete-btn" onClick={handleSave} disabled={!canSave()}>
-                  {isSubmitting ? 'Saving...' : hasProgress ? 'Update Progress' : 'Save Progress'}
+                {/* Proof Upload Section */}
+                <div className="proof-upload-section">
+                  <label className="proof-upload-label">Add Proof (optional):</label>
+                  <p className="proof-description">Upload an image, document, or certificate as evidence of your progress.</p>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    onChange={handleProofSelect}
+                    className="proof-file-input"
+                    id="proof-file-input"
+                  />
+
+                  {!proofFile ? (
+                    <label htmlFor="proof-file-input" className="proof-upload-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="upload-icon">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Choose File
+                    </label>
+                  ) : (
+                    <div className="proof-preview">
+                      {proofPreview && (
+                        <img src={proofPreview} alt="Proof preview" className="proof-preview-image" />
+                      )}
+                      <div className="proof-file-info">
+                        <span className="proof-file-name">{proofFile.name}</span>
+                        <button type="button" onClick={removeProofFile} className="proof-remove-btn">
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button className="mark-complete-btn" onClick={handleSave} disabled={!canSave() || isUploadingProof}>
+                  {isSubmitting || isUploadingProof ? 'Saving...' : hasProgress ? 'Update Progress' : 'Save Progress'}
                 </button>
 
                 {hasProgress && (

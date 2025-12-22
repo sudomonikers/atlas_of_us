@@ -30,6 +30,7 @@ pub fn json_value_to_bolt_type(value: &Value) -> BoltType {
 }
 
 /// Maps neo4rs node data from Bolt4 to Bolt5 format
+/// Excludes the `embedding` property to reduce payload size
 pub fn map_bolt4_to_bolt5_node(node_data: &Value) -> Value {
     if let Some(obj) = node_data.as_object() {
         let id = obj.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
@@ -38,11 +39,22 @@ pub fn map_bolt4_to_bolt5_node(node_data: &Value) -> Value {
         let generalizes_to_element_id = obj.get("generalizesToElementId").cloned();
 
         let props = if let Some(nested_props) = obj.get("props") {
-            nested_props.clone()
+            // Filter out embedding from nested props
+            if let Some(props_obj) = nested_props.as_object() {
+                let mut filtered_props = serde_json::Map::new();
+                for (key, value) in props_obj {
+                    if key != "embedding" {
+                        filtered_props.insert(key.clone(), value.clone());
+                    }
+                }
+                json!(filtered_props)
+            } else {
+                nested_props.clone()
+            }
         } else {
             let mut props_map = serde_json::Map::new();
             for (key, value) in obj {
-                if !matches!(key.as_str(), "id" | "elementId" | "labels" | "generalizesToElementId") {
+                if !matches!(key.as_str(), "id" | "elementId" | "labels" | "generalizesToElementId" | "embedding") {
                     props_map.insert(key.clone(), value.clone());
                 }
             }

@@ -18,7 +18,11 @@ pub struct UploadParams {
 pub async fn get_s3_object(
     params: S3ObjectParams,
 ) -> Result<(Vec<u8>, String), Box<dyn std::error::Error>> {
-    let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+    let region = std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-2".to_string());
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .region(aws_config::Region::new(region))
+        .load()
+        .await;
     let client = Client::new(&config);
 
     let response = client
@@ -58,7 +62,11 @@ pub async fn upload_object_to_s3(
     params: UploadParams,
     file_data: Vec<u8>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+    let region = std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-2".to_string());
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .region(aws_config::Region::new(region))
+        .load()
+        .await;
     let client = Client::new(&config);
 
     // Detect content type from the data
@@ -81,7 +89,7 @@ pub async fn upload_object_to_s3(
         .await
         .map_err(|e| {
             format!(
-                "Unable to upload object {} to bucket {}: {}",
+                "Unable to upload object {} to bucket {}: {:?}",
                 params.key, params.bucket, e
             )
         })?;
