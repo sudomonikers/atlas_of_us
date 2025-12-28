@@ -114,35 +114,3 @@ fn create_sse_stream(
         Ok(Event::default().data(json_data))
     })
 }
-
-/// GET /api/secure/agent/health
-///
-/// Check LLM provider health status
-pub async fn agent_health() -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let provider = create_provider(ProviderType::LlamaCpp).map_err(|e| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(json!({
-                "status": "unhealthy",
-                "provider": "llama-cpp",
-                "error": e.to_string()
-            })),
-        )
-    })?;
-
-    provider.health_check().await.map_err(|e| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(json!({
-                "status": "unhealthy",
-                "provider": provider.name(),
-                "error": e.to_string()
-            })),
-        )
-    })?;
-
-    Ok(Json(json!({
-        "status": "healthy",
-        "provider": provider.name()
-    })))
-}

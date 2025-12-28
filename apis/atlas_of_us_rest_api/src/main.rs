@@ -14,7 +14,7 @@ use common::handlers::{create_embedding_from_text, return_s3_object, upload_s3_o
 use common::logging_middleware::logging_middleware;
 use domains::auth::{healthcheck, jwt_auth_middleware, login, signup};
 use domains::profile::handlers::get_user_profile;
-use domains::agent::{agent_health, generate_domain_sse};
+use domains::agent::{generate_domain_sse};
 use domains::graph::handlers::{
     get_nodes, get_node_with_relationships_by_search_term, create_node, create_relationship,
     update_node, update_relationship, get_similar_nodes, get_domain, delete_relationship,
