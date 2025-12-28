@@ -48,94 +48,14 @@
   transform: translateX(4px);
 }
 
-.add-node-btn.knowledge {
-  border-color: rgba(100, 223, 223, 0.3);
-}
+/* Node type colors come from graph-pages.css */
 
-.add-node-btn.knowledge:hover {
-  background: rgba(100, 223, 223, 0.15);
-  color: #64dfdf;
-}
-
-.add-node-btn.skill {
-  border-color: rgba(128, 255, 219, 0.3);
-}
-
-.add-node-btn.skill:hover {
-  background: rgba(128, 255, 219, 0.15);
-  color: #80ffdb;
-}
-
-.add-node-btn.trait {
-  border-color: rgba(199, 125, 255, 0.3);
-}
-
-.add-node-btn.trait:hover {
-  background: rgba(199, 125, 255, 0.15);
-  color: #c77dff;
-}
-
-.add-node-btn.milestone {
-  border-color: rgba(224, 170, 255, 0.3);
-}
-
-.add-node-btn.milestone:hover {
-  background: rgba(224, 170, 255, 0.15);
-  color: #e0aaff;
-}
-
-/* Legend */
+/* Legend - positioning only, colors come from graph-pages.css */
 .creator-legend {
   position: absolute;
   bottom: 1rem;
   left: 1rem;
-  display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: rgba(20, 20, 35, 0.9);
-  border: 1px solid rgba(100, 223, 223, 0.1);
-  border-radius: 8px;
-  backdrop-filter: blur(8px);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.legend-shape {
-  width: 12px;
-  height: 12px;
-  border-width: 2px;
-  border-style: solid;
-}
-
-.legend-shape.hexagon {
-  border-color: #64dfdf;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  background: rgba(100, 223, 223, 0.2);
-}
-
-.legend-shape.circle {
-  border-color: #80ffdb;
-  border-radius: 50%;
-  background: rgba(128, 255, 219, 0.2);
-}
-
-.legend-shape.diamond {
-  border-color: #c77dff;
-  transform: rotate(45deg) scale(0.8);
-  background: rgba(199, 125, 255, 0.2);
-}
-
-.legend-shape.octagon {
-  border-color: #FFD700;
-  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  background: rgba(224, 170, 255, 0.2);
 }
 
 /* Zoom controls */

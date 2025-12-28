@@ -157,7 +157,7 @@
 }
 
 .stat-item.milestone {
-  border-color: rgba(224, 170, 255, 0.2);
+  border-color: rgba(255, 215, 0, 0.2);
 }
 
 .stat-value {
@@ -176,7 +176,7 @@
 .stat-item.knowledge .stat-value { color: #64dfdf; }
 .stat-item.skill .stat-value { color: #80ffdb; }
 .stat-item.trait .stat-value { color: #c77dff; }
-.stat-item.milestone .stat-value { color: #e0aaff; }
+.stat-item.milestone .stat-value { color: #FFD700; }
 
 /* Footer */
 .config-footer {

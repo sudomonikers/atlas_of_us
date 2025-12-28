@@ -248,9 +248,9 @@
   justify-content: center;
   width: 60px;
   height: 60px;
-  background: rgba(224, 170, 255, 0.1);
+  background: rgba(255, 215, 0, 0.1);
   border-radius: 50%;
-  color: var(--type-color, #e0aaff);
+  color: var(--type-color, #FFD700);
   margin-bottom: 1rem;
 }
 

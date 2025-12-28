@@ -5,6 +5,7 @@ import { calculateLayout, calculateInitialCamera } from './node-tree-layout';
 import { render, findNodeAtPosition, screenToWorld } from './node-tree-renderer';
 import { CAMERA } from './node-tree-constants';
 import type { UserProgressMap } from './node-tree-utils';
+import '../../graph-pages.css';
 import './NodeTreeCanvas.css';
 
 interface NodeTreeCanvasProps {

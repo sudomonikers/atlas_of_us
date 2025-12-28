@@ -13,69 +13,11 @@
   height: 100%;
 }
 
-/* Legend */
+/* Legend - positioning only, colors come from graph-pages.css */
 .node-tree-legend {
   position: absolute;
   bottom: var(--space-md);
   left: var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-sm);
-  background: var(--glass-backdrop);
-  backdrop-filter: var(--glass-blur);
-  border: var(--glass-border);
-  border-radius: var(--radius-md);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-small);
-  color: var(--star-text);
-}
-
-.legend-shape {
-  width: 16px;
-  height: 16px;
-  display: inline-block;
-}
-
-.legend-shape.hexagon {
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
-
-.legend-shape.circle {
-  border-radius: 50%;
-}
-
-.legend-shape.diamond {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-
-.legend-shape.octagon {
-  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-}
-
-.legend-shape.knowledge {
-  background: #64dfdf;
-  box-shadow: 0 0 8px #64dfdf;
-}
-
-.legend-shape.skill {
-  background: #80ffdb;
-  box-shadow: 0 0 8px #80ffdb;
-}
-
-.legend-shape.trait {
-  background: #c77dff;
-  box-shadow: 0 0 8px #c77dff;
-}
-
-.legend-shape.milestone {
-  background: #FFD700;
-  box-shadow: 0 0 8px #FFD700;
 }
 
 /* Controls hint */

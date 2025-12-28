@@ -99,7 +99,7 @@ export function NodeCreationModal({
       knowledge: '#64dfdf',
       skill: '#80ffdb',
       trait: '#c77dff',
-      milestone: '#e0aaff',
+      milestone: '#FFD700',
     };
     return colors[t];
   };

@@ -1,0 +1,111 @@
+/* Shared styles for graph pages (Domain, DomainCreator) */
+
+/* Node type colors - canonical definitions */
+:root {
+  --node-knowledge: #64dfdf;
+  --node-skill: #80ffdb;
+  --node-trait: #c77dff;
+  --node-milestone: #FFD700;
+}
+
+/* Legend container - shared base styles */
+.node-tree-legend,
+.creator-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(20, 20, 35, 0.9);
+  border: 1px solid rgba(100, 223, 223, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+}
+
+/* Legend item */
+.node-tree-legend .legend-item,
+.creator-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Legend shapes - base */
+.node-tree-legend .legend-shape,
+.creator-legend .legend-shape {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+}
+
+/* Shape: Hexagon (Knowledge) */
+.node-tree-legend .legend-shape.hexagon,
+.creator-legend .legend-shape.hexagon {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: var(--node-knowledge);
+  box-shadow: 0 0 8px var(--node-knowledge);
+}
+
+/* Shape: Circle (Skill) */
+.node-tree-legend .legend-shape.circle,
+.creator-legend .legend-shape.circle {
+  border-radius: 50%;
+  background: var(--node-skill);
+  box-shadow: 0 0 8px var(--node-skill);
+}
+
+/* Shape: Diamond (Trait) */
+.node-tree-legend .legend-shape.diamond,
+.creator-legend .legend-shape.diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: var(--node-trait);
+  box-shadow: 0 0 8px var(--node-trait);
+}
+
+/* Shape: Octagon (Milestone) - YELLOW */
+.node-tree-legend .legend-shape.octagon,
+.node-tree-legend .legend-shape.milestone,
+.creator-legend .legend-shape.octagon,
+.creator-legend .legend-shape.milestone {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background: var(--node-milestone);
+  box-shadow: 0 0 8px var(--node-milestone);
+}
+
+/* Add node buttons - type-specific colors */
+.add-node-btn.knowledge {
+  border-color: rgba(100, 223, 223, 0.3);
+}
+
+.add-node-btn.knowledge:hover {
+  background: rgba(100, 223, 223, 0.15);
+  color: var(--node-knowledge);
+}
+
+.add-node-btn.skill {
+  border-color: rgba(128, 255, 219, 0.3);
+}
+
+.add-node-btn.skill:hover {
+  background: rgba(128, 255, 219, 0.15);
+  color: var(--node-skill);
+}
+
+.add-node-btn.trait {
+  border-color: rgba(199, 125, 255, 0.3);
+}
+
+.add-node-btn.trait:hover {
+  background: rgba(199, 125, 255, 0.15);
+  color: var(--node-trait);
+}
+
+.add-node-btn.milestone {
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.add-node-btn.milestone:hover {
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--node-milestone);
+}

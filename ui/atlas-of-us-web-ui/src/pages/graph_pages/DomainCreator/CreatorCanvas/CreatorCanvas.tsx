@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { EditableDomainLevel, EditableNode, NodeType } from '../domain-creator-interfaces';
 import { renderCreatorCanvas, findNodeAtPosition, screenToWorld } from './creator-canvas-renderer';
+import '../../graph-pages.css';
 import './CreatorCanvas.css';
 
 interface CreatorCanvasProps {
