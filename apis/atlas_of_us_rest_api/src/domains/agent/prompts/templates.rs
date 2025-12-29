@@ -73,6 +73,18 @@ Consider knowledge at all levels from novice to master. Focus on:
 - Contextual/cultural knowledge
 - Safety and best practices knowledge
 
+CRITICAL RULES:
+1. ATOMIC: Each concept must be a SINGLE concept. Never combine with "and".
+   BAD: "Variables and Data Types" → GOOD: "Variables", "Data Types"
+   BAD: "Opening Principles and Strategies" → GOOD: "Opening Principles", "Opening Strategies"
+
+2. DOMAIN-SPECIFIC NAMING: Prefix concepts with the domain name "{domain_name}".
+   Example: "{domain_name} Opening Principles", "{domain_name} Tactics"
+   NOT: "Opening Principles", "Tactics"
+
+   Only omit prefix for universal concepts identical across all domains:
+   - "Boolean Algebra", "Newton's Laws" (exact same content everywhere)
+
 Output ONLY a JSON array of concept names (10-20 items), no explanation:
 ["Concept 1", "Concept 2", "Concept 3", ...]"#,
             domain_name = domain_name,
@@ -99,15 +111,21 @@ Output ONLY a JSON array of concept names (10-20 items), no explanation:
 For the concept "{concept}", I found these similar existing nodes:
 {similar_list}
 
-Should I:
-1. "use_existing" - Use one of the existing nodes (if it's essentially the same concept)
-2. "create_new" - Create a brand new node (if concept is distinct enough)
-3. "create_and_generalize" - Create a new domain-specific node that GENERALIZES_TO the existing one (if the concept is a specialized version)
+Decision guide:
+1. "use_existing" - The existing node represents essentially the same knowledge
+2. "create_new" - This is a distinct concept, no good match exists
+3. "create_and_generalize" - Create a domain-specific node that links to a broader concept:
+   - Use when your knowledge is domain-specific but relates to a general concept
+   - Example: "{domain_name} Opening Principles" → GENERALIZES_TO → "Opening Principles"
+   - The domain-specific version has DIFFERENT actual content than the general version
+   - If the general concept exists in the list above, use "existing_node_name"
+   - If the general concept doesn't exist, suggest it in "suggested_target"
 
 Output ONLY a JSON object:
 {{
     "decision": "use_existing" | "create_new" | "create_and_generalize",
-    "existing_node_name": "Name of existing node to use or generalize to (null if create_new)",
+    "existing_node_name": "Name from list above (for use_existing, or if generalizing to a listed node)",
+    "suggested_target": "Name of a new general concept to generalize to (only if not in list above, null otherwise)",
     "reason": "Brief explanation"
 }}"#,
             domain_name = domain_name,
@@ -145,6 +163,30 @@ Output ONLY a JSON object with these fields:
         )
     }
 
+    /// Generate properties for a generic knowledge node (not domain-specific)
+    /// Used when creating a generalization target that doesn't exist
+    pub fn generic_knowledge_properties(concept: &str) -> String {
+        format!(
+            r#"Generate properties for a GENERIC knowledge concept "{concept}".
+
+This is a general-purpose knowledge node that is NOT domain-specific. It should be applicable across multiple domains.
+
+Output ONLY a JSON object with these fields:
+{{
+    "name": "{concept}",
+    "description": "Clear, concise description of what this general knowledge encompasses",
+    "how_to_learn": "General guidance on how to acquire this knowledge",
+    "remember_level": "What to memorize/recall at Remember level (Bloom's)",
+    "understand_level": "What to comprehend at Understand level",
+    "apply_level": "How to apply this knowledge practically",
+    "analyze_level": "How to break down and examine this knowledge",
+    "evaluate_level": "How to judge and assess using this knowledge",
+    "create_level": "How to synthesize and create with this knowledge"
+}}"#,
+            concept = concept
+        )
+    }
+
     // ========== Skill Generator Prompts ==========
 
     /// Pass 1: Generate list of skill concepts
@@ -164,6 +206,18 @@ Consider skills at all levels from novice to expert. Focus on:
 - Cognitive/analytical skills
 - Social/communication skills
 - Decision-making skills
+
+CRITICAL RULES:
+1. ATOMIC: Each skill must be a SINGLE ability. Never combine with "and".
+   BAD: "Debugging and Testing" → GOOD: "Debugging", "Testing"
+   BAD: "Planning and Execution" → GOOD: "Planning", "Execution"
+
+2. DOMAIN-SPECIFIC NAMING: Prefix skills with the domain name "{domain_name}".
+   Example: "{domain_name} Tactical Calculation", "{domain_name} Position Evaluation"
+   NOT: "Tactical Calculation", "Position Evaluation"
+
+   Only omit prefix for universal skills that work identically across domains:
+   - "Problem Solving", "Time Management", "Decision Making" (same practice everywhere)
 
 Output ONLY a JSON array of skill names (8-15 items), no explanation:
 ["Skill 1", "Skill 2", "Skill 3", ...]"#,
@@ -192,15 +246,21 @@ Output ONLY a JSON array of skill names (8-15 items), no explanation:
 For the skill "{concept}", I found these similar existing nodes:
 {similar_list}
 
-Should I:
-1. "use_existing" - Use one of the existing nodes
-2. "create_new" - Create a brand new node
-3. "create_and_generalize" - Create a new domain-specific node that GENERALIZES_TO the existing one
+Decision guide:
+1. "use_existing" - The existing node represents essentially the same skill
+2. "create_new" - This is a distinct skill, no good match exists
+3. "create_and_generalize" - Create a domain-specific skill that links to a broader skill:
+   - Use when your skill is domain-specific but relates to a general ability
+   - Example: "{domain_name} Tactical Calculation" → GENERALIZES_TO → "Tactical Calculation"
+   - The domain-specific version has DIFFERENT practice methods than the general version
+   - If the general skill exists in the list above, use "existing_node_name"
+   - If the general skill doesn't exist, suggest it in "suggested_target"
 
 Output ONLY a JSON object:
 {{
     "decision": "use_existing" | "create_new" | "create_and_generalize",
-    "existing_node_name": "Name of existing node (null if create_new)",
+    "existing_node_name": "Name from list above (for use_existing, or if generalizing to a listed node)",
+    "suggested_target": "Name of a new general skill to generalize to (only if not in list above, null otherwise)",
     "reason": "Brief explanation"
 }}"#,
             domain_name = domain_name,
@@ -237,6 +297,29 @@ Output ONLY a JSON object with these fields:
         )
     }
 
+    /// Generate properties for a generic skill node (not domain-specific)
+    /// Used when creating a generalization target that doesn't exist
+    pub fn generic_skill_properties(concept: &str) -> String {
+        format!(
+            r#"Generate properties for a GENERIC skill "{concept}".
+
+This is a general-purpose skill that is NOT domain-specific. It should be applicable across multiple domains.
+
+Output ONLY a JSON object with these fields:
+{{
+    "name": "{concept}",
+    "description": "Clear description of this general skill and what it enables",
+    "how_to_develop": "General guidance on developing this skill",
+    "novice_level": "What novice performance looks like (Dreyfus model)",
+    "advanced_beginner_level": "What advanced beginner performance looks like",
+    "competent_level": "What competent performance looks like",
+    "proficient_level": "What proficient performance looks like",
+    "expert_level": "What expert performance looks like"
+}}"#,
+            concept = concept
+        )
+    }
+
     // ========== Trait Generator Prompts ==========
 
     /// Pass 1: Generate list of relevant traits
@@ -248,8 +331,21 @@ Output ONLY a JSON object with these fields:
 Traits are inherent characteristics (not teachable skills or learnable knowledge):
 - Physical traits (strength, endurance, flexibility)
 - Cognitive traits (spatial reasoning, pattern recognition)
-- Personality traits (risk tolerance, persistence)
+- Personality traits (risk tolerance, persistence, competitive drive)
 - Temperament traits (patience, emotional stability)
+
+CRITICAL RULES:
+1. ATOMIC: Each trait must be a SINGLE characteristic. Never combine with "and".
+   BAD: "Patience and Perseverance" → GOOD: "Patience", "Perseverance"
+   BAD: "Logical and Analytical Thinking" → GOOD: "Logical Thinking", "Analytical Thinking"
+
+2. GENERIC NAMING: Traits should NOT have domain prefixes.
+   Traits are fundamental cognitive/personality characteristics that manifest across ALL domains.
+
+   CORRECT: "Pattern Recognition", "Logical Thinking", "Focus", "Mental Endurance", "Risk Tolerance"
+   WRONG: "{domain_name} Pattern Recognition", "{domain_name} Focus"
+
+   If you're tempted to add a domain prefix, it's probably a SKILL, not a trait.
 
 Only include traits that are genuinely relevant to this domain.
 
@@ -304,11 +400,17 @@ Output ONLY a JSON object:
 
 Note: Traits are generic (not domain-specific) and measured on a 0-100 scale.
 
+Measurement bands to describe in measurement_criteria:
+- 0-25 (Low): Significant challenges or minimal natural ability
+- 26-50 (Moderate): Average or developing capability
+- 51-75 (High): Strong natural ability or well-developed capacity
+- 76-100 (Exceptional): Outstanding or rare capability
+
 Output ONLY a JSON object with these fields:
 {{
     "name": "{concept}",
     "description": "Clear description of this inherent trait",
-    "measurement_criteria": "How this trait is measured on a 0-100 scale (e.g., '0 = no capability, 100 = exceptional capability')"
+    "measurement_criteria": "How this trait is assessed, with descriptions for Low (0-25), Moderate (26-50), High (51-75), and Exceptional (76-100) ranges"
 }}"#,
             concept = concept
         )
@@ -329,6 +431,14 @@ Milestones should be:
 - Concrete and measurable
 - Distributed across all 5 levels (novice to master)
 - Types: performance, achievement, participation, creation, recognition
+
+CRITICAL RULES:
+1. ATOMIC: Each milestone must be a SINGLE achievement. Never combine with "and".
+   BAD: "Win Tournament and Reach 2000 ELO" → GOOD: "Win Tournament", "Reach 2000 ELO"
+   BAD: "Complete Project and Deploy" → GOOD: "Complete Project", "Deploy to Production"
+
+2. DOMAIN-SPECIFIC: Milestones are achievements within this domain.
+   Use clear, measurable descriptions specific to "{domain_name}".
 
 Output ONLY a JSON array of milestone names (12-20 items), no explanation:
 ["Milestone 1", "Milestone 2", "Milestone 3", ...]"#,
@@ -438,10 +548,17 @@ Output a JSON object mapping component names to their prerequisites:
 For each component, determine:
 1. Which level (1-5) it should be required at
 2. The proficiency level required:
-   - For Knowledge: bloom_level (remember, understand, apply, analyze, evaluate, create)
-   - For Skills: dreyfus_level (novice, advanced_beginner, competent, proficient, expert)
-   - For Traits: min_score (0-100)
-   - For Milestones: just assignment (no proficiency)
+   - For Knowledge: bloom_level = "Remember" | "Understand" | "Apply" | "Analyze" | "Evaluate" | "Create"
+   - For Skills: dreyfus_level = "Novice" | "Advanced Beginner" | "Competent" | "Proficient" | "Expert"
+   - For Traits: min_score = integer 0-100 (e.g., 40, 60, 75)
+   - For Milestones: no proficiency needed, just level assignment
+
+Level distribution guidelines:
+- Level 1 (Novice): Basic knowledge at Remember, skills at Novice, no trait requirements
+- Level 2 (Developing): Knowledge at Understand, skills at Advanced Beginner, traits ~40
+- Level 3 (Competent): Knowledge at Apply, skills at Competent, traits ~50-60
+- Level 4 (Advanced): Knowledge at Analyze, skills at Proficient, traits ~70-75
+- Level 5 (Master): Knowledge at Evaluate/Create, skills at Expert, traits ~85+
 
 Output a JSON object:
 {{
@@ -450,7 +567,7 @@ Output a JSON object:
             "component": "Component Name",
             "component_type": "Knowledge" | "Skill" | "Trait" | "Milestone",
             "level": 1-5,
-            "proficiency": "bloom/dreyfus level or min_score"
+            "proficiency": "bloom/dreyfus level string or min_score integer"
         }}
     ]
 }}"#,

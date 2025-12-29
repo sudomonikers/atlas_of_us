@@ -17,6 +17,7 @@ import { Blog } from './pages/site_pages/Blog/Blog.tsx';
 import { Assessment } from './pages/graph_pages/Assessment/Assessment.tsx';
 import { Domain } from './pages/graph_pages/Domain/Domain.tsx';
 import { DomainCreator } from './pages/graph_pages/DomainCreator/DomainCreator.tsx';
+import { DomainGenerator } from './pages/graph_pages/DomainGenerator/DomainGenerator.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -74,6 +75,11 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/DomainCreator/:domainName" element={
           <PrivateRoute>
             <DomainCreator />
+          </PrivateRoute>
+        } />
+        <Route path="/DomainGenerator/:domainName" element={
+          <PrivateRoute>
+            <DomainGenerator />
           </PrivateRoute>
         } />
         <Route path="/Roadmap" element={<Roadmap />} />

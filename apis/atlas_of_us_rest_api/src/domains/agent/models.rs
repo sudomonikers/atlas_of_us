@@ -48,7 +48,7 @@ impl Default for DomainStatistics {
     }
 }
 
-// ========== Created Node Tracking ==========
+// ========== Domain Graph Registry ==========
 
 /// A node that was created or reused in the database
 #[derive(Debug, Clone, Serialize)]
@@ -79,18 +79,72 @@ impl CreatedNode {
     }
 }
 
-/// Registry tracking all nodes created during domain generation
+/// A relationship between a domain level and a component node
+#[derive(Debug, Clone, Serialize)]
+pub struct LevelRequirement {
+    /// Element ID of the domain level
+    pub level_id: String,
+    /// Element ID of the component node
+    pub component_id: String,
+    /// Name of the component for display
+    pub component_name: String,
+    /// Type of component (Knowledge, Skill, Trait, Milestone)
+    pub component_type: String,
+    /// Proficiency level required (bloom_level, dreyfus_level, or min_score)
+    pub proficiency: Option<String>,
+}
+
+/// A generalization relationship from a domain-specific node to a general node
+#[derive(Debug, Clone, Serialize)]
+pub struct GeneralizationLink {
+    /// Element ID of the domain-specific node
+    pub specific_id: String,
+    /// Name of the domain-specific node
+    pub specific_name: String,
+    /// Element ID of the general node
+    pub general_id: String,
+    /// Name of the general node
+    pub general_name: String,
+    /// Type of node (Knowledge, Skill, Milestone)
+    pub node_type: String,
+}
+
+/// A prerequisite relationship between component nodes
+#[derive(Debug, Clone, Serialize)]
+pub struct PrerequisiteLink {
+    /// Element ID of the source node (the one that has the requirement)
+    pub source_id: String,
+    /// Name of the source node
+    pub source_name: String,
+    /// Element ID of the target node (the prerequisite)
+    pub target_id: String,
+    /// Name of the target node
+    pub target_name: String,
+    /// Relationship type (REQUIRES_KNOWLEDGE, REQUIRES_SKILL, etc.)
+    pub relationship_type: String,
+}
+
+/// Registry tracking all nodes and relationships created during domain generation
 #[derive(Debug, Clone, Default, Serialize)]
-pub struct CreatedNodeRegistry {
+pub struct DomainGraphRegistry {
+    // Nodes
     pub domain: Option<CreatedNode>,
     pub domain_levels: Vec<CreatedNode>,
     pub knowledge: Vec<CreatedNode>,
     pub skills: Vec<CreatedNode>,
     pub traits: Vec<CreatedNode>,
     pub milestones: Vec<CreatedNode>,
+
+    // Relationships
+    #[serde(rename = "levelRequirements")]
+    pub level_requirements: Vec<LevelRequirement>,
+    #[serde(rename = "generalizations")]
+    pub generalizations: Vec<GeneralizationLink>,
+    #[serde(rename = "prerequisites")]
+    pub prerequisites: Vec<PrerequisiteLink>,
 }
 
-impl CreatedNodeRegistry {
+impl DomainGraphRegistry {
     /// Get a summary of created nodes for passing to LLM context
     pub fn summary_for_llm(&self) -> String {
         format!(
@@ -111,6 +165,12 @@ impl CreatedNodeRegistry {
             .chain(self.milestones.iter())
             .chain(self.domain_levels.iter())
             .find(|n| n.name == name)
+    }
+
+    /// Find a node by element ID across all types
+    pub fn find_by_id(&self, element_id: &str) -> Option<&CreatedNode> {
+        self.all_nodes().into_iter()
+            .find(|n| n.element_id == element_id)
     }
 
     /// Get all nodes as a flat list
@@ -136,7 +196,68 @@ impl CreatedNodeRegistry {
     pub fn count_reused(&self) -> usize {
         self.all_nodes().iter().filter(|n| n.was_reused).count()
     }
+
+    /// Add a level requirement relationship
+    pub fn add_level_requirement(&mut self, req: LevelRequirement) {
+        self.level_requirements.push(req);
+    }
+
+    /// Add a generalization relationship
+    pub fn add_generalization(&mut self, link: GeneralizationLink) {
+        self.generalizations.push(link);
+    }
+
+    /// Add a prerequisite relationship
+    pub fn add_prerequisite(&mut self, link: PrerequisiteLink) {
+        self.prerequisites.push(link);
+    }
+
+    /// Get all generalizations for a specific node
+    pub fn get_generalizations_for(&self, specific_id: &str) -> Vec<&GeneralizationLink> {
+        self.generalizations.iter()
+            .filter(|g| g.specific_id == specific_id)
+            .collect()
+    }
+
+    /// Get all level requirements for a specific level
+    pub fn get_requirements_for_level(&self, level_id: &str) -> Vec<&LevelRequirement> {
+        self.level_requirements.iter()
+            .filter(|r| r.level_id == level_id)
+            .collect()
+    }
+
+    /// Get all prerequisites for a specific node
+    pub fn get_prerequisites_for(&self, source_id: &str) -> Vec<&PrerequisiteLink> {
+        self.prerequisites.iter()
+            .filter(|p| p.source_id == source_id)
+            .collect()
+    }
+
+    /// Deduplicate node vectors by element_id
+    /// Removes duplicate entries that may occur when a node is added as both
+    /// a generalization target and a main concept
+    pub fn deduplicate(&mut self) {
+        use std::collections::HashSet;
+
+        let mut seen = HashSet::new();
+        self.knowledge.retain(|n| seen.insert(n.element_id.clone()));
+
+        seen.clear();
+        self.skills.retain(|n| seen.insert(n.element_id.clone()));
+
+        seen.clear();
+        self.traits.retain(|n| seen.insert(n.element_id.clone()));
+
+        seen.clear();
+        self.milestones.retain(|n| seen.insert(n.element_id.clone()));
+
+        seen.clear();
+        self.domain_levels.retain(|n| seen.insert(n.element_id.clone()));
+    }
 }
+
+/// Type alias for backward compatibility
+pub type CreatedNodeRegistry = DomainGraphRegistry;
 
 // ========== Similarity Search Types ==========
 
@@ -164,12 +285,13 @@ impl VerifiedConcept {
         }
     }
 
-    pub fn create_and_generalize(name: &str, generalizes_to_id: &str, generalizes_to_name: &str) -> Self {
+    pub fn create_and_generalize(name: &str, generalizes_to_id: &str, generalizes_to_name: &str, needs_creation: bool) -> Self {
         Self {
             name: name.to_string(),
             action: ConceptAction::CreateAndGeneralize {
                 generalizes_to_id: generalizes_to_id.to_string(),
                 generalizes_to_name: generalizes_to_name.to_string(),
+                needs_creation,
             },
         }
     }
@@ -181,10 +303,12 @@ pub enum ConceptAction {
     CreateNew,
     /// Use an existing node directly (very high similarity)
     UseExisting { element_id: String },
-    /// Create new domain-specific node and link GENERALIZES_TO existing
+    /// Create new domain-specific node and link GENERALIZES_TO existing or new target
     CreateAndGeneralize {
         generalizes_to_id: String,
         generalizes_to_name: String,
+        /// True if the target node needs to be created (doesn't exist yet)
+        needs_creation: bool,
     },
 }
 
@@ -198,7 +322,8 @@ pub enum AgentType {
     SkillGenerator,
     TraitGenerator,
     MilestoneGenerator,
-    RelationshipMapper,
+    LevelDistributor,
+    PrerequisiteMapper,
 }
 
 impl AgentType {
@@ -209,7 +334,8 @@ impl AgentType {
             AgentType::SkillGenerator => "Skill Generator",
             AgentType::TraitGenerator => "Trait Generator",
             AgentType::MilestoneGenerator => "Milestone Generator",
-            AgentType::RelationshipMapper => "Relationship Mapper",
+            AgentType::LevelDistributor => "Level Distributor",
+            AgentType::PrerequisiteMapper => "Prerequisite Mapper",
         }
     }
 
@@ -220,7 +346,8 @@ impl AgentType {
             AgentType::SkillGenerator => "2b_skill_generator.md",
             AgentType::TraitGenerator => "2c_trait_generator.md",
             AgentType::MilestoneGenerator => "2d_milestone_generator.md",
-            AgentType::RelationshipMapper => "3_relationship_mapper.md",
+            AgentType::LevelDistributor => "3a_level_distributor.md",
+            AgentType::PrerequisiteMapper => "3b_prerequisite_mapper.md",
         }
     }
 
@@ -231,19 +358,21 @@ impl AgentType {
             AgentType::SkillGenerator => 3,
             AgentType::TraitGenerator => 4,
             AgentType::MilestoneGenerator => 5,
-            AgentType::RelationshipMapper => 6,
+            AgentType::LevelDistributor => 6,
+            AgentType::PrerequisiteMapper => 7,
         }
     }
 
     /// Returns all agents in execution order
-    pub fn all_agents() -> [AgentType; 6] {
+    pub fn all_agents() -> [AgentType; 7] {
         [
             AgentType::DomainArchitect,
             AgentType::KnowledgeGenerator,
             AgentType::SkillGenerator,
             AgentType::TraitGenerator,
             AgentType::MilestoneGenerator,
-            AgentType::RelationshipMapper,
+            AgentType::LevelDistributor,
+            AgentType::PrerequisiteMapper,
         ]
     }
 }
@@ -259,6 +388,14 @@ pub enum SseEvent {
         domain_name: String,
         #[serde(rename = "totalAgents")]
         total_agents: u8,
+    },
+
+    /// Domain already exists - generation blocked
+    DomainExists {
+        #[serde(rename = "requestedName")]
+        requested_name: String,
+        #[serde(rename = "existingDomain")]
+        existing_domain: String,
     },
 
     /// Agent execution started
@@ -342,7 +479,7 @@ pub struct AgentContext {
     pub domain_name: String,
     pub description: Option<String>,
     pub domain_element_id: Option<String>,
-    pub created_nodes: CreatedNodeRegistry,
+    pub domain_graph: DomainGraphRegistry,
 }
 
 impl AgentContext {
@@ -351,33 +488,45 @@ impl AgentContext {
             domain_name,
             description,
             domain_element_id: None,
-            created_nodes: CreatedNodeRegistry::default(),
+            domain_graph: DomainGraphRegistry::default(),
         }
     }
 
     pub fn set_domain(&mut self, domain: CreatedNode) {
         self.domain_element_id = Some(domain.element_id.clone());
-        self.created_nodes.domain = Some(domain);
+        self.domain_graph.domain = Some(domain);
     }
 
     pub fn add_domain_level(&mut self, node: CreatedNode) {
-        self.created_nodes.domain_levels.push(node);
+        self.domain_graph.domain_levels.push(node);
     }
 
     pub fn add_knowledge(&mut self, node: CreatedNode) {
-        self.created_nodes.knowledge.push(node);
+        self.domain_graph.knowledge.push(node);
     }
 
     pub fn add_skill(&mut self, node: CreatedNode) {
-        self.created_nodes.skills.push(node);
+        self.domain_graph.skills.push(node);
     }
 
     pub fn add_trait(&mut self, node: CreatedNode) {
-        self.created_nodes.traits.push(node);
+        self.domain_graph.traits.push(node);
     }
 
     pub fn add_milestone(&mut self, node: CreatedNode) {
-        self.created_nodes.milestones.push(node);
+        self.domain_graph.milestones.push(node);
+    }
+
+    pub fn add_level_requirement(&mut self, req: LevelRequirement) {
+        self.domain_graph.add_level_requirement(req);
+    }
+
+    pub fn add_generalization(&mut self, link: GeneralizationLink) {
+        self.domain_graph.add_generalization(link);
+    }
+
+    pub fn add_prerequisite(&mut self, link: PrerequisiteLink) {
+        self.domain_graph.add_prerequisite(link);
     }
 }
 
@@ -388,7 +537,7 @@ pub struct DomainGenerationResult {
     pub domain_name: String,
     #[serde(rename = "domainElementId")]
     pub domain_element_id: String,
-    #[serde(rename = "createdNodes")]
-    pub created_nodes: CreatedNodeRegistry,
+    #[serde(rename = "domainGraph")]
+    pub domain_graph: DomainGraphRegistry,
     pub statistics: DomainStatistics,
 }

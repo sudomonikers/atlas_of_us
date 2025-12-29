@@ -313,6 +313,108 @@ export class HttpService {
       return { success: false, error: 'Network error' };
     }
   }
+
+  // Domain Generator endpoints
+  async findSimilarDomains(
+    domainName: string,
+    limit: number = 5
+  ): Promise<SimilarDomainResult[] | null> {
+    try {
+      const response = await fetch(`${this.API_BASE}/secure/graph/similar-nodes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: JSON.stringify({
+          text: domainName,
+          label: 'Domain',
+          limit,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Error finding similar domains:', err);
+      return null;
+    }
+  }
+
+  generateDomain(
+    domainName: string,
+    description: string,
+    onEvent: (event: DomainGenerationEvent) => void,
+    onError: (error: string) => void,
+    onComplete: () => void
+  ): () => void {
+    const controller = new AbortController();
+
+    fetch(`${this.API_BASE}/secure/agent/generate-domain`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('jwt')}`,
+      },
+      body: JSON.stringify({ domainName, description }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('No response body');
+        }
+
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              const jsonStr = line.slice(5).trim();
+              if (jsonStr && jsonStr !== 'ping') {
+                try {
+                  const event = JSON.parse(jsonStr) as DomainGenerationEvent;
+                  onEvent(event);
+
+                  if (event.type === 'completed' || event.type === 'failed') {
+                    onComplete();
+                    return;
+                  }
+                } catch (e) {
+                  console.error('Failed to parse SSE event:', e);
+                }
+              }
+            }
+          }
+        }
+
+        onComplete();
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          onError(err.message);
+        }
+      });
+
+    return () => controller.abort();
+  }
 }
 
 // Types for domain creator API
@@ -432,4 +534,56 @@ export interface UpdateDomainResponse {
   }>;
   affectedUserProgressCount?: number;
   error?: string;
+}
+
+// Domain Generator types
+export interface SimilarDomainResult {
+  name: string;
+  description: string | null;
+  id: string;
+  score: number;
+}
+
+export type DomainGenerationEventType =
+  | 'started'
+  | 'agent_started'
+  | 'step_progress'
+  | 'similarity_check'
+  | 'verification_result'
+  | 'node_created'
+  | 'agent_completed'
+  | 'agent_failed'
+  | 'completed'
+  | 'failed';
+
+export interface DomainGenerationEvent {
+  type: DomainGenerationEventType;
+  domainName?: string;
+  totalAgents?: number;
+  agent?: string;
+  agentNumber?: number;
+  agentName?: string;
+  message?: string;
+  concept?: string;
+  similarFound?: number;
+  topScore?: number;
+  decision?: string;
+  generalizesTo?: string;
+  nodeName?: string;
+  label?: string;
+  wasReused?: boolean;
+  nodesCreated?: number;
+  nodesReused?: number;
+  error?: string;
+  lastAgent?: string;
+  statistics?: {
+    domainLevelsCreated: number;
+    knowledgeCreated: number;
+    skillsCreated: number;
+    traitsCreated: number;
+    milestonesCreated: number;
+    relationshipsCreated: number;
+    nodesReused: number;
+    generationTimeMs: number;
+  };
 }

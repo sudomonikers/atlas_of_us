@@ -3,22 +3,21 @@ pub mod knowledge_generator;
 pub mod skill_generator;
 pub mod trait_generator;
 pub mod milestone_generator;
-pub mod relationship_mapper;
+pub mod level_distributor;
+pub mod prerequisite_mapper;
 
 pub use domain_architect::DomainArchitectStep;
 pub use knowledge_generator::KnowledgeGeneratorStep;
 pub use skill_generator::SkillGeneratorStep;
 pub use trait_generator::TraitGeneratorStep;
 pub use milestone_generator::MilestoneGeneratorStep;
-pub use relationship_mapper::RelationshipMapperStep;
+pub use level_distributor::LevelDistributorStep;
+pub use prerequisite_mapper::PrerequisiteMapperStep;
 
-use neo4rs::Graph;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use super::llm::LlmProvider;
-use super::models::{AgentContext, AgentType, SseEvent, VerifiedConcept, ConceptAction};
-use crate::common::similarity::{find_similar_by_text, SimilarNodeResult};
+use super::models::{AgentContext, AgentType, SseEvent, VerifiedConcept};
+use crate::common::similarity::SimilarNodeResult;
 
 /// Threshold for triggering LLM verification
 pub const SIMILARITY_THRESHOLD_LOW: f64 = 0.70;
@@ -73,6 +72,11 @@ impl StepUtils {
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty() && *s != "null");
 
+        // New field: suggested_target for LLM-suggested generalizations not in the list
+        let suggested_target = parsed.get("suggested_target")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty() && *s != "null");
+
         match decision {
             "use_existing" => {
                 let node_name = existing_node.ok_or("Missing existing_node_name for use_existing")?;
@@ -82,8 +86,12 @@ impl StepUtils {
                 Ok(VerifiedConcept::create_new(concept))
             }
             "create_and_generalize" => {
-                let node_name = existing_node.ok_or("Missing existing_node_name for create_and_generalize")?;
-                Ok(VerifiedConcept::create_and_generalize(concept, "", node_name))
+                // Prefer suggested_target if provided, otherwise use existing_node_name
+                let target_name = suggested_target
+                    .or(existing_node)
+                    .ok_or("Missing target for create_and_generalize (need existing_node_name or suggested_target)")?;
+                // ID will be resolved later; needs_creation will be determined by caller
+                Ok(VerifiedConcept::create_and_generalize(concept, "", target_name, false))
             }
             _ => Err(format!("Unknown decision: {}", decision))
         }

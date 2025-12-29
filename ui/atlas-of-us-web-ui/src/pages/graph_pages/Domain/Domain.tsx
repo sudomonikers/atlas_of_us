@@ -148,14 +148,15 @@ export function Domain() {
 
       if (data) {
         setDomainData(data);
+        setIsLoading(false);
       } else {
-        setError("Failed to fetch domain data");
+        // Domain not found - redirect to DomainGenerator
+        navigate(`/DomainGenerator/${encodeURIComponent(domainName)}`);
       }
-      setIsLoading(false);
     };
 
     fetchDomain();
-  }, [domainName]);
+  }, [domainName, navigate]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

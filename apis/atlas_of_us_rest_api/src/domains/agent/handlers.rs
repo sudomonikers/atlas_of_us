@@ -80,8 +80,8 @@ pub async fn generate_domain_sse(
             Ok(result) => {
                 tracing::info!(
                     "Domain generation completed. Created {} nodes ({} reused) in {}ms",
-                    result.created_nodes.count_created(),
-                    result.created_nodes.count_reused(),
+                    result.domain_graph.count_created(),
+                    result.domain_graph.count_reused(),
                     result.statistics.generation_time_ms
                 );
             }

@@ -8,8 +8,9 @@ use super::{emit_event, AgentStep, StepUtils};
 use crate::domains::agent::llm::{GenerationConfig, LlmProvider};
 use crate::domains::agent::models::{AgentContext, AgentType, ConceptAction, CreatedNode, SseEvent, VerifiedConcept};
 use crate::domains::agent::prompts::{PromptTemplates, SystemPrompts};
-use crate::domains::graph::handlers::{create_node_internal, CreateNodeRequest};
-use crate::common::similarity::find_similar_by_text;
+use crate::domains::graph::models::CreateNodeRequest;
+use crate::domains::graph::services;
+use crate::common::similarity::{find_similar_nodes, FindSimilarNodesRequest};
 
 /// Trait Generator Step - creates Trait nodes
 /// Note: Traits are generic (shared across domains) so we prefer reusing existing ones
@@ -51,9 +52,14 @@ impl TraitGeneratorStep {
         let mut results = Vec::new();
 
         for concept in concepts {
-            let similar = find_similar_by_text(&self.graph, concept, Some("Trait"), 3)
-                .await
-                .map_err(|e| format!("Similarity search failed: {}", e))?;
+            let similar = find_similar_nodes(&self.graph, FindSimilarNodesRequest {
+                text: Some(concept.clone()),
+                label: Some("Trait".to_string()),
+                limit: Some(3),
+                ..Default::default()
+            })
+            .await
+            .map_err(|e| format!("Similarity search failed: {}", e))?;
 
             results.push((concept.clone(), similar));
         }
@@ -232,7 +238,9 @@ impl TraitGeneratorStep {
                         properties: node_props,
                     };
 
-                    let result = create_node_internal(&self.graph, request).await?;
+                    let result = services::create_node(&self.graph, request, false)
+                        .await
+                        .map_err(|e| e.to_string())?;
 
                     created.push(CreatedNode::new(
                         props.name.clone(),

@@ -88,6 +88,8 @@ pub async fn create_node(
         let similarity_request = FindSimilarNodesRequest {
             node_id: None,
             embedding: Some(embedding.clone()),
+            text: None,
+            label: None,
             limit: Some(1),
         };
 
@@ -656,6 +658,8 @@ pub async fn find_similar_nodes(
     let request = FindSimilarNodesRequest {
         node_id,
         embedding,
+        text: None,
+        label: None,
         limit,
     };
 
