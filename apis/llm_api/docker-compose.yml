@@ -1,0 +1,7 @@
+services:
+  llm:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "8081:8081"
+    restart: unless-stopped

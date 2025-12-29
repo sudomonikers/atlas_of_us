@@ -3,22 +3,7 @@ use serde_json::{json, Value};
 
 use crate::common::neo4j_utils::map_bolt4_to_bolt5;
 
-#[derive(Debug)]
-pub enum ServiceError {
-    DatabaseError(String),
-    NotFound(String),
-}
-
-impl std::fmt::Display for ServiceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ServiceError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
-            ServiceError::NotFound(msg) => write!(f, "Not found: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for ServiceError {}
+use super::models::ServiceError;
 
 /// Get a user's profile with all relationships and affiliated nodes
 pub async fn get_user_profile(graph: &Graph, username: &str) -> Result<Value, ServiceError> {
