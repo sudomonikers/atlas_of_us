@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Models (downloaded at runtime)
+models/
+*.safetensors
+*.bin
+*.gguf
+
+# Misc
+.DS_Store
+*.log
+.env

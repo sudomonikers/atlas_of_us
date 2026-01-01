@@ -17,7 +17,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
 use validator::Validate;
 
-use super::llm::{create_provider, ProviderType};
+use super::llm::{ProviderType};
 use super::models::{GenerateDomainRequest, SseEvent};
 use super::orchestrator::AgentOrchestrator;
 

@@ -1,7 +1,8 @@
 services:
   llm:
-    build: .
+    image: ghcr.io/ggml-org/llama.cpp:server
     platform: linux/amd64
     ports:
       - "8081:8081"
+    command: ["--hf-repo", "Qwen/Qwen2.5-0.5B-Instruct-GGUF", "--hf-file", "qwen2.5-0.5b-instruct-q8_0.gguf", "--port", "8081", "--host", "0.0.0.0"]
     restart: unless-stopped

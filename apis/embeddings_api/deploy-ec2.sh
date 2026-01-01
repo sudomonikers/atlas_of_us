@@ -1,7 +1,15 @@
 #!/bin/bash
 set -e
 
-# Configuration
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source .env file if it exists
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    source "$SCRIPT_DIR/.env"
+fi
+
+# Configuration (env vars can still override .env)
 EC2_HOST="${EC2_HOST:-}"
 EC2_USER="${EC2_USER:-ec2-user}"
 SSH_KEY="${SSH_KEY:-~/.ssh/id_rsa}"
@@ -39,15 +47,15 @@ ssh -i "$SSH_KEY" "${EC2_USER}@${EC2_HOST}" << 'EOF'
 cd ~/embeddings_api
 
 # Stop existing container if running
-docker compose down 2>/dev/null || true
+docker-compose down 2>/dev/null || true
 
-# Build and start
-docker compose up --build -d
+# Pull and start
+docker-compose up -d
 
 # Show status
 echo ""
 echo "Container status:"
-docker compose ps
+docker-compose ps
 EOF
 
 echo -e "${GREEN}Deployment complete!${NC}"
