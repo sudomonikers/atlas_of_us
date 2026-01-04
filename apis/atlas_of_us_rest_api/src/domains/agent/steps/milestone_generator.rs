@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use serde_json::{json, Value};
+use futures::{stream, StreamExt};
 
-use super::{emit_event, AgentStep};
+use super::{emit_event, AgentStep, StepUtils, BATCH_SIZE};
 use crate::domains::agent::llm::{GenerationConfig, LlmProvider};
 use crate::domains::agent::models::{AgentContext, AgentType, CreatedNode, SseEvent};
 use crate::domains::agent::prompts::{PromptTemplates, SystemPrompts};
@@ -41,8 +42,8 @@ impl MilestoneGeneratorStep {
         let prompt = PromptTemplates::milestone_concepts(&context.domain_name, &description, &context_str);
 
         let config = GenerationConfig {
-            max_tokens: Some(2048),
-            temperature: Some(0.5),
+            max_tokens: Some(16384),
+            temperature: Some(0.3),
             stop_sequences: None,
         };
 
@@ -52,31 +53,7 @@ impl MilestoneGeneratorStep {
             &config,
         ).await.map_err(|e| format!("LLM error: {:?}", e))?;
 
-        Self::parse_concept_list(&response)
-    }
-
-    fn parse_concept_list(response: &str) -> Result<Vec<String>, String> {
-        let concepts: Vec<String> = response
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                if trimmed.starts_with('-') || trimmed.starts_with('*') {
-                    Some(trimmed.trim_start_matches(['-', '*', ' ']).to_string())
-                } else if trimmed.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
-                    // Handle numbered lists like "1. Item"
-                    trimmed.split_once('.').map(|(_, rest)| rest.trim().to_string())
-                } else {
-                    None
-                }
-            })
-            .filter(|s| !s.is_empty())
-            .collect();
-
-        if concepts.is_empty() {
-            Err("No concepts found in response".to_string())
-        } else {
-            Ok(concepts)
-        }
+        StepUtils::parse_concept_list(&response)
     }
 
     async fn generate_properties(
@@ -84,35 +61,47 @@ impl MilestoneGeneratorStep {
         context: &AgentContext,
         concepts: &[String],
     ) -> Result<Vec<MilestoneProperties>, String> {
-        let mut properties = Vec::new();
-
-        for concept in concepts {
-            let prompt = PromptTemplates::milestone_properties(
-                &context.domain_name,
-                concept,
-                None,
-            );
-
-            let config = GenerationConfig {
-                max_tokens: Some(1024),
-                temperature: Some(0.3),
-                stop_sequences: None,
-            };
-
-            let response = self.llm.generate(
-                SystemPrompts::milestone_designer(),
-                &prompt,
-                &config,
-            ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
-            let props = self.parse_milestone_properties(&response, concept)?;
-            properties.push(props);
+        if concepts.is_empty() {
+            return Ok(Vec::new());
         }
 
-        Ok(properties)
+        let llm = self.llm.clone();
+        let domain_name = context.domain_name.clone();
+
+        let results: Vec<Result<MilestoneProperties, String>> = stream::iter(concepts.to_vec())
+            .map(|concept| {
+                let llm = llm.clone();
+                let domain_name = domain_name.clone();
+                async move {
+                    let prompt = PromptTemplates::milestone_properties(
+                        &domain_name,
+                        &concept,
+                        None,
+                    );
+
+                    let config = GenerationConfig {
+                        max_tokens: Some(1024),
+                        temperature: Some(0.3),
+                        stop_sequences: None,
+                    };
+
+                    let response = llm.generate(
+                        SystemPrompts::milestone_designer(),
+                        &prompt,
+                        &config,
+                    ).await.map_err(|e| format!("LLM error: {:?}", e))?;
+
+                    Self::parse_milestone_properties(&response, &concept)
+                }
+            })
+            .buffer_unordered(BATCH_SIZE)
+            .collect()
+            .await;
+
+        results.into_iter().collect()
     }
 
-    fn parse_milestone_properties(&self, response: &str, concept_name: &str) -> Result<MilestoneProperties, String> {
+    fn parse_milestone_properties(response: &str, concept_name: &str) -> Result<MilestoneProperties, String> {
         let trimmed = response.trim();
         let start = trimmed.find('{').ok_or("No JSON object found")?;
         let end = trimmed.rfind('}').ok_or("No closing brace found")?;

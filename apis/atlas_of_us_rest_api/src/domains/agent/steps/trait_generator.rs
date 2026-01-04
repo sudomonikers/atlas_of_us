@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use serde_json::{json, Value};
+use futures::{stream, StreamExt};
 
-use super::{emit_event, AgentStep, StepUtils};
+use super::{emit_event, AgentStep, StepUtils, BATCH_SIZE};
 use crate::domains::agent::llm::{GenerationConfig, LlmProvider};
 use crate::domains::agent::models::{AgentContext, AgentType, ConceptAction, CreatedNode, SseEvent, VerifiedConcept};
 use crate::domains::agent::prompts::{PromptTemplates, SystemPrompts};
@@ -34,8 +35,8 @@ impl TraitGeneratorStep {
         let prompt = PromptTemplates::trait_concepts(&context.domain_name, &description);
 
         let config = GenerationConfig {
-            max_tokens: Some(1024),
-            temperature: Some(0.5),
+            max_tokens: Some(16384),
+            temperature: Some(0.3),
             stop_sequences: None,
         };
 
@@ -49,22 +50,30 @@ impl TraitGeneratorStep {
     }
 
     async fn pass2_similarity_search(&self, concepts: &[String]) -> Result<Vec<(String, Vec<crate::common::similarity::SimilarNodeResult>)>, String> {
-        let mut results = Vec::new();
+        let graph = self.graph.clone();
 
-        for concept in concepts {
-            let similar = find_similar_nodes(&self.graph, FindSimilarNodesRequest {
-                text: Some(concept.clone()),
-                label: Some("Trait".to_string()),
-                limit: Some(3),
-                ..Default::default()
-            })
-            .await
-            .map_err(|e| format!("Similarity search failed: {}", e))?;
+        let results: Vec<Result<(String, Vec<crate::common::similarity::SimilarNodeResult>), String>> =
+            stream::iter(concepts.to_vec())
+                .map(|concept| {
+                    let graph = graph.clone();
+                    async move {
+                        let similar = find_similar_nodes(&graph, FindSimilarNodesRequest {
+                            text: Some(concept.clone()),
+                            label: Some("Trait".to_string()),
+                            limit: Some(3),
+                            ..Default::default()
+                        })
+                        .await
+                        .map_err(|e| format!("Similarity search failed: {}", e))?;
 
-            results.push((concept.clone(), similar));
-        }
+                        Ok((concept, similar))
+                    }
+                })
+                .buffer_unordered(BATCH_SIZE)
+                .collect()
+                .await;
 
-        Ok(results)
+        results.into_iter().collect()
     }
 
     async fn pass3_verify_matches(
@@ -164,35 +173,48 @@ impl TraitGeneratorStep {
         &self,
         verified: &[VerifiedConcept],
     ) -> Result<Vec<TraitProperties>, String> {
-        let mut properties = Vec::new();
+        // Collect concepts that need property generation
+        let concepts_to_generate: Vec<String> = verified
+            .iter()
+            .filter(|c| !matches!(c.action, ConceptAction::UseExisting { .. }))
+            .map(|concept| concept.name.clone())
+            .collect();
 
-        for concept in verified {
-            if matches!(concept.action, ConceptAction::UseExisting { .. }) {
-                continue;
-            }
-
-            let prompt = PromptTemplates::trait_properties(&concept.name);
-
-            let config = GenerationConfig {
-                max_tokens: Some(1024),
-                temperature: Some(0.3),
-                stop_sequences: None,
-            };
-
-            let response = self.llm.generate(
-                SystemPrompts::trait_analyst(),
-                &prompt,
-                &config,
-            ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
-            let props = self.parse_trait_properties(&response, &concept.name)?;
-            properties.push(props);
+        if concepts_to_generate.is_empty() {
+            return Ok(Vec::new());
         }
 
-        Ok(properties)
+        let llm = self.llm.clone();
+
+        let results: Vec<Result<TraitProperties, String>> = stream::iter(concepts_to_generate)
+            .map(|concept_name| {
+                let llm = llm.clone();
+                async move {
+                    let prompt = PromptTemplates::trait_properties(&concept_name);
+
+                    let config = GenerationConfig {
+                        max_tokens: Some(1024),
+                        temperature: Some(0.3),
+                        stop_sequences: None,
+                    };
+
+                    let response = llm.generate(
+                        SystemPrompts::trait_analyst(),
+                        &prompt,
+                        &config,
+                    ).await.map_err(|e| format!("LLM error: {:?}", e))?;
+
+                    Self::parse_trait_properties(&response, &concept_name)
+                }
+            })
+            .buffer_unordered(BATCH_SIZE)
+            .collect()
+            .await;
+
+        results.into_iter().collect()
     }
 
-    fn parse_trait_properties(&self, response: &str, concept_name: &str) -> Result<TraitProperties, String> {
+    fn parse_trait_properties(response: &str, concept_name: &str) -> Result<TraitProperties, String> {
         let trimmed = response.trim();
         let start = trimmed.find('{').ok_or("No JSON object found")?;
         let end = trimmed.rfind('}').ok_or("No closing brace found")?;

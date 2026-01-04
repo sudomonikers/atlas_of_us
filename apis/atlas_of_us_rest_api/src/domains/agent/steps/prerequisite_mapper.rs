@@ -27,45 +27,59 @@ impl PrerequisiteMapperStep {
         Self { llm, graph, event_tx }
     }
 
-    /// Build context string for LLM
-    fn build_context(&self, context: &AgentContext) -> String {
+    /// Build context string for a specific component type
+    /// Includes the source components and all potential target components
+    fn build_context_for_type(&self, context: &AgentContext, source_type: &str) -> String {
         let mut ctx = format!("Domain: {}\n\n", context.domain_name);
 
-        ctx.push_str("Domain Levels:\n");
-        for level in &context.domain_graph.domain_levels {
-            ctx.push_str(&format!("- {} (ID: {})\n", level.name, level.element_id));
+        // Source components (the ones we're finding prerequisites for)
+        ctx.push_str(&format!("{} Nodes (find prerequisites for these):\n", source_type));
+        let source_nodes: Vec<_> = match source_type {
+            "Knowledge" => context.domain_graph.knowledge.iter().collect(),
+            "Skill" => context.domain_graph.skills.iter().collect(),
+            "Trait" => context.domain_graph.traits.iter().collect(),
+            "Milestone" => context.domain_graph.milestones.iter().collect(),
+            _ => vec![],
+        };
+        for node in source_nodes {
+            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
         }
 
-        ctx.push_str("\nKnowledge Nodes:\n");
+        // All potential target components
+        ctx.push_str("\nAvailable Knowledge Nodes:\n");
         for node in &context.domain_graph.knowledge {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
+            ctx.push_str(&format!("- {}\n", node.name));
         }
 
-        ctx.push_str("\nSkill Nodes:\n");
+        ctx.push_str("\nAvailable Skill Nodes:\n");
         for node in &context.domain_graph.skills {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
+            ctx.push_str(&format!("- {}\n", node.name));
         }
 
-        ctx.push_str("\nTrait Nodes:\n");
+        ctx.push_str("\nAvailable Trait Nodes:\n");
         for node in &context.domain_graph.traits {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
+            ctx.push_str(&format!("- {}\n", node.name));
         }
 
-        ctx.push_str("\nMilestone Nodes:\n");
+        ctx.push_str("\nAvailable Milestone Nodes:\n");
         for node in &context.domain_graph.milestones {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
+            ctx.push_str(&format!("- {}\n", node.name));
         }
 
         ctx
     }
 
-    /// Analyze prerequisites between components
-    async fn analyze_prerequisites(&self, context: &AgentContext) -> Result<Vec<PrerequisiteRelationship>, String> {
-        let ctx = self.build_context(context);
+    /// Analyze prerequisites for a specific component type
+    async fn analyze_prerequisites_for_type(
+        &self,
+        context: &AgentContext,
+        source_type: &str,
+    ) -> Result<Vec<PrerequisiteRelationship>, String> {
+        let ctx = self.build_context_for_type(context, source_type);
         let prompt = PromptTemplates::prerequisite_analysis(&context.domain_name, &ctx);
 
         let config = GenerationConfig {
-            max_tokens: Some(4096),
+            max_tokens: Some(16384),
             temperature: Some(0.3),
             stop_sequences: None,
         };
@@ -76,10 +90,29 @@ impl PrerequisiteMapperStep {
             &config,
         ).await.map_err(|e| format!("LLM error: {:?}", e))?;
 
-        self.parse_prerequisites(&response, context)
+        self.parse_prerequisites(&response, context, source_type)
     }
 
-    fn parse_prerequisites(&self, response: &str, context: &AgentContext) -> Result<Vec<PrerequisiteRelationship>, String> {
+    /// Analyze all prerequisites (by source type to avoid token limits)
+    async fn analyze_prerequisites(&self, context: &AgentContext) -> Result<Vec<PrerequisiteRelationship>, String> {
+        let mut all_prerequisites = Vec::new();
+
+        for source_type in &["Skill", "Milestone"] {
+            // Skills typically require Knowledge, Milestones require Skills/Knowledge
+            // Knowledge and Traits typically don't have prerequisites
+            emit_event(&self.event_tx, SseEvent::StepProgress {
+                agent: AgentType::PrerequisiteMapper,
+                message: format!("Analyzing {} prerequisites...", source_type),
+            }).await;
+
+            let prerequisites = self.analyze_prerequisites_for_type(context, source_type).await?;
+            all_prerequisites.extend(prerequisites);
+        }
+
+        Ok(all_prerequisites)
+    }
+
+    fn parse_prerequisites(&self, response: &str, context: &AgentContext, source_type: &str) -> Result<Vec<PrerequisiteRelationship>, String> {
         let trimmed = response.trim();
         let start = trimmed.find('{').ok_or("No JSON object found")?;
         let end = trimmed.rfind('}').ok_or("No closing brace found")?;
@@ -99,12 +132,8 @@ impl PrerequisiteMapperStep {
                 .and_then(|v| v.as_str())
                 .ok_or("Missing component name")?;
 
-            let component_type = prereq.get("component_type")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing component type")?;
-
-            // Find the component element ID
-            let source_id = self.find_element_id(context, component_name, component_type);
+            // Use the known source_type instead of reading from JSON
+            let source_id = self.find_element_id(context, component_name, source_type);
             if source_id.is_none() {
                 continue;
             }
@@ -208,11 +237,7 @@ impl AgentStep for PrerequisiteMapperStep {
     }
 
     async fn execute(&self, context: &mut AgentContext) -> Result<(), String> {
-        emit_event(&self.event_tx, SseEvent::StepProgress {
-            agent: self.agent_type(),
-            message: "Analyzing component prerequisites...".to_string(),
-        }).await;
-
+        // analyze_prerequisites now emits progress events per source type
         let prerequisites = self.analyze_prerequisites(context).await?;
 
         emit_event(&self.event_tx, SseEvent::StepProgress {

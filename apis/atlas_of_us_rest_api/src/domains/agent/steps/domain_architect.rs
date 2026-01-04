@@ -140,13 +140,13 @@ impl AgentStep for DomainArchitectStep {
         let description = context.description.clone().unwrap_or_default();
 
         // Step 1: Generate domain avatar (non-blocking failure)
-        let avatar_url = match self.generate_domain_avatar(&domain_name).await {
-            Ok(url) => url,
-            Err(e) => {
-                tracing::warn!("Avatar generation failed (continuing): {}", e);
-                None
-            }
-        };
+        // let avatar_url = match self.generate_domain_avatar(&domain_name).await {
+        //     Ok(url) => url,
+        //     Err(e) => {
+        //         tracing::warn!("Avatar generation failed (continuing): {}", e);
+        //         None
+        //     }
+        // };
 
         // Step 2: Create Domain node
         emit_event(&self.event_tx, SseEvent::StepProgress {
@@ -157,9 +157,9 @@ impl AgentStep for DomainArchitectStep {
         let mut domain_props: HashMap<String, Value> = HashMap::new();
         domain_props.insert("name".to_string(), json!(domain_name));
         domain_props.insert("description".to_string(), json!(description));
-        if let Some(url) = &avatar_url {
-            domain_props.insert("avatar_url".to_string(), json!(url));
-        }
+        // if let Some(url) = &avatar_url {
+        //     domain_props.insert("avatar_url".to_string(), json!(url));
+        // }
 
         let domain_request = CreateNodeRequest {
             labels: vec!["Domain".to_string()],

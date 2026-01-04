@@ -70,8 +70,7 @@ Output ONLY valid JSON, no explanation or markdown."#,
 Consider knowledge at all levels from novice to master. Focus on:
 - Foundational theoretical knowledge
 - Technical/specialized knowledge
-- Contextual/cultural knowledge
-- Safety and best practices knowledge
+- Contextual knowledge
 
 CRITICAL RULES:
 1. ATOMIC: Each concept must be a SINGLE concept. Never combine with "and".
@@ -85,7 +84,9 @@ CRITICAL RULES:
    Only omit prefix for universal concepts identical across all domains:
    - "Boolean Algebra", "Newton's Laws" (exact same content everywhere)
 
-Output ONLY a JSON array of concept names (10-20 items), no explanation:
+Output ONLY a JSON array of concept names no explanation:
+(Output all of the concepts which are SPECIFIC TO THIS DOMAIN. Concepts that could go in a more specialized domain can be omitted)
+(There is no specific number we are targeting here. Generate as much as is relavent to the domain).
 ["Concept 1", "Concept 2", "Concept 3", ...]"#,
             domain_name = domain_name,
             desc_section = if description.is_empty() {
@@ -219,7 +220,9 @@ CRITICAL RULES:
    Only omit prefix for universal skills that work identically across domains:
    - "Problem Solving", "Time Management", "Decision Making" (same practice everywhere)
 
-Output ONLY a JSON array of skill names (8-15 items), no explanation:
+Output ONLY a JSON array of skill names no explanation:
+(Output all of the concepts which are SPECIFIC TO THIS DOMAIN. Concepts that could go in a more specialized domain can be omitted)
+(There is no specific number we are targeting here. Generate as much as is relavent to the domain).
 ["Skill 1", "Skill 2", "Skill 3", ...]"#,
             domain_name = domain_name,
             desc_section = if description.is_empty() {
@@ -349,7 +352,9 @@ CRITICAL RULES:
 
 Only include traits that are genuinely relevant to this domain.
 
-Output ONLY a JSON array of trait names (3-8 items), no explanation:
+Output ONLY a JSON array of trait names no explanation:
+(Output all of the concepts which are SPECIFIC TO THIS DOMAIN. Concepts that could go in a more specialized domain can be omitted)
+(There is no specific number we are targeting here. Generate as much as is relavent to the domain).
 ["Trait 1", "Trait 2", "Trait 3", ...]"#,
             domain_name = domain_name,
             desc_section = if description.is_empty() {
@@ -440,7 +445,7 @@ CRITICAL RULES:
 2. DOMAIN-SPECIFIC: Milestones are achievements within this domain.
    Use clear, measurable descriptions specific to "{domain_name}".
 
-Output ONLY a JSON array of milestone names (12-20 items), no explanation:
+Output ONLY a JSON array of milestone names (Generate 0-3 milestones per level), no explanation:
 ["Milestone 1", "Milestone 2", "Milestone 3", ...]"#,
             domain_name = domain_name,
             desc_section = if description.is_empty() {

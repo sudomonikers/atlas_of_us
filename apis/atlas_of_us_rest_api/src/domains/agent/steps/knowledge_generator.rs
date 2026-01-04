@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use serde_json::{json, Value};
+use futures::{stream, StreamExt};
 
-use super::{emit_event, AgentStep, StepUtils};
+use super::{emit_event, AgentStep, StepUtils, BATCH_SIZE};
 use crate::domains::agent::llm::{GenerationConfig, LlmProvider};
 use crate::domains::agent::models::{AgentContext, AgentType, ConceptAction, CreatedNode, GeneralizationLink, SseEvent, VerifiedConcept};
 use crate::domains::agent::prompts::{PromptTemplates, SystemPrompts};
@@ -34,8 +35,8 @@ impl KnowledgeGeneratorStep {
         let prompt = PromptTemplates::knowledge_concepts(&context.domain_name, &description);
 
         let config = GenerationConfig {
-            max_tokens: Some(2048),
-            temperature: Some(0.5),
+            max_tokens: Some(16384),
+            temperature: Some(0.3),
             stop_sequences: None,
         };
 
@@ -44,28 +45,35 @@ impl KnowledgeGeneratorStep {
             &prompt,
             &config,
         ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
+        print!("LLM RESPONSE: {}", &response);
         StepUtils::parse_concept_list(&response)
     }
 
-    /// Pass 2: Find similar nodes for each concept
+    /// Pass 2: Find similar nodes for each concept (batched)
     async fn pass2_similarity_search(&self, concepts: &[String]) -> Result<Vec<(String, Vec<SimilarNodeResult>)>, String> {
-        let mut results = Vec::new();
+        let graph = self.graph.clone();
 
-        for concept in concepts {
-            let similar = find_similar_nodes(&self.graph, FindSimilarNodesRequest {
-                text: Some(concept.clone()),
-                label: Some("Knowledge".to_string()),
-                limit: Some(3),
-                ..Default::default()
+        let results: Vec<Result<(String, Vec<SimilarNodeResult>), String>> = stream::iter(concepts.to_vec())
+            .map(|concept| {
+                let graph = graph.clone();
+                async move {
+                    let similar = find_similar_nodes(&graph, FindSimilarNodesRequest {
+                        text: Some(concept.clone()),
+                        label: Some("Knowledge".to_string()),
+                        limit: Some(3),
+                        ..Default::default()
+                    })
+                    .await
+                    .map_err(|e| format!("Similarity search failed: {}", e))?;
+
+                    Ok((concept, similar))
+                }
             })
-            .await
-            .map_err(|e| format!("Similarity search failed: {}", e))?;
+            .buffer_unordered(BATCH_SIZE)
+            .collect()
+            .await;
 
-            results.push((concept.clone(), similar));
-        }
-
-        Ok(results)
+        results.into_iter().collect()
     }
 
     /// Pass 3: Verify matches with LLM for moderate similarity scores
@@ -190,125 +198,169 @@ impl KnowledgeGeneratorStep {
         Ok(verified)
     }
 
-    /// Pass 4: Create missing generalization target nodes
+    /// Pass 4: Create missing generalization target nodes (batched LLM calls)
     async fn pass4_create_missing_targets(
         &self,
         verified: &mut Vec<VerifiedConcept>,
     ) -> Result<Vec<CreatedNode>, String> {
+        // Collect targets that need creation with their indices
+        let targets_to_create: Vec<(usize, String)> = verified
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, concept)| {
+                if let ConceptAction::CreateAndGeneralize {
+                    generalizes_to_name,
+                    needs_creation: true,
+                    ..
+                } = &concept.action
+                {
+                    Some((idx, generalizes_to_name.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if targets_to_create.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Batch generate properties for all targets
+        let llm = self.llm.clone();
+        let properties_results: Vec<Result<(usize, String, KnowledgeProperties), String>> =
+            stream::iter(targets_to_create)
+                .map(|(idx, target_name)| {
+                    let llm = llm.clone();
+                    async move {
+                        let prompt = PromptTemplates::generic_knowledge_properties(&target_name);
+
+                        let config = GenerationConfig {
+                            max_tokens: Some(2048),
+                            temperature: Some(0.3),
+                            stop_sequences: None,
+                        };
+
+                        let response = llm.generate(
+                            SystemPrompts::knowledge_expert(),
+                            &prompt,
+                            &config,
+                        ).await.map_err(|e| format!("LLM error: {:?}", e))?;
+
+                        let props = Self::parse_knowledge_properties(&response, &target_name)?;
+                        Ok((idx, target_name, props))
+                    }
+                })
+                .buffer_unordered(BATCH_SIZE)
+                .collect()
+                .await;
+
+        // Collect successful results
+        let properties: Vec<(usize, String, KnowledgeProperties)> = properties_results
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // Create nodes sequentially (DB operations)
         let mut created_targets = Vec::new();
+        for (idx, target_name, props) in properties {
+            let mut node_props: HashMap<String, Value> = HashMap::new();
+            node_props.insert("name".to_string(), json!(props.name));
+            node_props.insert("description".to_string(), json!(props.description));
+            node_props.insert("how_to_learn".to_string(), json!(props.how_to_learn));
+            node_props.insert("remember_level".to_string(), json!(props.remember_level));
+            node_props.insert("understand_level".to_string(), json!(props.understand_level));
+            node_props.insert("apply_level".to_string(), json!(props.apply_level));
+            node_props.insert("analyze_level".to_string(), json!(props.analyze_level));
+            node_props.insert("evaluate_level".to_string(), json!(props.evaluate_level));
+            node_props.insert("create_level".to_string(), json!(props.create_level));
 
-        for concept in verified.iter_mut() {
-            if let ConceptAction::CreateAndGeneralize {
-                generalizes_to_name,
-                needs_creation: true,
-                ..
-            } = &concept.action
-            {
-                let target_name = generalizes_to_name.clone();
+            let request = CreateNodeRequest {
+                labels: vec!["Knowledge".to_string()],
+                properties: node_props,
+            };
 
-                // Generate properties for the generic target node
-                let prompt = PromptTemplates::generic_knowledge_properties(&target_name);
+            let result = services::create_node(&self.graph, request, false)
+                .await
+                .map_err(|e| e.to_string())?;
 
-                let config = GenerationConfig {
-                    max_tokens: Some(2048),
-                    temperature: Some(0.3),
-                    stop_sequences: None,
-                };
+            // Update the concept with the new target ID
+            verified[idx].action = ConceptAction::CreateAndGeneralize {
+                generalizes_to_id: result.element_id.clone(),
+                generalizes_to_name: target_name.clone(),
+                needs_creation: false,
+            };
 
-                let response = self.llm.generate(
-                    SystemPrompts::knowledge_expert(),
-                    &prompt,
-                    &config,
-                ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
-                let props = self.parse_knowledge_properties(&response, &target_name)?;
-
-                // Build node properties
-                let mut node_props: HashMap<String, Value> = HashMap::new();
-                node_props.insert("name".to_string(), json!(props.name));
-                node_props.insert("description".to_string(), json!(props.description));
-                node_props.insert("how_to_learn".to_string(), json!(props.how_to_learn));
-                node_props.insert("remember_level".to_string(), json!(props.remember_level));
-                node_props.insert("understand_level".to_string(), json!(props.understand_level));
-                node_props.insert("apply_level".to_string(), json!(props.apply_level));
-                node_props.insert("analyze_level".to_string(), json!(props.analyze_level));
-                node_props.insert("evaluate_level".to_string(), json!(props.evaluate_level));
-                node_props.insert("create_level".to_string(), json!(props.create_level));
-
-                let request = CreateNodeRequest {
-                    labels: vec!["Knowledge".to_string()],
-                    properties: node_props,
-                };
-
-                let result = services::create_node(&self.graph, request, false)
-                    .await
-                    .map_err(|e| e.to_string())?;
-
-                // Update the concept with the new target ID
-                concept.action = ConceptAction::CreateAndGeneralize {
-                    generalizes_to_id: result.element_id.clone(),
-                    generalizes_to_name: target_name.clone(),
-                    needs_creation: false,
-                };
-
-                created_targets.push(CreatedNode::new(
-                    target_name,
-                    result.element_id,
-                    "Knowledge".to_string(),
-                ));
-            }
+            created_targets.push(CreatedNode::new(
+                target_name,
+                result.element_id,
+                "Knowledge".to_string(),
+            ));
         }
 
         Ok(created_targets)
     }
 
-    /// Pass 5: Generate full properties for nodes to create
+    /// Pass 5: Generate full properties for nodes to create (batched)
     async fn pass5_generate_properties(
         &self,
         context: &AgentContext,
         verified: &[VerifiedConcept],
     ) -> Result<Vec<KnowledgeProperties>, String> {
-        let mut properties = Vec::new();
+        // Collect concepts that need property generation
+        let concepts_to_generate: Vec<(String, Option<String>)> = verified
+            .iter()
+            .filter(|c| !matches!(c.action, ConceptAction::UseExisting { .. }))
+            .map(|concept| {
+                let generalizes_to = if let ConceptAction::CreateAndGeneralize { generalizes_to_name, .. } = &concept.action {
+                    Some(generalizes_to_name.clone())
+                } else {
+                    None
+                };
+                (concept.name.clone(), generalizes_to)
+            })
+            .collect();
 
-        for concept in verified {
-            // Skip if using existing node
-            if matches!(concept.action, ConceptAction::UseExisting { .. }) {
-                continue;
-            }
-
-            let generalizes_to = if let ConceptAction::CreateAndGeneralize { generalizes_to_name, .. } = &concept.action {
-                Some(generalizes_to_name.as_str())
-            } else {
-                None
-            };
-
-            let prompt = PromptTemplates::knowledge_properties(
-                &context.domain_name,
-                &concept.name,
-                generalizes_to,
-            );
-
-            let config = GenerationConfig {
-                max_tokens: Some(2048),
-                temperature: Some(0.3),
-                stop_sequences: None,
-            };
-
-            let response = self.llm.generate(
-                SystemPrompts::knowledge_expert(),
-                &prompt,
-                &config,
-            ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
-            let props = self.parse_knowledge_properties(&response, &concept.name)?;
-            properties.push(props);
+        if concepts_to_generate.is_empty() {
+            return Ok(Vec::new());
         }
 
-        Ok(properties)
+        let llm = self.llm.clone();
+        let domain_name = context.domain_name.clone();
+
+        let results: Vec<Result<KnowledgeProperties, String>> = stream::iter(concepts_to_generate)
+            .map(|(concept_name, generalizes_to)| {
+                let llm = llm.clone();
+                let domain_name = domain_name.clone();
+                async move {
+                    let prompt = PromptTemplates::knowledge_properties(
+                        &domain_name,
+                        &concept_name,
+                        generalizes_to.as_deref(),
+                    );
+
+                    let config = GenerationConfig {
+                        max_tokens: Some(2048),
+                        temperature: Some(0.3),
+                        stop_sequences: None,
+                    };
+
+                    let response = llm.generate(
+                        SystemPrompts::knowledge_expert(),
+                        &prompt,
+                        &config,
+                    ).await.map_err(|e| format!("LLM error: {:?}", e))?;
+                    println!("Node: {} - Properties: {}", &concept_name, &response);
+                    Self::parse_knowledge_properties(&response, &concept_name)
+                }
+            })
+            .buffer_unordered(BATCH_SIZE)
+            .collect()
+            .await;
+
+        results.into_iter().collect()
     }
 
     /// Parse knowledge properties from LLM response
-    fn parse_knowledge_properties(&self, response: &str, concept_name: &str) -> Result<KnowledgeProperties, String> {
+    fn parse_knowledge_properties(response: &str, concept_name: &str) -> Result<KnowledgeProperties, String> {
         let trimmed = response.trim();
 
         let start = trimmed.find('{').ok_or("No JSON object found")?;

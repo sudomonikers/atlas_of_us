@@ -1,6 +1,8 @@
+pub mod claude;
 pub mod llama_cpp;
 pub mod provider;
 
+use claude::ClaudeProvider;
 use llama_cpp::LlamaCppProvider;
 use std::sync::Arc;
 
@@ -11,9 +13,7 @@ pub use provider::{GenerationConfig, LlmError, LlmProvider};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProviderType {
     LlamaCpp,
-    // Future providers:
-    // Claude,
-    // OpenAI,
+    Claude,
 }
 
 impl Default for ProviderType {
@@ -28,10 +28,10 @@ pub fn create_provider(provider_type: ProviderType) -> Result<Arc<dyn LlmProvide
         ProviderType::LlamaCpp => {
             let provider = LlamaCppProvider::new()?;
             Ok(Arc::new(provider))
-        } // Future implementations:
-          // ProviderType::Claude => {
-          //     let provider = ClaudeProvider::new()?;
-          //     Ok(Arc::new(provider))
-          // }
+        }
+        ProviderType::Claude => {
+            let provider = ClaudeProvider::new()?;
+            Ok(Arc::new(provider))
+        }
     }
 }

@@ -270,7 +270,6 @@ resource "aws_cloudfront_distribution" "image_gen_api_cdn" {
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
-      # Longer timeouts for image generation (can take 20+ seconds)
       origin_read_timeout    = 60
       origin_keepalive_timeout = 60
     }

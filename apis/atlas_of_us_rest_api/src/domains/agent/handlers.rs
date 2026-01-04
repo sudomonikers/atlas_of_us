@@ -57,7 +57,7 @@ pub async fn generate_domain_sse(
     let (tx, rx) = mpsc::channel::<SseEvent>(64);
 
     // Create orchestrator with graph connection
-    let orchestrator = match AgentOrchestrator::new(ProviderType::LlamaCpp, graph, tx) {
+    let orchestrator = match AgentOrchestrator::new(ProviderType::Claude, graph, tx) {
         Ok(o) => o,
         Err(e) => {
             tracing::error!("Failed to initialize orchestrator: {}", e);

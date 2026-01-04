@@ -34,8 +34,14 @@ impl StepUtils {
         let trimmed = response.trim();
 
         // Find the JSON array in the response
-        let start = trimmed.find('[').ok_or("No JSON array found in response")?;
-        let end = trimmed.rfind(']').ok_or("No closing bracket found")?;
+        let start = trimmed.find('[').ok_or_else(|| {
+            let preview = if trimmed.len() > 200 { &trimmed[..200] } else { trimmed };
+            format!("No JSON array found in response. Preview: {}", preview)
+        })?;
+        let end = trimmed.rfind(']').ok_or_else(|| {
+            let preview = if trimmed.len() > 200 { &trimmed[..200] } else { trimmed };
+            format!("No closing bracket found. Preview: {}", preview)
+        })?;
 
         if end <= start {
             return Err("Invalid JSON array structure".to_string());
@@ -44,7 +50,7 @@ impl StepUtils {
         let json_str = &trimmed[start..=end];
 
         serde_json::from_str::<Vec<String>>(json_str)
-            .map_err(|e| format!("Failed to parse JSON array: {}", e))
+            .map_err(|e| format!("Failed to parse JSON array: {}. Content: {}", e, json_str))
     }
 
     /// Parse verification decision from LLM response
@@ -137,3 +143,6 @@ pub async fn emit_event(tx: &mpsc::Sender<SseEvent>, event: SseEvent) {
         tracing::warn!("Failed to send SSE event: {}", e);
     }
 }
+
+/// Batch size for concurrent LLM calls
+pub const BATCH_SIZE: usize = 1;

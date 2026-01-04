@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use serde_json::{json, Value};
+use futures::{stream, StreamExt};
 
-use super::{emit_event, AgentStep, StepUtils};
+use super::{emit_event, AgentStep, StepUtils, BATCH_SIZE};
 use crate::domains::agent::llm::{GenerationConfig, LlmProvider};
 use crate::domains::agent::models::{AgentContext, AgentType, ConceptAction, CreatedNode, GeneralizationLink, SseEvent, VerifiedConcept};
 use crate::domains::agent::prompts::{PromptTemplates, SystemPrompts};
@@ -38,8 +39,8 @@ impl SkillGeneratorStep {
         let prompt = PromptTemplates::skill_concepts(&context.domain_name, &description, &existing_knowledge);
 
         let config = GenerationConfig {
-            max_tokens: Some(2048),
-            temperature: Some(0.5),
+            max_tokens: Some(16384),
+            temperature: Some(0.3),
             stop_sequences: None,
         };
 
@@ -53,22 +54,30 @@ impl SkillGeneratorStep {
     }
 
     async fn pass2_similarity_search(&self, concepts: &[String]) -> Result<Vec<(String, Vec<crate::common::similarity::SimilarNodeResult>)>, String> {
-        let mut results = Vec::new();
+        let graph = self.graph.clone();
 
-        for concept in concepts {
-            let similar = find_similar_nodes(&self.graph, FindSimilarNodesRequest {
-                text: Some(concept.clone()),
-                label: Some("Skill".to_string()),
-                limit: Some(3),
-                ..Default::default()
-            })
-            .await
-            .map_err(|e| format!("Similarity search failed: {}", e))?;
+        let results: Vec<Result<(String, Vec<crate::common::similarity::SimilarNodeResult>), String>> =
+            stream::iter(concepts.to_vec())
+                .map(|concept| {
+                    let graph = graph.clone();
+                    async move {
+                        let similar = find_similar_nodes(&graph, FindSimilarNodesRequest {
+                            text: Some(concept.clone()),
+                            label: Some("Skill".to_string()),
+                            limit: Some(3),
+                            ..Default::default()
+                        })
+                        .await
+                        .map_err(|e| format!("Similarity search failed: {}", e))?;
 
-            results.push((concept.clone(), similar));
-        }
+                        Ok((concept, similar))
+                    }
+                })
+                .buffer_unordered(BATCH_SIZE)
+                .collect()
+                .await;
 
-        Ok(results)
+        results.into_iter().collect()
     }
 
     async fn pass3_verify_matches(
@@ -160,122 +169,167 @@ impl SkillGeneratorStep {
         Ok(verified)
     }
 
-    /// Pass 4: Create missing generalization target nodes
+    /// Pass 4: Create missing generalization target nodes (batched LLM calls)
     async fn pass4_create_missing_targets(
         &self,
         verified: &mut Vec<VerifiedConcept>,
     ) -> Result<Vec<CreatedNode>, String> {
+        // Collect targets that need creation with their indices
+        let targets_to_create: Vec<(usize, String)> = verified
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, concept)| {
+                if let ConceptAction::CreateAndGeneralize {
+                    generalizes_to_name,
+                    needs_creation: true,
+                    ..
+                } = &concept.action
+                {
+                    Some((idx, generalizes_to_name.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if targets_to_create.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Batch generate properties for all targets
+        let llm = self.llm.clone();
+        let properties_results: Vec<Result<(usize, String, SkillProperties), String>> =
+            stream::iter(targets_to_create)
+                .map(|(idx, target_name)| {
+                    let llm = llm.clone();
+                    async move {
+                        let prompt = PromptTemplates::generic_skill_properties(&target_name);
+
+                        let config = GenerationConfig {
+                            max_tokens: Some(2048),
+                            temperature: Some(0.3),
+                            stop_sequences: None,
+                        };
+
+                        let response = llm.generate(
+                            SystemPrompts::skill_expert(),
+                            &prompt,
+                            &config,
+                        ).await.map_err(|e| format!("LLM error: {:?}", e))?;
+
+                        let props = Self::parse_skill_properties(&response, &target_name)?;
+                        Ok((idx, target_name, props))
+                    }
+                })
+                .buffer_unordered(BATCH_SIZE)
+                .collect()
+                .await;
+
+        // Collect successful results
+        let properties: Vec<(usize, String, SkillProperties)> = properties_results
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // Create nodes sequentially (DB operations)
         let mut created_targets = Vec::new();
+        for (idx, target_name, props) in properties {
+            let mut node_props: HashMap<String, Value> = HashMap::new();
+            node_props.insert("name".to_string(), json!(props.name));
+            node_props.insert("description".to_string(), json!(props.description));
+            node_props.insert("how_to_develop".to_string(), json!(props.how_to_develop));
+            node_props.insert("novice_level".to_string(), json!(props.novice_level));
+            node_props.insert("advanced_beginner_level".to_string(), json!(props.advanced_beginner_level));
+            node_props.insert("competent_level".to_string(), json!(props.competent_level));
+            node_props.insert("proficient_level".to_string(), json!(props.proficient_level));
+            node_props.insert("expert_level".to_string(), json!(props.expert_level));
 
-        for concept in verified.iter_mut() {
-            if let ConceptAction::CreateAndGeneralize {
-                generalizes_to_name,
-                needs_creation: true,
-                ..
-            } = &concept.action
-            {
-                let target_name = generalizes_to_name.clone();
+            let request = CreateNodeRequest {
+                labels: vec!["Skill".to_string()],
+                properties: node_props,
+            };
 
-                // Generate properties for the generic target node
-                let prompt = PromptTemplates::generic_skill_properties(&target_name);
+            let result = services::create_node(&self.graph, request, false)
+                .await
+                .map_err(|e| e.to_string())?;
 
-                let config = GenerationConfig {
-                    max_tokens: Some(2048),
-                    temperature: Some(0.3),
-                    stop_sequences: None,
-                };
+            // Update the concept with the new target ID
+            verified[idx].action = ConceptAction::CreateAndGeneralize {
+                generalizes_to_id: result.element_id.clone(),
+                generalizes_to_name: target_name.clone(),
+                needs_creation: false,
+            };
 
-                let response = self.llm.generate(
-                    SystemPrompts::skill_expert(),
-                    &prompt,
-                    &config,
-                ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
-                let props = self.parse_skill_properties(&response, &target_name)?;
-
-                // Build node properties
-                let mut node_props: HashMap<String, Value> = HashMap::new();
-                node_props.insert("name".to_string(), json!(props.name));
-                node_props.insert("description".to_string(), json!(props.description));
-                node_props.insert("how_to_develop".to_string(), json!(props.how_to_develop));
-                node_props.insert("novice_level".to_string(), json!(props.novice_level));
-                node_props.insert("advanced_beginner_level".to_string(), json!(props.advanced_beginner_level));
-                node_props.insert("competent_level".to_string(), json!(props.competent_level));
-                node_props.insert("proficient_level".to_string(), json!(props.proficient_level));
-                node_props.insert("expert_level".to_string(), json!(props.expert_level));
-
-                let request = CreateNodeRequest {
-                    labels: vec!["Skill".to_string()],
-                    properties: node_props,
-                };
-
-                let result = services::create_node(&self.graph, request, false)
-                    .await
-                    .map_err(|e| e.to_string())?;
-
-                // Update the concept with the new target ID
-                concept.action = ConceptAction::CreateAndGeneralize {
-                    generalizes_to_id: result.element_id.clone(),
-                    generalizes_to_name: target_name.clone(),
-                    needs_creation: false,
-                };
-
-                created_targets.push(CreatedNode::new(
-                    target_name,
-                    result.element_id,
-                    "Skill".to_string(),
-                ));
-            }
+            created_targets.push(CreatedNode::new(
+                target_name,
+                result.element_id,
+                "Skill".to_string(),
+            ));
         }
 
         Ok(created_targets)
     }
 
-    /// Pass 5: Generate full properties for nodes to create
+    /// Pass 5: Generate full properties for nodes to create (batched)
     async fn pass5_generate_properties(
         &self,
         context: &AgentContext,
         verified: &[VerifiedConcept],
     ) -> Result<Vec<SkillProperties>, String> {
-        let mut properties = Vec::new();
+        // Collect concepts that need property generation
+        let concepts_to_generate: Vec<(String, Option<String>)> = verified
+            .iter()
+            .filter(|c| !matches!(c.action, ConceptAction::UseExisting { .. }))
+            .map(|concept| {
+                let generalizes_to = if let ConceptAction::CreateAndGeneralize { generalizes_to_name, .. } = &concept.action {
+                    Some(generalizes_to_name.clone())
+                } else {
+                    None
+                };
+                (concept.name.clone(), generalizes_to)
+            })
+            .collect();
 
-        for concept in verified {
-            if matches!(concept.action, ConceptAction::UseExisting { .. }) {
-                continue;
-            }
-
-            let generalizes_to = if let ConceptAction::CreateAndGeneralize { generalizes_to_name, .. } = &concept.action {
-                Some(generalizes_to_name.as_str())
-            } else {
-                None
-            };
-
-            let prompt = PromptTemplates::skill_properties(
-                &context.domain_name,
-                &concept.name,
-                generalizes_to,
-            );
-
-            let config = GenerationConfig {
-                max_tokens: Some(2048),
-                temperature: Some(0.3),
-                stop_sequences: None,
-            };
-
-            let response = self.llm.generate(
-                SystemPrompts::skill_expert(),
-                &prompt,
-                &config,
-            ).await.map_err(|e| format!("LLM error: {:?}", e))?;
-
-            let props = self.parse_skill_properties(&response, &concept.name)?;
-            properties.push(props);
+        if concepts_to_generate.is_empty() {
+            return Ok(Vec::new());
         }
 
-        Ok(properties)
+        let llm = self.llm.clone();
+        let domain_name = context.domain_name.clone();
+
+        let results: Vec<Result<SkillProperties, String>> = stream::iter(concepts_to_generate)
+            .map(|(concept_name, generalizes_to)| {
+                let llm = llm.clone();
+                let domain_name = domain_name.clone();
+                async move {
+                    let prompt = PromptTemplates::skill_properties(
+                        &domain_name,
+                        &concept_name,
+                        generalizes_to.as_deref(),
+                    );
+
+                    let config = GenerationConfig {
+                        max_tokens: Some(2048),
+                        temperature: Some(0.3),
+                        stop_sequences: None,
+                    };
+
+                    let response = llm.generate(
+                        SystemPrompts::skill_expert(),
+                        &prompt,
+                        &config,
+                    ).await.map_err(|e| format!("LLM error: {:?}", e))?;
+
+                    Self::parse_skill_properties(&response, &concept_name)
+                }
+            })
+            .buffer_unordered(BATCH_SIZE)
+            .collect()
+            .await;
+
+        results.into_iter().collect()
     }
 
-    fn parse_skill_properties(&self, response: &str, concept_name: &str) -> Result<SkillProperties, String> {
+    fn parse_skill_properties(response: &str, concept_name: &str) -> Result<SkillProperties, String> {
         let trimmed = response.trim();
         let start = trimmed.find('{').ok_or("No JSON object found")?;
         let end = trimmed.rfind('}').ok_or("No closing brace found")?;

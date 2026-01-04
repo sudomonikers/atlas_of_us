@@ -132,7 +132,7 @@ locals {
 # EC2 instance for LLM API
 resource "aws_instance" "llm_api" {
   ami                    = data.aws_ami.amazon_linux.id
-  instance_type          = "t3.small"
+  instance_type          = "c6i.xlarge"
   key_name               = aws_key_pair.api_server_key.key_name
   vpc_security_group_ids = [aws_security_group.llm_api_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.llm_api_ec2_profile.name
@@ -230,6 +230,8 @@ resource "aws_cloudfront_distribution" "llm_api_cdn" {
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
+      origin_read_timeout    = 60
+      origin_keepalive_timeout = 60
     }
   }
 

@@ -28,8 +28,8 @@ impl LevelDistributorStep {
         Self { llm, graph, event_tx }
     }
 
-    /// Build context string for LLM
-    fn build_context(&self, context: &AgentContext) -> String {
+    /// Build context string for a specific component type
+    fn build_context_for_type(&self, context: &AgentContext, component_type: &str) -> String {
         let mut ctx = format!("Domain: {}\n\n", context.domain_name);
 
         ctx.push_str("Domain Levels:\n");
@@ -37,36 +37,33 @@ impl LevelDistributorStep {
             ctx.push_str(&format!("- {} (ID: {})\n", level.name, level.element_id));
         }
 
-        ctx.push_str("\nKnowledge Nodes:\n");
-        for node in &context.domain_graph.knowledge {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
-        }
+        ctx.push_str(&format!("\n{} Nodes to assign:\n", component_type));
+        let nodes: Vec<_> = match component_type {
+            "Knowledge" => context.domain_graph.knowledge.iter().collect(),
+            "Skill" => context.domain_graph.skills.iter().collect(),
+            "Trait" => context.domain_graph.traits.iter().collect(),
+            "Milestone" => context.domain_graph.milestones.iter().collect(),
+            _ => vec![],
+        };
 
-        ctx.push_str("\nSkill Nodes:\n");
-        for node in &context.domain_graph.skills {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
-        }
-
-        ctx.push_str("\nTrait Nodes:\n");
-        for node in &context.domain_graph.traits {
-            ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
-        }
-
-        ctx.push_str("\nMilestone Nodes:\n");
-        for node in &context.domain_graph.milestones {
+        for node in nodes {
             ctx.push_str(&format!("- {} (ID: {})\n", node.name, node.element_id));
         }
 
         ctx
     }
 
-    /// Analyze and assign components to levels
-    async fn analyze_level_assignments(&self, context: &AgentContext) -> Result<Vec<LevelAssignment>, String> {
-        let ctx = self.build_context(context);
+    /// Analyze and assign components to levels for a specific type
+    async fn analyze_level_assignments_for_type(
+        &self,
+        context: &AgentContext,
+        component_type: &str,
+    ) -> Result<Vec<LevelAssignment>, String> {
+        let ctx = self.build_context_for_type(context, component_type);
         let prompt = PromptTemplates::level_assignment(&context.domain_name, &ctx);
 
         let config = GenerationConfig {
-            max_tokens: Some(4096),
+            max_tokens: Some(16384),
             temperature: Some(0.3),
             stop_sequences: None,
         };
@@ -77,10 +74,27 @@ impl LevelDistributorStep {
             &config,
         ).await.map_err(|e| format!("LLM error: {:?}", e))?;
 
-        self.parse_level_assignments(&response, context)
+        self.parse_level_assignments(&response, context, component_type)
     }
 
-    fn parse_level_assignments(&self, response: &str, context: &AgentContext) -> Result<Vec<LevelAssignment>, String> {
+    /// Analyze and assign all components to levels (by type to avoid token limits)
+    async fn analyze_level_assignments(&self, context: &AgentContext) -> Result<Vec<LevelAssignment>, String> {
+        let mut all_assignments = Vec::new();
+
+        for component_type in &["Knowledge", "Skill", "Trait", "Milestone"] {
+            emit_event(&self.event_tx, SseEvent::StepProgress {
+                agent: AgentType::LevelDistributor,
+                message: format!("Assigning {} nodes to levels...", component_type),
+            }).await;
+
+            let assignments = self.analyze_level_assignments_for_type(context, component_type).await?;
+            all_assignments.extend(assignments);
+        }
+
+        Ok(all_assignments)
+    }
+
+    fn parse_level_assignments(&self, response: &str, context: &AgentContext, component_type: &str) -> Result<Vec<LevelAssignment>, String> {
         let trimmed = response.trim();
         let start = trimmed.find('{').ok_or("No JSON object found")?;
         let end = trimmed.rfind('}').ok_or("No closing brace found")?;
@@ -100,10 +114,6 @@ impl LevelDistributorStep {
                 .and_then(|v| v.as_str())
                 .ok_or("Missing component name")?;
 
-            let component_type = assignment.get("component_type")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing component type")?;
-
             let level = assignment.get("level")
                 .and_then(|v| v.as_i64())
                 .ok_or("Missing level")?;
@@ -112,7 +122,7 @@ impl LevelDistributorStep {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            // Find component element ID
+            // Find component element ID using the known component type
             let component_id = self.find_element_id(context, component_name, component_type);
             if component_id.is_none() {
                 continue;
@@ -233,11 +243,7 @@ impl AgentStep for LevelDistributorStep {
     }
 
     async fn execute(&self, context: &mut AgentContext) -> Result<(), String> {
-        emit_event(&self.event_tx, SseEvent::StepProgress {
-            agent: self.agent_type(),
-            message: "Assigning components to domain levels...".to_string(),
-        }).await;
-
+        // analyze_level_assignments now emits progress events per component type
         let level_assignments = self.analyze_level_assignments(context).await?;
 
         emit_event(&self.event_tx, SseEvent::StepProgress {
