@@ -5,3 +5,4 @@ pub mod logging_middleware;
 pub mod neo4j_utils;
 pub mod s3;
 pub mod similarity;
+pub mod sqs;

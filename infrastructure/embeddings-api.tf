@@ -368,7 +368,7 @@ resource "aws_iam_role_policy" "embeddings_api_startup_lambda_policy" {
 # Lambda function to start EC2 instance
 data "archive_file" "embeddings_api_startup_zip" {
   type        = "zip"
-  output_path = "embeddings_api_startup.zip"
+  output_path = "zip_files/embeddings_api_startup.zip"
   source {
     content = <<EOF
 import boto3
@@ -529,7 +529,7 @@ resource "aws_iam_role_policy" "embeddings_api_shutdown_lambda_policy" {
 # Lambda function to stop EC2 instance
 data "archive_file" "embeddings_api_shutdown_zip" {
   type        = "zip"
-  output_path = "embeddings_api_shutdown.zip"
+  output_path = "zip_files/embeddings_api_shutdown.zip"
   source {
     content = <<EOF
 import boto3

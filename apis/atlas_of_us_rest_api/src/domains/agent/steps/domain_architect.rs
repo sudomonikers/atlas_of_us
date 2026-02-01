@@ -1,6 +1,5 @@
 use neo4rs::Graph;
 use std::collections::HashMap;
-use std::env;
 use tokio::sync::mpsc;
 use serde_json::{json, Value};
 
@@ -8,16 +7,14 @@ use super::{emit_event, AgentStep};
 use crate::domains::agent::models::{AgentContext, AgentType, CreatedNode, SseEvent};
 use crate::domains::graph::models::{CreateNodeRequest, CreateRelationshipRequest};
 use crate::domains::graph::services;
-use crate::common::image_generation::generate_image;
-use crate::common::s3::{upload_object_to_s3, UploadParams};
+use crate::common::sqs::{queue_image_generation, is_queue_configured, ImageGenJob};
 
 /// Domain Architect Step - creates Domain and Domain_Level nodes with fixed structure
 ///
 /// This step:
 /// 1. Creates a Domain node with the given name and description
-/// 2. Generates an avatar image for the domain via external API
-/// 3. Uploads the image to S3 and stores the URL
-/// 4. Creates 5 Domain_Level nodes (Novice, Developing, Competent, Advanced, Master)
+/// 2. Queues async image generation for domain avatar (processed by Lambda)
+/// 3. Creates 5 Domain_Level nodes (Novice, Developing, Competent, Advanced, Master)
 pub struct DomainArchitectStep {
     graph: Graph,
     event_tx: mpsc::Sender<SseEvent>,
@@ -31,36 +28,14 @@ impl DomainArchitectStep {
         Self { graph, event_tx }
     }
 
-    /// Generate avatar image for the domain
-    async fn generate_domain_avatar(&self, domain_name: &str) -> Result<Option<String>, String> {
-        // Check if image generation is configured
-        if env::var("IMAGE_GEN_ENDPOINT").is_err() {
-            tracing::warn!("IMAGE_GEN_ENDPOINT not set, skipping avatar generation");
-            return Ok(None);
+    /// Queue async avatar generation for the domain
+    async fn queue_avatar_generation(&self, domain_name: &str, element_id: &str) {
+        if !is_queue_configured() {
+            tracing::info!("IMAGE_GEN_QUEUE_URL not set, skipping avatar generation");
+            return;
         }
 
-        let prompt = format!(
-            "A beautiful, artistic icon representing the domain of '{}'. \
-             Clean, modern design suitable for an app avatar. \
-             Minimalist style with vibrant colors on a simple background. \
-             No text or words.",
-            domain_name
-        );
-
-        emit_event(&self.event_tx, SseEvent::StepProgress {
-            agent: AgentType::DomainArchitect,
-            message: "Generating domain avatar...".to_string(),
-        }).await;
-
-        // Generate the image
-        let image_bytes = generate_image(&prompt)
-            .await
-            .map_err(|e| format!("Image generation failed: {}", e))?;
-
-        // Upload to S3
-        let bucket = env::var("S3_BUCKET")
-            .map_err(|_| "S3_BUCKET environment variable not set")?;
-
+        // Sanitize domain name for S3 key
         let sanitized_name = domain_name
             .to_lowercase()
             .replace(' ', "_")
@@ -68,28 +43,30 @@ impl DomainArchitectStep {
             .filter(|c| c.is_alphanumeric() || *c == '_')
             .collect::<String>();
 
-        let key = format!("domains/{}/avatar.png", sanitized_name);
+        let job = ImageGenJob::new(
+            domain_name.to_string(),
+            element_id.to_string(),
+            format!(
+                "A beautiful, artistic icon representing the domain of '{}'. \
+                 Clean, modern design suitable for an app avatar. \
+                 Minimalist style with vibrant colors on a simple background. \
+                 No text or words.",
+                domain_name
+            ),
+            format!("domains/{}/avatar.png", sanitized_name),
+        );
 
-        upload_object_to_s3(
-            UploadParams {
-                bucket: bucket.clone(),
-                key: key.clone(),
-            },
-            image_bytes,
-        )
-        .await
-        .map_err(|e| format!("S3 upload failed: {}", e))?;
-
-        // Construct the S3 URL
-        let region = env::var("AWS_REGION").unwrap_or_else(|_| "us-east-2".to_string());
-        let avatar_url = format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, key);
-
-        emit_event(&self.event_tx, SseEvent::StepProgress {
-            agent: AgentType::DomainArchitect,
-            message: "Domain avatar created".to_string(),
-        }).await;
-
-        Ok(Some(avatar_url))
+        match queue_image_generation(job).await {
+            Ok(()) => {
+                emit_event(&self.event_tx, SseEvent::StepProgress {
+                    agent: AgentType::DomainArchitect,
+                    message: "Domain avatar queued for generation".to_string(),
+                }).await;
+            }
+            Err(e) => {
+                tracing::warn!("Failed to queue avatar generation: {}", e);
+            }
+        }
     }
 
     /// Get the fixed 5-level structure for any domain
@@ -139,16 +116,7 @@ impl AgentStep for DomainArchitectStep {
         let domain_name = context.domain_name.clone();
         let description = context.description.clone().unwrap_or_default();
 
-        // Step 1: Generate domain avatar (non-blocking failure)
-        // let avatar_url = match self.generate_domain_avatar(&domain_name).await {
-        //     Ok(url) => url,
-        //     Err(e) => {
-        //         tracing::warn!("Avatar generation failed (continuing): {}", e);
-        //         None
-        //     }
-        // };
-
-        // Step 2: Create Domain node
+        // Step 1: Create Domain node
         emit_event(&self.event_tx, SseEvent::StepProgress {
             agent: self.agent_type(),
             message: "Creating domain node...".to_string(),
@@ -157,9 +125,6 @@ impl AgentStep for DomainArchitectStep {
         let mut domain_props: HashMap<String, Value> = HashMap::new();
         domain_props.insert("name".to_string(), json!(domain_name));
         domain_props.insert("description".to_string(), json!(description));
-        // if let Some(url) = &avatar_url {
-        //     domain_props.insert("avatar_url".to_string(), json!(url));
-        // }
 
         let domain_request = CreateNodeRequest {
             labels: vec!["Domain".to_string()],
@@ -182,6 +147,9 @@ impl AgentStep for DomainArchitectStep {
             label: "Domain".to_string(),
             was_reused: false,
         }).await;
+
+        // Step 2: Queue async avatar generation (non-blocking)
+        self.queue_avatar_generation(&domain_name, &domain_result.element_id).await;
 
         context.set_domain(domain_node);
 

@@ -69,7 +69,7 @@ resource "aws_lambda_function" "ec2_scheduler" {
 # Create the Lambda function zip file
 data "archive_file" "ec2_scheduler_zip" {
   type        = "zip"
-  output_path = "ec2_scheduler.zip"
+  output_path = "zip_files/ec2_scheduler.zip"
   source {
     content = <<EOF
 import boto3

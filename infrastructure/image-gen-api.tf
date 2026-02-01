@@ -266,11 +266,11 @@ resource "aws_cloudfront_distribution" "image_gen_api_cdn" {
     origin_id   = "image-gen-api-ec2-origin"
 
     custom_origin_config {
-      http_port              = 8082
-      https_port             = 443
-      origin_protocol_policy = "http-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
-      origin_read_timeout    = 60
+      http_port                = 8082
+      https_port               = 443
+      origin_protocol_policy   = "http-only"
+      origin_ssl_protocols     = ["TLSv1.2"]
+      origin_read_timeout      = 60
       origin_keepalive_timeout = 60
     }
   }
@@ -355,168 +355,9 @@ resource "aws_route53_record" "image_gen_api_aaaa" {
 }
 
 # -----------------------------------------------------------------------------
-# LAMBDA STARTUP (On-Demand)
-# -----------------------------------------------------------------------------
-
-# IAM role for startup Lambda
-resource "aws_iam_role" "image_gen_api_startup_lambda_role" {
-  name = "image-gen-api-startup-lambda-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# IAM policy for startup Lambda
-resource "aws_iam_role_policy" "image_gen_api_startup_lambda_policy" {
-  name = "image-gen-api-startup-lambda-policy"
-  role = aws_iam_role.image_gen_api_startup_lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "arn:aws:logs:*:*:*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "ec2:DescribeInstances",
-          "ec2:StartInstances"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-# Lambda function to start EC2 instance
-data "archive_file" "image_gen_api_startup_zip" {
-  type        = "zip"
-  output_path = "image_gen_api_startup.zip"
-  source {
-    content = <<EOF
-import boto3
-import os
-import json
-
-def handler(event, context):
-    ec2 = boto3.client('ec2')
-    instance_id = os.environ['INSTANCE_ID']
-
-    try:
-        response = ec2.describe_instances(InstanceIds=[instance_id])
-        state = response['Reservations'][0]['Instances'][0]['State']['Name']
-
-        if state == 'stopped':
-            ec2.start_instances(InstanceIds=[instance_id])
-            print(f"Starting instance {instance_id}")
-            return {
-                'statusCode': 200,
-                'body': json.dumps(f'Starting instance {instance_id}')
-            }
-        elif state == 'running':
-            print(f"Instance {instance_id} is already running")
-            return {
-                'statusCode': 200,
-                'body': json.dumps(f'Instance {instance_id} is already running')
-            }
-        else:
-            print(f"Instance {instance_id} is in state: {state}")
-            return {
-                'statusCode': 200,
-                'body': json.dumps(f'Instance {instance_id} is in state: {state}')
-            }
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps(f'Error starting instance: {str(e)}')
-        }
-EOF
-    filename = "index.py"
-  }
-}
-
-resource "aws_lambda_function" "image_gen_api_startup" {
-  filename         = "image_gen_api_startup.zip"
-  function_name    = "image-gen-api-startup"
-  role             = aws_iam_role.image_gen_api_startup_lambda_role.arn
-  handler          = "index.handler"
-  source_code_hash = data.archive_file.image_gen_api_startup_zip.output_base64sha256
-  runtime          = "python3.12"
-  timeout          = 60
-
-  environment {
-    variables = {
-      INSTANCE_ID = aws_instance.image_gen_api.id
-    }
-  }
-
-  tags = {
-    Name = "Image Gen API Startup"
-  }
-}
-
-# SNS topic for CloudWatch alarm
-resource "aws_sns_topic" "image_gen_api_alarm_topic" {
-  name = "image-gen-api-5xx-alarm"
-}
-
-# SNS subscription to trigger Lambda
-resource "aws_sns_topic_subscription" "image_gen_api_alarm_subscription" {
-  topic_arn = aws_sns_topic.image_gen_api_alarm_topic.arn
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.image_gen_api_startup.arn
-}
-
-# Permission for SNS to invoke Lambda
-resource "aws_lambda_permission" "image_gen_api_allow_sns" {
-  statement_id  = "AllowExecutionFromSNS"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.image_gen_api_startup.function_name
-  principal     = "sns.amazonaws.com"
-  source_arn    = aws_sns_topic.image_gen_api_alarm_topic.arn
-}
-
-# CloudWatch alarm for 5xx errors on CloudFront
-resource "aws_cloudwatch_metric_alarm" "image_gen_api_5xx_alarm" {
-  alarm_name          = "image-gen-api-5xx-errors"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "5xxErrorRate"
-  namespace           = "AWS/CloudFront"
-  period              = 60
-  statistic           = "Average"
-  threshold           = 0
-  alarm_description   = "Triggers when Image Gen API returns 5xx errors (likely instance is down)"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    DistributionId = aws_cloudfront_distribution.image_gen_api_cdn.id
-    Region         = "Global"
-  }
-
-  alarm_actions = [aws_sns_topic.image_gen_api_alarm_topic.arn]
-}
-
-# -----------------------------------------------------------------------------
 # LAMBDA SHUTDOWN (Scheduled)
+# NOTE: On-demand startup is now handled by the image-gen-processor Lambda
+# in image-gen-queue.tf which manages EC2 lifecycle based on SQS jobs.
 # -----------------------------------------------------------------------------
 
 # IAM role for shutdown Lambda
@@ -569,9 +410,9 @@ resource "aws_iam_role_policy" "image_gen_api_shutdown_lambda_policy" {
 # Lambda function to stop EC2 instance
 data "archive_file" "image_gen_api_shutdown_zip" {
   type        = "zip"
-  output_path = "image_gen_api_shutdown.zip"
+  output_path = "zip_files/image_gen_api_shutdown.zip"
   source {
-    content = <<EOF
+    content  = <<EOF
 import boto3
 import os
 import json
