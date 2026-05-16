@@ -15,22 +15,30 @@ export interface GraphData {
   links: Neo4jRelationship[]
 }
 
-export function ForceGraph({ initialNodeId }: {
+export function ForceGraph({ initialNodeId, usePublicEndpoint = false, initialData }: {
   initialNodeId: string | null;
+  usePublicEndpoint?: boolean;
+  initialData?: Neo4jApiResponse;
 }) {
   const { searchText, graphToggled, setGraphToggled } = useGlobal();
   const http = new HttpService();
   const graphUtils = new GraphUtils(http);
-  const [neo4jResponse, setNeo4jResponse] = useState({} as Neo4jApiResponse);
+  const [neo4jResponse, setNeo4jResponse] = useState<Neo4jApiResponse>(
+    initialData ?? ({} as Neo4jApiResponse)
+  );
 
-  //load the initial data based on component input
+  //load the initial data based on component input (skipped when initialData is provided)
   useEffect(() => {
+    if (initialData) return;
     if (initialNodeId) {
-      graphUtils.loadNodeById(initialNodeId, 1).then((data) => {
+      const loader = usePublicEndpoint
+        ? graphUtils.loadPublicNodeById(initialNodeId, 6)
+        : graphUtils.loadNodeById(initialNodeId, 1);
+      loader.then((data) => {
         setNeo4jResponse(data);
       });
     }
-  }, [initialNodeId]);
+  }, [initialNodeId, usePublicEndpoint, initialData]);
 
   //load new data if the user types in the input bar
   useEffect(() => {

@@ -23,6 +23,7 @@ pub fn create_router(graph: Graph, cors: CorsLayer) -> Router {
         .merge(create_auth_routes())
         .merge(create_helper_routes())
         .merge(create_graph_routes())
+        .merge(create_public_graph_routes())
         .merge(create_profile_routes())
         .merge(create_agent_routes())
         .layer(middleware::from_fn(logging_middleware))
@@ -86,6 +87,12 @@ fn create_graph_routes() -> Router<Graph> {
         .route("/api/secure/graph/create-domain", post(create_domain))
         .route("/api/secure/graph/update-domain", put(update_domain))
         .route_layer(middleware::from_fn(jwt_auth_middleware))
+}
+
+/// Public graph routes (no JWT required).
+/// Used by the public maintenance/landing page to render a starting constellation.
+fn create_public_graph_routes() -> Router<Graph> {
+    Router::new().route("/api/public/graph/get-nodes", get(get_nodes))
 }
 
 /// User profile routes (JWT protected)

@@ -184,13 +184,15 @@ pub async fn find_node_by_name(
     }
 }
 
-/// Get nodes with optional filters (labels, properties) and related nodes up to depth
+/// Get nodes with optional filters (labels, properties) and related nodes up to depth.
+/// Returns Bolt5-shaped JSON (`[{Values:[node, relationships, affiliates], Keys:[...]}]`)
+/// matching what the web UI's `fetchNodes` expects.
 pub async fn get_nodes_with_relationships(
     graph: &Graph,
     labels: Option<Vec<&str>>,
     properties: Option<HashMap<String, Value>>,
     depth: i32,
-) -> Result<Vec<NodeWithRelationships>, ServiceError> {
+) -> Result<Value, ServiceError> {
     let mut match_clauses = Vec::new();
 
     // Handle labels
@@ -242,23 +244,7 @@ pub async fn get_nodes_with_relationships(
                 }));
             }
 
-            // Map to Bolt5 format
-            let bolt5_data = map_bolt4_to_bolt5(nodes_data);
-
-            // Convert back to NodeWithRelationships
-            let result = if let Value::Array(arr) = bolt5_data {
-                arr.into_iter()
-                    .map(|v| NodeWithRelationships {
-                        node: v.get("node").cloned().unwrap_or(json!({})),
-                        relationships: v.get("relationships").cloned().unwrap_or(json!([])),
-                        affiliated_nodes: v.get("affiliatedNodes").cloned().unwrap_or(json!([])),
-                    })
-                    .collect()
-            } else {
-                Vec::new()
-            };
-
-            Ok(result)
+            Ok(map_bolt4_to_bolt5(nodes_data))
         }
         Err(e) => {
             tracing::error!("Error in get_nodes_with_relationships: {}", e);

@@ -44,19 +44,7 @@ pub async fn get_nodes(
     };
 
     match services::get_nodes_with_relationships(&graph, labels, properties, depth).await {
-        Ok(nodes) => {
-            let result: Vec<Value> = nodes
-                .into_iter()
-                .map(|n| {
-                    json!({
-                        "node": n.node,
-                        "relationships": n.relationships,
-                        "affiliatedNodes": n.affiliated_nodes
-                    })
-                })
-                .collect();
-            Ok(Json(json!(result)))
-        }
+        Ok(data) => Ok(Json(data)),
         Err(e) => {
             tracing::error!("Error in get_nodes: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

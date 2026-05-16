@@ -119,6 +119,21 @@ export class GraphUtils {
     );
   }
 
+  async loadPublicNodeById(
+    elementId: string,
+    depth: number
+  ): Promise<Neo4jApiResponse> {
+    const queryParams = new URLSearchParams({
+      properties: JSON.stringify({
+        elementId: elementId
+      }),
+      depth: depth.toString()
+    });
+    return this.httpService.fetchNodes(
+      `public/graph/get-nodes?${queryParams.toString()}`
+    );
+  }
+
   centerCameraOnMesh = (object: THREE.Object3D, distanceFactor: number) => {
     // eslint-disable-next-line
     const threeState = useThree();

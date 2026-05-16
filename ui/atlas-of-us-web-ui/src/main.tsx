@@ -12,6 +12,7 @@ import { Graph } from './pages/graph_pages/Graph/Graph.tsx';
 import { Roadmap } from './pages/site_pages/Roadmap/Roadmap.tsx';
 import { Contact } from './pages/site_pages/Contact/Contact.tsx';
 import { PageNotFound } from './pages/site_pages/PageNotFound/PageNotFound.tsx';
+import { Maintenance } from './pages/site_pages/Maintenance/Maintenance.tsx';
 import { GlobalProvider, useGlobal } from './GlobalProvider.tsx';
 import { Blog } from './pages/site_pages/Blog/Blog.tsx';
 import { Assessment } from './pages/graph_pages/Assessment/Assessment.tsx';
@@ -37,7 +38,7 @@ createRoot(document.getElementById('root')!).render(
   <GlobalProvider>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/Graph" replace />} />
+        <Route path="/" element={<Maintenance />} />
         <Route path="/Login" element={<Login />} />
         <Route path="/Signup" element={<Signup />} />
         <Route path="/Create" element={<CreateAccount />} />
