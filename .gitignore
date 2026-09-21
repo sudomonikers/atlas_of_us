@@ -1,6 +1,0 @@
-.env
-.DS_store
-.playwright-mcp
-
-# SSH private key (public key .pub is fine to commit)
-infrastructure/api-server-key
