@@ -6,11 +6,14 @@ Correctly modeling all that a person is is a very tall task. Before we can even 
 So to figure out what an individual can possible be, the Atlas Of Us has a comprehensive graph of what can make up a person. This is in fact a combination of many things, and we are adding on new layers as we discover them. For now we model the following:
 
 1. Personality (We use the Big 5 Theorem to model Personality Traits)
-2. Knowledge (We have a comprehensive knowledge graph of all there is to know. These are facts and things that can be considered true)
+2. Topics (We have a comprehensive knowledge graph of all there is to know. These are facts and things that can be considered true)
 3. Skills (These are things a person is CAPABLE of doing)
 4. Physical Attributes (We model the human body in our database, and have users incoroporate their specific details)
 5. Social Network (We create a social network of friends, family, organizations the users are apart of, jobs, influence, social status, etc.)
 6. Things (Things? Well yes, this is a bit of a catch all but its used to model things the users own)
+7. Events (recorded historical events that happened in human history, not specific to a Person)
+8. Places (physical locations in the world)
+9. Works (Specific creations like Monet's Water Lilies or "The Prestige")
 
 ## What we don't do - yet
 These 6 traits give us a pretty decent snapshot of each individual's stable inertia in time, but of course it doesn't account for a person's STATE. I might score extremely high in the Boldness personality trait, but if I got horrible sleep the night before I may act more tentatively today since I am feeling low-energy. State in any given moment is NOT something we currently model, though we have plans to incorporate this in the future.
@@ -25,7 +28,7 @@ So to sum up what is currently out of scope for The Atlas Of Us:
 3. Accounting for users being big fat liars
 
 ## So What Does That Leave Us With?
-Despite leaving out quite a few things, we can do A LOT for users with this model. Through our elicitation walkthroughs we can help them better understand themselves, and then at the end see a holistic picture of who they are now. Then because we have a huge knowledge graph of everything a human can be, we can easily show them who they could become. What are the possibilities of humanity? Are they infinite? Well, maybe theoretically, but what we can do is show them a grounded in reality picture of who they could become. And because we have a complete picture of who they are now, we can offer them guidance on what would be easy for them to achieve and what would be more difficult. Because we have a full picture of what humans could be, we can show them their dreams, and if they don't have any then we will give them some. This is the core app, a summary of who you are and who you could become, with steps on how to get there.
+Despite leaving out quite a few things, we can do A LOT for users with this model. Through our elicitation walkthroughs we can help them better understand themselves, and then at the end see a holistic picture of who they are now. Then because we have a huge knowledge (topics) graph of everything a human can be, we can easily show them who they could become. What are the possibilities of humanity? Are they infinite? Well, maybe theoretically, but what we can do is show them a grounded in reality picture of who they could become. And because we have a complete picture of who they are now, we can offer them guidance on what would be easy for them to achieve and what would be more difficult. Because we have a full picture of what humans could be, we can show them their dreams, and if they don't have any then we will give them some. This is the core app, a summary of who you are and who you could become, with steps on how to get there.
 
 ## Future Plug-In Apps
 A complete picture of who a person is is pretty powerful. All their skills and knowledge, their personality and physical attributes, their social connections and habits, this is a lot. Beyond the already interesting use case of knowing who you are and who you could become, there is a lot more we could do with this. Matching user's with their soul mate for example, or their dream job. Conversely, matching companies with their dream candidates. Coordinating users with the right products for their goals and needs, which we know pretty intimately. These are just a sample of the possibilities of what could be done if we had a complete picture of who people are. The core app is a gateway to unlock so much more!

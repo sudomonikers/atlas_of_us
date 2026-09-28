@@ -159,6 +159,7 @@ So to continue with Andre and Lulu, they may have the following relationships wi
 // A learning goal, expressed as an affective stance at the concept level
 (lulu)-[:CURIOUS_ABOUT {intensity:0.8}]->(naj)
 ```
+
 ### Skills Graph
 Skills are the capabilities a Person has. For example Andrew may have the Household Cleaning Skill, but not have the Cooking Skill, and Lulu the opposite. Or perhaps both people have both skills just at different levels. Maybe Andrew CAN cook, but just at a novice level while Lulu is an expert. There is a huge variety of different Skills that each person has to different degrees. In the Skills sub-graph, each Skill is modeled as its own node, with information contained on the node itself of what criteria divides different skill levels. In the Atlas Of Us we use the Dreyful model to differentiate skills levels. The different Dreyfus levels are as follows:
 1. **Novice** - Follows rigid rules, no discretionary judgment
@@ -223,18 +224,38 @@ FILL THIS OUT ONCE THE OTHER TRAITS STRUCTURE IS DECIDED ON
 ```
 
 ### Physical Attributes Graph
+A person's physical body is an important part about who they are. It affects their capabilities in terms of Skills they can have and Ideas they can understand, as well as influences their PersonalityTraits. The Physical Attributes graph is more than just skin, muscle, and bone. It is the entirety of you from your nervous system to your limbic sytem to more abstract things like 'reaction time' and other diseases you may have. This particular graph is interesting in that it is extremely large and complex, but also mostly known and seeded. While it does change it doesn't change much over time. The following are covered:
 
+1. Body Structure - seeded from Uberon
+2. Measurements - custom developed
+3. Conditions - seeded from Mondo/HPO
 
+For Body Structure, we have gone ahead and seeded an entire human body's physical makeup into the database as graph. A huge mapping of human conditions (diseases and the like) have also been seeded and linked to the different structures they affect. Finally, the measurements are the actual interesting thing that most Persons will be interested in. That list has been compiled together by hand, and linked to various structures and conditions also by hand.
 
+The shape of each Measurement looks like this:
+```cypher
+(hec:PhysicalMeasurement {name: "Hand-Eye Coordination", description: "The ability to use your eyes to process visual information and guide your hands to perform a precise task", vector: [1, 2, 3]})
+```
 
-## Entity Interactions Graphs
-The following sub-graphs are how people interact together and with their environment. It is less related to their individuality and more how they fit into society and their environment.
+Most of the interesting information here is contained in the Persons relationship with the Measurement. For example:
+```cypher
+(a:Person)-[:HAS_MEASUREMENT {amount: 0.9}]-(hec:PhysicalMeasurement);
+```
+Here the amount is a float between 0 and 1 with 1 being extremely high and 0 being essentially no hand eye coordination at all.
+
+How Persons interact with the Body Structure and Conditions nodes will be filled out later.
+
+# Beyond The Individual
+The following sub-graphs are how people interact together and with their environment. It is less related to their individuality and more how they fit into society and their environment. These are planned, but not yet documented
 
 ### Social Graph
 
-
 ### Things Graph
 
+### Events Graph
+
+### Places Graph
+
+### Works Graph
 
 ## How The Graphs Interact
-
