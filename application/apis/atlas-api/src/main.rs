@@ -5,12 +5,19 @@ mod personality;
 mod physical;
 mod skills;
 mod topics;
+mod auth;
 
-use axum::{Json, Router, response::IntoResponse, routing::get};
+use axum::{
+    Json, Router,
+    http::{HeaderValue, Method, header::{AUTHORIZATION, CONTENT_TYPE}},
+    response::IntoResponse,
+    routing::get,
+};
 use serde_json::json;
 use axum_prometheus::PrometheusMetricLayer;
 use neo4rs::{Graph,query};
 use std::env;
+use tower_http::cors::CorsLayer;
 
 use state::AppState;
 
@@ -30,15 +37,28 @@ async fn main() {
     //create state every route can grab from
     let state = AppState { graph };
 
+    //let the UI call us from another origin. CORS_ORIGINS is a comma separated list, defaulting to the vite dev server
+    let origins: Vec<HeaderValue> = env::var("CORS_ORIGINS")
+        .unwrap_or_else(|_| "http://localhost:5173".to_string())
+        .split(',')
+        .map(|origin| origin.trim().parse().expect("CORS_ORIGINS contains an invalid origin"))
+        .collect();
+    let cors = CorsLayer::new()
+        .allow_origin(origins)
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
+
     // build our application 
     let app = Router::new()
         .route("/api", get(health_check))
         .route("/metrics", get(|| async move { metric_handle.render() }))
+        .nest("/api/auth", auth::router())
         .nest("/api/personality", personality::router())
         .nest("/api/topics", topics::router())
         .nest("/api/skills", skills::router())
         .nest("/api/physical", physical::router())
         .layer(prometheus_layer)
+        .layer(cors)
         .with_state(state);
 
     // listen globally on port 3000

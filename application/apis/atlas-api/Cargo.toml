@@ -37,3 +37,7 @@ serde_json = "1.0"
 
 # uuids
 uuid = { version = "1.17.0", features = ["serde", "v4"] }
+
+# Auth
+jsonwebtoken = "9"
+argon2 = { version = "0.5", features = ["std"] }
