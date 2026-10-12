@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { isPrompt, type PersonalityTrait, type PromptFrame, type Script, type Step } from './script';
-import { getPersonTraits, getProgress, getQuestions, getTraits, saveAnswer, type SavedAnswer, type ScenarioQuestion } from './api';
+import { getJob, getPersonEvidence, getPersonTraits, getProgress, getQuestions, getTraits, saveAnswer, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import Landfall from './landfall/landfall';
 import { useSession } from '../auth/api';
@@ -62,6 +62,17 @@ interface Trait {
   domain: string; //a DOMAINS key
   description?: string;
   value?: number; //0 to 1, missing until we've learned enough to measure it
+  confidence?: number; //0 to 1, how much evidence the value is based on
+  contributions: Contribution[]; //the answers that moved the value, biggest first
+}
+
+interface Contribution {
+  scenario: string;
+  question: string;
+  answer: string;
+  reasoning?: string;
+  delta: number; //-1 (towards low) to 1 (towards high)
+  evidence?: string; //the llm's reason, missing for the picked choice's base score
 }
 
 //the Big Five domains, then everything else. A facet's domain is the prefix of its description, e.g. "openness facet: ..."
@@ -74,10 +85,13 @@ const DOMAINS = [
   { key: 'other', title: 'Beyond the Big Five', blurb: 'Parts of being human the Big Five leave out.' },
 ];
 
-//every trait, with the user's value where one has been measured
+//every trait, with the user's value where one has been measured and the answers behind it
 async function fetchTraits(personId: string): Promise<Trait[]> {
-  const [all, mine] = await Promise.all([getTraits(), getPersonTraits(personId)]);
-  const values = new Map(mine.map((t) => [t.id, t.value]));
+  const [all, mine, evidence] = await Promise.all([getTraits(), getPersonTraits(personId), getPersonEvidence(personId)]);
+  const scores = new Map(mine.map((t) => [t.id, t]));
+  const contributions = evidence.flatMap(({ shifts, reasoning, ...answer }) =>
+    shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, delta: s.delta, evidence: s.evidence })),
+  );
   return all.map((t) => {
     const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
     const domain = facet && DOMAINS.some((d) => d.key === facet[1]) ? facet[1] : 'other';
@@ -87,7 +101,9 @@ async function fetchTraits(personId: string): Promise<Trait[]> {
       name: t.name,
       domain,
       description: description && description[0].toUpperCase() + description.slice(1),
-      value: values.get(t.id),
+      value: scores.get(t.id)?.value,
+      confidence: scores.get(t.id)?.confidence,
+      contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
     };
   });
 }
@@ -247,10 +263,23 @@ function Personality() {
     if (loggedIn) load();
   }, [loggedIn, load]);
 
+  //finishing a scenario rescores the user's traits in the background. No new scenarios until it's done
+  const [scoring, setScoring] = useState(false);
+
+  useEffect(() => {
+    if (loggedIn) getJob().then((job) => setScoring(job.running), () => {});
+  }, [loggedIn]);
+
+  useEffect(() => {
+    if (!scoring) return;
+    const timer = setInterval(() => getJob().then((job) => setScoring(job.running), () => {}), 3000);
+    return () => clearInterval(timer);
+  }, [scoring]);
+
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
 
-  //fetched each time the view opens, so it picks up anything measured since
+  //fetched each time the view opens or scoring finishes, so it picks up anything measured since
   useEffect(() => {
     if (view !== 'traits' || !personId) return;
     fetchTraits(personId).then(
@@ -260,14 +289,15 @@ function Personality() {
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
-  }, [view, personId]);
+  }, [view, personId, scoring]);
 
   //saves an answer as the player moves past a prompt
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined);
+    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined);
+    if (saved.job_started) setScoring(true);
   };
 
   const open = playing ? PLAYABLE[playing] : undefined;
@@ -286,8 +316,9 @@ function Personality() {
   const completed = SCENARIOS.filter((s) => progress[s.id]?.status === 'complete').length;
   const firstName = session.status === 'authenticated' ? session.person.first_name : undefined;
 
-  const bubble =
-    view === 'scenarios'
+  const bubble = scoring
+    ? "Give us a moment, We are reading through your answers to work out your personality..."
+    : view === 'scenarios'
       ? loadError
         ? `Hmm, I couldn't load your progress. ${loadError}`
         : ready
@@ -343,6 +374,7 @@ function Personality() {
                   scenario={scenario}
                   progress={progress[scenario.id]}
                   playable={scenario.id in PLAYABLE}
+                  locked={scoring}
                   onPlay={() => setPlaying(scenario.id)}
                 />
               ))}
@@ -508,10 +540,11 @@ interface ScenarioCardProps {
   scenario: ScenarioInfo;
   progress?: ScenarioProgress;
   playable: boolean;
+  locked: boolean; //playable, but not until scoring finishes
   onPlay: () => void;
 }
 
-function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioCardProps) {
+function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: ScenarioCardProps) {
   const status = progress?.status ?? 'not_started';
   const badge: Badge = status === 'not_started' && !playable ? 'soon' : status;
   const look = badges[badge];
@@ -524,8 +557,8 @@ function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioC
     >
       <button
         className="comic-panel comic-lift"
-        style={{ ...dash.card, ...(playable ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
-        disabled={!playable}
+        style={{ ...dash.card, ...(playable && !locked ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
+        disabled={!playable || locked}
         onClick={onPlay}
       >
         <span style={dash.cardTop}>
@@ -552,7 +585,7 @@ function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioC
 
         <span style={dash.cardFooter}>
           {when && <span>{`${status === 'complete' ? 'Finished' : 'Started'} ${formatDate(when)}`}</span>}
-          {playable && <span style={dash.go}>{status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
+          {playable && <span style={dash.go}>{locked ? 'Scoring...' : status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
         </span>
       </button>
     </li>
@@ -594,35 +627,85 @@ function TraitDashboard({ traits }: { traits: Trait[] }) {
 }
 
 function TraitRow({ trait }: { trait: Trait }) {
+  const [open, setOpen] = useState(false);
   const percent = trait.value === undefined ? undefined : Math.round(Math.min(Math.max(trait.value, 0), 1) * 100);
+  const explained = trait.contributions.length > 0;
 
   return (
-    //name and description on the left, the scale on the right. They stack on narrow screens
-    <li style={dash.trait}>
-      <div style={dash.traitLabel}>
-        <div style={dash.traitHead}>
-          <span style={dash.traitName}>{trait.name}</span>
-          {percent !== undefined && <span style={dash.traitValue}>{percent}</span>}
+    <li style={dash.traitItem}>
+      {/* name and description on the left, the scale on the right. They stack on narrow screens.
+          Clicking it opens the answers behind the score */}
+      <button
+        style={{ ...dash.trait, ...(explained ? dash.traitButton : {}) }}
+        disabled={!explained}
+        aria-expanded={explained ? open : undefined}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <div style={dash.traitLabel}>
+          <div style={dash.traitHead}>
+            <span style={dash.traitName}>{trait.name}</span>
+            {percent !== undefined && <span style={dash.traitValue}>{percent}</span>}
+            {percent !== undefined && (trait.confidence ?? 0) < 0.5 && (
+              <span className="comic-chip" title="Based on only a little of what you've told us so far">
+                Early read
+              </span>
+            )}
+          </div>
+          {trait.description && <p style={dash.traitDescription}>{trait.description}</p>}
         </div>
-        {trait.description && <p style={dash.traitDescription}>{trait.description}</p>}
-      </div>
-      {percent === undefined ? (
-        <div style={{ ...dash.traitScale, ...dash.gathering }}>Still gathering information on this one...</div>
-      ) : (
-        //read only: looks like a slider, but there's nothing to drag
-        <div style={dash.traitScale} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
-          <div style={dash.bar}>
-            <div style={dash.barTrack}>
-              <div className="comic-meter-fill" style={{ ...dash.barFill, width: `${percent}%` }} />
+        {percent === undefined ? (
+          <div style={{ ...dash.traitScale, ...dash.gathering }}>Still gathering information on this one...</div>
+        ) : (
+          //read only: looks like a slider, but there's nothing to drag
+          <div style={dash.traitScale} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+            <div style={dash.bar}>
+              <div style={dash.barTrack}>
+                <div className="comic-meter-fill" style={{ ...dash.barFill, width: `${percent}%` }} />
+              </div>
+              <span className="comic-pop" style={{ ...dash.barThumb, left: `${percent}%` }} />
             </div>
-            <span className="comic-pop" style={{ ...dash.barThumb, left: `${percent}%` }} />
+            <div style={dash.barEnds} aria-hidden>
+              <span>Low</span>
+              {explained && <span>{open ? 'Hide why ▲' : 'Why? ▼'}</span>}
+              <span>High</span>
+            </div>
           </div>
-          <div style={dash.barEnds} aria-hidden>
-            <span>Low</span>
-            <span>High</span>
-          </div>
-        </div>
+        )}
+      </button>
+      {open && (
+        <ol style={dash.contributions}>
+          {trait.contributions.map((c, i) => (
+            <ContributionCard key={i} contribution={c} />
+          ))}
+        </ol>
       )}
+    </li>
+  );
+}
+
+//how hard an answer pushed, in words
+const strength = (delta: number) => (Math.abs(delta) >= 0.6 ? 'strongly' : Math.abs(delta) >= 0.3 ? '' : 'slightly');
+
+function ContributionCard({ contribution: c }: { contribution: Contribution }) {
+  const up = c.delta >= 0;
+  return (
+    <li style={dash.contribution}>
+      <div style={dash.contributionHead}>
+        <span className="comic-chip">{c.scenario}</span>
+        <span style={{ ...dash.push, color: up ? blue : brownRed }}>
+          {up ? '▲' : '▼'} {strength(c.delta)} {up ? 'raised' : 'lowered'}
+        </span>
+      </div>
+      <p style={dash.contributionQuestion}>{c.question}</p>
+      <p style={dash.contributionAnswer}>
+        <strong>You said:</strong> {c.answer}
+      </p>
+      {c.reasoning && (
+        <p style={dash.contributionAnswer}>
+          <strong>Because:</strong> {c.reasoning}
+        </p>
+      )}
+      <p style={dash.contributionWhy}>{c.evidence ?? 'From the choice you picked.'}</p>
     </li>
   );
 }
@@ -1255,13 +1338,71 @@ const dash: Record<string, CSSProperties> = {
     padding: 0,
     listStyle: 'none',
   },
+  traitItem: {
+    borderBottom: `2px dashed rgba(57, 61, 63, 0.35)`,
+  },
+  //a button, reset so it looks like the rest of the row
   trait: {
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: '6px 32px',
+    width: '100%',
     padding: '14px 0',
-    borderBottom: `2px dashed rgba(57, 61, 63, 0.35)`,
+    background: 'none',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    textAlign: 'left',
+  },
+  traitButton: {
+    cursor: 'pointer',
+  },
+  contributions: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: 14,
+    margin: '0 0 18px',
+    padding: 0,
+    listStyle: 'none',
+  },
+  contribution: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: '10px 14px',
+    background: '#fff',
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
+    boxShadow: `3px 3px 0 ${gunmetal}`,
+  },
+  contributionHead: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  push: {
+    fontFamily: comic,
+    fontSize: 18,
+    letterSpacing: 0.5,
+    whiteSpace: 'nowrap',
+  },
+  contributionQuestion: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    opacity: 0.75,
+  },
+  contributionAnswer: {
+    fontSize: 16,
+    lineHeight: 1.25,
+  },
+  contributionWhy: {
+    padding: '6px 10px',
+    background: paleBlue,
+    borderRadius: 8,
+    fontSize: 16,
+    lineHeight: 1.25,
   },
   traitLabel: {
     flex: '1 1 280px',

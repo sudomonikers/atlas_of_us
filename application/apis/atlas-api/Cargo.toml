@@ -41,3 +41,7 @@ uuid = { version = "1.17.0", features = ["serde", "v4"] }
 # Auth
 jsonwebtoken = "9"
 argon2 = { version = "0.5", features = ["std"] }
+
+# LLM scoring
+aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
+aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["legacy-https-client", "rt-tokio"] }
