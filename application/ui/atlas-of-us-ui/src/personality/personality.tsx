@@ -1,7 +1,10 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { isPrompt, type PersonalityTrait, type Script, type Step } from './script';
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { isPrompt, type PersonalityTrait, type PromptFrame, type Script, type Step } from './script';
+import { getProgress, getQuestions, saveAnswer, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import Landfall from './landfall/landfall';
+import { useSession } from '../auth/api';
+import { RequireLogin } from '../auth/require-login';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -15,66 +18,39 @@ const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
 /* ---------------------------------------------------------------------------------------------
- * profile
+ * progress
  * ------------------------------------------------------------------------------------------- */
 
 type ScenarioStatus = 'not_started' | 'in_progress' | 'complete';
 
 interface ScenarioProgress {
-  scenarioId: string; //matches a ScenarioInfo id
   status: ScenarioStatus;
   startedAt?: string; //ISO timestamp
   completedAt?: string; //ISO timestamp
 }
 
-interface Profile {
-  id: string;
-  displayName: string;
-  joinedAt: string;
-  personality: {
-    scenarios: ScenarioProgress[]; //only scenarios the user has touched; anything missing is not started
-  };
+//the user's answers, plus the question lists needed to tell in progress from complete
+async function fetchProgress() {
+  const answers = await getProgress();
+  const names = [...new Set([...Object.keys(PLAYABLE), ...answers.map((a) => a.scenario)])];
+  const lists = await Promise.all(names.map(getQuestions));
+  return { answers, questions: Object.fromEntries(names.map((name, i) => [name, lists[i]])) };
 }
 
-//what GET /api/profile will return once the backend exists
-const MOCK_PROFILE_RESPONSE: Profile = {
-  id: '6c1f3a9e-2b7d-4e58-9a0c-41d7e2f8b315',
-  displayName: 'Alex',
-  joinedAt: '2026-08-30T17:12:00Z',
-  personality: {
-    scenarios: [
-      {
-        scenarioId: 'let_down',
-        status: 'complete',
-        startedAt: '2026-09-02T19:40:00Z',
-        completedAt: '2026-09-02T20:05:00Z',
-      },
-      {
-        scenarioId: 'reading_people',
-        status: 'complete',
-        startedAt: '2026-09-09T12:15:00Z',
-        completedAt: '2026-09-09T12:48:00Z',
-      },
-      {
-        scenarioId: 'track_record',
-        status: 'complete',
-        startedAt: '2026-09-21T08:30:00Z',
-        completedAt: '2026-09-21T08:52:00Z',
-      },
-      {
-        scenarioId: 'the_offer',
-        status: 'in_progress',
-        startedAt: '2026-10-04T21:10:00Z',
-      },
-    ],
-  },
-};
-
-const MOCK_LATENCY_MS = 500;
-
-//stands in for the http call until the backend exists
-const fetchProfile = (): Promise<Profile> =>
-  new Promise((resolve) => setTimeout(() => resolve(structuredClone(MOCK_PROFILE_RESPONSE)), MOCK_LATENCY_MS));
+//some questions answered is in progress, all of them is complete
+function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQuestion[]>) {
+  const progress: Record<string, ScenarioProgress> = {};
+  for (const name of new Set(answers.map((a) => a.scenario))) {
+    const dates = answers.filter((a) => a.scenario === name).map((a) => a.answered_date).sort();
+    const complete = dates.length >= (questions[name]?.length ?? Infinity);
+    progress[name] = {
+      status: complete ? 'complete' : 'in_progress',
+      startedAt: dates[0],
+      completedAt: complete ? dates[dates.length - 1] : undefined,
+    };
+  }
+  return progress;
+}
 
 /* ---------------------------------------------------------------------------------------------
  * scenarios
@@ -198,81 +174,90 @@ const PLAYABLE: Record<string, Playable> = {
  * ------------------------------------------------------------------------------------------- */
 
 function Personality() {
-  const [profile, setProfile] = useState<Profile>();
+  const session = useSession();
+  const loggedIn = session.status === 'authenticated';
   const [playing, setPlaying] = useState<string>(); //id of the scenario currently open
+  const [answers, setAnswers] = useState<SavedAnswer[]>(); //undefined until loaded
+  const [questions, setQuestions] = useState<Record<string, ScenarioQuestion[]>>({}); //keyed by scenario name
+  const [loadError, setLoadError] = useState<string>();
+
+  const load = useCallback(
+    () =>
+      fetchProgress().then(
+        (loaded) => {
+          setAnswers(loaded.answers);
+          setQuestions(loaded.questions);
+          setLoadError(undefined);
+        },
+        (e) => setLoadError(e instanceof Error ? e.message : String(e)),
+      ),
+    [],
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    fetchProfile().then((p) => {
-      if (!cancelled) setProfile(p);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (loggedIn) load();
+  }, [loggedIn, load]);
 
-  //no backend yet, so finishing a scenario only marks it complete locally and the answers are dropped
-  const complete = (scenarioId: string) => {
-    const now = new Date().toISOString();
-    setProfile((p) => {
-      if (!p) return p;
-      const others = p.personality.scenarios.filter((s) => s.scenarioId !== scenarioId);
-      const previous = p.personality.scenarios.find((s) => s.scenarioId === scenarioId);
-      const done: ScenarioProgress = { scenarioId, status: 'complete', startedAt: previous?.startedAt ?? now, completedAt: now };
-      return { ...p, personality: { ...p.personality, scenarios: [...others, done] } };
-    });
-    setPlaying(undefined);
+  //saves an answer as the player moves past a prompt
+  const answer = (scenario: string) => async (step: PromptFrame, given: Answer) => {
+    const question = questions[scenario]?.find((q) => q.key === step.id);
+    if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
+    const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
+    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined);
   };
 
   const open = playing ? PLAYABLE[playing] : undefined;
   if (playing && open) {
-    return (
-      <ScriptPlayer
-        script={open.script}
-        renderScene={open.renderScene}
-        onExit={() => setPlaying(undefined)}
-        onFinish={() => complete(playing)}
-      />
-    );
+    const exit = () => {
+      setPlaying(undefined);
+      load(); //pick up what was answered
+    };
+    return <ScriptPlayer script={open.script} renderScene={open.renderScene} onAnswer={answer(playing)} onExit={exit} onFinish={exit} />;
   }
 
-  const progress = new Map(profile?.personality.scenarios.map((s) => [s.scenarioId, s]));
-  const completed = SCENARIOS.filter((s) => progress.get(s.id)?.status === 'complete').length;
+  //nothing is shown as started while logged out, when the page sits behind the login card
+  const progress = loggedIn && answers ? toProgress(answers, questions) : {};
+  const ready = !loggedIn || answers !== undefined;
+
+  const completed = SCENARIOS.filter((s) => progress[s.id]?.status === 'complete').length;
+  const firstName = session.status === 'authenticated' ? session.person.first_name : undefined;
 
   return (
-    <div style={dash.page} className="comic-page">
-      <header style={dash.header}>
-        <h1 style={dash.title} className="comic-title">
-          Personality
-        </h1>
-        <div style={dash.guide}>
-          <Mascot />
-          <div style={dash.bubble} className="comic-bubble comic-pop">
-            {profile ? greeting(profile.displayName, completed) : 'Fetching your map...'}
+    <RequireLogin reason="You need an account to play the personality scenarios and keep track of your progress.">
+      <div style={dash.page} className="comic-page">
+        <header style={dash.header}>
+          <h1 style={dash.title} className="comic-title">
+            Personality
+          </h1>
+          <div style={dash.guide}>
+            <Mascot />
+            <div style={dash.bubble} className="comic-bubble comic-pop">
+              {loadError ? `Hmm, I couldn't load your progress. ${loadError}` : ready ? greeting(firstName, completed) : 'Fetching your map...'}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <OurApproach />
+        <OurApproach />
 
-      {profile && (
-        <>
-          <ProgressMeter done={completed} total={SCENARIOS.length} />
-          <ul style={dash.grid}>
-            {SCENARIOS.map((scenario, i) => (
-              <ScenarioCard
-                key={scenario.id}
-                index={i}
-                scenario={scenario}
-                progress={progress.get(scenario.id)}
-                playable={scenario.id in PLAYABLE}
-                onPlay={() => setPlaying(scenario.id)}
-              />
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
+        {ready && (
+          <>
+            <ProgressMeter done={completed} total={SCENARIOS.length} />
+            <ul style={dash.grid}>
+              {SCENARIOS.map((scenario, i) => (
+                <ScenarioCard
+                  key={scenario.id}
+                  index={i}
+                  scenario={scenario}
+                  progress={progress[scenario.id]}
+                  playable={scenario.id in PLAYABLE}
+                  onPlay={() => setPlaying(scenario.id)}
+                />
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </RequireLogin>
   );
 }
 
@@ -357,10 +342,11 @@ function OurApproach() {
   );
 }
 
-const greeting = (name: string, completed: number) => {
-  if (completed === 0) return `Hey ${name}! Ready for your first adventure?`;
-  if (completed === SCENARIOS.length) return `Wow, ${name}! You've explored every single scenario!`;
-  return `Hey ${name}! You've explored ${completed} of ${SCENARIOS.length} scenarios. Where to next?`;
+//name is missing while logged out, when the page sits behind the login card
+const greeting = (name: string | undefined, completed: number) => {
+  if (completed === 0) return `Hey ${name ?? 'there'}! Ready for your first adventure?`;
+  if (completed === SCENARIOS.length) return `Wow${name ? `, ${name}` : ''}! You've explored every single scenario!`;
+  return `Hey ${name ?? 'there'}! You've explored ${completed} of ${SCENARIOS.length} scenarios. Where to next?`;
 };
 
 const MASCOT_BODY = 'M14 66 C10 36 30 22 50 24 C72 26 88 42 82 70 C78 92 22 96 14 66 Z';
@@ -496,15 +482,18 @@ const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 interface ScriptPlayerProps {
   script: Script;
   renderScene: (animation: string) => ReactNode; //the scenario's background, driven by the current step's animation
+  onAnswer: (step: PromptFrame, answer: Answer) => Promise<void>; //saves an answer; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
-  onFinish: (answers: Record<string, Answer>) => void; //called when the user moves past the final step
+  onFinish: () => void; //called when the user moves past the final step
 }
 
-function ScriptPlayer({ script, renderScene, onExit, onFinish }: ScriptPlayerProps) {
+function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish }: ScriptPlayerProps) {
   //every position the user has visited, so the left arrow can walk back through branches
   const [history, setHistory] = useState<Position[]>([{ section: script.start, index: 0 }]);
   const [shown, setShown] = useState(0); //how many characters of the current text have been written out
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
 
   const position = history[history.length - 1];
   const section = script.sections[position.section];
@@ -529,16 +518,28 @@ function ScriptPlayer({ script, renderScene, onExit, onFinish }: ScriptPlayerPro
     return undefined;
   };
 
-  const forward = () => {
+  const forward = async () => {
     //first press finishes writing the text out, the next one moves on
     if (!typed) {
       setShown(text.length);
       return;
     }
-    if (!answered) return;
+    if (!answered || saving) return;
+    if (isPrompt(step) && answer) {
+      setSaving(true);
+      setSaveError(undefined);
+      try {
+        await onAnswer(step, answer);
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : String(e));
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
     const next = nextPosition();
     if (!next) {
-      onFinish(answers);
+      onFinish();
       return;
     }
     setHistory((h) => [...h, next]);
@@ -623,15 +624,20 @@ function ScriptPlayer({ script, renderScene, onExit, onFinish }: ScriptPlayerPro
                   if (e.key === 'Escape') e.currentTarget.blur();
                 }}
               />
+              {saveError && (
+                <p role="alert" style={styles.saveError}>
+                  {saveError}
+                </p>
+              )}
               <div style={styles.promptFooter}>
                 <span style={styles.hint}>Ctrl+Enter to continue · Esc to leave the text box</span>
                 <button
                   className="comic-lift"
-                  style={{ ...styles.continue, ...(answered ? {} : styles.continueDisabled) }}
-                  disabled={!answered}
+                  style={{ ...styles.continue, ...(answered && !saving ? {} : styles.continueDisabled) }}
+                  disabled={!answered || saving}
                   onClick={forward}
                 >
-                  Continue ▶
+                  {saving ? 'Saving...' : 'Continue ▶'}
                 </button>
               </div>
             </div>
@@ -743,6 +749,14 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
     outlineColor: brownRed,
     resize: 'vertical',
+  },
+  saveError: {
+    padding: '6px 12px',
+    background: paleRed,
+    border: `3px solid ${brownRed}`,
+    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
+    color: brownRed,
+    fontSize: 18,
   },
   promptFooter: {
     display: 'flex',

@@ -147,23 +147,3 @@ UNWIND [
 ] AS t
 MERGE (n:PersonalityTrait {name: t.name})
 SET n.description = t.description;
-
-
-// -----------------------------------------------------------------------------
-// Linking a Person (reference only — not run by this seed)
-//   MATCH both ends first, then MERGE only the relationship. MERGE on the whole
-//   path would create a duplicate Person/PersonalityTrait whenever the full
-//   pattern does not already exist.
-//
-//   MATCH (a:Person {username: "sudomoniker"})
-//   UNWIND [
-//     { trait: "Patience",    value: 0.9 },
-//     { trait: "Dutifulness", value: 0.5 }
-//   ] AS row
-//   MATCH (t:PersonalityTrait {name: row.trait})
-//   MERGE (a)-[r:HAS_PERSONALITY_TRAIT]->(t)
-//   SET r.value = row.value;
-//
-// Sanity check after seeding (expect 44):
-//   MATCH (t:PersonalityTrait) RETURN count(t);
-// -----------------------------------------------------------------------------

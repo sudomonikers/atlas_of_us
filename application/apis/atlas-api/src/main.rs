@@ -23,6 +23,11 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() {
+    //logs go to stdout. RUST_LOG overrides the level, e.g. RUST_LOG=debug
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .init();
+
     //collect http metrics with prometheus
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair(); 
 

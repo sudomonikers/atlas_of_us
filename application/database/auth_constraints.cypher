@@ -1,0 +1,2 @@
+CREATE CONSTRAINT person_phone IF NOT EXISTS FOR (p:Person) REQUIRE p.phone IS UNIQUE;
+CREATE CONSTRAINT person_email IF NOT EXISTS FOR (p:Person) REQUIRE p.email IS UNIQUE;

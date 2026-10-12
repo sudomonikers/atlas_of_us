@@ -41,12 +41,15 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let rejected = || (StatusCode::UNAUTHORIZED, "missing or invalid token".to_string());
+        let rejected = || (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string());
         let token = parts.headers.get(AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix("Bearer "))
             .ok_or_else(rejected)?;
-        let secret = env::var("JWT_SECRET").map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JWT_SECRET is not set".to_string()))?;
+        let secret = env::var("JWT_SECRET").map_err(|_| {
+            tracing::error!("JWT_SECRET is not set");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+        })?;
         //checks the signature and expiry
         let data = decode::<Claims>(token, &DecodingKey::from_secret(secret.as_bytes()), &Validation::new(Algorithm::HS256))
             .map_err(|_| rejected())?;
@@ -73,7 +76,10 @@ pub struct AuthResponse {
 
 //signs a 24 hour token for the person. Logout is stateless, so tokens are kept short lived
 fn authenticate(person: Person) -> Result<AuthResponse, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string());
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
     let secret = env::var("JWT_SECRET").map_err(|_| internal(&"JWT_SECRET is not set"))?;
     let now = Utc::now();
     let expires_at = now + Duration::hours(24);
@@ -88,7 +94,7 @@ fn normalize_phone(raw: &str) -> Result<String, (StatusCode, String)> {
     let phone: String = raw.chars().filter(|c| !matches!(c, ' ' | '-' | '.' | '(' | ')')).collect();
     match phone.strip_prefix('+') {
         Some(d) if (8..=15).contains(&d.len()) && d.chars().all(|c| c.is_ascii_digit()) && !d.starts_with('0') => Ok(phone),
-        _ => Err((StatusCode::BAD_REQUEST, "phone number must start with + and a country code, e.g. +15551234567".to_string())),
+        _ => Err((StatusCode::BAD_REQUEST, "That doesn't look like a valid phone number. Check the country code and number.".to_string())),
     }
 }
 
@@ -106,7 +112,10 @@ pub async fn create_user(
     State(state): State<AppState>,
     Json(body): Json<CreateUserPayload>,
 ) -> Result<(StatusCode, Json<AuthResponse>), (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string());
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
     let bad = |message: &str| (StatusCode::BAD_REQUEST, message.to_string());
 
     let phone = normalize_phone(&body.phone)?;
@@ -114,21 +123,21 @@ pub async fn create_user(
     let first_name = body.first_name.trim().to_string();
     let last_name = body.last_name.trim().to_string();
     let birthday = NaiveDate::parse_from_str(body.birthday.trim(), "%Y-%m-%d")
-        .map_err(|_| bad("birthday must be a date formatted YYYY-MM-DD"))?;
+        .map_err(|_| bad("That doesn't look like a valid birthday."))?;
 
     let email_valid = email.split_once('@')
         .is_some_and(|(local, domain)| !local.is_empty() && domain.contains('.') && !domain.contains('@'));
     if !email_valid || email.contains(char::is_whitespace) {
-        return Err(bad("email address is not valid"));
+        return Err(bad("That doesn't look like a valid email address."));
     }
     if first_name.is_empty() || last_name.is_empty() || first_name.len() > 100 || last_name.len() > 100 {
-        return Err(bad("first and last name must be between 1 and 100 characters"));
+        return Err(bad("First and last name need to be between 1 and 100 characters."));
     }
     if birthday.year() < 1900 || birthday > Utc::now().date_naive() {
-        return Err(bad("birthday must be between 1900 and today"));
+        return Err(bad("Your birthday has to be between 1900 and today."));
     }
     if !(8..=128).contains(&body.password.chars().count()) {
-        return Err(bad("password must be between 8 and 128 characters"));
+        return Err(bad("Your password needs to be between 8 and 128 characters."));
     }
 
     //argon2 is deliberately slow, so it runs off the async runtime
@@ -137,7 +146,17 @@ pub async fn create_user(
         Argon2::default().hash_password(password.as_bytes(), &SaltString::generate(&mut OsRng)).map(|h| h.to_string())
     }).await.map_err(|e| internal(&e))?.map_err(|e| internal(&e))?;
 
-    let created = state.graph.execute(query("
+    //the Person uniqueness constraints reject a phone or email that's already taken.
+    //Neo4j can report it when the query is sent or when its row is read, so both go through this
+    let failed = |e: neo4rs::Error| match e {
+        neo4rs::Error::Neo4j(e) if e.code() == "Neo.ClientError.Schema.ConstraintValidationFailed" => {
+            let taken = if e.message().contains("`email`") { "email" } else { "phone number" };
+            (StatusCode::CONFLICT, format!("There's already an account with that {taken}. Try logging in instead."))
+        }
+        e => internal(&e),
+    };
+
+    let mut created = state.graph.execute(query("
         CREATE (p:Person {
             phone: $phone, firstName: $firstName, lastName: $lastName,
             email: $email, birthday: $birthday, passwordHash: $passwordHash, createdDate: datetime()
@@ -151,18 +170,8 @@ pub async fn create_user(
         .param("email", email)
         .param("birthday", birthday)
         .param("passwordHash", password_hash)
-    ).await;
-
-    //the Person uniqueness constraints reject a phone or email that's already taken
-    let mut rows = match created {
-        Ok(rows) => rows,
-        Err(neo4rs::Error::Neo4j(e)) if e.code() == "Neo.ClientError.Schema.ConstraintValidationFailed" => {
-            return Err((StatusCode::CONFLICT, "an account with that phone number or email already exists".to_string()));
-        }
-        Err(e) => return Err(internal(&e)),
-    };
-
-    let row = rows.next().await.map_err(|e| internal(&e))?.ok_or_else(|| internal(&"person was not created"))?;
+    ).await.map_err(failed)?;
+    let row = created.next().await.map_err(failed)?.ok_or_else(|| internal(&"person was not created"))?;
     let person = row.to::<Person>().map_err(|e| internal(&e))?;
     Ok((StatusCode::CREATED, Json(authenticate(person)?)))
 }
@@ -177,7 +186,10 @@ pub async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginPayload>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string());
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
     let phone = normalize_phone(&body.phone)?;
 
     let mut rows = state.graph.execute(query("
@@ -187,7 +199,7 @@ pub async fn login(
     ")
         .param("phone", phone)
     ).await.map_err(|e| internal(&e))?;
-    let invalid = || (StatusCode::UNAUTHORIZED, "invalid phone number or password".to_string());
+    let invalid = || (StatusCode::UNAUTHORIZED, "That phone number and password don't match an account.".to_string());
     let row = rows.next().await.map_err(|e| internal(&e))?.ok_or_else(invalid)?;
 
     //argon2 is deliberately slow, so it runs off the async runtime
@@ -210,7 +222,10 @@ pub async fn logout() -> StatusCode {
 }
 
 pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Person>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string());
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
 
     let mut rows = state.graph.execute(query("
         MATCH (p:Person) WHERE elementId(p) = $id
@@ -222,6 +237,6 @@ pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Pe
 
     match rows.next().await.map_err(|e| internal(&e))? {
         Some(row) => Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?)),
-        None => Err((StatusCode::UNAUTHORIZED, "missing or invalid token".to_string())), //token for a deleted Person
+        None => Err((StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string())), //token for a deleted Person
     }
 }
