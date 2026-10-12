@@ -75,6 +75,14 @@ export type Step = Frame | PromptFrame;
 export interface Section {
   steps: Step[];
   next?: string; //id of the Section that follows; omitted on the final Section, ignored when the last step is a PromptFrame with choices
+  recall?: Recall; //when set, the Section that follows depends on how the user answered an earlier scenario
+}
+
+//picks the next Section from the user's saved answer to another scenario's question, falling back to the Section's next
+export interface Recall {
+  scenario: string; //the earlier scenario's id, e.g. 'landfall'
+  question: string; //the prompt id in that scenario's script
+  choices: Record<string, string>; //choice label to the id of the Section to continue with
 }
 
 export interface Script {

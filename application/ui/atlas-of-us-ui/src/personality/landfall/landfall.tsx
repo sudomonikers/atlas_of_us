@@ -1,6 +1,13 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import {
+  BANK, BUSY_ARM_POSES, CASKS, CLOTH, CREW, FIRE, JOINT_KEYS, LIGHT, LYING, MOBILE_POSES, ORIGIN, PEAK, PILE, REST, RUM, SEATS,
+  SET_BARE, SET_CAMP, SET_FEAST, SET_FIRE, SET_FRAME, SET_LATE, SET_SALVAGE, SET_SUPPER, SHELTER, STANDING, STONE, TRAIL,
+  WRECK, WRECK_AT, closeUp, gestures, ground, poses, recast, streamX, terrainHeight,
+  type Cast, type Cue, type HandPose, type Joints, type Mood, type OneShot, type Placement, type SetDressing, type Shot,
+  type Spot, type TimeOfDay, type Vec3, type Who,
+} from './world';
 
 // Landfall's art style: a low-poly, flat-shaded island that moves from dawn to night over the scenario.
 // The player washed up at the origin. The sea and the wreck lie toward +z, the camp sits at the top of the beach,
@@ -8,9 +15,6 @@ import * as THREE from 'three';
 //
 // Every animation name in the script maps to a Cue: where the camera is, the time of day, which parts of the camp
 // exist yet, and where each of the crew is standing and what they are doing. Characters walk between cues on their own.
-
-type Vec3 = [number, number, number];
-type Spot = [number, number]; //an x, z position on the ground
 
 // ---------------------------------------------------------------------------
 // the island
@@ -23,35 +27,6 @@ const seeded = (seed: number) => () => {
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
-
-const streamX = (z: number) => -32 + Math.sin(z * 0.15) * 3;
-
-//ground height: a sand beach sloping into the sea for z > -10, jungle hills climbing behind it, cut by a stream gully
-const terrainHeight = (x: number, z: number) => {
-  const noise = Math.sin(x * 0.3) * Math.cos(z * 0.25) * 0.15 + Math.sin(x * 0.07 + z * 0.11) * 0.4;
-  if (z > -10) return 0.6 - z * 0.08 + noise * 0.3;
-  const d = -10 - z;
-  const peak = 22 * Math.exp(-((x - 15) ** 2 + (z + 85) ** 2) / 900);
-  const gully = 2.2 * Math.exp(-((x - streamX(z)) ** 2) / 30) * Math.min(Math.max((d - 4) / 6, 0), 1);
-  return 1.4 + Math.pow(d, 1.1) * 0.25 + noise * (0.3 + d * 0.08) + peak - gully;
-};
-
-const ground = (x: number, z: number, lift = 0): Vec3 => [x, terrainHeight(x, z) + lift, z];
-
-const WRECK_AT: Spot = [10, 45];
-const SHELTER: Spot = [-9, -7];
-const CASKS: Spot[] = [[-7, -5.2], [-6.3, -4.7]];
-const CLOTH: Spot = [-1.8, -5.8];
-const FIRE: Spot = [1.4, -3.6];
-const RUM: Spot = [2.9, -5.2];
-const PILE: Spot = [18, 0.5];
-const TRAIL: Spot[] = [[-4, -9.5], [-8, -14], [-13, -20], [-19, -27], [-24, -34]];
-const BANK: Spot = [-27.5, -38.5];
-const STONE: Spot = [-28.4, -41.2];
-const PEAK: Spot = [15, -85];
-
-const WRECK: Vec3 = [WRECK_AT[0], 1.5, WRECK_AT[1]];
-const LIGHT: Vec3 = ground(PEAK[0], PEAK[1], 4);
 
 const distanceToSegment = (x: number, z: number, [ax, az]: Spot, [bx, bz]: Spot) => {
   const dx = bx - ax;
@@ -74,8 +49,6 @@ const isClear = (x: number, z: number) => {
 // ---------------------------------------------------------------------------
 // time of day
 // ---------------------------------------------------------------------------
-
-type TimeOfDay = 'dawn' | 'morning' | 'day' | 'afternoon' | 'evening' | 'sunset' | 'dusk' | 'night';
 
 interface Palette {
   horizon: string;
@@ -185,9 +158,6 @@ const ATMOS = Object.fromEntries(
 // the crew
 // ---------------------------------------------------------------------------
 
-type Who = 'voss' | 'ines' | 'maren' | 'tob';
-const CREW: Who[] = ['voss', 'ines', 'maren', 'tob'];
-
 interface Look {
   scale: number;
   build: number; //how broad they are
@@ -227,197 +197,9 @@ const looks: Record<Who, Look> = {
   },
 };
 
-//joint angles in radians, plus how far the hips drop (sitting, kneeling) and the whole body rises or rolls (lying down)
-interface Joints {
-  drop: number;
-  lean: number;
-  rise: number;
-  roll: number;
-  headX: number; //positive looks down
-  headY: number; //positive turns toward the character's left
-  headZ: number;
-  armLX: number; //negative swings the arm forward
-  armLZ: number; //positive raises the arm out to the side
-  elbowL: number; //negative bends the forearm forward
-  armRX: number;
-  armRZ: number;
-  elbowR: number;
-  legLX: number; //negative swings the leg forward
-  kneeL: number; //positive bends the knee
-  legRX: number;
-  kneeR: number;
-}
-
-const REST: Joints = {
-  drop: 0, lean: 0, rise: 0, roll: 0, headX: 0, headY: 0, headZ: 0,
-  armLX: 0, armLZ: 0, elbowL: 0, armRX: 0, armRZ: 0, elbowR: 0, legLX: 0, kneeL: 0, legRX: 0, kneeR: 0,
-};
-const JOINT_KEYS = Object.keys(REST) as (keyof Joints)[];
-
-const SIT: Partial<Joints> = {
-  drop: 0.8, lean: -0.05, legLX: -1.85, legRX: -1.85, kneeL: 1.0, kneeR: 1.0,
-  armLX: -0.55, armRX: -0.55, armLZ: 0.1, armRZ: 0.1, elbowL: -0.5, elbowR: -0.5,
-};
-const KNEEL: Partial<Joints> = {
-  drop: 0.47, lean: 0.25, kneeL: 1.55, kneeR: 1.55, armLX: -0.8, armRX: -0.8, elbowL: -0.6, elbowR: -0.6,
-};
-const CROUCH: Partial<Joints> = {
-  drop: 0.5, lean: 0.45, legLX: -1.3, legRX: -1.3, kneeL: 2.3, kneeR: 2.3,
-  armLX: -1.0, armRX: -1.0, elbowL: -0.5, elbowR: -0.5, headX: -0.2,
-};
-
-const poses = {
-  stand: { armLZ: 0.07, armRZ: 0.07 },
-  foldArms: { armLX: -0.55, armRX: -0.55, armLZ: -0.3, armRZ: -0.3, elbowL: -1.75, elbowR: -1.75 },
-  point: { armLZ: 0.07, armRX: -1.5, armRZ: 0.05 },
-  pointUp: { armLZ: 0.07, armRX: -2.1, armRZ: 0.05, headX: -0.35 },
-  glare: { lean: 0.12, headX: 0.12, armLZ: 0.22, armRZ: 0.22, elbowL: -0.35, elbowR: -0.35 },
-  sit: SIT,
-  sitCup: { ...SIT, armRX: -0.9, elbowR: -1.3 },
-  hugKnees: {
-    drop: 0.8, lean: 0.35, legLX: -2.35, legRX: -2.35, kneeL: 2.0, kneeR: 2.0,
-    armLX: -1.0, armRX: -1.0, armLZ: -0.1, armRZ: -0.1, elbowL: -1.0, elbowR: -1.0, headX: 0.3,
-  },
-  kneel: KNEEL,
-  crouch: CROUCH,
-  haul: {
-    lean: -0.25, drop: 0.08, legLX: -0.35, legRX: 0.1, kneeL: 0.45, kneeR: 0.2,
-    armLX: -1.25, armRX: -1.25, elbowL: -0.2, elbowR: -0.2,
-  },
-  carry: { armLX: -0.7, armRX: -0.7, elbowL: -1.3, elbowR: -1.3, armLZ: 0.1, armRZ: 0.1 },
-  roll: {
-    lean: 0.55, drop: 0.1, legLX: -0.3, legRX: -0.3, kneeL: 0.4, kneeR: 0.4,
-    armLX: -0.9, armRX: -0.9, elbowL: -0.1, elbowR: -0.1, headX: -0.4,
-  },
-  listen: { armLZ: 0.07, armRX: -2.5, armRZ: 0.25, elbowR: -0.5, headZ: 0.15 },
-  raiseCup: { armLZ: 0.07, armRX: -2.75, armRZ: 0.12, elbowR: -0.2 },
-  offer: { lean: 0.1, armLZ: 0.07, armRX: -1.35, elbowR: -0.15 },
-  shrug: { armLX: -0.35, armRX: -0.35, armLZ: 0.4, armRZ: 0.4, elbowL: -1.3, elbowR: -1.3, headZ: 0.18 },
-  tap: { lean: 0.15, armLZ: 0.07, armRX: -0.9, elbowR: -0.5 },
-  stack: {
-    lean: 0.8, drop: 0.12, legLX: -0.6, legRX: -0.6, kneeL: 0.7, kneeR: 0.7,
-    armLX: -0.6, armRX: -0.6, elbowL: -0.3, elbowR: -0.3, headX: -0.4,
-  },
-  torch: { armLZ: 0.07, armRX: -1.9, armRZ: 0.12, elbowR: -0.6 },
-  reach: { ...CROUCH, lean: 0.55, armRX: -1.75, elbowR: 0 },
-  lie: {
-    roll: Math.PI / 2, rise: 0.2, legLX: -0.8, legRX: -0.7, kneeL: 1.3, kneeR: 1.2,
-    armLX: -1.1, armRX: -0.9, elbowL: -1.2, elbowR: -1.0, headX: 0.15,
-  },
-  wring: { armLX: -0.9, armRX: -0.9, armLZ: -0.2, armRZ: -0.2, elbowL: -1.0, elbowR: -1.0, headX: 0.4 },
-  hammer: { ...KNEEL, armRX: -1.6, elbowR: -0.5 },
-} satisfies Record<string, Partial<Joints>>;
-
-type Pose = keyof typeof poses;
-
-const MOBILE_POSES = new Set<Pose>(['stand', 'carry', 'roll', 'torch']); //poses a character keeps while walking
-const BUSY_ARM_POSES = new Set<Pose>(['carry', 'roll', 'torch']); //poses whose arms don't swing while walking
-
-//small motions layered over a pose, given seconds since the cue started
-const gestures = {
-  nod: (t: number) => ({ headX: t < 2 ? 0.2 * Math.sin(t * 7) * (1 - t / 2) + 0.05 : 0 }),
-  count: (t: number) => ({ elbowR: -0.35 * Math.max(0, Math.sin(t * 5)), headX: 0.25 }),
-  hammer: (t: number) => ({ armRX: -0.7 * (0.5 + 0.5 * Math.sin(t * 7)) }),
-  work: (t: number) => ({ elbowL: 0.35 * Math.sin(t * 5), elbowR: 0.35 * Math.sin(t * 5 + Math.PI), headX: 0.3 }),
-  tap: (t: number) => ({ elbowR: -0.3 * Math.max(0, Math.sin(t * 6)) }),
-  haul: (t: number) => ({ lean: 0.12 * Math.sin(t * 2.4), drop: 0.05 * Math.sin(t * 2.4) }),
-  shiver: (t: number) => ({ headZ: 0.03 * Math.sin(t * 31), lean: 0.02 * Math.sin(t * 23) }),
-  cough: (t: number) => ({ lean: 0.35 * Math.pow(Math.max(0, Math.sin(t * 2.6)), 12) }),
-  wring: (t: number) => ({ elbowL: 0.3 * Math.sin(t * 4), elbowR: -0.3 * Math.sin(t * 4) }),
-  trace: (t: number) => ({ armRX: 0.12 * Math.sin(t * 1.8), elbowR: 0.12 * Math.cos(t * 1.8) }),
-  lookAround: (t: number) => ({ headY: 0.6 * Math.sin(t * 0.9) }),
-} satisfies Record<string, (t: number) => Partial<Joints>>;
-
-type Gesture = keyof typeof gestures;
-type Mood = 'neutral' | 'stern' | 'smile' | 'grin' | 'frown' | 'angry' | 'worried' | 'surprised' | 'asleep';
-type Prop = 'cup' | 'torch' | 'skin' | 'mallet' | 'fruit' | 'plank' | 'crate' | 'cask';
-
-interface Placement {
-  at: Spot; //where they stand; they walk here from wherever they were
-  face?: Spot | 'camera'; //what their body turns toward once they arrive, the camera by default
-  look?: Vec3 | 'camera'; //what their head turns toward
-  enter?: Spot; //where they appear from when they weren't already in the scene
-  pose?: Pose;
-  gesture?: Gesture;
-  mood?: Mood;
-  prop?: Prop;
-}
-
-type Cast = Partial<Record<Who, Placement>>;
-
-//copies a cast with some placements changed; null takes a character out of the scene
-const recast = (cast: Cast, changes: Partial<Record<Who, Partial<Placement> | null>>): Cast => {
-  const next: Cast = { ...cast };
-  for (const who of Object.keys(changes) as Who[]) {
-    const change = changes[who];
-    if (change === null) delete next[who];
-    else if (change) next[who] = { ...(next[who] ?? { at: [0, 0] }), ...change };
-  }
-  return next;
-};
-
 // ---------------------------------------------------------------------------
 // cues
 // ---------------------------------------------------------------------------
-
-interface Shot {
-  from: Vec3; //where the camera sits
-  to: Vec3; //what the camera points at
-  speed?: number; //how quickly the camera eases into the shot, higher is faster
-}
-
-interface SetDressing {
-  shelter: 'none' | 'frame' | 'built';
-  pile: boolean; //the signal pile on the headland
-  fire: 'none' | 'laid' | 'lit' | 'low';
-  supplies: boolean; //the salvage laid out on the sail cloth
-  waterCasks: boolean;
-  rum: boolean;
-  light: 'off' | 'on' | 'pulse'; //the light on the peak
-  shafts: boolean; //sunlight through the canopy
-}
-
-type Overlay = 'none' | 'black' | 'storm' | 'title';
-type HandPose = 'none' | 'cover' | 'push' | 'reach' | 'work' | 'torch';
-
-interface Cue {
-  camera: Shot;
-  time: TimeOfDay;
-  set: SetDressing;
-  cast: Cast;
-  overlay?: Overlay;
-  fade?: number; //seconds for the overlay to fade in or out
-  hand?: HandPose; //the player's own hand, seen first person
-}
-
-//a camera placed `distance` from a character toward `from`, at eye height, looking at their head
-const closeUp = (
-  target: Spot,
-  from: Spot,
-  { distance = 2.2, head = 1.65, eye = head, speed = 1.6 }: { distance?: number; head?: number; eye?: number; speed?: number } = {},
-): Shot => {
-  const dx = from[0] - target[0];
-  const dz = from[1] - target[1];
-  const length = Math.hypot(dx, dz) || 1;
-  const x = target[0] + (dx / length) * distance;
-  const z = target[1] + (dz / length) * distance;
-  return { from: ground(x, z, eye), to: ground(target[0], target[1], head), speed };
-};
-
-const SET_BARE: SetDressing = {
-  shelter: 'none', pile: false, fire: 'none', supplies: false, waterCasks: false, rum: false, light: 'off', shafts: false,
-};
-const SET_SALVAGE: SetDressing = { ...SET_BARE, waterCasks: true };
-const SET_FRAME: SetDressing = { ...SET_SALVAGE, shelter: 'frame' };
-const SET_CAMP: SetDressing = { ...SET_SALVAGE, shelter: 'built', pile: true };
-const SET_SUPPER: SetDressing = { ...SET_CAMP, supplies: true, fire: 'laid' };
-const SET_FEAST: SetDressing = { ...SET_SUPPER, rum: true };
-const SET_FIRE: SetDressing = { ...SET_FEAST, fire: 'lit' };
-const SET_LATE: SetDressing = { ...SET_FIRE, fire: 'low' };
-
-const ORIGIN: Spot = [0, 0];
-const LYING: Vec3 = [0, 0.85, 0];
-const STANDING: Vec3 = [0, 2.3, 0];
 
 // ---- waking and gathering on the tideline ----
 const VOSS_GATHER: Spot = [-1.6, 4.2];
@@ -484,13 +266,6 @@ const FEAST: Cast = recast(SUPPER, {
 });
 
 // ---- around the fire ----
-const SEATS: Record<Who | 'player', Spot> = {
-  player: [3, -2],
-  voss: [1.4, -5.8],
-  ines: [-0.7, -3.9],
-  maren: [3.4, -4.6],
-  tob: [-0.2, -1.9],
-};
 const VOSS_POURING: Spot = [2.6, -3];
 const FIRESIDE: Cast = {
   voss: { at: SEATS.voss, face: FIRE, pose: 'sitCup', prop: 'cup', mood: 'grin' },
@@ -2010,12 +1785,6 @@ const BEDS = {
 type Bed = keyof typeof BEDS;
 type Mix = Record<Bed, number>;
 
-interface OneShot {
-  src: string;
-  volume: number;
-  delay?: number; //seconds after the cue starts
-}
-
 //sounds played once when their cue starts
 const ONE_SHOTS: Record<string, OneShot> = {
   bell_sound_hold: { src: new URL('./sounds/bell.m4a', import.meta.url).href, volume: 0.6, delay: 0.3 },
@@ -2113,7 +1882,7 @@ function createSoundscape() {
   };
 }
 
-function useSoundscape(cue: Cue, cueKey: string) {
+function useSoundscape(cue: Cue, cueKey: string, oneShots: Record<string, OneShot>) {
   const soundscape = useRef<ReturnType<typeof createSoundscape> | null>(null);
 
   useEffect(() => {
@@ -2130,18 +1899,28 @@ function useSoundscape(cue: Cue, cueKey: string) {
   }, [cue]);
 
   useEffect(() => {
-    const shot = ONE_SHOTS[cueKey];
+    const shot = oneShots[cueKey];
     if (shot) soundscape.current?.play(shot);
-  }, [cueKey]);
+  }, [cueKey, oneShots]);
 }
 
 // ---------------------------------------------------------------------------
 // the scene
 // ---------------------------------------------------------------------------
 
-function Landfall({ animation }: { animation: string }) {
+interface IslandProps {
+  animation: string;
+  cues: Record<string, Cue>; //every animation name in the scene's script, mapped to its cue
+  firstCue: string;
+  oneShots: Record<string, OneShot>; //sounds played once when their cue starts
+  title: [kicker: string, name: string]; //shown by the 'title' overlay
+  children?: ReactNode; //anything else the scene adds to the island
+}
+
+//the island and crew, played through a scene's cues. Every Expedition scene renders one
+export function Island({ animation, cues, firstCue, oneShots, title, children }: IslandProps) {
   //an animation this scene has no cue for holds whatever cue came before it
-  const [active, setActive] = useState(cues[animation] ? animation : FIRST_CUE);
+  const [active, setActive] = useState(cues[animation] ? animation : firstCue);
   const [lastAnimation, setLastAnimation] = useState(animation);
   if (animation !== lastAnimation) {
     setLastAnimation(animation);
@@ -2149,12 +1928,12 @@ function Landfall({ animation }: { animation: string }) {
   }
 
   useEffect(() => {
-    if (!cues[animation]) console.warn(`Landfall has no cue for the animation "${animation}"`);
-  }, [animation]);
+    if (!cues[animation]) console.warn(`${title[1]} has no cue for the animation "${animation}"`);
+  }, [animation, cues, title]);
 
   const cue = cues[active];
   const overlay = cue.overlay ?? 'none';
-  useSoundscape(cue, active);
+  useSoundscape(cue, active, oneShots);
 
   return (
     <div style={styles.scene}>
@@ -2190,14 +1969,15 @@ function Landfall({ animation }: { animation: string }) {
           <Character key={who} who={who} placement={cue.cast[who]} cueKey={active} />
         ))}
         <FirstPersonHand pose={cue.hand ?? 'none'} />
+        {children}
       </Canvas>
 
       <div style={{ ...styles.overlay, opacity: overlay === 'none' ? 0 : 1, transition: `opacity ${cue.fade ?? 1}s ease` }}>
         {overlay === 'storm' && <div style={styles.lightning} />}
         {overlay === 'title' && (
           <div style={styles.title}>
-            <div style={styles.titleKicker}>Expedition I</div>
-            <div style={styles.titleName}>Landfall</div>
+            <div style={styles.titleKicker}>{title[0]}</div>
+            <div style={styles.titleName}>{title[1]}</div>
           </div>
         )}
       </div>
@@ -2255,5 +2035,11 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 2,
   },
 };
+
+const TITLE: IslandProps['title'] = ['Expedition I', 'Landfall'];
+
+function Landfall({ animation }: { animation: string }) {
+  return <Island animation={animation} cues={cues} firstCue={FIRST_CUE} oneShots={ONE_SHOTS} title={TITLE} />;
+}
 
 export default Landfall;

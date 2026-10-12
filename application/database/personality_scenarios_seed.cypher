@@ -71,6 +71,20 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// Expedition II: The Thief
+MATCH (s:PersonalityScenario {name: 'the_thief'})
+UNWIND [
+  {order: 0, key: 'first_suspicion', prompt: 'Everyone is watching everyone else. What do you make of all this? Who do you think took the food, if anyone, and why?'},
+  {order: 1, key: 'search_bags',     prompt: "Voss wants to search everyone's things. What do you say?"},
+  {order: 2, key: 'why_tob',         prompt: 'Tob is shaking. Why do you think he really did it? And how do you feel about him right now?'},
+  {order: 3, key: 'tob_punishment',  prompt: 'What should happen to Tob?'},
+  {order: 4, key: 'maren_knew',      prompt: 'Maren knew, and said nothing. How do you deal with that?'},
+  {order: 5, key: 'share_portion',   prompt: 'Your own portion is in your hands. What do you do with it?'},
+  {order: 6, key: 'camp_rules',      prompt: 'What rules, if any, should the camp live by from now on? And who gets to decide them?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 
 // -----------------------------------------------------------------------------
 // 3. Choice base scores
@@ -109,6 +123,49 @@ UNWIND [
    shifts: [{trait: 'Cautiousness', delta: 0.7}, {trait: 'Anxiety', delta: 0.3}, {trait: 'Adventurousness', delta: -0.5}]}
 ] AS choice
 MATCH (:PersonalityScenario {name: 'landfall'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
+MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
+WITH c, choice
+OPTIONAL MATCH (c)-[old:SHIFTS]->()
+DELETE old
+WITH DISTINCT c, choice
+UNWIND choice.shifts AS shift
+MATCH (t:PersonalityTrait {name: shift.trait})
+CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
+
+
+// Expedition II: The Thief
+UNWIND [
+  {question: 'search_bags', label: 'Agree. Search everyone, me included.',
+   shifts: [{trait: 'Trust', delta: -0.4}, {trait: 'Fairness', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}, {trait: 'Liberalism', delta: -0.3}]},
+  {question: 'search_bags', label: "Refuse. We don't treat each other like criminals.",
+   shifts: [{trait: 'Trust', delta: 0.6}, {trait: 'Liberalism', delta: 0.3}, {trait: 'Assertiveness', delta: 0.3}]},
+  {question: 'search_bags', label: 'Ask whoever did it to own up in private, with no punishment.',
+   shifts: [{trait: 'Trust', delta: 0.4}, {trait: 'Sympathy', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}, {trait: 'Liberalism', delta: 0.2}]},
+
+  {question: 'tob_punishment', label: 'Cut his rations until what he ate is paid back.',
+   shifts: [{trait: 'Fairness', delta: 0.5}, {trait: 'Dutifulness', delta: 0.3}, {trait: 'Sympathy', delta: -0.3}, {trait: 'Liberalism', delta: -0.3}]},
+  {question: 'tob_punishment', label: 'Let it go. He was scared, and he gave back what was left.',
+   shifts: [{trait: 'Sympathy', delta: 0.6}, {trait: 'Altruism', delta: 0.3}, {trait: 'Liberalism', delta: 0.3}, {trait: 'Fairness', delta: -0.2}]},
+  {question: 'tob_punishment', label: 'Have him make up for it with the night watches and the hardest work.',
+   shifts: [{trait: 'Fairness', delta: 0.4}, {trait: 'Cooperation', delta: 0.4}, {trait: 'Sympathy', delta: 0.3}]},
+  {question: 'tob_punishment', label: 'Send him to sleep away from camp, far from the stores.',
+   shifts: [{trait: 'Sympathy', delta: -0.6}, {trait: 'Trust', delta: -0.4}, {trait: 'Liberalism', delta: -0.3}, {trait: 'Cautiousness', delta: 0.3}]},
+
+  {question: 'maren_knew', label: 'She should have told us. She answers for it too.',
+   shifts: [{trait: 'Morality', delta: 0.4}, {trait: 'Fairness', delta: 0.3}, {trait: 'Sympathy', delta: -0.3}, {trait: 'Trust', delta: -0.2}]},
+  {question: 'maren_knew', label: 'She did what she thought was kind. Leave her be.',
+   shifts: [{trait: 'Sympathy', delta: 0.4}, {trait: 'Trust', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}]},
+  {question: 'maren_knew', label: 'Take it up with her privately, not in front of everyone.',
+   shifts: [{trait: 'Cooperation', delta: 0.4}, {trait: 'Sympathy', delta: 0.3}, {trait: 'Morality', delta: 0.2}]},
+
+  {question: 'share_portion', label: 'Give part of it to Tob.',
+   shifts: [{trait: 'Altruism', delta: 0.7}, {trait: 'Sympathy', delta: 0.5}]},
+  {question: 'share_portion', label: 'Eat it. Everyone is hungry.',
+   shifts: [{trait: 'Altruism', delta: -0.4}, {trait: 'Sympathy', delta: -0.2}]},
+  {question: 'share_portion', label: 'Put part of it back in the stores for later.',
+   shifts: [{trait: 'Altruism', delta: 0.4}, {trait: 'Cautiousness', delta: 0.4}, {trait: 'Self-Discipline', delta: 0.4}, {trait: 'Cooperation', delta: 0.2}]}
+] AS choice
+MATCH (:PersonalityScenario {name: 'the_thief'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
 MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
 WITH c, choice
 OPTIONAL MATCH (c)-[old:SHIFTS]->()

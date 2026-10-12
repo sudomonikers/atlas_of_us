@@ -3,6 +3,8 @@ import { isPrompt, type PersonalityTrait, type PromptFrame, type Script, type St
 import { getJob, getPersonEvidence, getPersonTraits, getProgress, getQuestions, getTraits, saveAnswer, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import Landfall from './landfall/landfall';
+import { theThief } from './the_thief/script';
+import Thief from './the_thief/thief';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 
@@ -148,7 +150,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'Expedition II: The Thief',
     kind: 'Game with stakes',
     blurb: 'Rations go missing, and you have to decide what to do about the person who took them.',
-    facets: ['Liberalism', 'Trust', 'Morality', 'Altruism', 'Cooperation', 'Sympathy'],
+    facets: theThief.facets,
   },
   {
     id: 'party_of_strangers',
@@ -223,6 +225,7 @@ interface Playable {
 //scenarios that have been built so far, keyed by ScenarioInfo id
 const PLAYABLE: Record<string, Playable> = {
   landfall: { script: landfall, renderScene: (animation) => <Landfall animation={animation} /> },
+  the_thief: { script: theThief, renderScene: (animation) => <Thief animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
@@ -306,7 +309,16 @@ function Personality() {
       setPlaying(undefined);
       load(); //pick up what was answered
     };
-    return <ScriptPlayer script={open.script} renderScene={open.renderScene} onAnswer={answer(playing)} onExit={exit} onFinish={exit} />;
+    return (
+      <ScriptPlayer
+        script={open.script}
+        renderScene={open.renderScene}
+        earlier={answers ?? []}
+        onAnswer={answer(playing)}
+        onExit={exit}
+        onFinish={exit}
+      />
+    );
   }
 
   //nothing is shown as started while logged out, when the page sits behind the login card
@@ -320,15 +332,15 @@ function Personality() {
     ? "Give us a moment, We are reading through your answers to work out your personality..."
     : view === 'scenarios'
       ? loadError
-        ? `Hmm, I couldn't load your progress. ${loadError}`
+        ? `Hmm, we couldn't load your progress. ${loadError}`
         : ready
           ? greeting(firstName, completed)
           : 'Fetching your map...'
       : traitsError
-        ? `Hmm, I couldn't load your traits. ${traitsError}`
+        ? `Hmm, we couldn't load your traits. ${traitsError}`
         : traits
           ? traitsGreeting(firstName, traits)
-          : 'Flipping through my notes on you...';
+          : 'Flipping through our notes on you...';
 
   return (
     <RequireLogin reason="You need an account to play the personality scenarios and keep track of your progress.">
@@ -476,9 +488,9 @@ const greeting = (name: string | undefined, completed: number) => {
 
 const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   const measured = traits.filter((t) => t.value !== undefined).length;
-  if (measured === 0) return `I don't know enough about you yet${name ? `, ${name}` : ''}. Play a scenario and your traits will start filling in!`;
+  if (measured === 0) return `We don't know enough about you yet${name ? `, ${name}` : ''}. Play a scenario and your traits will start filling in!`;
   if (measured === traits.length) return `Here's the whole picture${name ? `, ${name}` : ''}. Every trait has been measured!`;
-  return `Here's what I've learned so far${name ? `, ${name}` : ''}. Keep playing scenarios to fill in the rest.`;
+  return `Here's what we've learned so far${name ? `, ${name}` : ''}. Keep playing scenarios to fill in the rest.`;
 };
 
 const MASCOT_BODY = 'M14 66 C10 36 30 22 50 24 C72 26 88 42 82 70 C78 92 22 96 14 66 Z';
@@ -731,12 +743,13 @@ const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 interface ScriptPlayerProps {
   script: Script;
   renderScene: (animation: string) => ReactNode; //the scenario's background, driven by the current step's animation
+  earlier: SavedAnswer[]; //the user's answers from when the scenario was opened, for Sections that recall them
   onAnswer: (step: PromptFrame, answer: Answer) => Promise<void>; //saves an answer; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
   onFinish: () => void; //called when the user moves past the final step
 }
 
-function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish }: ScriptPlayerProps) {
+function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish }: ScriptPlayerProps) {
   //every position the user has visited, so the left arrow can walk back through branches
   const [history, setHistory] = useState<Position[]>([{ section: script.start, index: 0 }]);
   const [shown, setShown] = useState(0); //how many characters of the current text have been written out
@@ -763,7 +776,10 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish }: Scrip
       return { section: step.choices[answer.choice].next, index: 0 };
     }
     if (position.index + 1 < section.steps.length) return { ...position, index: position.index + 1 };
-    if (section.next) return { section: section.next, index: 0 };
+    const { recall } = section;
+    const recalled = recall && earlier.find((a) => a.scenario === recall.scenario && a.question_key === recall.question);
+    const next = (recalled && recall.choices[recalled.answer]) || section.next;
+    if (next) return { section: next, index: 0 };
     return undefined;
   };
 
