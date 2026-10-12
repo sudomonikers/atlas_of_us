@@ -1,16 +1,14 @@
 # Style Guide for the Atlas Of Us Website
 While this is a serious project, we want to undercut it with a fun and vibrant UI 
-that captures users attention. With that in mind what we will build will be very bubbly
-and exciting UI with bright pastel colors and cute characters and animations.
+that captures users attention. With that in mind what we will build will be very bright
+and exciting UI with pastel colors and cute characters and animations.
 
 ## Color guide:
-Willow Green: #88D18A
-Cotton Candy Pink: #FD96A9
-Deep Sky Blue: #30C5FF
-Velvet Purple: #613F75
-Dark Teal: #023436
-Porcelain White: #FDFFFC
-Ink Black: #171A21
+Air Force Blue: #6A8EAE
+Cinnamon Woord: #A77464
+Brown Red: #AD2831
+Ivory White: #FFFCE8
+Gunmetal Black: #393D3F
 
 ## Component guide:
 Any created artifacts whether that be backgrounds, characters, items or anything else

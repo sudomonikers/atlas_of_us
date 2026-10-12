@@ -1,184 +1,234 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Patrick+Hand&display=swap');
 
-  &:hover {
-    border-color: var(--accent-border);
+/* =============================================================================================
+ * Atlas comic style, shared across components. See STYLE_GUIDE.md.
+ * Thick dark outlines, uneven hand-drawn corners, and colour that bleeds slightly past the lines.
+ * ============================================================================================= */
+
+:root {
+  /* palette */
+  --air-force-blue: #6a8eae;
+  --cinnamon-wood: #a77464;
+  --brown-red: #ad2831;
+  --ivory-white: #fffce8;
+  --gunmetal-black: #393d3f;
+
+  /* pastel washes of the palette for fills */
+  --pale-blue: #cfdeec;
+  --pale-cinnamon: #efd9cf;
+  --pale-red: #f3cfcd;
+
+  --font-comic: 'Bangers', 'Comic Sans MS', cursive; /* headings, labels, stamps */
+  --font-hand: 'Patrick Hand', 'Comic Sans MS', cursive; /* body text */
+
+  --ink: 4px solid var(--gunmetal-black); /* the standard outline */
+  --wobbly: 22px 34px 18px 38px / 34px 18px 38px 22px; /* uneven corners read as hand drawn */
+  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot easing for comic motion */
+}
+
+/* a full page of newsprint: ivory paper with faint halftone dots */
+.comic-page {
+  background-color: var(--ivory-white);
+  background-image: radial-gradient(rgba(106, 142, 174, 0.15) 1.6px, transparent 1.8px);
+  background-size: 18px 18px;
+  color: var(--gunmetal-black);
+  font-family: var(--font-hand);
+}
+
+.comic-title {
+  margin: 0;
+  font-family: var(--font-comic);
+  font-weight: 400;
+  letter-spacing: 2px;
+  line-height: 1;
+  color: var(--ivory-white);
+  -webkit-text-stroke: 2px var(--gunmetal-black);
+  text-shadow:
+    3px 3px 0 var(--brown-red),
+    6px 6px 0 var(--gunmetal-black);
+}
+
+/* an outlined panel whose colour wash sits off-register from the ink. Set --panel-fill to colour it */
+.comic-panel {
+  position: relative;
+  isolation: isolate; /* keeps the bleed's negative z-index inside the panel */
+  color: var(--gunmetal-black);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: var(--ink);
+    border-radius: var(--wobbly);
+    pointer-events: none;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    background: var(--panel-fill, #fff);
+    border-radius: var(--wobbly);
+    transform: translate(5px, 6px) rotate(0.6deg);
+    filter: blur(1.5px);
+  }
+}
+
+/* a clickable comic-panel (or anything) that lifts off the page when hovered */
+.comic-lift {
+  transition: transform 180ms var(--bounce);
+  cursor: pointer;
+
+  &:not(:disabled):hover,
+  &:not(:disabled):focus-visible {
+    transform: translate(-4px, -6px) rotate(calc(var(--tilt, 0deg) * -1.5));
+  }
+  &:not(:disabled):active {
+    transform: translate(2px, 2px) scale(0.98);
+    transition-duration: 60ms;
   }
   &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline: 3px dashed var(--brown-red);
+    outline-offset: 6px;
+  }
+  &:disabled {
+    cursor: default;
   }
 }
 
-.hero {
+/* a speech bubble whose tail points left at whoever is talking */
+.comic-bubble {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
+  padding: 12px 20px;
+  background: #fff;
+  border: var(--ink);
+  border-radius: 28px 22px 30px 18px / 22px 30px 18px 28px;
+  box-shadow: 4px 5px 0 var(--pale-red);
+  font-size: 22px;
+  line-height: 1.25;
 
   &::before,
   &::after {
     content: '';
     position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+    top: 50%;
+    border-style: solid;
+    border-color: transparent;
   }
-
   &::before {
-    left: 0;
-    border-left-color: var(--border);
+    left: -22px;
+    margin-top: -11px;
+    border-width: 11px 22px 11px 0;
+    border-right-color: var(--gunmetal-black);
   }
   &::after {
-    right: 0;
-    border-right-color: var(--border);
+    left: -14px;
+    margin-top: -7px;
+    border-width: 7px 15px 7px 0;
+    border-right-color: #fff;
+  }
+}
+
+/* a rubber-stamp label. Its colour comes from `color` */
+.comic-stamp {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 3px solid currentColor;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.67);
+  font-family: var(--font-comic);
+  font-size: 20px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+}
+
+/* a small outlined tag */
+.comic-chip {
+  padding: 1px 9px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid var(--gunmetal-black);
+  border-radius: 12px 9px 13px 8px;
+  font-size: 14px;
+}
+
+/* a hand-drawn progress bar: .comic-meter > .comic-meter-fill with an inline width */
+.comic-meter {
+  height: 36px; /* 22px of fill inside the border and padding */
+  padding: 3px;
+  background: #fff;
+  border: var(--ink);
+  border-radius: 14px 10px 16px 9px / 10px 16px 9px 14px;
+  overflow: hidden;
+}
+.comic-meter-fill {
+  height: 100%;
+  background: repeating-linear-gradient(-45deg, var(--brown-red) 0 10px, #c4434b 10px 20px);
+  border-radius: 8px;
+  filter: blur(0.4px);
+  transform-origin: left;
+  animation: comic-fill 900ms var(--bounce) both;
+}
+
+/* ---- motion ----------------------------------------------------------------------------------- */
+
+/* springs in from small, keeping the element's --tilt */
+.comic-pop {
+  animation: comic-pop 520ms var(--bounce) both;
+}
+/* slams down onto the page like a stamp */
+.comic-slam {
+  animation: comic-slam 380ms var(--bounce) both;
+}
+/* gentle idle bob for characters */
+.comic-bob {
+  animation: comic-bob 2.4s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+/* occasional blink, for eyes (works on svg groups) */
+.comic-blink {
+  animation: comic-blink 4s infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* stepped on/off flashing, for "more" indicators */
+.comic-flash {
+  animation: comic-flash 1s steps(1) infinite;
+}
+
+@keyframes comic-pop {
+  0% { opacity: 0; transform: rotate(var(--tilt, 0deg)) scale(0.6) translateY(24px); }
+  60% { opacity: 1; transform: rotate(var(--tilt, 0deg)) scale(1.06) translateY(-4px); }
+  80% { transform: rotate(var(--tilt, 0deg)) scale(0.98); }
+  100% { opacity: 1; transform: rotate(var(--tilt, 0deg)) scale(1); }
+}
+@keyframes comic-slam {
+  0% { opacity: 0; transform: rotate(-8deg) scale(2.6); }
+  70% { opacity: 1; transform: rotate(-8deg) scale(0.9); }
+  100% { opacity: 1; transform: rotate(-8deg) scale(1); }
+}
+@keyframes comic-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-6px) rotate(3deg); }
+}
+@keyframes comic-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+@keyframes comic-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes comic-flash {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comic-pop, .comic-slam, .comic-bob, .comic-blink, .comic-meter-fill, .comic-flash {
+    animation: none;
+  }
+  .comic-pop {
+    transform: rotate(var(--tilt, 0deg));
   }
 }
