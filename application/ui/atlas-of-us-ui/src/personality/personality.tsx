@@ -5,6 +5,8 @@ import { landfall } from './landfall/script';
 import Landfall from './landfall/landfall';
 import { theThief } from './the_thief/script';
 import Thief from './the_thief/thief';
+import { readingPeople } from './reading_people/script';
+import ReadingPeople from './reading_people/reading_people';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 
@@ -178,7 +180,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'Reading People',
     kind: 'Observer judgment',
     blurb: "Four short vignettes about other people's behavior, and what you think is really going on.",
-    facets: ['Anxiety', 'Self-Consciousness', 'Emotionality', 'Trust', 'Modesty', 'Sympathy'],
+    facets: readingPeople.facets,
   },
   {
     id: 'holiday_table',
@@ -226,6 +228,7 @@ interface Playable {
 const PLAYABLE: Record<string, Playable> = {
   landfall: { script: landfall, renderScene: (animation) => <Landfall animation={animation} /> },
   the_thief: { script: theThief, renderScene: (animation) => <Thief animation={animation} /> },
+  reading_people: { script: readingPeople, renderScene: (animation) => <ReadingPeople animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

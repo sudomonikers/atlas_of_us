@@ -85,6 +85,21 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// Reading People (free text only, so no choice base scores)
+MATCH (s:PersonalityScenario {name: 'reading_people'})
+UNWIND [
+  {order: 0, key: 'festival_laugh',   prompt: 'What do you think they were laughing at? How did it feel to walk into that?'},
+  {order: 1, key: 'festival_after',   prompt: 'Walking home, is it still on your mind? Would you ask them about it?'},
+  {order: 2, key: 'ren_brag',         prompt: 'Why do you think Ren told it that way?'},
+  {order: 3, key: 'ren_credit',       prompt: 'Ms. Kuroda is waiting. What do you say, and why?'},
+  {order: 4, key: 'old_man',          prompt: 'What do you think is going on with him?'},
+  {order: 5, key: 'old_man_feeling',  prompt: 'How did watching him leave you feeling? Take a moment with it before you answer.'},
+  {order: 6, key: 'aoi_note',         prompt: 'What do you think is going on with Aoi?'},
+  {order: 7, key: 'aoi_next',         prompt: 'The note is still folded in your hand. Do you read the rest, give it back, bring it up, or let it be? Why?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 
 // -----------------------------------------------------------------------------
 // 3. Choice base scores
