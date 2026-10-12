@@ -9,6 +9,7 @@ use crate::{auth::AuthUser, state::AppState};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
+        .route("/people/{person_id}/traits", get(list_person_traits))
         .route("/scenarios/{name}/questions", get(list_scenario_questions))
         .route("/answers", put(answer_question))
         .route("/progress", get(get_progress))
@@ -38,6 +39,46 @@ pub async fn list_all_personality_traits(State(state): State<AppState>) -> Resul
         traits.push(row.to::<PersonalityTrait>().map_err(|e| internal(&e))?);
     }
     Ok(Json(traits))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersonTrait {
+    id: String, //the PersonalityTrait's id
+    name: String,
+    description: Option<String>,
+    value: f64, //how strongly the person has the trait, 0 to 1
+}
+
+//a person's personality traits, from their HAS_PERSONALITY_TRAIT relationships. People can only see their own
+pub async fn list_person_traits(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(person_id): Path<String>,
+) -> Result<Json<Vec<PersonTrait>>, (StatusCode, String)> {
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
+    if person_id != user.person_id {
+        return Err((StatusCode::FORBIDDEN, "You can only see your own personality traits.".to_string()));
+    }
+
+    //grouped by the person, so there's one row if they exist (with no traits, an empty list) and none if they don't
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person) WHERE elementId(p) = $personId
+        OPTIONAL MATCH (p)-[r:HAS_PERSONALITY_TRAIT]->(t:PersonalityTrait)
+        WITH p, r, t ORDER BY t.name
+        RETURN elementId(p) AS person_id, collect(CASE WHEN t IS NULL THEN null ELSE {
+            id: elementId(t), name: t.name, description: t.description, value: toFloat(r.value)
+        } END) AS traits
+    ")
+        .param("personId", person_id)
+    ).await.map_err(|e| internal(&e))?;
+
+    match rows.next().await.map_err(|e| internal(&e))? {
+        Some(row) => Ok(Json(row.get::<Vec<PersonTrait>>("traits").map_err(|e| internal(&e))?)),
+        None => Err((StatusCode::NOT_FOUND, "We couldn't find that person.".to_string())),
+    }
 }
 
 #[derive(Serialize, Deserialize)]

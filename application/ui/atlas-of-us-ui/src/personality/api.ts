@@ -24,3 +24,20 @@ export const saveAnswer = (question_id: string, answer: string, reasoning?: stri
 
 //every question the logged in user has answered
 export const getProgress = () => request<SavedAnswer[]>('GET', '/personality/progress');
+
+export interface TraitInfo {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface TraitScore extends TraitInfo {
+  value: number; //how strongly the person has the trait, 0 to 1
+}
+
+//every trait we measure
+export const getTraits = () => request<TraitInfo[]>('GET', '/personality/traits');
+
+//the person's measured traits. Only the logged in user's own are allowed
+export const getPersonTraits = (personId: string) =>
+  request<TraitScore[]>('GET', `/personality/people/${encodeURIComponent(personId)}/traits`);
