@@ -14,7 +14,6 @@ use axum::{
     routing::get,
 };
 use serde_json::json;
-use axum_prometheus::PrometheusMetricLayer;
 use neo4rs::{Graph,query};
 use std::env;
 
@@ -26,9 +25,6 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
-
-    //collect http metrics with prometheus
-    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair(); 
 
     //instantiate neo4j connector
    let graph = Graph::new(
@@ -44,14 +40,12 @@ async fn main() {
     // build our application 
     let app = Router::new()
         .route("/api", get(health_check))
-        .route("/metrics", get(|| async move { metric_handle.render() }))
         .nest("/api/auth", auth::router())
         .nest("/api/personality", personality::router())
         .nest("/api/topics", topics::router())
         .nest("/api/skills", skills::router())
         .nest("/api/physical", physical::router())
         .nest("/api/feedback", feedback::router())
-        .layer(prometheus_layer)
         .with_state(state);
 
     //lambda sets AWS_LAMBDA_RUNTIME_API, otherwise run as a normal server

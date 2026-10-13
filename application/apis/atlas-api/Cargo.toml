@@ -17,19 +17,9 @@ futures = "0.3.34"
 # Database (optional)
 neo4rs = "0.9.0-rc.10"
 
-# OpenTelemetry
-opentelemetry = "0.33"
-opentelemetry_sdk = { version = "0.33", features = ["rt-tokio", "logs"] }
-opentelemetry-otlp = { version = "0.33", features = ["grpc-tonic", "trace", "logs"] }
-opentelemetry-appender-tracing = "0.33"
-
 # Tracing
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-tracing-opentelemetry = "0.34"
-
-# Observability
-axum-prometheus = "0.10.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
