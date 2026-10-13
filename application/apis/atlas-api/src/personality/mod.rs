@@ -238,14 +238,14 @@ pub async fn answer_question(
         None => return Err((StatusCode::NOT_FOUND, "That question doesn't exist anymore. Try reloading the page.".to_string())),
     };
 
-    //only on the last question, so replaying a finished scenario doesn't start a job on its first answer
+    //only on the last question, so replaying a finished scenario doesn't start a job on its first answer.
+    //Earlier questions can go unanswered, when a scenario's clock runs out before them
     let mut rows = state.graph.execute(query("
         MATCH (p:Person) WHERE elementId(p) = $personId
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
         MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
-        OPTIONAL MATCH (p)-[done:ANSWERED]->(each)
-        WITH p, q, max(each.order) AS last, count(each) AS total, count(done) AS answered
-        WHERE q.order = last AND answered = total
+        WITH p, q, max(each.order) AS last
+        WHERE q.order = last
         OPTIONAL MATCH (p)-[:HAS_RUNNING_JOB]->(stale:PersonalityJobRunning)
         DETACH DELETE stale
         WITH DISTINCT p

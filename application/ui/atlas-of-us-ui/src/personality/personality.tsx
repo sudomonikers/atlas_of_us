@@ -7,6 +7,8 @@ import { theThief } from './the_thief/script';
 import Thief from './the_thief/thief';
 import { readingPeople } from './reading_people/script';
 import ReadingPeople from './reading_people/reading_people';
+import { theArchive } from './the_archive/script';
+import TheArchive from './the_archive/the_archive';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 
@@ -41,12 +43,14 @@ async function fetchProgress() {
   return { answers, questions: Object.fromEntries(names.map((name, i) => [name, lists[i]])) };
 }
 
-//some questions answered is in progress, all of them is complete
+//some questions answered is in progress, the last one is complete. Questions on a clock can be skipped
 function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQuestion[]>) {
   const progress: Record<string, ScenarioProgress> = {};
   for (const name of new Set(answers.map((a) => a.scenario))) {
-    const dates = answers.filter((a) => a.scenario === name).map((a) => a.answered_date).sort();
-    const complete = dates.length >= (questions[name]?.length ?? Infinity);
+    const mine = answers.filter((a) => a.scenario === name);
+    const dates = mine.map((a) => a.answered_date).sort();
+    const last = questions[name]?.[questions[name].length - 1];
+    const complete = !!last && mine.some((a) => a.question_key === last.key);
     progress[name] = {
       status: complete ? 'complete' : 'in_progress',
       startedAt: dates[0],
@@ -208,7 +212,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'The Archive',
     kind: 'Game with stakes',
     blurb: 'A timed task to sort a mysterious archive, with letters, artwork, and puzzles to explore along the way.',
-    facets: ['Imagination', 'Artistic Interests', 'Intellect', 'Orderliness', 'Achievement-Striving', 'Self-Discipline'],
+    facets: theArchive.facets,
   },
   {
     id: 'rule_that_doesnt_fit',
@@ -221,7 +225,7 @@ const SCENARIOS: ScenarioInfo[] = [
 
 interface Playable {
   script: Script;
-  renderScene: (animation: string) => ReactNode;
+  renderScene: (animation: string, clock?: number) => ReactNode;
 }
 
 //scenarios that have been built so far, keyed by ScenarioInfo id
@@ -229,6 +233,7 @@ const PLAYABLE: Record<string, Playable> = {
   landfall: { script: landfall, renderScene: (animation) => <Landfall animation={animation} /> },
   the_thief: { script: theThief, renderScene: (animation) => <Thief animation={animation} /> },
   reading_people: { script: readingPeople, renderScene: (animation) => <ReadingPeople animation={animation} /> },
+  the_archive: { script: theArchive, renderScene: (animation, clock) => <TheArchive animation={animation} clock={clock} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
@@ -745,7 +750,7 @@ const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 
 interface ScriptPlayerProps {
   script: Script;
-  renderScene: (animation: string) => ReactNode; //the scenario's background, driven by the current step's animation
+  renderScene: (animation: string, clock?: number) => ReactNode; //the scenario's background, driven by the current step's animation and how much of the clock is left, 1 to 0
   earlier: SavedAnswer[]; //the user's answers from when the scenario was opened, for Sections that recall them
   onAnswer: (step: PromptFrame, answer: Answer) => Promise<void>; //saves an answer; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
@@ -759,6 +764,12 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
+  const { clock } = script;
+  const [deadline, setDeadline] = useState<number>(); //when the clock runs out, once it's started
+  const [over, setOver] = useState(false); //the clock stopped, finished or not
+  const [now, setNow] = useState(0);
+  const running = clock && deadline !== undefined && !over;
+  const left = running ? Math.max(0, deadline - now) / 1000 : undefined;
 
   const position = history[history.length - 1];
   const section = script.sections[position.section];
@@ -773,6 +784,20 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
     const timer = setTimeout(() => setShown((s) => s + 1), TYPE_SPEED_MS);
     return () => clearTimeout(timer);
   }, [shown, typed]);
+
+  //running out jumps straight to the clock's late Section, whatever the user is in the middle of
+  useEffect(() => {
+    if (!running || !clock || deadline === undefined) return;
+    const timer = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t < deadline) return;
+      setOver(true);
+      setHistory((h) => [...h, { section: clock.late, index: 0 }]);
+      setShown(0);
+    }, 250);
+    return () => clearInterval(timer);
+  }, [running, deadline, clock]);
 
   const nextPosition = (): Position | undefined => {
     if (isPrompt(step) && step.choices && answer?.choice !== undefined) {
@@ -810,7 +835,14 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
       onFinish();
       return;
     }
-    setHistory((h) => [...h, next]);
+    if (clock && next.section === clock.from && deadline === undefined) {
+      const t = Date.now();
+      setDeadline(t + clock.seconds * 1000);
+      setNow(t);
+    }
+    if (clock && next.section === clock.until) setOver(true);
+    //unless the clock ran out while the answer was saving
+    setHistory((h) => (h[h.length - 1] === position ? [...h, next] : h));
     setShown(0);
   };
 
@@ -842,7 +874,13 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
 
   return (
     <div style={styles.stage}>
-      {renderScene(step.animation)}
+      {renderScene(step.animation, left === undefined ? undefined : left / clock!.seconds)}
+
+      {left !== undefined && (
+        <div style={{ ...styles.clock, ...(left < 60 ? styles.clockLow : {}) }}>
+          {Math.floor(left / 60)}:{String(Math.floor(left % 60)).padStart(2, '0')}
+        </div>
+      )}
 
       <button style={styles.exit} className="comic-lift" onClick={onExit}>
         ◀ Back to scenarios
@@ -1065,6 +1103,25 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 20,
     letterSpacing: 1,
+  },
+  clock: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 20,
+    padding: '4px 14px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '8px 14px 6px 12px / 12px 8px 14px 6px',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 26,
+    letterSpacing: 2,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  clockLow: {
+    color: '#c0392b',
   },
 };
 

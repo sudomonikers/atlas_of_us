@@ -85,12 +85,21 @@ export interface Recall {
   choices: Record<string, string>; //choice label to the id of the Section to continue with
 }
 
+//a real countdown over part of the script. Prompts between from and until can be skipped when it runs out
+export interface Clock {
+  seconds: number;
+  from: string; //id of the Section that starts it
+  until: string; //id of the Section that stops it
+  late: string; //id of the Section jumped to the moment it runs out
+}
+
 export interface Script {
   id: string;
   title: string;
   facets: PersonalityTrait[]; //every trait this scenario is designed to measure
   start: string; //id of the first Section
   sections: Record<string, Section>;
+  clock?: Clock;
 }
 
 export const isPrompt = (step: Step): step is PromptFrame => 'prompt' in step;

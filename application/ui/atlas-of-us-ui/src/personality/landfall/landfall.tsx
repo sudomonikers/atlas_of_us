@@ -871,21 +871,23 @@ function Ocean({ materialRef }: { materialRef: RefObject<THREE.MeshStandardMater
     return g;
   }, []);
   const rest = useMemo(() => Float32Array.from(geometry.attributes.position.array), [geometry]);
+  const mesh = useRef<THREE.Mesh>(null); //the waves are written through the mesh, since hook values can't be changed
 
   useFrame(({ clock }) => {
+    if (!mesh.current) return;
     const t = clock.elapsedTime;
-    const position = geometry.attributes.position;
+    const position = mesh.current.geometry.attributes.position;
     for (let i = 0; i < position.count; i++) {
       const x = rest[i * 3];
       const z = rest[i * 3 + 2];
       position.setY(i, Math.sin(x * 0.15 + t * 0.9) * 0.22 + Math.cos(z * 0.2 + t * 0.7) * 0.18);
     }
     position.needsUpdate = true;
-    geometry.computeVertexNormals();
+    mesh.current.geometry.computeVertexNormals();
   });
 
   return (
-    <mesh geometry={geometry} position={[0, 0, 200]}>
+    <mesh ref={mesh} geometry={geometry} position={[0, 0, 200]}>
       <meshStandardMaterial ref={materialRef} flatShading roughness={0.35} metalness={0.1} />
     </mesh>
   );

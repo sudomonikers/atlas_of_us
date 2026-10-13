@@ -100,6 +100,22 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// The Archive. Questions 0 to 4 are on a real clock and can go unanswered if it runs out.
+// the_night is asked at dawn either way, with different choices depending on whether the player finished in time
+MATCH (s:PersonalityScenario {name: 'the_archive'})
+UNWIND [
+  {order: 0, key: 'plan',         prompt: 'Where do you start?'},
+  {order: 1, key: 'the_letter',   prompt: "The sky hasn't changed yet, but it will. What do you do with the letter?"},
+  {order: 2, key: 'the_sketches', prompt: 'Her sketchbook is full of stars she made up. How long do you give it?'},
+  {order: 3, key: 'the_orrery',   prompt: 'Why would she set it to a date so far away?'},
+  {order: 4, key: 'last_crate',   prompt: 'What do you do with the last crate?'},
+  {order: 5, key: 'the_night',    prompt: 'Dawn came. How do you feel about the way you spent the night?'},
+  {order: 6, key: 'who_she_was',  prompt: 'From everything you saw tonight, who do you think Ottilie was?'},
+  {order: 7, key: 'take_one',     prompt: 'You can take one thing home from the observatory. What do you take, and why?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 
 // -----------------------------------------------------------------------------
 // 3. Choice base scores
@@ -181,6 +197,63 @@ UNWIND [
    shifts: [{trait: 'Altruism', delta: 0.4}, {trait: 'Cautiousness', delta: 0.4}, {trait: 'Self-Discipline', delta: 0.4}, {trait: 'Cooperation', delta: 0.2}]}
 ] AS choice
 MATCH (:PersonalityScenario {name: 'the_thief'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
+MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
+WITH c, choice
+OPTIONAL MATCH (c)-[old:SHIFTS]->()
+DELETE old
+WITH DISTINCT c, choice
+UNWIND choice.shifts AS shift
+MATCH (t:PersonalityTrait {name: shift.trait})
+CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
+
+
+// The Archive
+UNWIND [
+  {question: 'plan', label: 'Make a plan first. Label the crates, then sort everything by date.',
+   shifts: [{trait: 'Orderliness', delta: 0.7}, {trait: 'Self-Discipline', delta: 0.3}, {trait: 'Achievement-Striving', delta: 0.2}]},
+  {question: 'plan', label: "Logbooks and plates first. That's what the university wants.",
+   shifts: [{trait: 'Achievement-Striving', delta: 0.5}, {trait: 'Self-Discipline', delta: 0.4}, {trait: 'Decisiveness', delta: 0.3}]},
+  {question: 'plan', label: 'Just dive in and sort things as they come to hand.',
+   shifts: [{trait: 'Orderliness', delta: -0.5}, {trait: 'Adaptability', delta: 0.3}, {trait: 'Activity Level', delta: 0.2}]},
+
+  {question: 'the_letter', label: 'Read it now.',
+   shifts: [{trait: 'Imagination', delta: 0.4}, {trait: 'Emotionality', delta: 0.3}, {trait: 'Self-Discipline', delta: -0.4}]},
+  {question: 'the_letter', label: 'Put it in my pocket for later.',
+   shifts: [{trait: 'Self-Discipline', delta: 0.4}, {trait: 'Imagination', delta: 0.2}, {trait: 'Patience', delta: 0.3}]},
+  {question: 'the_letter', label: 'File it with her papers and keep going.',
+   shifts: [{trait: 'Self-Discipline', delta: 0.5}, {trait: 'Orderliness', delta: 0.3}, {trait: 'Imagination', delta: -0.3}]},
+
+  {question: 'the_sketches', label: 'Look through it properly.',
+   shifts: [{trait: 'Artistic Interests', delta: 0.7}, {trait: 'Imagination', delta: 0.3}, {trait: 'Self-Discipline', delta: -0.4}]},
+  {question: 'the_sketches', label: 'Flip through a few pages, then pack it.',
+   shifts: [{trait: 'Artistic Interests', delta: 0.3}, {trait: 'Self-Discipline', delta: 0.2}]},
+  {question: 'the_sketches', label: "Close it and crate it. There isn't time.",
+   shifts: [{trait: 'Self-Discipline', delta: 0.5}, {trait: 'Achievement-Striving', delta: 0.3}, {trait: 'Artistic Interests', delta: -0.4}]},
+
+  {question: 'the_orrery', label: 'Try to work it out.',
+   shifts: [{trait: 'Intellect', delta: 0.7}, {trait: 'Imagination', delta: 0.2}, {trait: 'Achievement-Striving', delta: -0.2}]},
+  {question: 'the_orrery', label: 'Write the date on a label and move on.',
+   shifts: [{trait: 'Orderliness', delta: 0.4}, {trait: 'Achievement-Striving', delta: 0.3}, {trait: 'Intellect', delta: 0.1}]},
+  {question: 'the_orrery', label: "Leave it. It's just an ornament.",
+   shifts: [{trait: 'Intellect', delta: -0.5}, {trait: 'Imagination', delta: -0.3}]},
+
+  {question: 'last_crate', label: 'Label every plate properly, however long it takes.',
+   shifts: [{trait: 'Orderliness', delta: 0.6}, {trait: 'Perfectionism', delta: 0.6}, {trait: 'Achievement-Striving', delta: 0.4}, {trait: 'Self-Discipline', delta: 0.3}]},
+  {question: 'last_crate', label: 'Label the crate "Glass plates, unsorted" and call it done.',
+   shifts: [{trait: 'Achievement-Striving', delta: 0.3}, {trait: 'Orderliness', delta: -0.2}, {trait: 'Adaptability', delta: 0.3}]},
+  {question: 'last_crate', label: "Leave it. I've done enough.",
+   shifts: [{trait: 'Achievement-Striving', delta: -0.5}, {trait: 'Self-Discipline', delta: -0.4}]},
+
+  {question: 'the_night', label: 'Satisfied. I set out to get it done, and I did.',
+   shifts: [{trait: 'Achievement-Striving', delta: 0.6}, {trait: 'Self-Discipline', delta: 0.5}, {trait: 'Self-Efficacy', delta: 0.3}]},
+  {question: 'the_night', label: "I finished, but I wish I'd slowed down and looked closer.",
+   shifts: [{trait: 'Self-Discipline', delta: 0.3}, {trait: 'Imagination', delta: 0.3}, {trait: 'Artistic Interests', delta: 0.3}]},
+  {question: 'the_night', label: 'Frustrated. I should have stuck to the job.',
+   shifts: [{trait: 'Achievement-Striving', delta: 0.4}, {trait: 'Self-Discipline', delta: -0.4}, {trait: 'Introspection', delta: 0.2}]},
+  {question: 'the_night', label: 'No regrets. What I found was worth more than finishing.',
+   shifts: [{trait: 'Imagination', delta: 0.5}, {trait: 'Artistic Interests', delta: 0.4}, {trait: 'Achievement-Striving', delta: -0.4}, {trait: 'Self-Discipline', delta: -0.3}]}
+] AS choice
+MATCH (:PersonalityScenario {name: 'the_archive'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
 MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
 WITH c, choice
 OPTIONAL MATCH (c)-[old:SHIFTS]->()
