@@ -25,7 +25,8 @@ pub fn router() -> Router<AppState> {
 pub struct PersonalityTrait {
     name: String,
     description: Option<String>,
-    id: String
+    id: String,
+    average: Option<f64>, //everyone's mean value for the trait, 0 to 1. Missing until someone has been measured on it
 }
 
 pub async fn list_all_personality_traits(State(state): State<AppState>) -> Result<Json<Vec<PersonalityTrait>>, (StatusCode, String)> {
@@ -36,7 +37,8 @@ pub async fn list_all_personality_traits(State(state): State<AppState>) -> Resul
 
     let mut rows = state.graph.execute(query("
             MATCH (p:PersonalityTrait)
-            RETURN p.name AS name, p.description AS description, elementId(p) AS id
+            OPTIONAL MATCH (:Person)-[r:HAS_PERSONALITY_TRAIT]->(p)
+            RETURN p.name AS name, p.description AS description, elementId(p) AS id, avg(toFloat(r.value)) AS average
             ORDER BY name"
         )).await.map_err(|e| internal(&e))?;
 

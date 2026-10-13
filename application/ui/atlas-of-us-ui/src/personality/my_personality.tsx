@@ -12,6 +12,7 @@ const comic = 'var(--font-comic)';
 
 //the "My Personality" view: where the user sits on every trait, grouped by domain
 export default function MyPersonality({ traits }: { traits: Trait[] }) {
+  const [compare, setCompare] = useState(false); //overlay everyone's average on each bar
   const measured = traits.filter((t) => t.value !== undefined).length;
   const domains = DOMAINS.map((d) => ({ ...d, traits: traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
 
@@ -24,6 +25,16 @@ export default function MyPersonality({ traits }: { traits: Trait[] }) {
         Each bar shows where you sit between low and high on a trait. Low isn't bad and high isn't good, they're just
         different. The bars fill in as you play scenarios and we read your answers.
       </p>
+      <div style={styles.compare}>
+        <button className="comic-chip comic-lift" style={styles.compareButton} aria-pressed={compare} onClick={() => setCompare((c) => !c)}>
+          {compare ? '✓ ' : ''}Compare with everyone
+        </button>
+        {compare && (
+          <span style={styles.compareKey}>
+            <span style={styles.compareSwatch} /> the average across everyone we've measured
+          </span>
+        )}
+      </div>
       {domains.map((domain) => (
         <section key={domain.key} style={styles.domain}>
           <header style={styles.domainHead}>
@@ -35,7 +46,7 @@ export default function MyPersonality({ traits }: { traits: Trait[] }) {
           </header>
           <ul style={styles.traitList}>
             {domain.traits.map((t) => (
-              <TraitRow key={t.id} trait={t} />
+              <TraitRow key={t.id} trait={t} compare={compare} />
             ))}
           </ul>
         </section>
@@ -44,9 +55,12 @@ export default function MyPersonality({ traits }: { traits: Trait[] }) {
   );
 }
 
-function TraitRow({ trait }: { trait: Trait }) {
+const toPercent = (value?: number) => (value === undefined ? undefined : Math.round(Math.min(Math.max(value, 0), 1) * 100));
+
+function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
   const [open, setOpen] = useState(false);
-  const percent = trait.value === undefined ? undefined : Math.round(Math.min(Math.max(trait.value, 0), 1) * 100);
+  const percent = toPercent(trait.value);
+  const average = compare ? toPercent(trait.average) : undefined;
   const explained = trait.contributions.length > 0;
 
   return (
@@ -62,7 +76,12 @@ function TraitRow({ trait }: { trait: Trait }) {
         <div style={styles.traitLabel}>
           <div style={styles.traitHead}>
             <span style={styles.traitName}>{trait.name}</span>
-            {percent !== undefined && <span style={styles.traitValue}>{percent}</span>}
+            {percent !== undefined && (
+              <span style={styles.traitScore}>
+                {average !== undefined && <span style={styles.traitAverage}>global average {average}</span>}
+                <span style={styles.traitValue}>{percent}</span>
+              </span>
+            )}
             {percent !== undefined && (trait.confidence ?? 0) < 0.5 && (
               <span className="comic-chip" title="Based on only a little of what you've told us so far">
                 Early read
@@ -80,6 +99,7 @@ function TraitRow({ trait }: { trait: Trait }) {
               <div style={styles.barTrack}>
                 <div className="comic-meter-fill" style={{ ...styles.barFill, width: `${percent}%` }} />
               </div>
+              {average !== undefined && <span style={{ ...styles.averageMark, left: `${average}%` }} title={`Global average: ${average}`} />}
               <span className="comic-pop" style={{ ...styles.barThumb, left: `${percent}%` }} />
             </div>
             <div style={styles.barEnds} aria-hidden>
@@ -136,9 +156,37 @@ const styles: Record<string, CSSProperties> = {
   },
   traitsIntro: {
     maxWidth: 1100,
-    margin: '-12px auto 32px',
+    margin: '-12px auto 16px',
     fontSize: 19,
     lineHeight: 1.3,
+  },
+  compare: {
+    maxWidth: 1100,
+    margin: '0 auto 32px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '6px 16px',
+  },
+  compareButton: {
+    color: gunmetal,
+    fontFamily: 'inherit',
+    fontSize: 16,
+    cursor: 'pointer',
+  },
+  compareKey: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 16,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  compareSwatch: {
+    width: 5,
+    height: 22,
+    background: gunmetal,
+    borderRadius: 2,
   },
   domain: {
     maxWidth: 1100,
@@ -259,6 +307,17 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 23,
     letterSpacing: 0.5,
   },
+  //the user's value, with the global average to its left when comparing
+  traitScore: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 10,
+  },
+  traitAverage: {
+    fontSize: 14,
+    whiteSpace: 'nowrap',
+    opacity: 0.7,
+  },
   traitValue: {
     fontFamily: comic,
     fontSize: 23,
@@ -285,6 +344,16 @@ const styles: Record<string, CSSProperties> = {
   barFill: {
     background: `repeating-linear-gradient(-45deg, ${blue} 0 10px, #7d9dba 10px 20px)`,
     borderRadius: 6,
+  },
+  //a tick through the bar at everyone's average, under the user's thumb
+  averageMark: {
+    position: 'absolute',
+    top: -6,
+    bottom: -6,
+    width: 5,
+    marginLeft: -2.5,
+    background: gunmetal,
+    borderRadius: 2,
   },
   //centred with margins, since comic-pop animates the transform
   barThumb: {

@@ -29,9 +29,10 @@ export interface TraitInfo {
   id: string;
   name: string;
   description: string | null;
+  average: number | null; //everyone's mean value, 0 to 1. Null until someone has been measured on it
 }
 
-export interface TraitScore extends TraitInfo {
+export interface TraitScore extends Omit<TraitInfo, 'average'> {
   value: number; //how strongly the person has the trait, 0 to 1
   confidence: number; //how much evidence the value is based on, 0 to 1
 }
@@ -105,6 +106,7 @@ export interface Trait {
   description?: string;
   value?: number; //0 to 1, missing until we've learned enough to measure it
   confidence?: number; //0 to 1, how much evidence the value is based on
+  average?: number; //everyone's mean value, 0 to 1
   contributions: Contribution[]; //the answers that moved the value, biggest first
 }
 
@@ -145,6 +147,7 @@ export async function fetchTraits(personId: string): Promise<Trait[]> {
       description: description && description[0].toUpperCase() + description.slice(1),
       value: scores.get(t.id)?.value,
       confidence: scores.get(t.id)?.confidence,
+      average: t.average ?? undefined,
       contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
     };
   });
