@@ -130,6 +130,20 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// The Offer. Every path shares what_decided and gone_wrong
+MATCH (s:PersonalityScenario {name: 'the_offer'})
+UNWIND [
+  {order: 0, key: 'first_reaction', prompt: 'She waits for your answer. What do you say?'},
+  {order: 1, key: 'the_tour',       prompt: 'Okafor has an hour before the next fuel transfer. What do you want to see?'},
+  {order: 2, key: 'what_worries',   prompt: 'What worries you most about going?'},
+  {order: 3, key: 'can_you',        prompt: 'Could you handle it?'},
+  {order: 4, key: 'the_decision',   prompt: 'What do you tell her?'},
+  {order: 5, key: 'what_decided',   prompt: 'What decided it for you?'},
+  {order: 6, key: 'gone_wrong',     prompt: "Imagine it's a year later, and the choice you made has gone badly. What went wrong, and what do you do about it?"}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 // -----------------------------------------------------------------------------
 // 3. Choice base scores
 // -----------------------------------------------------------------------------
@@ -301,6 +315,47 @@ UNWIND [
    shifts: [{trait: 'Morality', delta: -0.6}, {trait: 'Dutifulness', delta: -0.4}, {trait: 'Liberalism', delta: 0.2}]}
 ] AS choice
 MATCH (:PersonalityScenario {name: 'rule_that_doesnt_fit'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
+MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
+WITH c, choice
+OPTIONAL MATCH (c)-[old:SHIFTS]->()
+DELETE old
+WITH DISTINCT c, choice
+UNWIND choice.shifts AS shift
+MATCH (t:PersonalityTrait {name: shift.trait})
+CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
+
+
+// The Offer
+UNWIND [
+  {question: 'first_reaction', label: 'When do I leave?',
+   shifts: [{trait: 'Excitement-Seeking', delta: 0.6}, {trait: 'Adventurousness', delta: 0.5}, {trait: 'Cautiousness', delta: -0.5}, {trait: 'Decisiveness', delta: 0.4}]},
+  {question: 'first_reaction', label: 'Send me everything: the risks, the contract, all of it.',
+   shifts: [{trait: 'Cautiousness', delta: 0.6}, {trait: 'Excitement-Seeking', delta: -0.1}]},
+  {question: 'first_reaction', label: "Why me? I'm not sure I'm the right person.",
+   shifts: [{trait: 'Self-Efficacy', delta: -0.5}, {trait: 'Anxiety', delta: 0.3}, {trait: 'Modesty', delta: 0.3}]},
+
+  {question: 'the_tour', label: 'Suit up and go out on the hull.',
+   shifts: [{trait: 'Excitement-Seeking', delta: 0.6}, {trait: 'Adventurousness', delta: 0.4}]},
+  {question: 'the_tour', label: 'The report on the lost lander.',
+   shifts: [{trait: 'Cautiousness', delta: 0.6}, {trait: 'Anxiety', delta: 0.2}]},
+  {question: 'the_tour', label: 'The crew. I want to meet the people I would be living with.',
+   shifts: [{trait: 'Gregariousness', delta: 0.4}, {trait: 'Friendliness', delta: 0.4}]},
+
+  {question: 'can_you', label: "I've handled worse. I'd manage.",
+   shifts: [{trait: 'Self-Efficacy', delta: 0.7}, {trait: 'Anxiety', delta: -0.3}]},
+  {question: 'can_you', label: 'With enough training, yes.',
+   shifts: [{trait: 'Self-Efficacy', delta: 0.3}, {trait: 'Cautiousness', delta: 0.3}, {trait: 'Achievement-Striving', delta: 0.2}]},
+  {question: 'can_you', label: "Honestly, I don't know if I could.",
+   shifts: [{trait: 'Self-Efficacy', delta: -0.6}, {trait: 'Anxiety', delta: 0.5}]},
+
+  {question: 'the_decision', label: "I'm going.",
+   shifts: [{trait: 'Adventurousness', delta: 0.7}, {trait: 'Excitement-Seeking', delta: 0.5}, {trait: 'Cautiousness', delta: -0.4}, {trait: 'Boldness', delta: 0.5}]},
+  {question: 'the_decision', label: "I'm staying on Halden.",
+   shifts: [{trait: 'Adventurousness', delta: -0.5}, {trait: 'Cautiousness', delta: 0.5}, {trait: 'Achievement-Striving', delta: 0.2}]},
+  {question: 'the_decision', label: 'Not this time. Hold me a place on the next ship.',
+   shifts: [{trait: 'Cautiousness', delta: 0.4}, {trait: 'Adventurousness', delta: 0.2}, {trait: 'Anxiety', delta: 0.2}, {trait: 'Decisiveness', delta: -0.3}]}
+] AS choice
+MATCH (:PersonalityScenario {name: 'the_offer'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
 MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
 WITH c, choice
 OPTIONAL MATCH (c)-[old:SHIFTS]->()

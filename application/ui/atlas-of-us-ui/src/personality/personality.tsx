@@ -11,6 +11,8 @@ import { theArchive } from './the_archive/script';
 import TheArchive from './the_archive/the_archive';
 import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
 import LastFerry from './rule_that_doesnt_fit/last_ferry';
+import { theOffer } from './the_offer/script';
+import TheOffer from './the_offer/the_offer';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 
@@ -200,7 +202,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'The Offer',
     kind: 'Reflective',
     blurb: 'An exciting but risky role in a new city, or the stable job you are good at.',
-    facets: ['Anxiety', 'Excitement-Seeking', 'Adventurousness', 'Self-Efficacy', 'Achievement-Striving', 'Cautiousness'],
+    facets: theOffer.facets,
   },
   {
     id: 'track_record',
@@ -237,6 +239,7 @@ const PLAYABLE: Record<string, Playable> = {
   reading_people: { script: readingPeople, renderScene: (animation) => <ReadingPeople animation={animation} /> },
   the_archive: { script: theArchive, renderScene: (animation, clock) => <TheArchive animation={animation} clock={clock} /> },
   rule_that_doesnt_fit: { script: ruleThatDoesntFit, renderScene: (animation) => <LastFerry animation={animation} /> },
+  the_offer: { script: theOffer, renderScene: (animation) => <TheOffer animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
