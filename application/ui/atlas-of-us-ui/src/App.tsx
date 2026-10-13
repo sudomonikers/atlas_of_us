@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import './App.css'
 import { logout, useSession } from './auth/api'
 import { Auth } from './auth/auth'
+import { Feedback } from './feedback/feedback'
 import Personality from './personality/personality'
 import { usePath } from './router'
 
@@ -16,19 +17,27 @@ function App() {
     <>
       <Personality />
       {session.status === 'authenticated' && (
-        <button className="comic-lift" style={logoutStyle} onClick={logout}>
-          Log out
-        </button>
+        <div style={cornerStyle}>
+          <Feedback buttonStyle={buttonStyle} />
+          <button className="comic-lift" style={buttonStyle} onClick={logout}>
+            Log out
+          </button>
+        </div>
       )}
     </>
   )
 }
 
-const logoutStyle: CSSProperties = {
+const cornerStyle: CSSProperties = {
   position: 'fixed',
   top: 16,
   right: 16,
   zIndex: 30,
+  display: 'flex',
+  gap: 12,
+}
+
+const buttonStyle: CSSProperties = {
   padding: '4px 14px',
   background: 'var(--ivory-white)',
   color: 'var(--gunmetal-black)',

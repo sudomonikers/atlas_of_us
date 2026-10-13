@@ -6,6 +6,7 @@ mod physical;
 mod skills;
 mod topics;
 mod auth;
+mod feedback;
 
 use axum::{
     Json, Router,
@@ -62,6 +63,7 @@ async fn main() {
         .nest("/api/topics", topics::router())
         .nest("/api/skills", skills::router())
         .nest("/api/physical", physical::router())
+        .nest("/api/feedback", feedback::router())
         .layer(prometheus_layer)
         .layer(cors)
         .with_state(state);
