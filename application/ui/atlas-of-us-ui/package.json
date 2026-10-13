@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && npm run deploy:assets && npm run deploy:site",
+    "deploy:assets": "aws s3 sync dist/assets s3://atlas-of-us-site/assets --cache-control 'public,max-age=31536000,immutable'",
+    "deploy:site": "aws s3 sync dist s3://atlas-of-us-site --exclude 'assets/*' --delete --cache-control no-cache"
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.1",

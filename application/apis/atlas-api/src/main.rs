@@ -10,7 +10,6 @@ mod feedback;
 
 use axum::{
     Json, Router,
-    http::{HeaderValue, Method, header::{AUTHORIZATION, CONTENT_TYPE}},
     response::IntoResponse,
     routing::get,
 };
@@ -18,7 +17,6 @@ use serde_json::json;
 use axum_prometheus::PrometheusMetricLayer;
 use neo4rs::{Graph,query};
 use std::env;
-use tower_http::cors::CorsLayer;
 
 use state::AppState;
 
@@ -43,17 +41,6 @@ async fn main() {
     //create state every route can grab from
     let state = AppState { graph };
 
-    //let the UI call us from another origin. CORS_ORIGINS is a comma separated list, defaulting to the vite dev server
-    let origins: Vec<HeaderValue> = env::var("CORS_ORIGINS")
-        .unwrap_or_else(|_| "http://localhost:5173".to_string())
-        .split(',')
-        .map(|origin| origin.trim().parse().expect("CORS_ORIGINS contains an invalid origin"))
-        .collect();
-    let cors = CorsLayer::new()
-        .allow_origin(origins)
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
-
     // build our application 
     let app = Router::new()
         .route("/api", get(health_check))
@@ -65,8 +52,13 @@ async fn main() {
         .nest("/api/physical", physical::router())
         .nest("/api/feedback", feedback::router())
         .layer(prometheus_layer)
-        .layer(cors)
         .with_state(state);
+
+    //lambda sets AWS_LAMBDA_RUNTIME_API, otherwise run as a normal server
+    if env::var("AWS_LAMBDA_RUNTIME_API").is_ok() {
+        lambda_http::run(app).await.unwrap();
+        return;
+    }
 
     // listen globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

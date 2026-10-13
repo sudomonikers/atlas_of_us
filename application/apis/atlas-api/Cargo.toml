@@ -7,7 +7,7 @@ edition = "2024"
 # Web Framework
 axum = { version = "0.8.8", features = ["macros"] }
 tower = { version = "0.5.2", features = ["full"] }
-tower-http = { version = "0.6.8", features = ["trace", "cors", "timeout", "request-id"] }
+tower-http = { version = "0.6.8", features = ["trace", "timeout", "request-id"] }
 
 # Async Runtime
 tokio = { version = "1.53.2", features = ["full", "tracing"] }
@@ -45,3 +45,6 @@ argon2 = { version = "0.5", features = ["std"] }
 # LLM scoring
 aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
 aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["legacy-https-client", "rt-tokio"] }
+
+# Lambda (function URL events use the API Gateway HTTP payload)
+lambda_http = { version = "1.3.1", default-features = false, features = ["apigw_http", "tracing"] }
