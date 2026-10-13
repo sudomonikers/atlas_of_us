@@ -2,26 +2,14 @@ import type { CSSProperties } from 'react';
 import { useSession } from '../auth/api';
 import { navigate } from '../router';
 import { Nav } from '../shared_components/nav';
-import { Mascot } from '../shared_components/mascot';
+import { Chart } from './chart';
 
 const gunmetal = 'var(--gunmetal-black)';
 const blue = 'var(--air-force-blue)';
 const brownRed = 'var(--brown-red)';
 const ivory = 'var(--ivory-white)';
+const sand = 'var(--pale-cinnamon)';
 const comic = 'var(--font-comic)';
-
-const STOPS = [
-  {
-    title: 'Your personality',
-    body: "Personality tests are broken: a vague statement, five buttons, and nobody ever asks why. So we drop you into situations instead. A shipwreck, a party full of strangers, a ferry with one seat left. You decide what to do, tell us why, and we map you across the Big Five and the parts of being human it leaves out.",
-  },
-  { title: 'What you know', body: 'A map of every idea people hold, true, disputed or flat-out wrong, and how deeply you hold each one.' },
-  { title: 'What you can do', body: 'Every skill from cooking to coding, measured from fumbling novice to effortless expert.' },
-  { title: 'Your body', body: 'The physical you, because what you can become depends on what you have to work with.' },
-  { title: 'Your people', body: 'Friends, family, the places you work and the circles you move in.' },
-  { title: 'Your stuff', body: "The things you own and use, which say more about you than you'd think." },
-  { title: 'Your world', body: "The places, events and works of art that make up the world you're living in." },
-];
 
 const APPS = [
   { name: 'Tinder, but better', body: "Matched on who you actually are, not six photos and a joke about pineapple on pizza." },
@@ -31,56 +19,31 @@ const APPS = [
   { name: 'Shopping, but better', body: 'Things that fit your goals and your life, recommended by something that knows you.' },
 ];
 
-//where the Atlas is headed, one stop at a time, ending with who you could become
+//a message in a bottle, washed up on a little wave
+const Bottle = () => (
+  <svg viewBox="0 0 160 130" width={150} style={{ flex: '0 0 auto', stroke: gunmetal, strokeLinejoin: 'round' }} aria-hidden>
+    <g className="atlas-bob">
+      <g transform="translate(0 34) rotate(-18 80 50)" strokeWidth={3}>
+        <path d="M30 50 C30 34 46 30 62 30 H88 C96 30 98 38 104 41 H116 V59 H104 C98 62 96 70 88 70 H62 C46 70 30 66 30 50Z" style={{ fill: 'var(--pale-blue)' }} />
+        <rect x="116" y="42" width="13" height="16" rx="3" style={{ fill: 'var(--cinnamon-wood)' }} />
+        <rect x="42" y="42" width="44" height="16" rx="8" style={{ fill: ivory }} />
+        <path d="M50 48 H78 M50 53 H70" fill="none" strokeWidth={1.5} />
+        <path d="M40 40 C46 35 56 34 66 35" fill="none" style={{ stroke: '#fff' }} strokeWidth={3} strokeLinecap="round" />
+      </g>
+    </g>
+    <path d="M0 104 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 V130 H0Z" style={{ fill: 'var(--pale-blue)' }} stroke="none" />
+    <path d="M0 104 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0 q10 -9 20 0" fill="none" strokeWidth={3} />
+  </svg>
+);
+
+//where the Atlas is headed, charted as a map, ending with who you could become
 export default function Roadmap() {
   const loggedIn = useSession().status === 'authenticated';
 
   return (
     <div style={styles.page} className="comic-page">
       <Nav />
-      <h1 style={styles.title} className="comic-title">
-        The Road Ahead
-      </h1>
-      <div style={styles.guide}>
-        <Mascot />
-        <div style={styles.bubble} className="comic-bubble comic-pop">
-          Nobody has ever mapped a whole person. Not your personality, not your skills, not your people. <em>All</em> of
-          it. That's what we're building, and here's the route.
-        </div>
-      </div>
-
-      <ol style={styles.route}>
-        {STOPS.map((s, i) => (
-          <li key={s.title} style={styles.stop}>
-            <span style={{ ...styles.pin, background: i ? ivory : brownRed, color: i ? gunmetal : ivory }}>{i + 1}</span>
-            <section
-              style={{ ...styles.panel, '--panel-fill': i ? '#fff' : 'var(--pale-red)', '--tilt': `${i % 2 ? 0.4 : -0.4}deg`, animationDelay: `${i * 90}ms` } as CSSProperties}
-              className="comic-panel comic-pop"
-            >
-              <span style={{ ...styles.stamp, color: i ? blue : brownRed }} className="comic-stamp">
-                {i ? 'Coming soon' : 'You are here'}
-              </span>
-              <h2 style={styles.heading}>{s.title}</h2>
-              <p style={styles.text}>{s.body}</p>
-            </section>
-          </li>
-        ))}
-        <li style={styles.stop}>
-          <span style={{ ...styles.pin, background: blue, color: ivory }}>★</span>
-          <section style={{ ...styles.panel, '--panel-fill': 'var(--pale-blue)', '--tilt': '-0.5deg' } as CSSProperties} className="comic-panel comic-pop">
-            <span style={{ ...styles.stamp, color: brownRed }} className="comic-stamp">
-              The destination
-            </span>
-            <h2 style={{ ...styles.heading, fontSize: 'clamp(34px, 6vw, 52px)' }}>Who you could become</h2>
-            <p style={styles.text}>
-              Once we've mapped everything a human can be, and exactly where you stand on it, we can show you every road out
-              from here. Real ones, grounded in who you actually are: which come naturally, which will be a climb, and the
-              steps to get there.
-            </p>
-            <p style={styles.big}>If you've got dreams, we'll show you the way. If you don't, we'll give you some.</p>
-          </section>
-        </li>
-      </ol>
+      <Chart />
 
       <footer style={styles.footer}>
         <h2 style={styles.subtitle} className="comic-title">
@@ -93,7 +56,7 @@ export default function Roadmap() {
             style={styles.primary}
             onClick={() => navigate(loggedIn ? '/personality' : '/create-account?next=/personality')}
           >
-            Map my personality ▶
+            Set sail: map my personality ▶
           </button>
           {!loggedIn && (
             <button className="comic-lift" style={styles.secondary} onClick={() => navigate('/login?next=/personality')}>
@@ -103,21 +66,26 @@ export default function Roadmap() {
         </div>
       </footer>
 
-      <aside style={styles.ps} className="comic-panel comic-pop">
-        <h2 style={styles.heading}>P.S. Here's where it gets wild.</h2>
-        <p style={styles.text}>
-          Every app that matches you with something works from a sliver of you: a few photos, a résumé, what you bought
-          last week. The Atlas has the whole picture, from your personality and what you know to what you can do, your
-          people and your world. <em>That's</em> what lets us do it better. Once enough of us are on the map, here's what
-          we'd love to build:
-        </p>
-        <ul style={styles.apps}>
-          {APPS.map((a) => (
-            <li key={a.name} style={styles.text}>
-              <strong style={styles.app}>{a.name}.</strong> {a.body}
-            </li>
-          ))}
-        </ul>
+      <aside style={styles.ps}>
+        <Bottle />
+        <div style={styles.scroll} className="comic-panel comic-pop">
+          <span style={{ ...styles.roll, top: -12 }} />
+          <h2 style={styles.heading}>P.S. Here's where it gets wild.</h2>
+          <p style={styles.text}>
+            Every app that matches you with something works from a sliver of you: a few photos, a résumé, what you bought
+            last week. The Atlas has the whole picture, from your personality and what you know to what you can do, your
+            people and your world. <em>That's</em> what lets us do it better. Once enough of us are on the map, here's what
+            we'd love to build:
+          </p>
+          <ul style={styles.apps}>
+            {APPS.map((a) => (
+              <li key={a.name} style={styles.text}>
+                <strong style={styles.app}>{a.name}.</strong> {a.body}
+              </li>
+            ))}
+          </ul>
+          <span style={{ ...styles.roll, bottom: -12 }} />
+        </div>
       </aside>
     </div>
   );
@@ -138,68 +106,10 @@ const styles: Record<string, CSSProperties> = {
     position: 'fixed',
     inset: 0,
     overflowY: 'auto',
+    overflowX: 'hidden',
     padding: '32px 16px 64px',
     boxSizing: 'border-box',
     textAlign: 'left',
-  },
-  title: {
-    margin: '8px auto 28px',
-    fontSize: 'clamp(48px, 9vw, 96px)',
-    textAlign: 'center',
-  },
-  guide: {
-    maxWidth: 820,
-    margin: '0 auto 48px',
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 18,
-  },
-  bubble: {
-    flex: '1 1 280px',
-    '--tilt': '-1deg',
-  } as CSSProperties,
-  //a dashed road down the left, with a numbered pin at each stop
-  route: {
-    maxWidth: 820,
-    margin: '0 auto',
-    padding: '0 0 0 22px',
-    listStyle: 'none',
-    borderLeft: `4px dashed ${gunmetal}`,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 36,
-  },
-  stop: {
-    marginLeft: -46,
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 16,
-  },
-  pin: {
-    flex: '0 0 auto',
-    width: 44,
-    boxSizing: 'border-box',
-    height: 44,
-    display: 'grid',
-    placeItems: 'center',
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '50%',
-    boxShadow: `2px 3px 0 ${gunmetal}`,
-    fontFamily: comic,
-    fontSize: 24,
-  },
-  panel: {
-    flex: 1,
-    minWidth: 0,
-    padding: '18px 24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-    borderRadius: 'var(--wobbly)',
-  },
-  stamp: {
-    alignSelf: 'flex-start',
   },
   heading: {
     margin: 0,
@@ -214,12 +124,6 @@ const styles: Record<string, CSSProperties> = {
     margin: 0,
     fontSize: 20,
     lineHeight: 1.35,
-  },
-  big: {
-    margin: 0,
-    fontSize: 24,
-    lineHeight: 1.3,
-    color: blue,
   },
   footer: {
     maxWidth: 820,
@@ -240,17 +144,34 @@ const styles: Record<string, CSSProperties> = {
     gap: 14,
   },
   ps: {
-    maxWidth: 820,
+    maxWidth: 900,
     margin: '72px auto 0',
-    padding: '20px 26px',
-    boxSizing: 'border-box',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  //a paper scroll, with a rolled edge top and bottom
+  scroll: {
+    flex: '1 1 300px',
+    padding: '28px 26px',
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
-    borderRadius: 'var(--wobbly)',
-    '--panel-fill': 'var(--pale-cinnamon)',
+    borderRadius: 6,
+    '--panel-fill': sand,
     '--tilt': '0.6deg',
   } as CSSProperties,
+  roll: {
+    position: 'absolute',
+    left: -10,
+    right: -10,
+    height: 22,
+    background: sand,
+    border: `4px solid ${gunmetal}`,
+    borderRadius: 11,
+  },
   apps: {
     margin: 0,
     paddingLeft: 22,

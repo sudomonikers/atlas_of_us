@@ -221,6 +221,32 @@ body {
   transform-box: fill-box;
   transform-origin: center;
 }
+/* the roadmap's compass needle swinging and settling (works on svg groups) */
+.atlas-compass {
+  animation: atlas-compass 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* the roadmap's compass rose: hanging off the chart's top corner, or on its own line above the title when there's no room beside it */
+.chart-compass {
+  position: absolute;
+  top: -44px;
+  right: -32px;
+  width: 110px;
+  rotate: 12deg;
+}
+@media (max-width: 960px) {
+  .chart-compass {
+    position: static;
+    display: block;
+    width: 72px;
+    margin: -76px -32px 4px auto;
+  }
+}
+/* bobbing on the waves */
+.atlas-bob {
+  animation: atlas-bob 3s ease-in-out infinite;
+}
 /* stepped on/off flashing, for "more" indicators */
 .comic-flash {
   animation: comic-flash 1s steps(1) infinite;
@@ -260,6 +286,17 @@ body {
   0%, 92%, 100% { transform: scaleY(1); }
   95% { transform: scaleY(0.1); }
 }
+@keyframes atlas-compass {
+  0%, 100% { rotate: -30deg; }
+  18% { rotate: 20deg; }
+  30% { rotate: -10deg; }
+  40% { rotate: 5deg; }
+  50%, 88% { rotate: 0deg; }
+}
+@keyframes atlas-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -5px; }
+}
 @keyframes comic-fill {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
@@ -276,7 +313,7 @@ body {
   .comic-pop {
     transform: rotate(var(--tilt, 0deg));
   }
-  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat {
+  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat, .atlas-compass, .atlas-bob {
     animation: none;
   }
 }
