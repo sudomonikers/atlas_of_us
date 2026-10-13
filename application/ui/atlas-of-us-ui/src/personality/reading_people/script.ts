@@ -1,4 +1,4 @@
-import type { Script } from '../script';
+import type { Script } from '../personality';
 
 // Reading People
 // Four unrelated moments where someone else's behavior is ambiguous, and the player says what they think is going on.

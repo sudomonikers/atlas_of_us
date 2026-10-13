@@ -19,3 +19,15 @@ MERGE (l:Person {name: "Lulu Li"})-[:HAS_PERSONALITY_TRAIT {value: 1.0}]-(d:Pers
 ```
 
 This basically sums up the extent of our Personality Graph, it is the simplest one we have as it is fairly static. There are not quite 50 traits we measure each with their own node only containing a PersonalityTrait label as well as name and description properties. All of the interesting information is contained on the HAS_PERSONALITY_TRAIT relationship that each Person has with each of those ~50 PersonalityTrait nodes in the form of the value property.
+
+## Explaining the model
+The Explore tab teaches people what the Big Five is and what each trait means, and all of that reading material lives in the graph too (seeded by `personality_explore_seed.cypher`). A single PersonalityModel node holds the overview, history and limits of the Big Five. It links to six PersonalityDomain nodes, the five domains plus "Beyond the Big Five" for our extra traits, and each domain links to its traits:
+```cypher
+(:PersonalityModel {name: "Big Five"})-[:HAS_DOMAIN]->(:PersonalityDomain {key: "neuroticism"})-[:HAS_FACET]->(:PersonalityTrait {name: "Anxiety"})
+```
+
+Domains and traits both carry an `overview`, plus four lists of short points: `highGood` and `lowGood` for where being high or low helps, and `highWatch` and `lowWatch` for what to watch out for at each end. Traits also point at the other traits they combine with in interesting ways, with a description written from the first trait's point of view:
+```cypher
+MATCH (a:PersonalityTrait {name: "Anxiety"}), (c:PersonalityTrait {name: "Cautiousness"})
+MERGE (c)-[:INTERACTS_WITH {description: "Together they make someone who prepares for everything, and often never starts."}]->(a);
+```

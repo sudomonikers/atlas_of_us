@@ -1,4 +1,4 @@
-import type { Script } from '../script';
+import type { Script } from '../personality';
 
 // The Offer: The Long Burn
 // The player has spent eight safe, settled years as the systems engineer on an orbital station. A ship bound for a new

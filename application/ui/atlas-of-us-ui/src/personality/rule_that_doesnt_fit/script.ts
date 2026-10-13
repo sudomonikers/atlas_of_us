@@ -1,4 +1,4 @@
-import type { Script } from '../script';
+import type { Script } from '../personality';
 
 // The Rule That Doesn't Fit: The Last Ferry
 // The player works the ramp on the last ferry off an island before a storm. The boat is at its licensed limit,

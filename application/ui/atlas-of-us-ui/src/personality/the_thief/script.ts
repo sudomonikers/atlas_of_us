@@ -1,4 +1,4 @@
-import type { Script } from '../script';
+import type { Script } from '../personality';
 
 // Expedition II: The Thief
 // The morning after Landfall. Two days of food went missing in the night, the scrape the player half heard.

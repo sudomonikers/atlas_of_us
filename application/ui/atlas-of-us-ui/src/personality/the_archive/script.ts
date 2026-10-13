@@ -1,4 +1,4 @@
-import type { Script } from '../script';
+import type { Script } from '../personality';
 
 // The Archive: The Night Observatory
 // The player has one night to crate up their late great-aunt's observatory before the buyers arrive at dawn.

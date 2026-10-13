@@ -63,3 +63,89 @@ export interface AnswerEvidence {
 //every scored answer and how it moved the person's traits. Only the logged in user's own are allowed
 export const getPersonEvidence = (personId: string) =>
   request<AnswerEvidence[]>('GET', `/personality/people/${encodeURIComponent(personId)}/evidence`);
+
+//where being high or low on a domain or trait helps, and what to watch out for at each end. Lists can be missing
+export interface Breakdown {
+  overview: string | null;
+  high_good: string[] | null;
+  low_good: string[] | null;
+  high_watch: string[] | null;
+  low_watch: string[] | null;
+}
+
+export interface ExploreTrait extends Breakdown {
+  id: string;
+  name: string;
+  description: string | null;
+  interactions: { name: string; description: string }[]; //name is the other trait's
+}
+
+export interface ExploreDomain extends Breakdown {
+  key: string;
+  name: string;
+  traits: ExploreTrait[];
+}
+
+export interface Explore {
+  model: { name: string; overview: string | null; history: string | null; limits: string | null; our_take: string | null };
+  domains: ExploreDomain[];
+}
+
+//the Big Five, its domains and every trait, for the Explore tab
+export const getExplore = () => request<Explore>('GET', '/personality/explore');
+
+/* ---------------------------------------------------------------------------------------------
+ * the My Personality view's traits
+ * ------------------------------------------------------------------------------------------- */
+
+export interface Trait {
+  id: string;
+  name: string;
+  domain: string; //a DOMAINS key
+  description?: string;
+  value?: number; //0 to 1, missing until we've learned enough to measure it
+  confidence?: number; //0 to 1, how much evidence the value is based on
+  contributions: Contribution[]; //the answers that moved the value, biggest first
+}
+
+export interface Contribution {
+  scenario: string;
+  question: string;
+  answer: string;
+  reasoning?: string;
+  delta: number; //-1 (towards low) to 1 (towards high)
+  evidence?: string; //the llm's reason, missing for the picked choice's base score
+}
+
+//the Big Five domains, then everything else. A facet's domain is the prefix of its description, e.g. "openness facet: ..."
+export const DOMAINS = [
+  { key: 'openness', title: 'Openness', blurb: 'How you take in ideas, art, feelings and new experiences.' },
+  { key: 'conscientiousness', title: 'Conscientiousness', blurb: 'How you organize yourself and follow through.' },
+  { key: 'extraversion', title: 'Extraversion', blurb: 'Where you get your energy, and how much of it you show.' },
+  { key: 'agreeableness', title: 'Agreeableness', blurb: 'How you treat other people and handle conflict.' },
+  { key: 'neuroticism', title: 'Neuroticism', blurb: 'How strongly you react to stress and bad feelings.' },
+  { key: 'other', title: 'Beyond the Big Five', blurb: 'Parts of being human the Big Five leave out.' },
+];
+
+//every trait, with the user's value where one has been measured and the answers behind it
+export async function fetchTraits(personId: string): Promise<Trait[]> {
+  const [all, mine, evidence] = await Promise.all([getTraits(), getPersonTraits(personId), getPersonEvidence(personId)]);
+  const scores = new Map(mine.map((t) => [t.id, t]));
+  const contributions = evidence.flatMap(({ shifts, reasoning, ...answer }) =>
+    shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, delta: s.delta, evidence: s.evidence })),
+  );
+  return all.map((t) => {
+    const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
+    const domain = facet && DOMAINS.some((d) => d.key === facet[1]) ? facet[1] : 'other';
+    const description = facet ? facet[2] : t.description ?? undefined;
+    return {
+      id: t.id,
+      name: t.name,
+      domain,
+      description: description && description[0].toUpperCase() + description.slice(1),
+      value: scores.get(t.id)?.value,
+      confidence: scores.get(t.id)?.confidence,
+      contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
+    };
+  });
+}

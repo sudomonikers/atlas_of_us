@@ -1,4 +1,4 @@
-import type { Script } from '../script';
+import type { Script } from '../personality';
 
 // Expedition I: Landfall
 // The Kestrel was sent to chart unmapped waters and went down in a storm. Five survive.

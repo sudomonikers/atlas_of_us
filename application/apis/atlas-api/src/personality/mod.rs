@@ -11,6 +11,7 @@ use crate::{auth::AuthUser, state::AppState};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
+        .route("/explore", get(get_explore))
         .route("/people/{person_id}/traits", get(list_person_traits))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/scenarios/{name}/questions", get(list_scenario_questions))
@@ -44,6 +45,90 @@ pub async fn list_all_personality_traits(State(state): State<AppState>) -> Resul
         traits.push(row.to::<PersonalityTrait>().map_err(|e| internal(&e))?);
     }
     Ok(Json(traits))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ExploreModel {
+    name: String,
+    overview: Option<String>,
+    history: Option<String>,
+    limits: Option<String>,
+    our_take: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Interaction {
+    name: String, //the other trait
+    description: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ExploreTrait {
+    id: String,
+    name: String,
+    description: Option<String>,
+    overview: Option<String>,
+    high_good: Option<Vec<String>>, //where being high helps
+    low_good: Option<Vec<String>>, //where being low helps
+    high_watch: Option<Vec<String>>, //what to watch out for when high
+    low_watch: Option<Vec<String>>, //what to watch out for when low
+    interactions: Vec<Interaction>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ExploreDomain {
+    key: String,
+    name: String,
+    overview: Option<String>,
+    high_good: Option<Vec<String>>, //where being high helps
+    low_good: Option<Vec<String>>, //where being low helps
+    high_watch: Option<Vec<String>>, //what to watch out for when high
+    low_watch: Option<Vec<String>>, //what to watch out for when low
+    traits: Vec<ExploreTrait>,
+}
+
+#[derive(Serialize)]
+pub struct Explore {
+    model: ExploreModel,
+    domains: Vec<ExploreDomain>,
+}
+
+//the Big Five model, its domains, and every trait with its breakdown and interactions. The Explore tab's reading material
+pub async fn get_explore(State(state): State<AppState>) -> Result<Json<Explore>, (StatusCode, String)> {
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
+
+    //built inside out: each trait's interactions, then each domain's traits, then the domains
+    let mut rows = state.graph.execute(query("
+        MATCH (m:PersonalityModel {name: 'Big Five'})-[:HAS_DOMAIN]->(d:PersonalityDomain)
+        OPTIONAL MATCH (d)-[:HAS_FACET]->(t:PersonalityTrait)
+        OPTIONAL MATCH (t)-[r:INTERACTS_WITH]->(o:PersonalityTrait)
+        WITH m, d, t, r, o ORDER BY o.name
+        WITH m, d, t, collect(CASE WHEN o IS NULL THEN null ELSE {name: o.name, description: r.description} END) AS interactions
+        ORDER BY t.name
+        WITH m, d, collect(CASE WHEN t IS NULL THEN null ELSE {
+            id: elementId(t), name: t.name, description: t.description, overview: t.overview,
+            high_good: t.highGood, low_good: t.lowGood, high_watch: t.highWatch, low_watch: t.lowWatch,
+            interactions: interactions
+        } END) AS traits
+        ORDER BY d.order
+        RETURN {name: m.name, overview: m.overview, history: m.history, limits: m.limits, our_take: m.ourTake} AS model,
+               collect({
+                   key: d.key, name: d.name, overview: d.overview,
+                   high_good: d.highGood, low_good: d.lowGood, high_watch: d.highWatch, low_watch: d.lowWatch,
+                   traits: traits
+               }) AS domains
+    ")).await.map_err(|e| internal(&e))?;
+
+    match rows.next().await.map_err(|e| internal(&e))? {
+        Some(row) => Ok(Json(Explore {
+            model: row.get("model").map_err(|e| internal(&e))?,
+            domains: row.get("domains").map_err(|e| internal(&e))?,
+        })),
+        None => Err((StatusCode::NOT_FOUND, "The personality guide isn't set up yet. Check back soon.".to_string())),
+    }
 }
 
 #[derive(Serialize, Deserialize)]

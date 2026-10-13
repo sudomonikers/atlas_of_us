@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { isPrompt, type PersonalityTrait, type PromptFrame, type Script, type Step } from './script';
-import { getJob, getPersonEvidence, getPersonTraits, getProgress, getQuestions, getTraits, saveAnswer, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getJob, getProgress, getQuestions, saveAnswer, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import Landfall from './landfall/landfall';
 import { theThief } from './the_thief/script';
@@ -13,6 +12,9 @@ import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
 import LastFerry from './rule_that_doesnt_fit/last_ferry';
 import { theOffer } from './the_offer/script';
 import TheOffer from './the_offer/the_offer';
+import Explore from './explore';
+import MyPersonality from './my_personality';
+import { ProgressMeter } from '../shared_components/progress-meter';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 
@@ -26,6 +28,116 @@ const paleCinnamon = 'var(--pale-cinnamon)';
 const paleRed = 'var(--pale-red)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
+
+/* ---------------------------------------------------------------------------------------------
+ * scripts: the shape every scenario's script.ts follows
+ * ------------------------------------------------------------------------------------------- */
+
+export type PersonalityTrait =
+  // openness
+  | 'Imagination'
+  | 'Artistic Interests'
+  | 'Emotionality'
+  | 'Adventurousness'
+  | 'Intellect'
+  | 'Liberalism'
+  // conscientiousness
+  | 'Self-Efficacy'
+  | 'Orderliness'
+  | 'Dutifulness'
+  | 'Achievement-Striving'
+  | 'Self-Discipline'
+  | 'Cautiousness'
+  // extraversion
+  | 'Friendliness'
+  | 'Gregariousness'
+  | 'Assertiveness'
+  | 'Activity Level'
+  | 'Excitement-Seeking'
+  | 'Cheerfulness'
+  // agreeableness
+  | 'Trust'
+  | 'Morality'
+  | 'Altruism'
+  | 'Cooperation'
+  | 'Modesty'
+  | 'Sympathy'
+  // neuroticism
+  | 'Anxiety'
+  | 'Anger'
+  | 'Depression'
+  | 'Self-Consciousness'
+  | 'Immoderation'
+  | 'Vulnerability'
+  // additional
+  | 'Patience'
+  | 'Resilience'
+  | 'Optimism'
+  | 'Perfectionism'
+  | 'Competitiveness'
+  | 'Stubbornness'
+  | 'Independence'
+  | 'Boldness'
+  | 'Playfulness'
+  | 'Introspection'
+  | 'Sensory Sensitivity'
+  | 'Decisiveness'
+  | 'Adaptability'
+  | 'Fairness';
+
+export interface Frame {
+  text: string; //the text displayed on screen for the user
+  animation: string; //the consuming component will have a function with 'animation's value
+  speaker?: string; //who is talking; omitted for narration
+}
+
+export interface Choice {
+  label: string; //the option shown to the user
+  next: string; //id of the Section to continue with if this choice is picked
+}
+
+export interface PromptFrame {
+  id: string; //unique within the script, used to key the user's answer when sent to the backend
+  prompt: string; //the question shown to the user above the text box
+  animation: string;
+  speaker?: string;
+  facets: PersonalityTrait[]; //traits the backend should look for in the answer
+  choices?: Choice[]; //if present the user picks one, then explains why in the text box
+}
+
+export type Step = Frame | PromptFrame;
+
+export interface Section {
+  steps: Step[];
+  next?: string; //id of the Section that follows; omitted on the final Section, ignored when the last step is a PromptFrame with choices
+  recall?: Recall; //when set, the Section that follows depends on how the user answered an earlier scenario
+}
+
+//picks the next Section from the user's saved answer to another scenario's question, falling back to the Section's next
+export interface Recall {
+  scenario: string; //the earlier scenario's id, e.g. 'landfall'
+  question: string; //the prompt id in that scenario's script
+  choices: Record<string, string>; //choice label to the id of the Section to continue with
+}
+
+//a real countdown over part of the script. Prompts between from and until can be skipped when it runs out
+export interface Clock {
+  seconds: number;
+  from: string; //id of the Section that starts it
+  until: string; //id of the Section that stops it
+  late: string; //id of the Section jumped to the moment it runs out
+}
+
+export interface Script {
+  id: string;
+  title: string;
+  facets: PersonalityTrait[]; //every trait this scenario is designed to measure
+  start: string; //id of the first Section
+  sections: Record<string, Section>;
+  clock?: Clock;
+}
+
+const isPrompt = (step: Step): step is PromptFrame => 'prompt' in step;
 
 /* ---------------------------------------------------------------------------------------------
  * progress
@@ -62,62 +174,6 @@ function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQu
     };
   }
   return progress;
-}
-
-/* ---------------------------------------------------------------------------------------------
- * traits
- * ------------------------------------------------------------------------------------------- */
-
-interface Trait {
-  id: string;
-  name: string;
-  domain: string; //a DOMAINS key
-  description?: string;
-  value?: number; //0 to 1, missing until we've learned enough to measure it
-  confidence?: number; //0 to 1, how much evidence the value is based on
-  contributions: Contribution[]; //the answers that moved the value, biggest first
-}
-
-interface Contribution {
-  scenario: string;
-  question: string;
-  answer: string;
-  reasoning?: string;
-  delta: number; //-1 (towards low) to 1 (towards high)
-  evidence?: string; //the llm's reason, missing for the picked choice's base score
-}
-
-//the Big Five domains, then everything else. A facet's domain is the prefix of its description, e.g. "openness facet: ..."
-const DOMAINS = [
-  { key: 'openness', title: 'Openness', blurb: 'How you take in ideas, art, feelings and new experiences.' },
-  { key: 'conscientiousness', title: 'Conscientiousness', blurb: 'How you organize yourself and follow through.' },
-  { key: 'extraversion', title: 'Extraversion', blurb: 'Where you get your energy, and how much of it you show.' },
-  { key: 'agreeableness', title: 'Agreeableness', blurb: 'How you treat other people and handle conflict.' },
-  { key: 'neuroticism', title: 'Neuroticism', blurb: 'How strongly you react to stress and bad feelings.' },
-  { key: 'other', title: 'Beyond the Big Five', blurb: 'Parts of being human the Big Five leave out.' },
-];
-
-//every trait, with the user's value where one has been measured and the answers behind it
-async function fetchTraits(personId: string): Promise<Trait[]> {
-  const [all, mine, evidence] = await Promise.all([getTraits(), getPersonTraits(personId), getPersonEvidence(personId)]);
-  const scores = new Map(mine.map((t) => [t.id, t]));
-  const contributions = evidence.flatMap(({ shifts, reasoning, ...answer }) =>
-    shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, delta: s.delta, evidence: s.evidence })),
-  );
-  return all.map((t) => {
-    const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
-    const domain = facet && DOMAINS.some((d) => d.key === facet[1]) ? facet[1] : 'other';
-    const description = facet ? facet[2] : t.description ?? undefined;
-    return {
-      id: t.id,
-      name: t.name,
-      domain,
-      description: description && description[0].toUpperCase() + description.slice(1),
-      value: scores.get(t.id)?.value,
-      confidence: scores.get(t.id)?.confidence,
-      contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
-    };
-  });
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -246,11 +302,12 @@ const PLAYABLE: Record<string, Playable> = {
  * dashboard
  * ------------------------------------------------------------------------------------------- */
 
-type View = 'scenarios' | 'traits';
+type View = 'scenarios' | 'traits' | 'explore';
 
 const VIEWS: { id: View; label: string }[] = [
   { id: 'scenarios', label: 'Scenarios' },
   { id: 'traits', label: 'My Personality' },
+  { id: 'explore', label: 'Explore' },
 ];
 
 function Personality() {
@@ -344,7 +401,9 @@ function Personality() {
 
   const bubble = scoring
     ? "Give us a moment, We are reading through your answers to work out your personality..."
-    : view === 'scenarios'
+    : view === 'explore'
+      ? "Here's how personality works, trait by trait. It's honest on purpose, so every end of every scale has its downsides."
+      : view === 'scenarios'
       ? loadError
         ? `Hmm, we couldn't load your progress. ${loadError}`
         : ready
@@ -385,13 +444,17 @@ function Personality() {
           ))}
         </div>
 
-        {view === 'traits' && traits && <TraitDashboard traits={traits} />}
+        {view === 'traits' && traits && <MyPersonality traits={traits} />}
+
+        {view === 'explore' && <Explore />}
 
         {view === 'scenarios' && <OurApproach />}
 
         {view === 'scenarios' && ready && (
           <>
-            <ProgressMeter done={completed} total={SCENARIOS.length} label="complete" />
+            <div style={dash.meter}>
+              <ProgressMeter done={completed} total={SCENARIOS.length} label="complete" />
+            </div>
             <ul style={dash.grid}>
               {SCENARIOS.map((scenario, i) => (
                 <ScenarioCard
@@ -537,19 +600,6 @@ function Mascot() {
   );
 }
 
-function ProgressMeter({ done, total, label }: { done: number; total: number; label: string }) {
-  return (
-    <div style={dash.meter} role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
-      <div style={dash.meterTrack} className="comic-meter">
-        <div className="comic-meter-fill" style={{ width: `${(done / total) * 100}%` }} />
-      </div>
-      <span style={dash.meterLabel}>
-        {done} / {total} {label}
-      </span>
-    </div>
-  );
-}
-
 type Badge = ScenarioStatus | 'soon';
 
 const badges: Record<Badge, { label: string; fill: string; ink: string }> = {
@@ -619,122 +669,6 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
 }
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-//the "My Personality" view: where the user sits on every trait, grouped by domain
-function TraitDashboard({ traits }: { traits: Trait[] }) {
-  const measured = traits.filter((t) => t.value !== undefined).length;
-  const domains = DOMAINS.map((d) => ({ ...d, traits: traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
-
-  return (
-    <>
-      <ProgressMeter done={measured} total={traits.length} label="measured" />
-      <p style={dash.traitsIntro}>
-        Each bar shows where you sit between low and high on a trait. Low isn't bad and high isn't good, they're just
-        different. The bars fill in as you play scenarios and we read your answers.
-      </p>
-      {domains.map((domain) => (
-        <section key={domain.key} style={dash.domain}>
-          <header style={dash.domainHead}>
-            <h2 style={dash.domainTitle}>{domain.title}</h2>
-            <span style={dash.domainBlurb}>{domain.blurb}</span>
-            <span className="comic-chip" style={dash.domainCount}>
-              {domain.traits.filter((t) => t.value !== undefined).length} / {domain.traits.length} measured
-            </span>
-          </header>
-          <ul style={dash.traitList}>
-            {domain.traits.map((t) => (
-              <TraitRow key={t.id} trait={t} />
-            ))}
-          </ul>
-        </section>
-      ))}
-    </>
-  );
-}
-
-function TraitRow({ trait }: { trait: Trait }) {
-  const [open, setOpen] = useState(false);
-  const percent = trait.value === undefined ? undefined : Math.round(Math.min(Math.max(trait.value, 0), 1) * 100);
-  const explained = trait.contributions.length > 0;
-
-  return (
-    <li style={dash.traitItem}>
-      {/* name and description on the left, the scale on the right. They stack on narrow screens.
-          Clicking it opens the answers behind the score */}
-      <button
-        style={{ ...dash.trait, ...(explained ? dash.traitButton : {}) }}
-        disabled={!explained}
-        aria-expanded={explained ? open : undefined}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <div style={dash.traitLabel}>
-          <div style={dash.traitHead}>
-            <span style={dash.traitName}>{trait.name}</span>
-            {percent !== undefined && <span style={dash.traitValue}>{percent}</span>}
-            {percent !== undefined && (trait.confidence ?? 0) < 0.5 && (
-              <span className="comic-chip" title="Based on only a little of what you've told us so far">
-                Early read
-              </span>
-            )}
-          </div>
-          {trait.description && <p style={dash.traitDescription}>{trait.description}</p>}
-        </div>
-        {percent === undefined ? (
-          <div style={{ ...dash.traitScale, ...dash.gathering }}>Still gathering information on this one...</div>
-        ) : (
-          //read only: looks like a slider, but there's nothing to drag
-          <div style={dash.traitScale} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
-            <div style={dash.bar}>
-              <div style={dash.barTrack}>
-                <div className="comic-meter-fill" style={{ ...dash.barFill, width: `${percent}%` }} />
-              </div>
-              <span className="comic-pop" style={{ ...dash.barThumb, left: `${percent}%` }} />
-            </div>
-            <div style={dash.barEnds} aria-hidden>
-              <span>Low</span>
-              {explained && <span>{open ? 'Hide why ▲' : 'Why? ▼'}</span>}
-              <span>High</span>
-            </div>
-          </div>
-        )}
-      </button>
-      {open && (
-        <ol style={dash.contributions}>
-          {trait.contributions.map((c, i) => (
-            <ContributionCard key={i} contribution={c} />
-          ))}
-        </ol>
-      )}
-    </li>
-  );
-}
-
-//how hard an answer pushed, in words
-const strength = (delta: number) => (Math.abs(delta) >= 0.6 ? 'strongly' : Math.abs(delta) >= 0.3 ? '' : 'slightly');
-
-function ContributionCard({ contribution: c }: { contribution: Contribution }) {
-  const up = c.delta >= 0;
-  return (
-    <li style={dash.contribution}>
-      <div style={dash.contributionHead}>
-        <span className="comic-chip">{c.scenario}</span>
-        <span style={{ ...dash.push, color: up ? blue : brownRed }}>
-          {up ? '▲' : '▼'} {strength(c.delta)} {up ? 'raised' : 'lowered'}
-        </span>
-      </div>
-      <p style={dash.contributionQuestion}>{c.question}</p>
-      <p style={dash.contributionAnswer}>
-        <strong>You said:</strong> {c.answer}
-      </p>
-      {c.reasoning && (
-        <p style={dash.contributionAnswer}>
-          <strong>Because:</strong> {c.reasoning}
-        </p>
-      )}
-      <p style={dash.contributionWhy}>{c.evidence ?? 'From the choice you picked.'}</p>
-    </li>
-  );
-}
 
 /* ---------------------------------------------------------------------------------------------
  * player
@@ -1266,18 +1200,6 @@ const dash: Record<string, CSSProperties> = {
   meter: {
     maxWidth: 1100,
     margin: '0 auto 32px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-  },
-  meterTrack: {
-    flex: 1,
-  },
-  meterLabel: {
-    fontFamily: comic,
-    fontSize: 26,
-    letterSpacing: 1,
-    whiteSpace: 'nowrap',
   },
   grid: {
     maxWidth: 1100,
@@ -1380,191 +1302,6 @@ const dash: Record<string, CSSProperties> = {
   viewButtonActive: {
     background: brownRed,
     color: ivory,
-  },
-  traitsIntro: {
-    maxWidth: 1100,
-    margin: '-12px auto 32px',
-    fontSize: 19,
-    lineHeight: 1.3,
-  },
-  domain: {
-    maxWidth: 1100,
-    margin: '0 auto 40px',
-  },
-  domainHead: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    gap: '4px 16px',
-    paddingBottom: 6,
-    borderBottom: `4px solid ${gunmetal}`,
-  },
-  domainTitle: {
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 38,
-    letterSpacing: 1.5,
-    lineHeight: 1,
-    color: brownRed,
-  },
-  domainBlurb: {
-    fontSize: 19,
-    fontStyle: 'italic',
-    color: cinnamon,
-  },
-  domainCount: {
-    marginLeft: 'auto',
-  },
-  traitList: {
-    margin: 0,
-    padding: 0,
-    listStyle: 'none',
-  },
-  traitItem: {
-    borderBottom: `2px dashed rgba(57, 61, 63, 0.35)`,
-  },
-  //a button, reset so it looks like the rest of the row
-  trait: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: '6px 32px',
-    width: '100%',
-    padding: '14px 0',
-    background: 'none',
-    border: 'none',
-    color: 'inherit',
-    font: 'inherit',
-    textAlign: 'left',
-  },
-  traitButton: {
-    cursor: 'pointer',
-  },
-  contributions: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: 14,
-    margin: '0 0 18px',
-    padding: 0,
-    listStyle: 'none',
-  },
-  contribution: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    padding: '10px 14px',
-    background: '#fff',
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
-    boxShadow: `3px 3px 0 ${gunmetal}`,
-  },
-  contributionHead: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  },
-  push: {
-    fontFamily: comic,
-    fontSize: 18,
-    letterSpacing: 0.5,
-    whiteSpace: 'nowrap',
-  },
-  contributionQuestion: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    opacity: 0.75,
-  },
-  contributionAnswer: {
-    fontSize: 16,
-    lineHeight: 1.25,
-  },
-  contributionWhy: {
-    padding: '6px 10px',
-    background: paleBlue,
-    borderRadius: 8,
-    fontSize: 16,
-    lineHeight: 1.25,
-  },
-  traitLabel: {
-    flex: '1 1 280px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  traitScale: {
-    flex: '2 1 360px',
-  },
-  traitHead: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    gap: 8,
-  },
-  traitName: {
-    fontFamily: comic,
-    fontSize: 23,
-    letterSpacing: 0.5,
-  },
-  traitValue: {
-    fontFamily: comic,
-    fontSize: 23,
-    color: blue,
-  },
-  traitDescription: {
-    fontSize: 17,
-    lineHeight: 1.2,
-    opacity: 0.8,
-  },
-  //margins leave room for the thumb's overhang at 0 and 100
-  bar: {
-    position: 'relative',
-    margin: '6px 13px 0',
-  },
-  barTrack: {
-    height: 22,
-    padding: 3,
-    background: '#fff',
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
-    overflow: 'hidden',
-  },
-  barFill: {
-    background: `repeating-linear-gradient(-45deg, ${blue} 0 10px, #7d9dba 10px 20px)`,
-    borderRadius: 6,
-  },
-  //centred with margins, since comic-pop animates the transform
-  barThumb: {
-    position: 'absolute',
-    top: '50%',
-    width: 26,
-    height: 26,
-    marginLeft: -13,
-    marginTop: -13,
-    background: brownRed,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '50% 46% 52% 48%',
-    boxShadow: `2px 2px 0 ${gunmetal}`,
-    boxSizing: 'border-box',
-    animationDelay: '600ms',
-  },
-  barEnds: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    margin: '2px 4px 0',
-    fontSize: 14,
-    opacity: 0.6,
-  },
-  gathering: {
-    marginTop: 4,
-    padding: '6px 12px',
-    border: `3px dashed ${gunmetal}`,
-    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
-    background: 'repeating-linear-gradient(-45deg, transparent 0 8px, rgba(57, 61, 63, 0.07) 8px 16px)',
-    fontSize: 17,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    opacity: 0.75,
   },
 };
 
