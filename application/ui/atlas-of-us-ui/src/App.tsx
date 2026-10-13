@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import './App.css'
+import Admin from './admin/admin'
 import { logout, useSession } from './auth/api'
 import { Auth } from './auth/auth'
 import { Feedback } from './feedback/feedback'
@@ -14,12 +15,18 @@ function App() {
   if (path === '/login') return <Auth mode="login" />
   if (path === '/create-account') return <Auth mode="create" />
   if (path.startsWith('/u/')) return <Profile username={decodeURIComponent(path.slice(3))} />
+  if (path === '/admin' || path.startsWith('/admin/')) return <Admin />
 
   return (
     <>
       <Personality />
       {session.status === 'authenticated' && (
         <div style={cornerStyle}>
+          {session.person.admin && (
+            <button className="comic-lift" style={buttonStyle} onClick={() => navigate('/admin')}>
+              Admin
+            </button>
+          )}
           <Feedback buttonStyle={buttonStyle} />
           <button className="comic-lift" style={buttonStyle} onClick={() => navigate(`/u/${session.person.username}`)}>
             My profile

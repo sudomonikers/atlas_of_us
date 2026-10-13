@@ -70,6 +70,34 @@ impl<S: Send + Sync> OptionalFromRequestParts<S> for AuthUser {
     }
 }
 
+//a logged in user whose Person has admin: true. Add it as a handler argument (or a route_layer) to require
+//an admin. Checked against the graph on every request, so taking admin away works immediately
+pub struct AdminUser {
+    pub person_id: String,
+}
+
+impl FromRequestParts<AppState> for AdminUser {
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        let internal = |e: &dyn std::fmt::Display| {
+            tracing::error!("{e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+        };
+        let user = <AuthUser as FromRequestParts<AppState>>::from_request_parts(parts, state).await?;
+        let mut rows = state.graph.execute(query("
+            MATCH (p:Person) WHERE elementId(p) = $id AND p.admin = true
+            RETURN elementId(p) AS id
+        ")
+            .param("id", user.person_id.clone())
+        ).await.map_err(|e| internal(&e))?;
+        match rows.next().await.map_err(|e| internal(&e))? {
+            Some(_) => Ok(AdminUser { person_id: user.person_id }),
+            None => Err((StatusCode::FORBIDDEN, "You don't have access to that.".to_string())),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Person {
     id: String,
@@ -80,6 +108,7 @@ pub struct Person {
     birthday: NaiveDate,
     username: String,
     public: bool, //whether anyone can see their profile at /u/{username}
+    admin: bool, //set by hand in the graph, unlocks /admin
 }
 
 #[derive(Serialize)]
@@ -194,7 +223,7 @@ pub async fn create_user(
             username: $username, passwordHash: $passwordHash, createdDate: datetime()
         })
         RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("phone", phone)
         .param("username", username)
@@ -228,7 +257,7 @@ pub async fn login(
     let mut rows = state.graph.execute(query("
         MATCH (p:Person {phone: $phone})
         RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, p.passwordHash AS password_hash
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, p.passwordHash AS password_hash
     ")
         .param("phone", phone)
     ).await.map_err(|e| internal(&e))?;
@@ -263,7 +292,7 @@ pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Pe
     let mut rows = state.graph.execute(query("
         MATCH (p:Person) WHERE elementId(p) = $id
         RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("id", user.person_id)
     ).await.map_err(|e| internal(&e))?;
@@ -293,7 +322,7 @@ pub async fn set_public(
         MATCH (p:Person) WHERE elementId(p) = $id
         SET p.public = $public
         RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("id", user.person_id)
         .param("public", body.public)

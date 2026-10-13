@@ -185,18 +185,31 @@ resource "aws_ses_receipt_rule" "store" {
   depends_on = [aws_s3_bucket_policy.mail, aws_sns_topic_policy.mail_inbound]
 }
 
-###API SEND ACCESS
-# lets the API lambda send as any address on the domain
+###API ACCESS
+# the API lambda sends as any address on the domain and reads received mail for the admin inbox
 resource "aws_iam_role_policy" "api_email" {
   name = "${local.api_name}-email"
   role = aws_iam_role.api.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["ses:SendEmail", "ses:SendRawEmail"]
-      Resource = aws_sesv2_email_identity.domain.arn
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail", "ses:SendRawEmail"]
+        Resource = aws_sesv2_email_identity.domain.arn
+      },
+      {
+        Effect    = "Allow"
+        Action    = "s3:ListBucket"
+        Resource  = aws_s3_bucket.mail.arn
+        Condition = { StringLike = { "s3:prefix" = "${local.mail_inbound_prefix}*" } }
+      },
+      {
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.mail.arn}/${local.mail_inbound_prefix}*"
+      },
+    ]
   })
 }

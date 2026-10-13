@@ -9,9 +9,10 @@ export interface Person {
   birthday: string; //YYYY-MM-DD
   username: string;
   public: boolean; //whether anyone can see their profile at /u/{username}
+  admin: boolean; //set by hand in the graph, unlocks /admin
 }
 
-export interface NewPerson extends Omit<Person, 'id' | 'public'> {
+export interface NewPerson extends Omit<Person, 'id' | 'public' | 'admin'> {
   password: string;
 }
 

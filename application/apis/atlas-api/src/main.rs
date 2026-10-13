@@ -7,6 +7,7 @@ mod skills;
 mod topics;
 mod auth;
 mod feedback;
+mod admin;
 
 use axum::{
     Json, Router,
@@ -34,8 +35,18 @@ async fn main() {
     ).unwrap();
     assert!(graph.run(query("RETURN 1")).await.is_ok());
 
+    //mail lives in us-east-1 (SES receiving, the mail bucket) wherever the api runs
+    let mail_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+        .region(aws_config::Region::new("us-east-1"))
+        .load()
+        .await;
+
     //create state every route can grab from
-    let state = AppState { graph };
+    let state = AppState {
+        graph,
+        s3: aws_sdk_s3::Client::new(&mail_config),
+        ses: aws_sdk_sesv2::Client::new(&mail_config),
+    };
 
     // build our application 
     let app = Router::new()
@@ -46,6 +57,7 @@ async fn main() {
         .nest("/api/skills", skills::router())
         .nest("/api/physical", physical::router())
         .nest("/api/feedback", feedback::router())
+        .nest("/api/admin", admin::router(state.clone()))
         .with_state(state);
 
     //lambda sets AWS_LAMBDA_RUNTIME_API, otherwise run as a normal server
