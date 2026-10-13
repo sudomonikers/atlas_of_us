@@ -54,18 +54,6 @@ resource "aws_route53_record" "website_aaaa" {
   }
 }
 
-# Create MX records if needed for email
-resource "aws_route53_record" "mx" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = local.website_name
-  type    = "MX"
-  ttl     = 300
-
-  records = [
-    "0 ." # Null MX record indicating no mail server
-  ]
-}
-
 ### TXT Records for Domain Ownership Verification
 resource "aws_route53_record" "txt_apex" {
   name    = "_.${local.website_name}"
