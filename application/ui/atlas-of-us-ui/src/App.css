@@ -26,11 +26,13 @@
   --bounce: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot easing for comic motion */
 }
 
-/* a full page of newsprint: ivory paper with faint halftone dots */
-.comic-page {
-  background-color: var(--ivory-white);
+/* newsprint everywhere: ivory paper with faint halftone dots, on the body so it covers however far a page scrolls */
+body {
   background-image: radial-gradient(rgba(106, 142, 174, 0.15) 1.6px, transparent 1.8px);
   background-size: 18px 18px;
+}
+
+.comic-page {
   color: var(--gunmetal-black);
   font-family: var(--font-hand);
 }
