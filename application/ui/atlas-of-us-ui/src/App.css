@@ -74,19 +74,35 @@
   }
 }
 
-/* a clickable comic-panel (or anything) that lifts off the page when hovered */
+/* something clickable. Hovering presses it down into its shadow, which most buttons set inline at 3px 4px.
+   A comic-panel lifts off the page instead */
 .comic-lift {
-  transition: transform 180ms var(--bounce);
   cursor: pointer;
 
-  &:not(:disabled):hover,
-  &:not(:disabled):focus-visible {
+  &:not(.comic-panel) {
+    transition: translate 120ms ease-out, box-shadow 120ms ease-out;
+  }
+  &:not(.comic-panel):not(:disabled):hover,
+  &:not(.comic-panel):not(:disabled):focus-visible {
+    translate: 3px 4px;
+    box-shadow: 0 0 0 var(--gunmetal-black) !important; /* beats the inline shadow */
+  }
+  &.comic-chip {
+    box-shadow: 3px 4px 0 var(--gunmetal-black); /* chips have no shadow of their own to press into */
+  }
+
+  &.comic-panel {
+    transition: transform 180ms var(--bounce);
+  }
+  &.comic-panel:not(:disabled):hover,
+  &.comic-panel:not(:disabled):focus-visible {
     transform: translate(-4px, -6px) rotate(calc(var(--tilt, 0deg) * -1.5));
   }
-  &:not(:disabled):active {
+  &.comic-panel:not(:disabled):active {
     transform: translate(2px, 2px) scale(0.98);
     transition-duration: 60ms;
   }
+
   &:focus-visible {
     outline: 3px dashed var(--brown-red);
     outline-offset: 6px;
