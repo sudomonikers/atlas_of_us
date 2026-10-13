@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getJob, getProgress, getQuestions, saveAnswer, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getJob, getProgress, getQuestions, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import Landfall from './landfall/landfall';
 import { theThief } from './the_thief/script';
@@ -366,11 +366,11 @@ function Personality() {
   }, [view, personId, scoring]);
 
   //saves an answer as the player moves past a prompt
-  const answer = (scenario: string) => async (step: PromptFrame, given: Answer) => {
+  const answer = (scenario: string) => async (step: PromptFrame, given: Answer, clock?: AnswerClock) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined);
+    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, clock);
     if (saved.job_started) setScoring(true);
   };
 
@@ -692,7 +692,7 @@ interface ScriptPlayerProps {
   script: Script;
   renderScene: (animation: string, clock?: number) => ReactNode; //the scenario's background, driven by the current step's animation and how much of the clock is left, 1 to 0
   earlier: SavedAnswer[]; //the user's answers from when the scenario was opened, for Sections that recall them
-  onAnswer: (step: PromptFrame, answer: Answer) => Promise<void>; //saves an answer; the player waits for it before moving on
+  onAnswer: (step: PromptFrame, answer: Answer, clock?: AnswerClock) => Promise<void>; //saves an answer, with where the clock stood if it has started; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
   onFinish: () => void; //called when the user moves past the final step
 }
@@ -706,9 +706,9 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
   const [saveError, setSaveError] = useState<string>();
   const { clock } = script;
   const [deadline, setDeadline] = useState<number>(); //when the clock runs out, once it's started
-  const [over, setOver] = useState(false); //the clock stopped, finished or not
+  const [stopped, setStopped] = useState<{ at: number; ranOut: boolean }>(); //when the clock stopped, and whether it was by running out
   const [now, setNow] = useState(0);
-  const running = clock && deadline !== undefined && !over;
+  const running = clock && deadline !== undefined && !stopped;
   const left = running ? Math.max(0, deadline - now) / 1000 : undefined;
 
   const position = history[history.length - 1];
@@ -732,12 +732,19 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
       const t = Date.now();
       setNow(t);
       if (t < deadline) return;
-      setOver(true);
+      setStopped({ at: deadline, ranOut: true });
       setHistory((h) => [...h, { section: clock.late, index: 0 }]);
       setShown(0);
     }, 250);
     return () => clearInterval(timer);
   }, [running, deadline, clock]);
+
+  //where the clock stands for the scorer, once it has started. After it stops, that's where it stopped
+  const clockNow = (): AnswerClock | undefined => {
+    if (!clock || deadline === undefined) return undefined;
+    const at = stopped?.at ?? Date.now();
+    return { seconds: clock.seconds, left: Math.round(Math.max(0, deadline - at) / 1000), ran_out: !!stopped?.ranOut };
+  };
 
   const nextPosition = (): Position | undefined => {
     if (isPrompt(step) && step.choices && answer?.choice !== undefined) {
@@ -762,7 +769,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
       setSaving(true);
       setSaveError(undefined);
       try {
-        await onAnswer(step, answer);
+        await onAnswer(step, answer, clockNow());
       } catch (e) {
         setSaveError(e instanceof Error ? e.message : String(e));
         return;
@@ -780,7 +787,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
       setDeadline(t + clock.seconds * 1000);
       setNow(t);
     }
-    if (clock && next.section === clock.until) setOver(true);
+    if (clock && next.section === clock.until && !stopped) setStopped({ at: Date.now(), ranOut: false });
     //unless the clock ran out while the answer was saving
     setHistory((h) => (h[h.length - 1] === position ? [...h, next] : h));
     setShown(0);
@@ -1044,10 +1051,12 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 20,
     letterSpacing: 1,
   },
+  //top centre, clear of the exit button on the left and the app's Feedback and Log out buttons on the right
   clock: {
     position: 'absolute',
     top: 16,
-    right: 16,
+    left: '50%',
+    transform: 'translateX(-50%)',
     zIndex: 20,
     padding: '4px 14px',
     background: ivory,

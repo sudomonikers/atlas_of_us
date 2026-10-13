@@ -18,9 +18,16 @@ export interface SavedAnswer {
 export const getQuestions = (scenario: string) =>
   request<ScenarioQuestion[]>('GET', `/personality/scenarios/${encodeURIComponent(scenario)}/questions`);
 
+//where a scenario's clock stood when an answer was given
+export interface AnswerClock {
+  seconds: number; //how long the clock runs in total
+  left: number; //whole seconds left when answered, or when the clock stopped if it already had
+  ran_out: boolean; //the clock hit zero before the user finished
+}
+
 //replaces any earlier answer to the same question. Refused while a scoring job is running
-export const saveAnswer = (question_id: string, answer: string, reasoning?: string) =>
-  request<SavedAnswer & { job_started: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning });
+export const saveAnswer = (question_id: string, answer: string, reasoning?: string, clock?: AnswerClock) =>
+  request<SavedAnswer & { job_started: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, clock });
 
 //every question the logged in user has answered
 export const getProgress = () => request<SavedAnswer[]>('GET', '/personality/progress');
