@@ -12,6 +12,8 @@ import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
 import LastFerry from './rule_that_doesnt_fit/last_ferry';
 import { theOffer } from './the_offer/script';
 import TheOffer from './the_offer/the_offer';
+import { partyOfStrangers } from './party_of_strangers/script';
+import SnowedIn from './party_of_strangers/snowed_in';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -223,7 +225,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'The Party of Strangers',
     kind: 'Realistic hypothetical',
     blurb: 'The only person you know cancels as you arrive, and the night carries on without them.',
-    facets: ['Self-Consciousness', 'Immoderation', 'Friendliness', 'Gregariousness', 'Excitement-Seeking', 'Cheerfulness'],
+    facets: partyOfStrangers.facets,
   },
   {
     id: 'empty_weekend',
@@ -296,6 +298,7 @@ const PLAYABLE: Record<string, Playable> = {
   the_archive: { script: theArchive, renderScene: (animation, clock) => <TheArchive animation={animation} clock={clock} /> },
   rule_that_doesnt_fit: { script: ruleThatDoesntFit, renderScene: (animation) => <LastFerry animation={animation} /> },
   the_offer: { script: theOffer, renderScene: (animation) => <TheOffer animation={animation} /> },
+  party_of_strangers: { script: partyOfStrangers, renderScene: (animation) => <SnowedIn animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

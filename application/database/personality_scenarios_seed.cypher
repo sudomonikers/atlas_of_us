@@ -141,6 +141,21 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// The Party of Strangers. Every path shares drive_home
+MATCH (s:PersonalityScenario {name: 'party_of_strangers'})
+UNWIND [
+  {order: 0, key: 'on_the_porch', prompt: "Juno isn't coming, and the door is open. What do you do?"},
+  {order: 1, key: 'walking_in',   prompt: "What's going through your mind right now?"},
+  {order: 2, key: 'who_to_talk',  prompt: 'Where do you go?'},
+  {order: 3, key: 'delphine',     prompt: 'Everyone near you is waiting to hear your answer. What do you say?'},
+  {order: 4, key: 'karaoke',      prompt: "He's holding out the microphone. What do you do?"},
+  {order: 5, key: 'the_toast',    prompt: 'He tips the bottle toward your glass. What do you do?'},
+  {order: 6, key: 'after_party',  prompt: '"You coming?"'},
+  {order: 7, key: 'drive_home',   prompt: 'On the drive down, do you feel more drained or more awake than when you arrived? Would you go back next year, even without Juno?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 // -----------------------------------------------------------------------------
 // 3. Cleanup
 // -----------------------------------------------------------------------------
