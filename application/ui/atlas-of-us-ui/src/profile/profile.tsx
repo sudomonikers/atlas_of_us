@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, getProfile, type Profile as ProfileData } from '../personality/api';
 import { navigate } from '../router';
+import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
 
 const gunmetal = 'var(--gunmetal-black)';
@@ -37,6 +38,7 @@ export default function Profile({ username }: { username: string }) {
 
   return (
     <div style={styles.page} className="comic-page">
+      <Nav />
       <header style={styles.header}>
         <h1 style={styles.title} className="comic-title">
           {profile ? `This Is ${profile.first_name}` : 'This Is...'}
@@ -65,7 +67,7 @@ export default function Profile({ username }: { username: string }) {
       {profile && <PersonalitySection profile={profile} />}
 
       <div style={styles.footer}>
-        <button className="comic-lift" style={styles.button} onClick={() => navigate('/')}>
+        <button className="comic-lift" style={styles.button} onClick={() => navigate(mine ? '/personality' : '/')}>
           {mine ? 'Back to the Atlas ▶' : 'Map yourself ▶'}
         </button>
       </div>

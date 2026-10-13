@@ -196,10 +196,22 @@
 .comic-slam {
   animation: comic-slam 380ms var(--bounce) both;
 }
-/* gentle idle bob for characters */
-.comic-bob {
-  animation: comic-bob 2.4s ease-in-out infinite;
-  transform-origin: 50% 90%;
+/* the mascot's sweat wipe: a drop beads on his brow, one hand leaves the globe to wipe it and the globe sags */
+.atlas-globe {
+  animation: atlas-globe 7s ease-in-out infinite;
+  transform-box: view-box;
+  transform-origin: 36px 38px; /* his other hand */
+}
+.atlas-hold {
+  animation: atlas-hold 7s infinite;
+}
+.atlas-wipe {
+  opacity: 0;
+  animation: atlas-wipe 7s ease-in-out infinite;
+}
+.atlas-sweat {
+  opacity: 0;
+  animation: atlas-sweat 7s ease-in infinite;
 }
 /* occasional blink, for eyes (works on svg groups) */
 .comic-blink {
@@ -223,9 +235,24 @@
   70% { opacity: 1; transform: rotate(-8deg) scale(0.9); }
   100% { opacity: 1; transform: rotate(-8deg) scale(1); }
 }
-@keyframes comic-bob {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-6px) rotate(3deg); }
+@keyframes atlas-globe {
+  0%, 62%, 90%, 100% { transform: rotate(0); }
+  68%, 84% { transform: rotate(6deg); }
+}
+@keyframes atlas-hold {
+  0%, 62%, 90%, 100% { opacity: 1; }
+  64%, 88% { opacity: 0; }
+}
+@keyframes atlas-wipe {
+  0%, 62%, 90%, 100% { opacity: 0; transform: translateX(0); }
+  64%, 76%, 88% { opacity: 1; transform: translateX(0); }
+  70%, 82% { transform: translateX(-9px); }
+}
+@keyframes atlas-sweat {
+  0%, 30% { opacity: 0; transform: translateY(-2px); }
+  34% { opacity: 1; transform: translateY(0); }
+  63% { opacity: 1; transform: translateY(4px); }
+  66%, 100% { opacity: 0; transform: translateY(4px); }
 }
 @keyframes comic-blink {
   0%, 92%, 100% { transform: scaleY(1); }
@@ -241,10 +268,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .comic-pop, .comic-slam, .comic-bob, .comic-blink, .comic-meter-fill, .comic-flash {
+  .comic-pop, .comic-slam, .comic-blink, .comic-meter-fill, .comic-flash {
     animation: none;
   }
   .comic-pop {
     transform: rotate(var(--tilt, 0deg));
+  }
+  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat {
+    animation: none;
   }
 }

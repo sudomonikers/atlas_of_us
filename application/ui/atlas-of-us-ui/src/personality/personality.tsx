@@ -18,7 +18,9 @@ import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
 import { useSession } from '../auth/api';
+import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
+import { Mascot } from '../shared_components/mascot';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -422,6 +424,7 @@ function Personality() {
   return (
     <RequireLogin reason="You need an account to play the personality scenarios and keep track of your progress.">
       <div style={dash.page} className="comic-page">
+        <Nav />
         <header style={dash.header}>
           <h1 style={dash.title} className="comic-title">
             Personality
@@ -573,36 +576,6 @@ const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   if (measured === traits.length) return `Here's the whole picture${name ? `, ${name}` : ''}. Every trait has been measured!`;
   return `Here's what we've learned so far${name ? `, ${name}` : ''}. Keep playing scenarios to fill in the rest.`;
 };
-
-const MASCOT_BODY = 'M14 66 C10 36 30 22 50 24 C72 26 88 42 82 70 C78 92 22 96 14 66 Z';
-
-//the speech-bubble guide who greets the user
-function Mascot() {
-  return (
-    <svg className="comic-bob" width="96" height="104" viewBox="0 0 96 104" aria-hidden>
-      {/* colours go through style rather than fill/stroke attributes so the css variables resolve */}
-      <g style={{ stroke: gunmetal }} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-        {/* body, with its colour bleeding past the outline */}
-        <path d={MASCOT_BODY} style={{ fill: blue, stroke: 'none' }} transform="translate(3 3)" opacity="0.75" />
-        <path d={MASCOT_BODY} style={{ fill: paleBlue }} />
-        {/* explorer hat */}
-        <path d="M18 34 C26 30 70 28 80 36" fill="none" />
-        <path d="M28 33 C28 14 66 12 68 32 Z" style={{ fill: cinnamon }} />
-        <path d="M30 26 C42 22 56 22 66 25" fill="none" style={{ stroke: brownRed }} strokeWidth="5" />
-        {/* face */}
-        <g className="comic-blink" style={{ fill: gunmetal, stroke: 'none' }}>
-          <ellipse cx="38" cy="56" rx="4" ry="6" />
-          <ellipse cx="60" cy="56" rx="4" ry="6" />
-        </g>
-        <g style={{ fill: brownRed, stroke: 'none' }} opacity="0.35">
-          <ellipse cx="29" cy="68" rx="6" ry="3.5" />
-          <ellipse cx="70" cy="68" rx="6" ry="3.5" />
-        </g>
-        <path d="M42 70 C46 76 54 76 57 70" fill="none" strokeWidth="3.5" />
-      </g>
-    </svg>
-  );
-}
 
 type Badge = ScenarioStatus | 'soon';
 

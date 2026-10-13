@@ -2,6 +2,7 @@ import { useId, useState, type CSSProperties, type FormEvent, type ReactNode } f
 
 import { navigate } from '../router';
 import { DatePicker } from '../shared_components/date-picker';
+import { Nav } from '../shared_components/nav';
 import { PhoneNumberInput } from '../shared_components/phone-number-input';
 import { createUser, login } from './api';
 
@@ -140,7 +141,7 @@ function useSubmit(action: () => Promise<unknown>) {
 function Page({ title, error, children }: { title: string; error?: string; children: ReactNode }) {
   return (
     <div style={styles.page} className="comic-page">
-      <p style={styles.brand}>The Atlas Of Us</p>
+      <Nav />
       <main style={styles.card} className="comic-panel comic-pop">
         <h1 style={styles.title} className="comic-title">
           {title}
@@ -199,18 +200,12 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 20,
-    padding: '40px 16px',
-  },
-  brand: {
-    fontFamily: comic,
-    fontSize: 26,
-    letterSpacing: 1.5,
-    color: 'var(--air-force-blue)',
+    padding: '32px 16px 40px',
   },
   card: {
     width: 'min(520px, 100%)',
+    margin: 'auto 0', //centred in the space under the nav
     padding: '28px 30px 22px',
     background: '#fff',
     borderRadius: 'var(--wobbly)',

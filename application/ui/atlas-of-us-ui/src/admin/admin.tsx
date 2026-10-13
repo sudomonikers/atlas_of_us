@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 import { navigate, usePath } from '../router';
+import { Nav } from '../shared_components/nav';
 import { getEmail, listEmails, replyToEmail, type Contact, type Email, type EmailSummary } from './api';
 
 const EMAIL_PATH = '/admin/emails/';
@@ -235,15 +236,13 @@ function ReplyForm({ to, onSend }: { to?: string; onSend: (body: string) => Prom
 function Shell({ actions, children }: { actions?: ReactNode; children: ReactNode }) {
   return (
     <div style={styles.page} className="comic-page">
+      <Nav />
       <header style={styles.header}>
         <h1 style={styles.title} className="comic-title">
           Admin
         </h1>
         <div style={styles.headerActions}>
           {actions}
-          <button className="comic-lift" style={styles.small} onClick={() => navigate('/')}>
-            Back to the Atlas
-          </button>
         </div>
       </header>
       {typeof children === 'string' ? <p style={styles.notice}>{children}</p> : children}
