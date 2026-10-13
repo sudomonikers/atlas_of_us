@@ -117,6 +117,19 @@ MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
 
+// The Rule That Doesn't Fit. the_count is only asked of players who let Nessa on, so it can go unanswered
+MATCH (s:PersonalityScenario {name: 'rule_that_doesnt_fit'})
+UNWIND [
+  {order: 0, key: 'first_response',  prompt: "She's out of breath and shivering. What do you say first?"},
+  {order: 1, key: 'believe',         prompt: 'Do you believe her? What makes you think so, or not?'},
+  {order: 2, key: 'the_rule',        prompt: "It's 9:37. What do you do?"},
+  {order: 3, key: 'the_count',       prompt: 'The captain is waiting. What do you tell him?'},
+  {order: 4, key: 'the_rule_itself', prompt: 'The rule says 120, no exceptions. Is it a good rule? Would you change it?'},
+  {order: 5, key: 'if_she_lied',     prompt: "Suppose you found out her story wasn't true. Would that change how you feel about what you did?"}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 // -----------------------------------------------------------------------------
 // 3. Choice base scores
 // -----------------------------------------------------------------------------
@@ -254,6 +267,40 @@ UNWIND [
    shifts: [{trait: 'Imagination', delta: 0.5}, {trait: 'Artistic Interests', delta: 0.4}, {trait: 'Achievement-Striving', delta: -0.4}, {trait: 'Self-Discipline', delta: -0.3}]}
 ] AS choice
 MATCH (:PersonalityScenario {name: 'the_archive'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
+MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
+WITH c, choice
+OPTIONAL MATCH (c)-[old:SHIFTS]->()
+DELETE old
+WITH DISTINCT c, choice
+UNWIND choice.shifts AS shift
+MATCH (t:PersonalityTrait {name: shift.trait})
+CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
+
+
+// The Rule That Doesn't Fit
+UNWIND [
+  {question: 'first_response', label: "I'm sorry, we're full. There's nothing I can do.",
+   shifts: [{trait: 'Dutifulness', delta: 0.4}, {trait: 'Sympathy', delta: 0.1}, {trait: 'Friendliness', delta: -0.1}]},
+  {question: 'first_response', label: "Get under the lamp, out of the rain. What's happened?",
+   shifts: [{trait: 'Friendliness', delta: 0.6}, {trait: 'Sympathy', delta: 0.5}, {trait: 'Altruism', delta: 0.2}]},
+  {question: 'first_response', label: "No ticket, no boarding. You'll have to ask at the office.",
+   shifts: [{trait: 'Dutifulness', delta: 0.5}, {trait: 'Friendliness', delta: -0.4}, {trait: 'Sympathy', delta: -0.3}]},
+
+  {question: 'the_rule', label: 'Let her on. Her father matters more than the rule.',
+   shifts: [{trait: 'Liberalism', delta: 0.6}, {trait: 'Altruism', delta: 0.5}, {trait: 'Sympathy', delta: 0.5}, {trait: 'Dutifulness', delta: -0.6}, {trait: 'Boldness', delta: 0.3}]},
+  {question: 'the_rule', label: 'Ask the passengers if anyone will give up their place.',
+   shifts: [{trait: 'Altruism', delta: 0.4}, {trait: 'Dutifulness', delta: 0.3}, {trait: 'Adaptability', delta: 0.5}, {trait: 'Sympathy', delta: 0.3}]},
+  {question: 'the_rule', label: 'Keep the rule, but do whatever else I can for her.',
+   shifts: [{trait: 'Dutifulness', delta: 0.5}, {trait: 'Altruism', delta: 0.5}, {trait: 'Sympathy', delta: 0.3}, {trait: 'Liberalism', delta: -0.2}]},
+  {question: 'the_rule', label: "Keep the rule. It isn't mine to break.",
+   shifts: [{trait: 'Dutifulness', delta: 0.7}, {trait: 'Liberalism', delta: -0.5}, {trait: 'Altruism', delta: -0.3}, {trait: 'Sympathy', delta: -0.2}]},
+
+  {question: 'the_count', label: 'The truth. 121, and I let her on.',
+   shifts: [{trait: 'Morality', delta: 0.7}, {trait: 'Dutifulness', delta: 0.3}, {trait: 'Boldness', delta: 0.3}]},
+  {question: 'the_count', label: '120.',
+   shifts: [{trait: 'Morality', delta: -0.6}, {trait: 'Dutifulness', delta: -0.4}, {trait: 'Liberalism', delta: 0.2}]}
+] AS choice
+MATCH (:PersonalityScenario {name: 'rule_that_doesnt_fit'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
 MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
 WITH c, choice
 OPTIONAL MATCH (c)-[old:SHIFTS]->()

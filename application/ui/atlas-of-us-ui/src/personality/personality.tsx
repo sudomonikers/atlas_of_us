@@ -9,6 +9,8 @@ import { readingPeople } from './reading_people/script';
 import ReadingPeople from './reading_people/reading_people';
 import { theArchive } from './the_archive/script';
 import TheArchive from './the_archive/the_archive';
+import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
+import LastFerry from './rule_that_doesnt_fit/last_ferry';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 
@@ -219,7 +221,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: "The Rule That Doesn't Fit",
     kind: 'Realistic hypothetical',
     blurb: 'You enforce a rule, and a stranger with a sympathetic and possibly true story asks you to break it.',
-    facets: ['Friendliness', 'Liberalism', 'Morality', 'Altruism', 'Sympathy', 'Dutifulness'],
+    facets: ruleThatDoesntFit.facets,
   },
 ];
 
@@ -234,6 +236,7 @@ const PLAYABLE: Record<string, Playable> = {
   the_thief: { script: theThief, renderScene: (animation) => <Thief animation={animation} /> },
   reading_people: { script: readingPeople, renderScene: (animation) => <ReadingPeople animation={animation} /> },
   the_archive: { script: theArchive, renderScene: (animation, clock) => <TheArchive animation={animation} clock={clock} /> },
+  rule_that_doesnt_fit: { script: ruleThatDoesntFit, renderScene: (animation) => <LastFerry animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
