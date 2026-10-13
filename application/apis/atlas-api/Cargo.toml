@@ -6,27 +6,21 @@ edition = "2024"
 [dependencies]
 # Web Framework
 axum = { version = "0.8.8", features = ["macros"] }
-tower = { version = "0.5.2", features = ["full"] }
-tower-http = { version = "0.6.8", features = ["trace", "timeout", "request-id"] }
 
 # Async Runtime
-tokio = { version = "1.53.2", features = ["full", "tracing"] }
+tokio = { version = "1.53.2", features = ["full"] }
 chrono = { version = "0.4.41", features = ["serde"] }
-futures = "0.3.34"
 
 # Database (optional)
 neo4rs = "0.9.0-rc.10"
 
 # Tracing
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
-# uuids
-uuid = { version = "1.17.0", features = ["serde", "v4"] }
 
 # Auth
 jsonwebtoken = "9"
@@ -37,4 +31,4 @@ aws-config = { version = "1", default-features = false, features = ["legacy-clie
 aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["legacy-https-client", "rt-tokio"] }
 
 # Lambda (function URL events use the API Gateway HTTP payload)
-lambda_http = { version = "1.3.1", default-features = false, features = ["apigw_http", "tracing"] }
+lambda_http = { version = "1.3.1", default-features = false, features = ["apigw_http"] }
