@@ -10,11 +10,8 @@
 // (:Person)-[:ANSWERED {answer, reasoning, answeredDate, scoring}]->(:PersonalityScenarioQuestion),
 // written by the api.
 //
-// Multiple choice questions also have base scores for each choice, which the api's
-// scoring job uses alongside the llm's read of the reasoning. delta is -1 to 1:
-//   (:PersonalityScenarioQuestion)-[:HAS_CHOICE]->(:PersonalityScenarioChoice {label})-[:SHIFTS {delta}]->(:PersonalityTrait)
-// label matches the choice label in the scenario's script, which is what the api stores as the answer.
-// Free text questions have no choices, and are scored by the llm alone.
+// Every answer, multiple choice or free text, is scored by the api's llm job from the
+// answer and the user's reasoning. There are no fixed scores per choice.
 //
 // Idempotent: safe to re-run. MERGE on name / key, everything else overwritten
 // from this file on every run.
@@ -85,7 +82,7 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
-// Reading People (free text only, so no choice base scores)
+// Reading People
 MATCH (s:PersonalityScenario {name: 'reading_people'})
 UNWIND [
   {order: 0, key: 'festival_laugh',   prompt: 'What do you think they were laughing at? How did it feel to walk into that?'},
@@ -145,222 +142,9 @@ MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
 // -----------------------------------------------------------------------------
-// 3. Choice base scores
+// 3. Cleanup
 // -----------------------------------------------------------------------------
 
-// Expedition I: Landfall
-UNWIND [
-  {question: 'who_leads', label: 'Back Voss. Someone needs to be in charge, and he has the experience.',
-   shifts: [{trait: 'Cooperation', delta: 0.4}, {trait: 'Trust', delta: 0.3}, {trait: 'Assertiveness', delta: -0.3}]},
-  {question: 'who_leads', label: 'Put yourself forward to lead.',
-   shifts: [{trait: 'Assertiveness', delta: 0.7}, {trait: 'Self-Efficacy', delta: 0.4}, {trait: 'Boldness', delta: 0.4}]},
-  {question: 'who_leads', label: 'Propose that the group decides things together.',
-   shifts: [{trait: 'Cooperation', delta: 0.6}, {trait: 'Fairness', delta: 0.5}, {trait: 'Assertiveness', delta: 0.2}]},
-  {question: 'who_leads', label: 'Stay out of it. Let them sort it out.',
-   shifts: [{trait: 'Assertiveness', delta: -0.6}, {trait: 'Independence', delta: 0.3}, {trait: 'Gregariousness', delta: -0.2}]},
-
-  {question: 'explore_or_camp', label: 'Head inland to look for water and learn the island.',
-   shifts: [{trait: 'Adventurousness', delta: 0.6}, {trait: 'Excitement-Seeking', delta: 0.3}, {trait: 'Cautiousness', delta: -0.3}]},
-  {question: 'explore_or_camp', label: 'Stay on the beach, build shelter, and get a signal fire going.',
-   shifts: [{trait: 'Cautiousness', delta: 0.5}, {trait: 'Orderliness', delta: 0.3}, {trait: 'Adventurousness', delta: -0.4}]},
-  {question: 'explore_or_camp', label: 'Split up: some explore, some build.',
-   shifts: [{trait: 'Adaptability', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}, {trait: 'Decisiveness', delta: 0.2}]},
-
-  {question: 'rum_and_fruit', label: "Take it, and keep going as long as it's offered. You've earned it.",
-   shifts: [{trait: 'Immoderation', delta: 0.7}, {trait: 'Self-Discipline', delta: -0.4}, {trait: 'Cautiousness', delta: -0.3}]},
-  {question: 'rum_and_fruit', label: 'Have a little, then stop.',
-   shifts: [{trait: 'Self-Discipline', delta: 0.3}, {trait: 'Immoderation', delta: -0.2}, {trait: 'Friendliness', delta: 0.2}]},
-  {question: 'rum_and_fruit', label: 'Refuse, and argue that it should be saved.',
-   shifts: [{trait: 'Immoderation', delta: -0.6}, {trait: 'Cautiousness', delta: 0.6}, {trait: 'Self-Discipline', delta: 0.5}, {trait: 'Assertiveness', delta: 0.3}]},
-
-  {question: 'go_to_light', label: 'Grab a torch and go with her now.',
-   shifts: [{trait: 'Adventurousness', delta: 0.6}, {trait: 'Excitement-Seeking', delta: 0.5}, {trait: 'Boldness', delta: 0.5}, {trait: 'Cautiousness', delta: -0.5}]},
-  {question: 'go_to_light', label: 'Convince her to wait for morning.',
-   shifts: [{trait: 'Cautiousness', delta: 0.5}, {trait: 'Patience', delta: 0.4}, {trait: 'Assertiveness', delta: 0.2}]},
-  {question: 'go_to_light', label: 'Argue that no one should go up there at all.',
-   shifts: [{trait: 'Cautiousness', delta: 0.7}, {trait: 'Anxiety', delta: 0.3}, {trait: 'Adventurousness', delta: -0.5}]}
-] AS choice
-MATCH (:PersonalityScenario {name: 'landfall'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
-MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
-WITH c, choice
-OPTIONAL MATCH (c)-[old:SHIFTS]->()
-DELETE old
-WITH DISTINCT c, choice
-UNWIND choice.shifts AS shift
-MATCH (t:PersonalityTrait {name: shift.trait})
-CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
-
-
-// Expedition II: The Thief
-UNWIND [
-  {question: 'search_bags', label: 'Agree. Search everyone, me included.',
-   shifts: [{trait: 'Trust', delta: -0.4}, {trait: 'Fairness', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}, {trait: 'Liberalism', delta: -0.3}]},
-  {question: 'search_bags', label: "Refuse. We don't treat each other like criminals.",
-   shifts: [{trait: 'Trust', delta: 0.6}, {trait: 'Liberalism', delta: 0.3}, {trait: 'Assertiveness', delta: 0.3}]},
-  {question: 'search_bags', label: 'Ask whoever did it to own up in private, with no punishment.',
-   shifts: [{trait: 'Trust', delta: 0.4}, {trait: 'Sympathy', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}, {trait: 'Liberalism', delta: 0.2}]},
-
-  {question: 'tob_punishment', label: 'Cut his rations until what he ate is paid back.',
-   shifts: [{trait: 'Fairness', delta: 0.5}, {trait: 'Dutifulness', delta: 0.3}, {trait: 'Sympathy', delta: -0.3}, {trait: 'Liberalism', delta: -0.3}]},
-  {question: 'tob_punishment', label: 'Let it go. He was scared, and he gave back what was left.',
-   shifts: [{trait: 'Sympathy', delta: 0.6}, {trait: 'Altruism', delta: 0.3}, {trait: 'Liberalism', delta: 0.3}, {trait: 'Fairness', delta: -0.2}]},
-  {question: 'tob_punishment', label: 'Have him make up for it with the night watches and the hardest work.',
-   shifts: [{trait: 'Fairness', delta: 0.4}, {trait: 'Cooperation', delta: 0.4}, {trait: 'Sympathy', delta: 0.3}]},
-  {question: 'tob_punishment', label: 'Send him to sleep away from camp, far from the stores.',
-   shifts: [{trait: 'Sympathy', delta: -0.6}, {trait: 'Trust', delta: -0.4}, {trait: 'Liberalism', delta: -0.3}, {trait: 'Cautiousness', delta: 0.3}]},
-
-  {question: 'maren_knew', label: 'She should have told us. She answers for it too.',
-   shifts: [{trait: 'Morality', delta: 0.4}, {trait: 'Fairness', delta: 0.3}, {trait: 'Sympathy', delta: -0.3}, {trait: 'Trust', delta: -0.2}]},
-  {question: 'maren_knew', label: 'She did what she thought was kind. Leave her be.',
-   shifts: [{trait: 'Sympathy', delta: 0.4}, {trait: 'Trust', delta: 0.4}, {trait: 'Cooperation', delta: 0.3}]},
-  {question: 'maren_knew', label: 'Take it up with her privately, not in front of everyone.',
-   shifts: [{trait: 'Cooperation', delta: 0.4}, {trait: 'Sympathy', delta: 0.3}, {trait: 'Morality', delta: 0.2}]},
-
-  {question: 'share_portion', label: 'Give part of it to Tob.',
-   shifts: [{trait: 'Altruism', delta: 0.7}, {trait: 'Sympathy', delta: 0.5}]},
-  {question: 'share_portion', label: 'Eat it. Everyone is hungry.',
-   shifts: [{trait: 'Altruism', delta: -0.4}, {trait: 'Sympathy', delta: -0.2}]},
-  {question: 'share_portion', label: 'Put part of it back in the stores for later.',
-   shifts: [{trait: 'Altruism', delta: 0.4}, {trait: 'Cautiousness', delta: 0.4}, {trait: 'Self-Discipline', delta: 0.4}, {trait: 'Cooperation', delta: 0.2}]}
-] AS choice
-MATCH (:PersonalityScenario {name: 'the_thief'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
-MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
-WITH c, choice
-OPTIONAL MATCH (c)-[old:SHIFTS]->()
-DELETE old
-WITH DISTINCT c, choice
-UNWIND choice.shifts AS shift
-MATCH (t:PersonalityTrait {name: shift.trait})
-CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
-
-
-// The Archive
-UNWIND [
-  {question: 'plan', label: 'Make a plan first. Label the crates, then sort everything by date.',
-   shifts: [{trait: 'Orderliness', delta: 0.7}, {trait: 'Self-Discipline', delta: 0.3}, {trait: 'Achievement-Striving', delta: 0.2}]},
-  {question: 'plan', label: "Logbooks and plates first. That's what the university wants.",
-   shifts: [{trait: 'Achievement-Striving', delta: 0.5}, {trait: 'Self-Discipline', delta: 0.4}, {trait: 'Decisiveness', delta: 0.3}]},
-  {question: 'plan', label: 'Just dive in and sort things as they come to hand.',
-   shifts: [{trait: 'Orderliness', delta: -0.5}, {trait: 'Adaptability', delta: 0.3}, {trait: 'Activity Level', delta: 0.2}]},
-
-  {question: 'the_letter', label: 'Read it now.',
-   shifts: [{trait: 'Imagination', delta: 0.4}, {trait: 'Emotionality', delta: 0.3}, {trait: 'Self-Discipline', delta: -0.4}]},
-  {question: 'the_letter', label: 'Put it in my pocket for later.',
-   shifts: [{trait: 'Self-Discipline', delta: 0.4}, {trait: 'Imagination', delta: 0.2}, {trait: 'Patience', delta: 0.3}]},
-  {question: 'the_letter', label: 'File it with her papers and keep going.',
-   shifts: [{trait: 'Self-Discipline', delta: 0.5}, {trait: 'Orderliness', delta: 0.3}, {trait: 'Imagination', delta: -0.3}]},
-
-  {question: 'the_sketches', label: 'Look through it properly.',
-   shifts: [{trait: 'Artistic Interests', delta: 0.7}, {trait: 'Imagination', delta: 0.3}, {trait: 'Self-Discipline', delta: -0.4}]},
-  {question: 'the_sketches', label: 'Flip through a few pages, then pack it.',
-   shifts: [{trait: 'Artistic Interests', delta: 0.3}, {trait: 'Self-Discipline', delta: 0.2}]},
-  {question: 'the_sketches', label: "Close it and crate it. There isn't time.",
-   shifts: [{trait: 'Self-Discipline', delta: 0.5}, {trait: 'Achievement-Striving', delta: 0.3}, {trait: 'Artistic Interests', delta: -0.4}]},
-
-  {question: 'the_orrery', label: 'Try to work it out.',
-   shifts: [{trait: 'Intellect', delta: 0.7}, {trait: 'Imagination', delta: 0.2}, {trait: 'Achievement-Striving', delta: -0.2}]},
-  {question: 'the_orrery', label: 'Write the date on a label and move on.',
-   shifts: [{trait: 'Orderliness', delta: 0.4}, {trait: 'Achievement-Striving', delta: 0.3}, {trait: 'Intellect', delta: 0.1}]},
-  {question: 'the_orrery', label: "Leave it. It's just an ornament.",
-   shifts: [{trait: 'Intellect', delta: -0.5}, {trait: 'Imagination', delta: -0.3}]},
-
-  {question: 'last_crate', label: 'Label every plate properly, however long it takes.',
-   shifts: [{trait: 'Orderliness', delta: 0.6}, {trait: 'Perfectionism', delta: 0.6}, {trait: 'Achievement-Striving', delta: 0.4}, {trait: 'Self-Discipline', delta: 0.3}]},
-  {question: 'last_crate', label: 'Label the crate "Glass plates, unsorted" and call it done.',
-   shifts: [{trait: 'Achievement-Striving', delta: 0.3}, {trait: 'Orderliness', delta: -0.2}, {trait: 'Adaptability', delta: 0.3}]},
-  {question: 'last_crate', label: "Leave it. I've done enough.",
-   shifts: [{trait: 'Achievement-Striving', delta: -0.5}, {trait: 'Self-Discipline', delta: -0.4}]},
-
-  {question: 'the_night', label: 'Satisfied. I set out to get it done, and I did.',
-   shifts: [{trait: 'Achievement-Striving', delta: 0.6}, {trait: 'Self-Discipline', delta: 0.5}, {trait: 'Self-Efficacy', delta: 0.3}]},
-  {question: 'the_night', label: "I finished, but I wish I'd slowed down and looked closer.",
-   shifts: [{trait: 'Self-Discipline', delta: 0.3}, {trait: 'Imagination', delta: 0.3}, {trait: 'Artistic Interests', delta: 0.3}]},
-  {question: 'the_night', label: 'Frustrated. I should have stuck to the job.',
-   shifts: [{trait: 'Achievement-Striving', delta: 0.4}, {trait: 'Self-Discipline', delta: -0.4}, {trait: 'Introspection', delta: 0.2}]},
-  {question: 'the_night', label: 'No regrets. What I found was worth more than finishing.',
-   shifts: [{trait: 'Imagination', delta: 0.5}, {trait: 'Artistic Interests', delta: 0.4}, {trait: 'Achievement-Striving', delta: -0.4}, {trait: 'Self-Discipline', delta: -0.3}]}
-] AS choice
-MATCH (:PersonalityScenario {name: 'the_archive'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
-MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
-WITH c, choice
-OPTIONAL MATCH (c)-[old:SHIFTS]->()
-DELETE old
-WITH DISTINCT c, choice
-UNWIND choice.shifts AS shift
-MATCH (t:PersonalityTrait {name: shift.trait})
-CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
-
-
-// The Rule That Doesn't Fit
-UNWIND [
-  {question: 'first_response', label: "I'm sorry, we're full. There's nothing I can do.",
-   shifts: [{trait: 'Dutifulness', delta: 0.4}, {trait: 'Sympathy', delta: 0.1}, {trait: 'Friendliness', delta: -0.1}]},
-  {question: 'first_response', label: "Get under the lamp, out of the rain. What's happened?",
-   shifts: [{trait: 'Friendliness', delta: 0.6}, {trait: 'Sympathy', delta: 0.5}, {trait: 'Altruism', delta: 0.2}]},
-  {question: 'first_response', label: "No ticket, no boarding. You'll have to ask at the office.",
-   shifts: [{trait: 'Dutifulness', delta: 0.5}, {trait: 'Friendliness', delta: -0.4}, {trait: 'Sympathy', delta: -0.3}]},
-
-  {question: 'the_rule', label: 'Let her on. Her father matters more than the rule.',
-   shifts: [{trait: 'Liberalism', delta: 0.6}, {trait: 'Altruism', delta: 0.5}, {trait: 'Sympathy', delta: 0.5}, {trait: 'Dutifulness', delta: -0.6}, {trait: 'Boldness', delta: 0.3}]},
-  {question: 'the_rule', label: 'Ask the passengers if anyone will give up their place.',
-   shifts: [{trait: 'Altruism', delta: 0.4}, {trait: 'Dutifulness', delta: 0.3}, {trait: 'Adaptability', delta: 0.5}, {trait: 'Sympathy', delta: 0.3}]},
-  {question: 'the_rule', label: 'Keep the rule, but do whatever else I can for her.',
-   shifts: [{trait: 'Dutifulness', delta: 0.5}, {trait: 'Altruism', delta: 0.5}, {trait: 'Sympathy', delta: 0.3}, {trait: 'Liberalism', delta: -0.2}]},
-  {question: 'the_rule', label: "Keep the rule. It isn't mine to break.",
-   shifts: [{trait: 'Dutifulness', delta: 0.7}, {trait: 'Liberalism', delta: -0.5}, {trait: 'Altruism', delta: -0.3}, {trait: 'Sympathy', delta: -0.2}]},
-
-  {question: 'the_count', label: 'The truth. 121, and I let her on.',
-   shifts: [{trait: 'Morality', delta: 0.7}, {trait: 'Dutifulness', delta: 0.3}, {trait: 'Boldness', delta: 0.3}]},
-  {question: 'the_count', label: '120.',
-   shifts: [{trait: 'Morality', delta: -0.6}, {trait: 'Dutifulness', delta: -0.4}, {trait: 'Liberalism', delta: 0.2}]}
-] AS choice
-MATCH (:PersonalityScenario {name: 'rule_that_doesnt_fit'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
-MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
-WITH c, choice
-OPTIONAL MATCH (c)-[old:SHIFTS]->()
-DELETE old
-WITH DISTINCT c, choice
-UNWIND choice.shifts AS shift
-MATCH (t:PersonalityTrait {name: shift.trait})
-CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
-
-
-// The Offer
-UNWIND [
-  {question: 'first_reaction', label: 'When do I leave?',
-   shifts: [{trait: 'Excitement-Seeking', delta: 0.6}, {trait: 'Adventurousness', delta: 0.5}, {trait: 'Cautiousness', delta: -0.5}, {trait: 'Decisiveness', delta: 0.4}]},
-  {question: 'first_reaction', label: 'Send me everything: the risks, the contract, all of it.',
-   shifts: [{trait: 'Cautiousness', delta: 0.6}, {trait: 'Excitement-Seeking', delta: -0.1}]},
-  {question: 'first_reaction', label: "Why me? I'm not sure I'm the right person.",
-   shifts: [{trait: 'Self-Efficacy', delta: -0.5}, {trait: 'Anxiety', delta: 0.3}, {trait: 'Modesty', delta: 0.3}]},
-
-  {question: 'the_tour', label: 'Suit up and go out on the hull.',
-   shifts: [{trait: 'Excitement-Seeking', delta: 0.6}, {trait: 'Adventurousness', delta: 0.4}]},
-  {question: 'the_tour', label: 'The report on the lost lander.',
-   shifts: [{trait: 'Cautiousness', delta: 0.6}, {trait: 'Anxiety', delta: 0.2}]},
-  {question: 'the_tour', label: 'The crew. I want to meet the people I would be living with.',
-   shifts: [{trait: 'Gregariousness', delta: 0.4}, {trait: 'Friendliness', delta: 0.4}]},
-
-  {question: 'can_you', label: "I've handled worse. I'd manage.",
-   shifts: [{trait: 'Self-Efficacy', delta: 0.7}, {trait: 'Anxiety', delta: -0.3}]},
-  {question: 'can_you', label: 'With enough training, yes.',
-   shifts: [{trait: 'Self-Efficacy', delta: 0.3}, {trait: 'Cautiousness', delta: 0.3}, {trait: 'Achievement-Striving', delta: 0.2}]},
-  {question: 'can_you', label: "Honestly, I don't know if I could.",
-   shifts: [{trait: 'Self-Efficacy', delta: -0.6}, {trait: 'Anxiety', delta: 0.5}]},
-
-  {question: 'the_decision', label: "I'm going.",
-   shifts: [{trait: 'Adventurousness', delta: 0.7}, {trait: 'Excitement-Seeking', delta: 0.5}, {trait: 'Cautiousness', delta: -0.4}, {trait: 'Boldness', delta: 0.5}]},
-  {question: 'the_decision', label: "I'm staying on Halden.",
-   shifts: [{trait: 'Adventurousness', delta: -0.5}, {trait: 'Cautiousness', delta: 0.5}, {trait: 'Achievement-Striving', delta: 0.2}]},
-  {question: 'the_decision', label: 'Not this time. Hold me a place on the next ship.',
-   shifts: [{trait: 'Cautiousness', delta: 0.4}, {trait: 'Adventurousness', delta: 0.2}, {trait: 'Anxiety', delta: 0.2}, {trait: 'Decisiveness', delta: -0.3}]}
-] AS choice
-MATCH (:PersonalityScenario {name: 'the_offer'})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: choice.question})
-MERGE (q)-[:HAS_CHOICE]->(c:PersonalityScenarioChoice {label: choice.label})
-WITH c, choice
-OPTIONAL MATCH (c)-[old:SHIFTS]->()
-DELETE old
-WITH DISTINCT c, choice
-UNWIND choice.shifts AS shift
-MATCH (t:PersonalityTrait {name: shift.trait})
-CREATE (c)-[:SHIFTS {delta: shift.delta}]->(t);
+// Choices used to carry base scores. Scoring is now the llm's read alone, so remove any left over
+MATCH (c:PersonalityScenarioChoice)
+DETACH DELETE c;

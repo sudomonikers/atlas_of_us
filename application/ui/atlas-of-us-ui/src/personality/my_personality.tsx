@@ -143,7 +143,7 @@ function ContributionCard({ contribution: c }: { contribution: Contribution }) {
           <strong>Because:</strong> {c.reasoning}
         </p>
       )}
-      <p style={styles.contributionWhy}>{c.evidence ?? 'From the choice you picked.'}</p>
+      <p style={styles.contributionWhy}>{c.evidence}</p>
     </li>
   );
 }

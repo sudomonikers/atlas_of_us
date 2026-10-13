@@ -3,8 +3,8 @@ When creating new scenes we will need to do several things.
 1. Create a new folder and file in the atlas_of_us/application/ui/atlas-of-us-ui/src/personality path
 2. Create a new script for the scene
 3. Search for any relevant sounds that would work well for the scene. Sounds can be found in the Downloads foler
-4. Come up with personality trait mappings
-5. Create the script database seed script in atlas_of_us/application/database (similar to atlas_of_us/application/database/personality_scenarios_seed.cypher)
+4. Pick the facets the scene and each prompt are designed to measure (the `facets` in the script). Don't add fixed trait scores for choices: every answer is scored by the llm from the choice and the user's reasoning
+5. Add the scenario and its questions to atlas_of_us/application/database/personality_scenarios_seed.cypher
 6. register the scene in personality.tsx
 
 

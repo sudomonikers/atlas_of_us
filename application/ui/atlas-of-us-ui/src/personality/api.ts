@@ -50,7 +50,7 @@ export const getJob = () => request<{ running: boolean }>('GET', '/personality/j
 export interface Shift {
   trait: string; //the trait's name
   delta: number; //-1 (towards low) to 1 (towards high)
-  evidence?: string; //the llm's reason. Missing when the shift is the picked choice's base score
+  evidence: string; //the llm's reason
 }
 
 export interface AnswerEvidence {
@@ -116,7 +116,7 @@ export interface Contribution {
   answer: string;
   reasoning?: string;
   delta: number; //-1 (towards low) to 1 (towards high)
-  evidence?: string; //the llm's reason, missing for the picked choice's base score
+  evidence: string; //the llm's reason
 }
 
 //the Big Five domains, then everything else. A facet's domain is the prefix of its description, e.g. "openness facet: ..."
