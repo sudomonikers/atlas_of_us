@@ -57,15 +57,15 @@ function Login({ onAuthenticated, onSwitch }: PageProps) {
 }
 
 function CreateUser({ onAuthenticated, onSwitch }: PageProps) {
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', birthday: '', password: '', confirm: '' });
+  const [form, setForm] = useState({ first_name: '', last_name: '', username: '', email: '', birthday: '', password: '', confirm: '' });
   const [phone, setPhone] = useState('');
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const mismatch = !passwordsMatch(form.password, form.confirm);
 
   const submit = useSubmit(async () => {
     if (mismatch) throw new Error("Those passwords don't match.");
-    const { first_name, last_name, email, birthday, password } = form;
-    await createUser({ first_name, last_name, phone, email, birthday, password });
+    const { first_name, last_name, username, email, birthday, password } = form;
+    await createUser({ first_name, last_name, username, phone, email, birthday, password });
     onAuthenticated();
   });
 
@@ -80,6 +80,9 @@ function CreateUser({ onAuthenticated, onSwitch }: PageProps) {
             <input style={styles.input} autoComplete="family-name" required value={form.last_name} onChange={set('last_name')} />
           </Field>
         </div>
+        <Field label="Username" hint={`Your profile will be at /u/${form.username.toLowerCase() || '…'}`}>
+          <input style={styles.input} autoComplete="username" required minLength={3} maxLength={30} pattern="[A-Za-z0-9_\-]+" value={form.username} onChange={set('username')} />
+        </Field>
         <Field label="Phone number" hint="You'll log in with this" group>
           {(labelId) => <PhoneNumberInput value={phone} onChange={setPhone} labelId={labelId} />}
         </Field>

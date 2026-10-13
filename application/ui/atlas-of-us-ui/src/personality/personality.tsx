@@ -317,6 +317,7 @@ function Personality() {
   const session = useSession();
   const loggedIn = session.status === 'authenticated';
   const personId = session.status === 'authenticated' ? session.person.id : undefined;
+  const username = session.status === 'authenticated' ? session.person.username : undefined;
   const [view, setView] = useState<View>('scenarios');
   const [playing, setPlaying] = useState<string>(); //id of the scenario currently open
   const [answers, setAnswers] = useState<SavedAnswer[]>(); //undefined until loaded
@@ -358,15 +359,15 @@ function Personality() {
 
   //fetched each time the view opens or scoring finishes, so it picks up anything measured since
   useEffect(() => {
-    if (view !== 'traits' || !personId) return;
-    fetchTraits(personId).then(
+    if (view !== 'traits' || !personId || !username) return;
+    fetchTraits(personId, username).then(
       (loaded) => {
         setTraits(loaded);
         setTraitsError(undefined);
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
-  }, [view, personId, scoring]);
+  }, [view, personId, username, scoring]);
 
   //saves an answer as the player moves past a prompt
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer, clock?: AnswerClock) => {

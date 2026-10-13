@@ -36,6 +36,7 @@ export interface TraitInfo {
   id: string;
   name: string;
   description: string | null;
+  domain: string; //a DOMAINS key
   average: number | null; //everyone's mean value, 0 to 1. Null until someone has been measured on it
 }
 
@@ -46,10 +47,6 @@ export interface TraitScore extends Omit<TraitInfo, 'average'> {
 
 //every trait we measure
 export const getTraits = () => request<TraitInfo[]>('GET', '/personality/traits');
-
-//the person's measured traits. Only the logged in user's own are allowed
-export const getPersonTraits = (personId: string) =>
-  request<TraitScore[]>('GET', `/personality/people/${encodeURIComponent(personId)}/traits`);
 
 //whether the logged in user's traits are being rescored, which happens after each finished scenario
 export const getJob = () => request<{ running: boolean }>('GET', '/personality/job');
@@ -126,7 +123,7 @@ export interface Contribution {
   evidence: string; //the llm's reason
 }
 
-//the Big Five domains, then everything else. A facet's domain is the prefix of its description, e.g. "openness facet: ..."
+//the Big Five domains, then everything else. Keys match the api's PersonalityDomain keys
 export const DOMAINS = [
   { key: 'openness', title: 'Openness', blurb: 'How you take in ideas, art, feelings and new experiences.' },
   { key: 'conscientiousness', title: 'Conscientiousness', blurb: 'How you organize yourself and follow through.' },
@@ -136,21 +133,30 @@ export const DOMAINS = [
   { key: 'other', title: 'Beyond the Big Five', blurb: 'Parts of being human the Big Five leave out.' },
 ];
 
+export interface Profile {
+  username: string;
+  first_name: string;
+  public: boolean;
+  traits: TraitScore[]; //only the measured ones
+}
+
+//someone's profile at /u/{username}: their trait scores, never their answers. Private ones 404 for everyone but the owner
+export const getProfile = (username: string) => request<Profile>('GET', `/personality/profiles/${encodeURIComponent(username)}`);
+
 //every trait, with the user's value where one has been measured and the answers behind it
-export async function fetchTraits(personId: string): Promise<Trait[]> {
-  const [all, mine, evidence] = await Promise.all([getTraits(), getPersonTraits(personId), getPersonEvidence(personId)]);
-  const scores = new Map(mine.map((t) => [t.id, t]));
+export async function fetchTraits(personId: string, username: string): Promise<Trait[]> {
+  const [all, mine, evidence] = await Promise.all([getTraits(), getProfile(username), getPersonEvidence(personId)]);
+  const scores = new Map(mine.traits.map((t) => [t.id, t]));
   const contributions = evidence.flatMap(({ shifts, reasoning, ...answer }) =>
     shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, delta: s.delta, evidence: s.evidence })),
   );
   return all.map((t) => {
     const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
-    const domain = facet && DOMAINS.some((d) => d.key === facet[1]) ? facet[1] : 'other';
     const description = facet ? facet[2] : t.description ?? undefined;
     return {
       id: t.id,
       name: t.name,
-      domain,
+      domain: t.domain,
       description: description && description[0].toUpperCase() + description.slice(1),
       value: scores.get(t.id)?.value,
       confidence: scores.get(t.id)?.confidence,

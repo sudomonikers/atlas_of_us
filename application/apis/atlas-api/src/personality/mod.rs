@@ -12,8 +12,8 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
         .route("/explore", get(get_explore))
-        .route("/people/{person_id}/traits", get(list_person_traits))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
+        .route("/profiles/{username}", get(get_profile))
         .route("/scenarios/{name}/questions", get(list_scenario_questions))
         .route("/answers", put(answer_question))
         .route("/progress", get(get_progress))
@@ -26,6 +26,7 @@ pub struct PersonalityTrait {
     name: String,
     description: Option<String>,
     id: String,
+    domain: String, //the PersonalityDomain's key, e.g. 'openness', or 'other'
     average: Option<f64>, //everyone's mean value for the trait, 0 to 1. Missing until someone has been measured on it
 }
 
@@ -37,8 +38,10 @@ pub async fn list_all_personality_traits(State(state): State<AppState>) -> Resul
 
     let mut rows = state.graph.execute(query("
             MATCH (p:PersonalityTrait)
+            OPTIONAL MATCH (d:PersonalityDomain)-[:HAS_FACET]->(p)
             OPTIONAL MATCH (:Person)-[r:HAS_PERSONALITY_TRAIT]->(p)
-            RETURN p.name AS name, p.description AS description, elementId(p) AS id, avg(toFloat(r.value)) AS average
+            RETURN p.name AS name, p.description AS description, elementId(p) AS id, coalesce(d.key, 'other') AS domain,
+                   avg(toFloat(r.value)) AS average
             ORDER BY name"
         )).await.map_err(|e| internal(&e))?;
 
@@ -138,40 +141,49 @@ pub struct PersonTrait {
     id: String, //the PersonalityTrait's id
     name: String,
     description: Option<String>,
+    domain: String, //the PersonalityDomain's key, e.g. 'openness', or 'other'
     value: f64, //how strongly the person has the trait, 0 to 1
     confidence: f64, //how much evidence the value is based on, 0 to 1
 }
 
-//a person's personality traits, from their HAS_PERSONALITY_TRAIT relationships. People can only see their own
-pub async fn list_person_traits(
+#[derive(Serialize, Deserialize)]
+pub struct Profile {
+    username: String,
+    first_name: String,
+    public: bool,
+    traits: Vec<PersonTrait>,
+}
+
+//someone's profile at /u/{username}. Private ones are only seen by their owner, and look missing to everyone else
+pub async fn get_profile(
     State(state): State<AppState>,
-    user: AuthUser,
-    Path(person_id): Path<String>,
-) -> Result<Json<Vec<PersonTrait>>, (StatusCode, String)> {
+    user: Option<AuthUser>,
+    Path(username): Path<String>,
+) -> Result<Json<Profile>, (StatusCode, String)> {
     let internal = |e: &dyn std::fmt::Display| {
         tracing::error!("{e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
     };
-    if person_id != user.person_id {
-        return Err((StatusCode::FORBIDDEN, "You can only see your own personality traits.".to_string()));
-    }
 
-    //grouped by the person, so there's one row if they exist (with no traits, an empty list) and none if they don't
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {username: toLower($username)})
+        WHERE coalesce(p.public, false) OR elementId(p) = $viewerId
         OPTIONAL MATCH (p)-[r:HAS_PERSONALITY_TRAIT]->(t:PersonalityTrait)
-        WITH p, r, t ORDER BY t.name
-        RETURN elementId(p) AS person_id, collect(CASE WHEN t IS NULL THEN null ELSE {
-            id: elementId(t), name: t.name, description: t.description, value: toFloat(r.value),
-            confidence: toFloat(coalesce(r.confidence, 0))
-        } END) AS traits
+        OPTIONAL MATCH (d:PersonalityDomain)-[:HAS_FACET]->(t)
+        WITH p, r, t, d ORDER BY t.name
+        RETURN p.username AS username, p.firstName AS first_name, coalesce(p.public, false) AS public,
+            collect(CASE WHEN t IS NULL THEN null ELSE {
+                id: elementId(t), name: t.name, description: t.description, domain: coalesce(d.key, 'other'), value: toFloat(r.value),
+                confidence: toFloat(coalesce(r.confidence, 0))
+            } END) AS traits
     ")
-        .param("personId", person_id)
+        .param("username", username)
+        .param("viewerId", user.map(|u| u.person_id).unwrap_or_default())
     ).await.map_err(|e| internal(&e))?;
 
     match rows.next().await.map_err(|e| internal(&e))? {
-        Some(row) => Ok(Json(row.get::<Vec<PersonTrait>>("traits").map_err(|e| internal(&e))?)),
-        None => Err((StatusCode::NOT_FOUND, "We couldn't find that person.".to_string())),
+        Some(row) => Ok(Json(row.to::<Profile>().map_err(|e| internal(&e))?)),
+        None => Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string())),
     }
 }
 

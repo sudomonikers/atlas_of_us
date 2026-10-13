@@ -6,9 +6,9 @@ use argon2::{
 };
 use axum::{
     Json, Router,
-    extract::{FromRequestParts, State},
+    extract::{FromRequestParts, OptionalFromRequestParts, State},
     http::{StatusCode, header::AUTHORIZATION, request::Parts},
-    routing::{get, post},
+    routing::{get, post, put},
 };
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -23,6 +23,7 @@ pub fn router() -> Router<AppState> {
         .route("/login", post(login))
         .route("/logout", post(logout))
         .route("/me", get(me))
+        .route("/public", put(set_public))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -57,6 +58,18 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
     }
 }
 
+//Option<AuthUser> for handlers anyone can call: None without a token, still rejected for a bad one
+impl<S: Send + Sync> OptionalFromRequestParts<S> for AuthUser {
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Option<Self>, Self::Rejection> {
+        if !parts.headers.contains_key(AUTHORIZATION) {
+            return Ok(None);
+        }
+        <AuthUser as FromRequestParts<S>>::from_request_parts(parts, state).await.map(Some)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Person {
     id: String,
@@ -65,6 +78,8 @@ pub struct Person {
     last_name: String,
     email: String,
     birthday: NaiveDate,
+    username: String,
+    public: bool, //whether anyone can see their profile at /u/{username}
 }
 
 #[derive(Serialize)]
@@ -98,6 +113,31 @@ fn normalize_phone(raw: &str) -> Result<String, (StatusCode, String)> {
     }
 }
 
+//3-30 lowercase letters, digits, _ or -. No dots, so /u/{username} isn't mistaken for a file
+fn normalize_username(raw: &str) -> Result<String, (StatusCode, String)> {
+    let username = raw.trim().to_lowercase();
+    if (3..=30).contains(&username.len()) && username.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-') {
+        Ok(username)
+    } else {
+        Err((StatusCode::BAD_REQUEST, "Your username needs to be 3 to 30 letters, numbers, _ or -.".to_string()))
+    }
+}
+
+//the Person uniqueness constraints reject a phone, email or username that's already taken.
+//Neo4j can report it when the query is sent or when its row is read, so both go through this
+fn constraint_failed(e: neo4rs::Error) -> (StatusCode, String) {
+    match e {
+        neo4rs::Error::Neo4j(e) if e.code() == "Neo.ClientError.Schema.ConstraintValidationFailed" => {
+            let taken = ["email", "username"].into_iter().find(|f| e.message().contains(&format!("`{f}`"))).unwrap_or("phone number");
+            (StatusCode::CONFLICT, format!("There's already an account with that {taken}."))
+        }
+        e => {
+            tracing::error!("{e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct CreateUserPayload {
     phone: String,
@@ -106,6 +146,7 @@ pub struct CreateUserPayload {
     last_name: String,
     birthday: String, //YYYY-MM-DD
     email: String,
+    username: String,
 }
 
 pub async fn create_user(
@@ -119,6 +160,7 @@ pub async fn create_user(
     let bad = |message: &str| (StatusCode::BAD_REQUEST, message.to_string());
 
     let phone = normalize_phone(&body.phone)?;
+    let username = normalize_username(&body.username)?;
     let email = body.email.trim().to_lowercase();
     let first_name = body.first_name.trim().to_string();
     let last_name = body.last_name.trim().to_string();
@@ -146,32 +188,23 @@ pub async fn create_user(
         Argon2::default().hash_password(password.as_bytes(), &SaltString::generate(&mut OsRng)).map(|h| h.to_string())
     }).await.map_err(|e| internal(&e))?.map_err(|e| internal(&e))?;
 
-    //the Person uniqueness constraints reject a phone or email that's already taken.
-    //Neo4j can report it when the query is sent or when its row is read, so both go through this
-    let failed = |e: neo4rs::Error| match e {
-        neo4rs::Error::Neo4j(e) if e.code() == "Neo.ClientError.Schema.ConstraintValidationFailed" => {
-            let taken = if e.message().contains("`email`") { "email" } else { "phone number" };
-            (StatusCode::CONFLICT, format!("There's already an account with that {taken}. Try logging in instead."))
-        }
-        e => internal(&e),
-    };
-
     let mut created = state.graph.execute(query("
         CREATE (p:Person {
-            phone: $phone, firstName: $firstName, lastName: $lastName,
-            email: $email, birthday: $birthday, passwordHash: $passwordHash, createdDate: datetime()
+            phone: $phone, firstName: $firstName, lastName: $lastName, email: $email, birthday: $birthday,
+            username: $username, passwordHash: $passwordHash, createdDate: datetime()
         })
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name,
-               p.email AS email, p.birthday AS birthday
+        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public
     ")
         .param("phone", phone)
+        .param("username", username)
         .param("firstName", first_name)
         .param("lastName", last_name)
         .param("email", email)
         .param("birthday", birthday)
         .param("passwordHash", password_hash)
-    ).await.map_err(failed)?;
-    let row = created.next().await.map_err(failed)?.ok_or_else(|| internal(&"person was not created"))?;
+    ).await.map_err(constraint_failed)?;
+    let row = created.next().await.map_err(constraint_failed)?.ok_or_else(|| internal(&"person was not created"))?;
     let person = row.to::<Person>().map_err(|e| internal(&e))?;
     Ok((StatusCode::CREATED, Json(authenticate(person)?)))
 }
@@ -194,8 +227,8 @@ pub async fn login(
 
     let mut rows = state.graph.execute(query("
         MATCH (p:Person {phone: $phone})
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name,
-               p.email AS email, p.birthday AS birthday, p.passwordHash AS password_hash
+        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, p.passwordHash AS password_hash
     ")
         .param("phone", phone)
     ).await.map_err(|e| internal(&e))?;
@@ -229,8 +262,8 @@ pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Pe
 
     let mut rows = state.graph.execute(query("
         MATCH (p:Person) WHERE elementId(p) = $id
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name,
-               p.email AS email, p.birthday AS birthday
+        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public
     ")
         .param("id", user.person_id)
     ).await.map_err(|e| internal(&e))?;
@@ -239,4 +272,33 @@ pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Pe
         Some(row) => Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?)),
         None => Err((StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string())), //token for a deleted Person
     }
+}
+
+#[derive(Deserialize)]
+pub struct PublicPayload {
+    public: bool,
+}
+
+//opts the person's profile in or out of being seen by anyone. Private until they turn it on
+pub async fn set_public(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Json(body): Json<PublicPayload>,
+) -> Result<Json<Person>, (StatusCode, String)> {
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person) WHERE elementId(p) = $id
+        SET p.public = $public
+        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public
+    ")
+        .param("id", user.person_id)
+        .param("public", body.public)
+    ).await.map_err(|e| internal(&e))?;
+    let row = rows.next().await.map_err(|e| internal(&e))?
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string()))?;
+    Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?))
 }

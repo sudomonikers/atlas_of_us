@@ -4,7 +4,8 @@ import { logout, useSession } from './auth/api'
 import { Auth } from './auth/auth'
 import { Feedback } from './feedback/feedback'
 import Personality from './personality/personality'
-import { usePath } from './router'
+import Profile from './profile/profile'
+import { navigate, usePath } from './router'
 
 function App() {
   const path = usePath()
@@ -12,6 +13,7 @@ function App() {
 
   if (path === '/login') return <Auth mode="login" />
   if (path === '/create-account') return <Auth mode="create" />
+  if (path.startsWith('/u/')) return <Profile username={decodeURIComponent(path.slice(3))} />
 
   return (
     <>
@@ -19,6 +21,9 @@ function App() {
       {session.status === 'authenticated' && (
         <div style={cornerStyle}>
           <Feedback buttonStyle={buttonStyle} />
+          <button className="comic-lift" style={buttonStyle} onClick={() => navigate(`/u/${session.person.username}`)}>
+            My profile
+          </button>
           <button className="comic-lift" style={buttonStyle} onClick={logout}>
             Log out
           </button>

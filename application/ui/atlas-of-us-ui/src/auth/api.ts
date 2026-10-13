@@ -7,9 +7,11 @@ export interface Person {
   last_name: string;
   email: string;
   birthday: string; //YYYY-MM-DD
+  username: string;
+  public: boolean; //whether anyone can see their profile at /u/{username}
 }
 
-export interface NewPerson extends Omit<Person, 'id'> {
+export interface NewPerson extends Omit<Person, 'id' | 'public'> {
   password: string;
 }
 
@@ -47,6 +49,13 @@ const authenticate = async (path: string, body: unknown) => {
 export const login = (phone: string, password: string) => authenticate('/auth/login', { phone, password });
 
 export const createUser = (person: NewPerson) => authenticate('/auth/create-user', person);
+
+//opts the profile in or out of being seen by anyone. Private by default
+export const setPublic = async (on: boolean) => {
+  const person = await request<Person>('PUT', '/auth/public', { public: on });
+  setSession({ status: 'authenticated', person });
+  return person;
+};
 
 export const logout = async () => {
   await request('POST', '/auth/logout').catch(() => {}); //stateless on the api, so dropping the token is what matters
