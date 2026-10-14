@@ -10,6 +10,7 @@ import { partyOfStrangers } from './party_of_strangers/script';
 import { stolenIdea } from './stolen_idea/script';
 import { emptyWeekend } from './empty_weekend/script';
 import { letDown } from './let_down/script';
+import { provenWrong } from './proven_wrong/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -30,6 +31,7 @@ const SnowedIn = lazy(() => import('./party_of_strangers/snowed_in'));
 const VanishingAct = lazy(() => import('./stolen_idea/vanishing_act'));
 const PopUpTown = lazy(() => import('./empty_weekend/pop_up_town'));
 const PaperLantern = lazy(() => import('./let_down/paper_lantern'));
+const TheHive = lazy(() => import('./proven_wrong/the_hive'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -294,6 +296,13 @@ const SCENARIOS: ScenarioInfo[] = [
     blurb: 'You enforce a rule, and a stranger with a sympathetic and possibly true story asks you to break it.',
     facets: ruleThatDoesntFit.facets,
   },
+  {
+    id: 'proven_wrong',
+    title: 'Proven Wrong',
+    kind: 'Realistic hypothetical, with recall',
+    blurb: 'For months you have blamed your neighbour for your dying bees. Then the lab results come back.',
+    facets: provenWrong.facets,
+  },
 ];
 
 interface Playable {
@@ -313,6 +322,7 @@ const PLAYABLE: Record<string, Playable> = {
   stolen_idea: { script: stolenIdea, renderScene: (animation) => <VanishingAct animation={animation} /> },
   empty_weekend: { script: emptyWeekend, renderScene: (animation) => <PopUpTown animation={animation} /> },
   let_down: { script: letDown, renderScene: (animation) => <PaperLantern animation={animation} /> },
+  proven_wrong: { script: provenWrong, renderScene: (animation) => <TheHive animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

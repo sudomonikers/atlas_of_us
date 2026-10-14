@@ -43,7 +43,8 @@ UNWIND [
   {name: 'the_offer',            title: 'The Offer'},
   {name: 'track_record',         title: 'Track Record'},
   {name: 'the_archive',          title: 'The Archive'},
-  {name: 'rule_that_doesnt_fit', title: "The Rule That Doesn't Fit"}
+  {name: 'rule_that_doesnt_fit', title: "The Rule That Doesn't Fit"},
+  {name: 'proven_wrong',         title: 'Proven Wrong'}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
 SET s.title = scenario.title;
@@ -193,6 +194,20 @@ UNWIND [
   {order: 3, key: 'the_advice',        prompt: "She's really asking. What advice do you give her, if any? Or what do you say instead?"},
   {order: 4, key: 'the_cancellations', prompt: 'Be honest. How did you feel each time she cancelled on you? And how do you feel about it now?'},
   {order: 5, key: 'the_silence',       prompt: 'Juno has gone quiet again. What do you do now? And how does it feel, sitting on your side of the silence?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
+// Proven Wrong. what_now branches; every path shares the rest
+MATCH (s:PersonalityScenario {name: 'proven_wrong'})
+UNWIND [
+  {order: 0, key: 'the_letter',       prompt: 'You read it twice. What goes through your head, and what do you make of the result?'},
+  {order: 1, key: 'what_now',         prompt: 'What do you do with the letter?'},
+  {order: 2, key: 'pru_pushes',       prompt: 'Pru has half a point, or thinks she does. What do you say to her?'},
+  {order: 3, key: 'the_motion',       prompt: 'Fifty faces turn round to look at you. What do you stand up and say?'},
+  {order: 4, key: 'walt',             prompt: "Walt's waiting, and he isn't going to make it easy. What do you say to him?"},
+  {order: 5, key: 'how_you_got_sure', prompt: 'Looking back, how did you get so sure? What did you see that convinced you, and what do you think you skipped past?'},
+  {order: 6, key: 'changed_mind',     prompt: 'Away from the allotment now. Think of something in your own life you were certain about and turned out to be wrong. How long did it take you to change your mind, and what finally did it?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
