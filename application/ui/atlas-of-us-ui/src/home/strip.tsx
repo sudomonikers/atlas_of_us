@@ -54,6 +54,7 @@ const FACES = {
   confused: <Face eyes={<Eyes dy={-1} />} brows="M0 -127 L6 -124 M10 -129 L16 -128" mouth="M5 -107 C7 -109 9 -105 11 -107 C12 -108 13 -107 15 -108" />,
   sad: <Face eyes={<Eyes dy={2} />} brows="M0 -121 L5 -123 M11 -123 L16 -121" mouth="M5 -105 C7 -108 11 -108 13 -105" />,
   determined: <Face brows="M0 -125 L6 -122 M10 -122 L16 -125" mouth="M5 -109 C8 -106 11 -106 14 -110" />,
+  surprised: <Face eyes={<Eyes big />} brows="M0 -129 L6 -131 M10 -131 L16 -129" mouth="M7 -108 C7 -103 12 -103 12 -108 C12 -112 7 -112 7 -108 Z" fill={gunmetal} />,
 };
 
 const SWEAT = <path d="M-10 -136 C-13 -131 -12.5 -129 -10 -129 C-7.5 -129 -7 -131 -10 -136 Z" style={{ fill: paleBlue }} strokeWidth="1.5" />;
@@ -264,7 +265,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
     ),
   },
   {
-    label: 'Lulu points at Andrew\'s phone: Go figure it out at atlas-of-us.com. Andrew, determined: ...Okay. I will. On a side table, a little statue of Atlas holds up the world.',
+    label: 'Lulu shoves her phone in Andrew\'s face: Go figure it out at atlas-of-us.com. Andrew leans back, surprised. On a side table, a little statue of Atlas holds up the world.',
     fill: 'var(--pale-red)',
     art: (
       <>
@@ -275,16 +276,18 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
         <g transform="translate(247 109) scale(0.72)">
           <Mascot />
         </g>
-        <Person x={72} arms={[ANDREW.hang, 'M10 -94 C16 -82 20 -78 28 -84']} face={FACES.determined}>
-          <g transform="translate(31 -92) rotate(-10)">
+        <Person x={72} lean={-10} arms={[ANDREW.hang, 'M10 -94 C18 -90 24 -92 28 -98']} face={FACES.surprised}>
+          {/* shock lines */}
+          <path d="M-6 -150 L-9 -159 M6 -152 L6 -162 M17 -148 L23 -156" fill="none" strokeWidth="2.2" strokeLinecap="round" />
+        </Person>
+        <Person lulu x={136} flip arms={[LULU.hang, 'M10 -94 C24 -100 36 -110 46 -116']} face={FACES.grin}>
+          <g transform="translate(50 -120) rotate(12)">
             <rect x="-7" y="-11" width="14" height="22" rx="2.5" style={{ fill: gunmetal }} strokeWidth="2" />
             <rect x="-4.5" y="-8" width="9" height="15" style={{ fill: paleBlue, stroke: 'none' }} />
             <circle cy="-1" r="3" style={{ fill: blue, stroke: 'none' }} />
           </g>
         </Person>
-        <Person lulu x={200} flip arms={[LULU.hang, 'M10 -94 C22 -92 34 -90 46 -94']} face={FACES.smile} />
-        <Bubble x={112} y={12} w={196} tail={[200, 124]} lines={['Go figure it out at', <Em>atlas-of-us.com</Em>]} size={17} />
-        <Bubble x={8} y={58} w={100} tail={[74, 124]} lines={['...Okay.', 'I will.']} />
+        <Bubble x={112} y={12} w={196} tail={[136, 124]} lines={['Go figure it out at', <Em>atlas-of-us.com</Em>]} size={17} />
       </>
     ),
   },

@@ -12,50 +12,58 @@ const brownRed = 'var(--brown-red)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-//the interview: Atlas asks, Andrew answers, and some answers are followed by a pull quote
-const INTERVIEW: { q: string; a: ReactNode; quote?: string }[] = [
+//the interview: Atlas asks, Andrew answers, Atlas sometimes can't help himself (retort), and some answers are
+//followed by a pull quote
+const INTERVIEW: { q: string; a: ReactNode; retort?: string; quote?: string }[] = [
   {
     q: 'So, who are you?',
     a: (
       <>
-        I'm Andrew Link, and right now I'm the whole team. If you want my professional background, it's all{' '}
+        I'm Andrew Link. I'm a software engineer, and right now I'm the whole team. Here's my{' '}
         <a href="https://www.linkedin.com/in/sudomoniker" target="_blank" rel="noreferrer" style={{ color: brownRed }}>
-          on LinkedIn
+          LinkedIn
         </a>
         .
       </>
     ),
+    retort: "That's it? A job title and a LinkedIn? Buddy, you should really try the site you built.",
   },
   {
-    q: 'Why build me?',
+    q: 'Fine. Then why build me?',
     a: "As a kid I loved games where you build your own character. I'd spend hours making mine as powerful as possible, and nothing beat finally getting them exactly how I wanted. I wished real life had that: a screen showing who I am, and a place where I could easily see everything I could become.",
+    retort: "So I'm a character creator with extra steps. I've been called worse.",
     quote: 'I wanted to see the skill tree of life.',
   },
   {
-    q: "Aren't there already personality tests and career quizzes for this?",
+    q: "Hasn't this been done? Personality tests, career quizzes, whatever your horoscope says this week?",
     a: "There are, and they're not bad, exactly. They just each look at one sliver of you, so none of them do the job very well. The Atlas tries to see the whole picture.",
+    retort: "Bold of you to call horoscopes \"not bad, exactly.\"",
   },
   {
-    q: 'Who is it for?',
+    q: 'Who is it actually for? Be honest.',
     a: "Me, honestly. It's what I wish I'd had. But it's also for anyone who wants to become the best version of themselves. It's just a tool to help you get there.",
+    retort: 'An audience of one. Very exclusive.',
     quote: "I'm building the thing I wish I'd had.",
   },
   {
-    q: 'Do I have to pay?',
+    q: 'Do people have to pay for all this?',
     a: "No. The Atlas is free. Some of the apps further down the roadmap might cost something one day, and you'll know before they do.",
+    retort: 'Free. My favorite price.',
   },
   {
-    q: 'Okay, the big one. Will you sell my data?',
+    q: "Okay, the big one. Are you going to sell everyone's data?",
     a: "Nothing is sold or shared today. I won't pretend that could never change, because given the chance, we might. If we ever do, you'll be told exactly what's available, and you'll be able to opt out.",
     quote: "The one thing I won't do is lie about what we're doing.",
   },
   {
-    q: 'How do you know any of this is right?',
+    q: 'How do you know any of this is right? Be honest, did you just make it up?',
     a: "I make it as science-backed as I can, but for now that's mostly my own research, which is probably not enough. If this grows, I'd love to get real scientists involved and make it as true to life as possible.",
+    retort: "So if I get someone wrong, I'm blaming your research.",
   },
   {
-    q: 'Is this a real company?',
+    q: 'Is this a real company, or just a guy with a laptop?',
     a: "Not yet. It's a side project. If other people are interested, I'd love to turn it into a real startup. Either way I'm going to keep building it, because I want it to exist.",
+    retort: 'A guy with a laptop. Got it.',
   },
 ];
 
@@ -118,15 +126,16 @@ export default function About() {
       </div>
 
       <article style={styles.article}>
-        {INTERVIEW.map(({ q, a, quote }) => (
+        {INTERVIEW.map(({ q, a, retort, quote }) => (
           <Fragment key={q}>
             <Question>{q}</Question>
             <Answer>{a}</Answer>
+            {retort && <Question>{retort}</Question>}
             {quote && <blockquote style={styles.quote}>“{quote}”</blockquote>}
           </Fragment>
         ))}
 
-        <Question>How can people get involved?</Question>
+        <Question>Say people actually like this. How do they get involved?</Question>
         <Answer>
           Ideas, bugs, or you'd like to help build it? I'd love to hear from you.
           {loggedIn ? ' Use the feedback button, or find me here:' : ' Email me, or find me here:'}
@@ -140,7 +149,7 @@ export default function About() {
           </span>
         </Answer>
 
-        <Question>Any last words?</Question>
+        <Question>Any last words before I take over the site?</Question>
         <Answer>Go find out who you are. Then let's figure out who you could become.</Answer>
       </article>
 
