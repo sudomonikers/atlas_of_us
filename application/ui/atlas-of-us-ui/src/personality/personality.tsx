@@ -11,6 +11,7 @@ import { stolenIdea } from './stolen_idea/script';
 import { emptyWeekend } from './empty_weekend/script';
 import { letDown } from './let_down/script';
 import { provenWrong } from './proven_wrong/script';
+import { theWater } from './the_water/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -32,6 +33,7 @@ const VanishingAct = lazy(() => import('./stolen_idea/vanishing_act'));
 const PopUpTown = lazy(() => import('./empty_weekend/pop_up_town'));
 const PaperLantern = lazy(() => import('./let_down/paper_lantern'));
 const TheHive = lazy(() => import('./proven_wrong/the_hive'));
+const Monsoon = lazy(() => import('./the_water/monsoon'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -303,6 +305,13 @@ const SCENARIOS: ScenarioInfo[] = [
     blurb: 'For months you have blamed your neighbour for your dying bees. Then the lab results come back.',
     facets: provenWrong.facets,
   },
+  {
+    id: 'the_water',
+    title: 'The Water',
+    kind: 'Realistic hypothetical, with recall',
+    blurb: 'The monsoon floods your street in Chennai, and the family from downstairs comes knocking.',
+    facets: theWater.facets,
+  },
 ];
 
 interface Playable {
@@ -323,6 +332,7 @@ const PLAYABLE: Record<string, Playable> = {
   empty_weekend: { script: emptyWeekend, renderScene: (animation) => <PopUpTown animation={animation} /> },
   let_down: { script: letDown, renderScene: (animation) => <PaperLantern animation={animation} /> },
   proven_wrong: { script: provenWrong, renderScene: (animation) => <TheHive animation={animation} /> },
+  the_water: { script: theWater, renderScene: (animation) => <Monsoon animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

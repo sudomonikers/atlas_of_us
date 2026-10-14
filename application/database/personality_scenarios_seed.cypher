@@ -44,7 +44,8 @@ UNWIND [
   {name: 'track_record',         title: 'Track Record'},
   {name: 'the_archive',          title: 'The Archive'},
   {name: 'rule_that_doesnt_fit', title: "The Rule That Doesn't Fit"},
-  {name: 'proven_wrong',         title: 'Proven Wrong'}
+  {name: 'proven_wrong',         title: 'Proven Wrong'},
+  {name: 'the_water',            title: 'The Water'}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
 SET s.title = scenario.title;
@@ -208,6 +209,20 @@ UNWIND [
   {order: 4, key: 'walt',             prompt: "Walt's waiting, and he isn't going to make it easy. What do you say to him?"},
   {order: 5, key: 'how_you_got_sure', prompt: 'Looking back, how did you get so sure? What did you see that convinced you, and what do you think you skipped past?'},
   {order: 6, key: 'changed_mind',     prompt: 'Away from the allotment now. Think of something in your own life you were certain about and turned out to be wrong. How long did it take you to change your mind, and what finally did it?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
+// The Water
+MATCH (s:PersonalityScenario {name: 'the_water'})
+UNWIND [
+  {order: 0, key: 'the_knock',   prompt: "The water's still rising, and the three of them are dripping on your landing. What do you do, and what's going through your head?"},
+  {order: 1, key: 'the_night',   prompt: 'Five people, one gas stove, two cans of water, one torch, and no idea how long this will last. How do you get everyone through the night?'},
+  {order: 2, key: 'who_goes',    prompt: 'Somebody needs to wade out for drinking water. What do you do?'},
+  {order: 3, key: 'rajan',       prompt: "The water's still coming up, and Rajan sir won't leave. What do you do?"},
+  {order: 4, key: 'the_boat',    prompt: "Four places, and the light's going. Who goes in the boat, and do you?"},
+  {order: 5, key: 'after_water', prompt: "It's over, and you came through it mostly fine. How are you feeling now, standing in the mud?"},
+  {order: 6, key: 'your_storm',  prompt: 'Away from Chennai now. Think of a time when something went badly wrong around you: a real emergency, or a sudden mess. What did you actually do in the first hour, and how did you feel afterwards?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
