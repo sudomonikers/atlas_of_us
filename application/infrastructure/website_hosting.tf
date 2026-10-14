@@ -167,6 +167,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   default_root_object = "index.html"
   http_version        = "http2and3"
   aliases             = [local.website_name]
+  web_acl_id          = aws_wafv2_web_acl.cdn.arn
 
   restrictions {
     geo_restriction {
@@ -184,10 +185,11 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
   }
 
-  # the API lambda. same origin as the UI, so it calls relative /api paths like it does against the vite proxy locally
+  # the API lambda. same origin as the UI, so it calls relative /api paths like it does against the vite proxy locally.
   origin {
-    domain_name = split("/", aws_lambda_function_url.api.function_url)[2]
-    origin_id   = "api-lambda-origin"
+    domain_name              = split("/", aws_lambda_function_url.api.function_url)[2]
+    origin_id                = "api-lambda-origin"
+    origin_access_control_id = aws_cloudfront_origin_access_control.api.id
 
     custom_origin_config {
       http_port              = 80

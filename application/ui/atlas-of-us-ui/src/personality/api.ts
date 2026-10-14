@@ -18,6 +18,9 @@ export interface SavedAnswer {
 export const getQuestions = (scenario: string) =>
   request<ScenarioQuestion[]>('GET', `/personality/scenarios/${encodeURIComponent(scenario)}/questions`);
 
+//the longest answer or reasoning the api keeps, in characters
+export const MAX_ANSWER_LENGTH = 2000;
+
 //where a scenario's clock stood when an answer was given
 export interface AnswerClock {
   seconds: number; //how long the clock runs in total
@@ -25,9 +28,10 @@ export interface AnswerClock {
   ran_out: boolean; //the clock hit zero before the user finished
 }
 
-//replaces any earlier answer to the same question. Refused while a scoring job is running
+//replaces any earlier answer to the same question. The last answer of a scenario also rescores the user's traits,
+//which takes a while
 export const saveAnswer = (question_id: string, answer: string, reasoning?: string, clock?: AnswerClock) =>
-  request<SavedAnswer & { job_started: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, clock });
+  request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, clock });
 
 //every question the logged in user has answered
 export const getProgress = () => request<SavedAnswer[]>('GET', '/personality/progress');
@@ -47,9 +51,6 @@ export interface TraitScore extends Omit<TraitInfo, 'average'> {
 
 //every trait we measure
 export const getTraits = () => request<TraitInfo[]>('GET', '/personality/traits');
-
-//whether the logged in user's traits are being rescored, which happens after each finished scenario
-export const getJob = () => request<{ running: boolean }>('GET', '/personality/job');
 
 export interface Shift {
   trait: string; //the trait's name

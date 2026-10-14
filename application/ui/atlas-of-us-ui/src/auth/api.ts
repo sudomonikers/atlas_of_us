@@ -23,14 +23,25 @@ interface AuthResponse {
 }
 
 const TOKEN_KEY = 'atlas.token';
+const TOKEN_HEADER = 'X-Atlas-Token';
+
+async function sha256(text: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 //calls the api with the stored token, if any. Failures throw with the api's message
 export async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
   const token = localStorage.getItem(TOKEN_KEY);
+  const payload = body === undefined ? '' : JSON.stringify(body);
   const res = await fetch(`/api${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(crypto.subtle && { 'x-amz-content-sha256': await sha256(payload) }),
+      ...(token && { [TOKEN_HEADER]: token }),
+    },
+    body: body === undefined ? undefined : payload,
   }).catch(() => {
     throw new Error("Couldn't reach the server. Try again in a moment.");
   });

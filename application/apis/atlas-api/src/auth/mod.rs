@@ -7,7 +7,7 @@ use argon2::{
 use axum::{
     Json, Router,
     extract::{FromRequestParts, OptionalFromRequestParts, State},
-    http::{StatusCode, header::AUTHORIZATION, request::Parts},
+    http::{StatusCode, request::Parts},
     routing::{get, post, put},
 };
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
@@ -33,6 +33,8 @@ struct Claims {
     exp: i64,
 }
 
+const TOKEN_HEADER: &str = "x-atlas-token";
+
 //the logged in user. Add it as a handler argument to require a valid token
 pub struct AuthUser {
     pub person_id: String,
@@ -43,9 +45,8 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let rejected = || (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string());
-        let token = parts.headers.get(AUTHORIZATION)
+        let token = parts.headers.get(TOKEN_HEADER)
             .and_then(|value| value.to_str().ok())
-            .and_then(|value| value.strip_prefix("Bearer "))
             .ok_or_else(rejected)?;
         let secret = env::var("JWT_SECRET").map_err(|_| {
             tracing::error!("JWT_SECRET is not set");
@@ -63,7 +64,7 @@ impl<S: Send + Sync> OptionalFromRequestParts<S> for AuthUser {
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Option<Self>, Self::Rejection> {
-        if !parts.headers.contains_key(AUTHORIZATION) {
+        if !parts.headers.contains_key(TOKEN_HEADER) {
             return Ok(None);
         }
         <AuthUser as FromRequestParts<S>>::from_request_parts(parts, state).await.map(Some)

@@ -55,27 +55,34 @@ resource "aws_cloudwatch_log_group" "api" {
   retention_in_days = 14
 }
 
-# Public function URL, cloudfront sits in front for the custom domain.
-# OAC isn't used because it would require the browser to send a body hash on every POST/PUT
 resource "aws_lambda_function_url" "api" {
   function_name      = aws_lambda_function.api.function_name
-  authorization_type = "NONE"
+  authorization_type = "AWS_IAM"
 }
 
-# function URLs need both permissions for public invocation
+resource "aws_cloudfront_origin_access_control" "api" {
+  name                              = "${local.api_name}-url"
+  description                       = "cloudfront signs its requests to the api function URL"
+  origin_access_control_origin_type = "lambda"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 resource "aws_lambda_permission" "api_url" {
-  statement_id           = "AllowPublicFunctionUrl"
+  statement_id           = "AllowCloudFrontFunctionUrl"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.api.function_name
-  principal              = "*"
-  function_url_auth_type = "NONE"
+  principal              = "cloudfront.amazonaws.com"
+  source_arn             = aws_cloudfront_distribution.cdn.arn
+  function_url_auth_type = "AWS_IAM"
 }
 
 resource "aws_lambda_permission" "api_invoke" {
-  statement_id             = "AllowPublicInvokeViaFunctionUrl"
+  statement_id             = "AllowCloudFrontInvokeViaFunctionUrl"
   action                   = "lambda:InvokeFunction"
   function_name            = aws_lambda_function.api.function_name
-  principal                = "*"
+  principal                = "cloudfront.amazonaws.com"
+  source_arn               = aws_cloudfront_distribution.cdn.arn
   invoked_via_function_url = true
 }
 

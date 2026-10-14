@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getJob, getProgress, getQuestions, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getProgress, getQuestions, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import { theThief } from './the_thief/script';
 import { readingPeople } from './reading_people/script';
@@ -345,23 +345,10 @@ function Personality() {
     if (loggedIn) load();
   }, [loggedIn, load]);
 
-  //finishing a scenario rescores the user's traits in the background. No new scenarios until it's done
-  const [scoring, setScoring] = useState(false);
-
-  useEffect(() => {
-    if (loggedIn) getJob().then((job) => setScoring(job.running), () => {});
-  }, [loggedIn]);
-
-  useEffect(() => {
-    if (!scoring) return;
-    const timer = setInterval(() => getJob().then((job) => setScoring(job.running), () => {}), 3000);
-    return () => clearInterval(timer);
-  }, [scoring]);
-
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
 
-  //fetched each time the view opens or scoring finishes, so it picks up anything measured since
+  //fetched each time the view opens, so it picks up anything measured since
   useEffect(() => {
     if (view !== 'traits' || !personId || !username) return;
     fetchTraits(personId, username).then(
@@ -371,15 +358,15 @@ function Personality() {
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
-  }, [view, personId, username, scoring]);
+  }, [view, personId, username]);
 
-  //saves an answer as the player moves past a prompt
+  //saves an answer as the player moves past a prompt. The last answer of a scenario also rescores the user's traits,
+  //so it only resolves once that's done
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer, clock?: AnswerClock) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, clock);
-    if (saved.job_started) setScoring(true);
+    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, clock);
   };
 
   const open = playing ? PLAYABLE[playing] : undefined;
@@ -407,9 +394,8 @@ function Personality() {
   const completed = SCENARIOS.filter((s) => progress[s.id]?.status === 'complete').length;
   const firstName = session.status === 'authenticated' ? session.person.first_name : undefined;
 
-  const bubble = scoring
-    ? "Give us a moment, We are reading through your answers to work out your personality..."
-    : view === 'explore'
+  const bubble =
+    view === 'explore'
       ? "Here's how personality works, trait by trait. It's honest on purpose, so every end of every scale has its downsides."
       : view === 'scenarios'
       ? loadError
@@ -472,7 +458,6 @@ function Personality() {
                   scenario={scenario}
                   progress={progress[scenario.id]}
                   playable={scenario.id in PLAYABLE}
-                  locked={scoring}
                   onPlay={() => setPlaying(scenario.id)}
                 />
               ))}
@@ -595,11 +580,10 @@ interface ScenarioCardProps {
   scenario: ScenarioInfo;
   progress?: ScenarioProgress;
   playable: boolean;
-  locked: boolean; //playable, but not until scoring finishes
   onPlay: () => void;
 }
 
-function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: ScenarioCardProps) {
+function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioCardProps) {
   const status = progress?.status ?? 'not_started';
   const badge: Badge = status === 'not_started' && !playable ? 'soon' : status;
   const look = badges[badge];
@@ -612,8 +596,8 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
     >
       <button
         className="comic-panel comic-lift"
-        style={{ ...dash.card, ...(playable && !locked ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
-        disabled={!playable || locked}
+        style={{ ...dash.card, ...(playable ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
+        disabled={!playable}
         onClick={onPlay}
       >
         <span style={dash.cardTop}>
@@ -640,7 +624,7 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
 
         <span style={dash.cardFooter}>
           {when && <span>{`${status === 'complete' ? 'Finished' : 'Started'} ${formatDate(when)}`}</span>}
-          {playable && <span style={dash.go}>{locked ? 'Scoring...' : status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
+          {playable && <span style={dash.go}>{status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
         </span>
       </button>
     </li>
@@ -848,6 +832,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
               <textarea
                 style={styles.answer}
                 rows={3}
+                maxLength={MAX_ANSWER_LENGTH}
                 value={answer?.text ?? ''}
                 placeholder={step.choices ? 'Why? Explain your thinking...' : 'Type your answer and explain your thinking...'}
                 onChange={(e) => updateAnswer(step.id, { text: e.target.value })}
@@ -862,7 +847,11 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
                 </p>
               )}
               <div style={styles.promptFooter}>
-                <span style={styles.hint}>Ctrl+Enter to continue · Esc to leave the text box</span>
+                <span style={styles.hint}>
+                  Ctrl+Enter to continue · Esc to leave the text box
+                  {/* a count once they're getting close to the limit */}
+                  {(answer?.text.length ?? 0) > MAX_ANSWER_LENGTH * 0.8 && ` · ${answer!.text.length}/${MAX_ANSWER_LENGTH}`}
+                </span>
                 <button
                   className="comic-lift"
                   style={{ ...styles.continue, ...(answered && !saving ? {} : styles.continueDisabled) }}

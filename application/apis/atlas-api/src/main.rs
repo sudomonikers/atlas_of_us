@@ -15,7 +15,7 @@ use axum::{
     routing::get,
 };
 use serde_json::json;
-use neo4rs::{Graph,query};
+use neo4rs::Graph;
 use std::env;
 
 use state::AppState;
@@ -33,7 +33,6 @@ async fn main() {
         env::var("NEO4J_USER").unwrap_or_else(|_| "neo4j".to_string()),
         env::var("NEO4J_PASSWORD").unwrap_or_else(|_| "neo".to_string())
     ).unwrap();
-    assert!(graph.run(query("RETURN 1")).await.is_ok());
 
     //mail lives in us-east-1 (SES receiving, the mail bucket) wherever the api runs
     let mail_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
