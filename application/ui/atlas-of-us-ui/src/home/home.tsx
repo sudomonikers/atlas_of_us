@@ -18,16 +18,16 @@ export default function Home() {
       </h1>
       <Strip />
       <section style={styles.blurb} className="comic-panel comic-pop">
-        <h2 style={styles.heading}>So, who are you?</h2>
+        <h2 style={styles.heading}>What is this exactly?</h2>
         <p style={styles.text}>
-          The Atlas of Us is a map of you. A map of all of us really. It is who all us us are, and who we can become. 
-          No horoscopes, no ten-question quizzes. We drop you into situations, like a party full of strangers or a ferry 
-          with one seat left, and ask what you'd do and <em>why</em>. Your answers map your personality. What you know, 
-          what you can do and who you could become are next.
+          The Atlas of Us is a map of you. All the things that make you you from your physical self to your mental thoughts 
+          to your personality to your skills and dreams and desires. The Atlas endeavors to capture all that you are, and 
+          show you all that you could be. No horoscopes, no ten-question quizzes. We drop you into situations, like a party 
+          full of strangers or a ferry with one seat left, and ask what you'd do and <em>why</em>. 
         </p>
       </section>
       <section style={styles.scenes} className="comic-panel">
-        <h2 style={{ ...styles.heading, textAlign: 'center' }}>Everything that makes you, you</h2>
+        <h2 style={{ ...styles.heading, textAlign: 'center' }}>What is a human made of?</h2>
         <Scenes />
       </section>
       <footer style={styles.footer}>

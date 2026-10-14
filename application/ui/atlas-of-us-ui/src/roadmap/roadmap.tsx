@@ -12,11 +12,26 @@ const sand = 'var(--pale-cinnamon)';
 const comic = 'var(--font-comic)';
 
 const APPS = [
-  { name: 'Tinder, but better', body: "Matched on who you actually are, not six photos and a joke about pineapple on pizza." },
-  { name: 'LinkedIn, but better', body: 'Your dream job, found from everything you can do, not the buzzwords on your résumé.' },
-  { name: 'Hiring, but better', body: 'Companies meet the people who will thrive with them, not just the ones who interview well.' },
-  { name: 'Meetup, but better', body: 'Friends who get you, found by what you share rather than which app you both happened to download.' },
-  { name: 'Shopping, but better', body: 'Things that fit your goals and your life, recommended by something that knows you.' },
+  {
+    name: 'Tinder, but better',
+    body: "Matched on who you actually are, not six photos and a joke about pineapple on pizza. This is for soul mates. Already found yours? Put your maps side by side and see where you click and where you'll clash.",
+  },
+  {
+    name: 'LinkedIn, but better',
+    body: "Your dream job, with skills that are verified instead of oversold. If you're a company: your dream candidate, and a team that knows how each person works best and where the friction will come from.",
+  },
+  {
+    name: 'Meetup, but better',
+    body: 'Friends who get you, found by what you share rather than which app you both happened to download. Plus the co-founder you can build with and the roommate you can actually live with.',
+  },
+  {
+    name: 'Shopping, but better',
+    body: "Things that fit your goals and your life, recommended by something that knows you. Gifts your friends will actually love, and the next hobby you didn't know you needed.",
+  },
+  {
+    name: 'School, but better',
+    body: 'Pick anything you want to learn or become, and get a path there that starts exactly where you are and fits how you learn.',
+  },
 ];
 
 //a message in a bottle, washed up on a little wave
@@ -70,11 +85,11 @@ export default function Roadmap() {
         <Bottle />
         <div style={styles.scroll} className="comic-panel comic-pop">
           <span style={{ ...styles.roll, top: -12 }} />
-          <h2 style={styles.heading}>P.S. Here's where it gets wild.</h2>
+          <h2 style={styles.heading}>P.S. The possibilities of what we could do with a full mapping of people are endless.</h2>
           <p style={styles.text}>
             Every app that matches you with something works from a sliver of you: a few photos, a résumé, what you bought
-            last week. The Atlas has the whole picture, from your personality and what you know to what you can do, your
-            people and your world. <em>That's</em> what lets us do it better. Once enough of us are on the map, here's what
+            last week. The Atlas has the whole picture - from your personality to your knowledge to your skills and everything in
+            between. <em>That's</em> what lets us do it better. Once enough of us are on the Atlas, here's what
             we'd love to build:
           </p>
           <ul style={styles.apps}>
