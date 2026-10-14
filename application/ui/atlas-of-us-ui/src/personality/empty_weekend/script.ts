@@ -199,6 +199,12 @@ export const emptyWeekend: Script = {
           animation: 'packed',
           facets: ['Depression', 'Introspection'],
         },
+        {
+          id: 'your_weekend',
+          prompt: 'Away from Gullhaven now. Think of your last free weekend at home. What did you actually do with it, roughly hour by hour, and how did it feel by Sunday night?',
+          animation: 'packed',
+          facets: ['Activity Level', 'Gregariousness'],
+        },
       ],
       next: 'closing',
     },

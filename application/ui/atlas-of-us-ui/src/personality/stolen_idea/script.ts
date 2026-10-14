@@ -237,6 +237,12 @@ export const stolenIdea: Script = {
           animation: 'postcard',
           facets: ['Anger', 'Stubbornness', 'Cooperation'],
         },
+        {
+          id: 'your_rival',
+          prompt: 'Away from the stage now. Think of a real time you were up against someone for something you both wanted. How much did beating them matter to you, and how did you feel about them afterwards?',
+          animation: 'postcard',
+          facets: ['Competitiveness', 'Achievement-Striving'],
+        },
       ],
       next: 'closing',
     },

@@ -345,6 +345,12 @@ export const theThief: Script = {
           animation: 'fire_circle',
           facets: ['Liberalism', 'Cooperation', 'Morality'],
         },
+        {
+          id: 'your_trust',
+          prompt: 'Away from the island now. Think of someone in your own life who let you down, or took something that was yours. Did you trust them again, and how long did it take?',
+          animation: 'fire_circle',
+          facets: ['Trust', 'Anger'],
+        },
         { text: 'Late that night, Maren counts the stores one more time by firelight.', animation: 'maren_counts_night' },
         { text: 'She stops. She counts again.', animation: 'maren_counts_night' },
         { speaker: MAREN, text: 'Tob gave back the tin he took. There\'s still one missing.', animation: 'maren_looks_up_night' },

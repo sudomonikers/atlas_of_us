@@ -283,18 +283,18 @@ export const theArchive: Script = {
       steps: [
         { speaker: HALE, text: 'Morning. I\'ll get the van loaded with whatever\'s ready.', animation: 'dawn_hale' },
         { text: 'He leaves you alone in the dome for a minute, with the sun coming up over the town she watched the sky above for forty years.', animation: 'dawn_hale' },
-        {
-          id: 'who_she_was',
-          prompt: 'From everything you saw tonight, who do you think Ottilie was?',
-          animation: 'dawn_dome',
-          facets: ['Imagination', 'Intellect', 'Artistic Interests'],
-        },
         { speaker: HALE, text: 'You can take one thing for yourself, if you like. The buyers won\'t miss it.', animation: 'dawn_hale' },
         {
           id: 'take_one',
           prompt: 'You can take one thing home from the observatory. What do you take, and why?',
           animation: 'dawn_dome',
           facets: ['Artistic Interests', 'Imagination', 'Orderliness'],
+        },
+        {
+          id: 'your_deadline',
+          prompt: 'Away from the observatory now. Think of a real time a deadline ran into something more interesting. Which one won, and do you regret it?',
+          animation: 'dawn_dome',
+          facets: ['Self-Discipline', 'Achievement-Striving'],
         },
       ],
       next: 'closing',

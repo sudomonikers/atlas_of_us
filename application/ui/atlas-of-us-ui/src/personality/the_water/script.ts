@@ -14,7 +14,7 @@ const MUTHU = 'Muthu';
 export const theWater: Script = {
   id: 'the_water',
   title: 'The Water',
-  facets: ['Vulnerability', 'Anxiety', 'Altruism', 'Cooperation', 'Self-Efficacy', 'Activity Level'],
+  facets: ['Vulnerability', 'Anxiety', 'Altruism', 'Cooperation', 'Self-Efficacy', 'Activity Level', 'Optimism'],
   start: 'opening',
   sections: {
     // -------------------------------------------------------------------------
@@ -133,11 +133,12 @@ export const theWater: Script = {
       steps: [
         { text: 'In the afternoon, a fishing boat comes rowing down Third Cross Street. Two men in lungis with towels tied round their heads.', animation: 'flood_boat' },
         { text: 'They fish out of Kasimedu, on the coast. This morning they put their boat on the back of a lorry and drove across the city to help.', animation: 'flood_boat' },
-        { speaker: MUTHU, text: "Room for four this trip. There's a camp at the school. We'll try and come back before dark.", animation: 'flood_boat' },
-        { speaker: MUTHU, text: 'Children and old people first. Who is coming?', animation: 'flood_boat' },
+        { speaker: MUTHU, text: "Room for four this trip. There's a camp at the school. We'll try and come back, but maybe not before dark.", animation: 'flood_boat' },
+        { speaker: PAATI, text: "I'm not getting in that thing without you. I don't know these men.", animation: 'flood_boat' },
+        { speaker: FAISAL, text: "Don't look at me. I never learned to swim.", animation: 'flood_boat' },
         {
           id: 'the_boat',
-          prompt: "Four places, and the light's going. Who goes in the boat, and do you?",
+          prompt: "Four places for six of you, and the light's going. Paati won't go without you, and the boat might not come back tonight. Who goes, and do you?",
           animation: 'flood_boat',
           facets: ['Altruism', 'Vulnerability', 'Cooperation'],
         },
@@ -155,10 +156,10 @@ export const theWater: Script = {
         { text: 'It leaves a brown line at shoulder height on every wall in the street. Mattresses, fridges and schoolbooks are piled up outside the gates, drying in the sun.', animation: 'after_mud' },
         { text: "Selvi's flat is ruined. She stands in the doorway holding Arun's swollen maths book. She doesn't cry. She starts sweeping.", animation: 'after_mud' },
         {
-          id: 'after_water',
-          prompt: "It's over, and you came through it mostly fine. How are you feeling now, standing in the mud?",
+          id: 'the_mud',
+          prompt: "Selvi has lost nearly everything in her flat. Honestly, how do you think the next few months go, for her and for the street?",
           animation: 'after_mud',
-          facets: ['Vulnerability', 'Anxiety'],
+          facets: ['Optimism', 'Sympathy'],
         },
         { text: "That evening, Selvi brings a steel tiffin carrier of sambar rice up to your terrace. It's still warm.", animation: 'terrace_tiffin' },
         { text: 'Across the terrace, Rajan sir is laying out his books one at a time to dry, and Arun is turning the pages for him.', animation: 'terrace_books' },

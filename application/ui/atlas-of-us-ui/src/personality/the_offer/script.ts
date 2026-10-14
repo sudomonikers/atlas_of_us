@@ -207,6 +207,12 @@ export const theOffer: Script = {
           animation: 'reflect',
           facets: ['Anxiety', 'Self-Efficacy', 'Achievement-Striving'],
         },
+        {
+          id: 'your_leap',
+          prompt: 'Away from Halden now. What\'s the biggest leap you\'ve actually taken in your own life? How long did you go back and forth before you jumped?',
+          animation: 'reflect',
+          facets: ['Adventurousness', 'Cautiousness'],
+        },
       ],
       next: 'closing',
     },

@@ -106,23 +106,36 @@ export const blackClay: Script = {
         { text: 'Day seventeen. Thirty-two pieces go down into the pit kiln in the yard, packed among broken shards.', animation: 'kiln_load' },
         { text: "At dusk you light it. For eight hours you feed it wood, slowly, so the heat doesn't climb too fast.", animation: 'kiln_fire' },
         { text: 'At the end you seal the top with earth, so no air gets in. Starved of air, the smoke turns the clay black.', animation: 'kiln_sealed' },
-        { text: "Now it has to cool. You can't open it before morning, and you can't do anything to help it.", animation: 'kiln_wait' },
+        { text: 'Now it has to cool, slowly. Let the cold air in too soon and warm pieces can crack.', animation: 'kiln_wait' },
+        { speaker: BETO, text: 'My uncle always dug his open at first grey, to see. Most of the time it was fine.', animation: 'kiln_wait' },
         {
           id: 'the_wait',
-          prompt: "Three weeks of work is in the ground, and there's nothing left to do but wait until morning. How do you spend the night?",
+          prompt: 'Three weeks of work is in the ground, and the night is long. When do you open the kiln?',
           animation: 'kiln_wait',
-          facets: ['Patience', 'Optimism'],
+          facets: ['Patience', 'Immoderation', 'Anxiety'],
+          choices: [
+            { label: 'At first grey. I want to see.', next: 'open_early' },
+            { label: 'Not until full light, however long the night is.', next: 'open_late' },
+          ],
         },
       ],
+    },
+
+    open_early: {
+      steps: [{ text: 'Before the sky is properly grey, you dig the earth away with cold hands. Warm air comes up, smelling of smoke.', animation: 'kiln_open' }],
+      next: 'opening_kiln',
+    },
+
+    open_late: {
+      steps: [{ text: 'The night passes. At full light you dig the earth away. Warm air comes up, smelling of smoke.', animation: 'kiln_open' }],
       next: 'opening_kiln',
     },
 
     opening_kiln: {
       steps: [
-        { text: 'At first light you dig the earth away. Warm air comes up, smelling of smoke.', animation: 'kiln_open' },
         { text: 'You lift the pieces out one by one and lay them on the mat.', animation: 'kiln_open' },
         { text: 'Fifteen are whole, and black, and they shine.', animation: 'shards' },
-        { text: 'Seventeen are cracked or in pieces. The wood was damp, or the clay was still too wet, or both.', animation: 'shards' },
+        { text: "Seventeen are cracked or in pieces. Damp wood, wet clay, the cold air: there's no telling which.", animation: 'shards' },
         { text: 'The shop opens in four days.', animation: 'shards' },
         {
           id: 'the_shards',

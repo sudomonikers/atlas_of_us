@@ -146,10 +146,10 @@ export const provenWrong: Script = {
     dusk: {
       steps: [
         { text: 'That evening, you sit on an upturned crate by the empty hives.', animation: 'dusk' },
-        { text: "Six months ago you'd have bet your plot on it. You were so sure.", animation: 'dusk' },
+        { text: 'Six months of meetings, signatures and posts in the group chat. Then one jar of bees.', animation: 'dusk' },
         {
           id: 'how_you_got_sure',
-          prompt: 'Looking back, how did you get so sure? What did you see that convinced you, and what do you think you skipped past?',
+          prompt: 'Looking back over the last six months, what, if anything, would you have done differently?',
           animation: 'dusk',
           facets: ['Introspection', 'Intellect'],
         },

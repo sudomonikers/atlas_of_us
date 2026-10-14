@@ -13,7 +13,7 @@ const DELPHINE = 'Delphine';
 export const partyOfStrangers: Script = {
   id: 'party_of_strangers',
   title: 'The Party of Strangers',
-  facets: ['Self-Consciousness', 'Immoderation', 'Friendliness', 'Gregariousness', 'Excitement-Seeking', 'Cheerfulness'],
+  facets: ['Self-Consciousness', 'Immoderation', 'Friendliness', 'Gregariousness', 'Excitement-Seeking', 'Cheerfulness', 'Playfulness'],
   start: 'arrival',
   sections: {
     // -------------------------------------------------------------------------
@@ -76,11 +76,12 @@ export const partyOfStrangers: Script = {
       steps: [
         { text: 'The main room is all wood and firelight: twenty-odd people, a fire the size of a car, and a karaoke machine that nobody is using well.', animation: 'room_wide' },
         { text: 'As the door shuts behind you, a few heads turn. They look you over, and then they turn back to their conversations.', animation: 'room_heads' },
+        { text: 'One of them, a man in a battered ski jacket, catches your eye, grins, and lifts his mug at you.', animation: 'room_heads' },
         {
-          id: 'walking_in',
-          prompt: "What's going through your mind right now?",
+          id: 'first_hello',
+          prompt: "He's still looking your way. What do you do?",
           animation: 'room_heads',
-          facets: ['Self-Consciousness', 'Cheerfulness'],
+          facets: ['Friendliness', 'Self-Consciousness'],
         },
         { speaker: BRAM, text: "Glögg. It's mostly wine. Drink it while it's hot.", animation: 'room_glogg' },
         { text: 'He puts a mug into your hands, and then somebody shouts for him from the kitchen. You are on your own.', animation: 'room_wide' },
@@ -133,9 +134,9 @@ export const partyOfStrangers: Script = {
         { speaker: DELPHINE, text: "So what's your resolution? And don't tell me you haven't got one.", animation: 'room_delphine' },
         {
           id: 'delphine',
-          prompt: 'Everyone near you is waiting to hear your answer. What do you say?',
+          prompt: 'Everyone near you is waiting. A real answer, a joke, or an argument: what do you say?',
           animation: 'room_delphine',
-          facets: ['Friendliness', 'Self-Consciousness', 'Cheerfulness'],
+          facets: ['Playfulness', 'Friendliness', 'Self-Consciousness'],
         },
         { speaker: DELPHINE, text: "Hm. I'll allow it.", animation: 'room_delphine' },
         { text: "She's already turned to somebody else.", animation: 'room_circle' },
@@ -219,6 +220,12 @@ export const partyOfStrangers: Script = {
         { text: 'At midnight, fireworks go up from the village far below.', animation: 'deck_fireworks' },
         { text: 'Bram hugs everyone he can reach, you included. Pip shakes your hand. Delphine kisses you on both cheeks.', animation: 'deck_fireworks' },
         { text: 'For a minute nobody says anything. They all just watch.', animation: 'deck_fireworks' },
+        {
+          id: 'the_new_year',
+          prompt: "Midnight on a mountain, with twenty people you didn't know this morning. What's that minute like for you?",
+          animation: 'deck_fireworks',
+          facets: ['Cheerfulness', 'Emotionality'],
+        },
       ],
       next: 'late',
     },
@@ -283,6 +290,12 @@ export const partyOfStrangers: Script = {
           prompt: 'On the drive down, do you feel more drained or more awake than when you arrived? Would you go back next year, even without Juno?',
           animation: 'road',
           facets: ['Gregariousness', 'Cheerfulness', 'Self-Consciousness'],
+        },
+        {
+          id: 'your_friday',
+          prompt: 'Away from the mountain now. Think of your last free Friday night. What did you choose to do with it, and with how many people?',
+          animation: 'road',
+          facets: ['Gregariousness', 'Friendliness'],
         },
       ],
       next: 'closing',

@@ -120,7 +120,7 @@ export interface PromptFrame {
   prompt: string; //the question shown to the user above the text box
   animation: string;
   speaker?: string;
-  facets: PersonalityTrait[]; //traits the backend should look for in the answer
+  facets: PersonalityTrait[]; //traits this prompt is designed to draw out
   choices?: Choice[]; //if present the user picks one, then explains why in the text box
 }
 

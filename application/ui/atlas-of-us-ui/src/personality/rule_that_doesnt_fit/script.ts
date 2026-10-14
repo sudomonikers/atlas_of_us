@@ -216,6 +216,12 @@ export const ruleThatDoesntFit: Script = {
           animation: 'morning',
           facets: ['Sympathy', 'Altruism', 'Morality'],
         },
+        {
+          id: 'your_rule',
+          prompt: 'Away from the ferry now. Think of a rule at work or school that you broke, or kept even though you didn\'t want to. What was it, and why did you go the way you did?',
+          animation: 'morning',
+          facets: ['Dutifulness', 'Liberalism'],
+        },
       ],
       next: 'closing',
     },

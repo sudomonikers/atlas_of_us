@@ -3,9 +3,10 @@ import type { Script } from '../personality';
 // Reading People
 // Four unrelated moments where someone else's behavior is ambiguous, and the player says what they think is going on.
 // Nothing is ever explained: the answers show how the player reads other people, and how much of it they take personally.
-// Free text only, no branching, so aoi_next is always the last question.
+// Free text only, no branching, so your_reading is always the last question.
 
 const MEI = 'Mei';
+const SORA = 'Sora';
 const REN = 'Ren';
 const KURODA = 'Ms. Kuroda';
 const OLD_MAN = 'The old man';
@@ -14,7 +15,7 @@ const AOI = 'Aoi';
 export const readingPeople: Script = {
   id: 'reading_people',
   title: 'Reading People',
-  facets: ['Anxiety', 'Self-Consciousness', 'Emotionality', 'Trust', 'Modesty', 'Sympathy'],
+  facets: ['Anxiety', 'Self-Consciousness', 'Emotionality', 'Trust', 'Modesty', 'Sympathy', 'Playfulness'],
   start: 'lanterns',
   sections: {
     // -------------------------------------------------------------------------
@@ -36,13 +37,14 @@ export const readingPeople: Script = {
           animation: 'friends_hold',
           facets: ['Self-Consciousness', 'Anxiety', 'Trust'],
         },
-        { text: 'Later, the festival thins out. Floating lanterns drift down the river toward the sea.', animation: 'walk_home' },
+        { speaker: SORA, text: "Okay, new game. Everyone shows the most embarrassing photo on their phone. You first.", animation: 'sora_offers' },
         {
-          id: 'festival_after',
-          prompt: 'Walking home, is it still on your mind? Would you ask them about it?',
-          animation: 'walk_home',
-          facets: ['Anxiety', 'Trust', 'Self-Consciousness'],
+          id: 'your_turn',
+          prompt: "They're all looking at you, grinning. What do you show them, or what do you say?",
+          animation: 'friends_hold',
+          facets: ['Playfulness', 'Self-Consciousness', 'Trust'],
         },
+        { text: 'Later, the festival thins out. Floating lanterns drift down the river toward the sea.', animation: 'walk_home' },
       ],
       next: 'rooftop',
     },
@@ -58,12 +60,6 @@ export const readingPeople: Script = {
         { speaker: KURODA, text: 'I have to say, the launch went beautifully. The client called it the smoothest one they\'ve seen.', animation: 'kuroda_praises' },
         { speaker: REN, text: 'Honestly? I basically rebuilt the whole thing over the weekend. Barely slept.', animation: 'ren_brags' },
         { text: 'He laughs and stretches. He doesn\'t look your way.', animation: 'ren_stretches' },
-        {
-          id: 'ren_brag',
-          prompt: 'Why do you think Ren told it that way?',
-          animation: 'ren_hold',
-          facets: ['Trust', 'Modesty'],
-        },
         { text: 'Ms. Kuroda nods, impressed, then turns to you.', animation: 'kuroda_turns' },
         { speaker: KURODA, text: 'You were on that too, weren\'t you?', animation: 'kuroda_asks' },
         {
@@ -71,6 +67,13 @@ export const readingPeople: Script = {
           prompt: 'Ms. Kuroda is waiting. What do you say, and why?',
           animation: 'kuroda_asks',
           facets: ['Modesty', 'Self-Consciousness', 'Trust'],
+        },
+        { text: 'After lunch, everyone heads back down to their desks. Ren hangs back by the stairs, scrolling his phone.', animation: 'ren_hold' },
+        {
+          id: 'ren_after',
+          prompt: "It's just the two of you on the roof now. Do you say anything to Ren about how he told it? If so, what?",
+          animation: 'ren_hold',
+          facets: ['Assertiveness', 'Anger', 'Cooperation'],
         },
       ],
       next: 'last_train',
@@ -87,12 +90,6 @@ export const readingPeople: Script = {
         { text: 'He\'s talking quietly to the empty seat beside him.', animation: 'old_man_talks' },
         { speaker: OLD_MAN, text: '...no, you were right about the plum tree. It came back after all.', animation: 'old_man_talks' },
         { text: 'He chuckles, and pats the seat once, the way you\'d pat someone\'s hand.', animation: 'old_man_pats' },
-        {
-          id: 'old_man',
-          prompt: 'What do you think is going on with him?',
-          animation: 'old_man_hold',
-          facets: ['Emotionality', 'Sympathy'],
-        },
         { text: 'At the next stop he stands, straightens his jacket, and looks back at the empty seat.', animation: 'old_man_stands' },
         { speaker: OLD_MAN, text: 'Come on, then. We\'re home.', animation: 'old_man_home' },
         { text: 'The doors close. You watch him walk slowly down the platform, the flowers held out in front of him.', animation: 'platform_leaves' },
@@ -118,16 +115,16 @@ export const readingPeople: Script = {
         { text: 'Your phone buzzes on the windowsill. It\'s Aoi.', animation: 'phone_buzz' },
         { speaker: AOI, text: 'Got it back to you finally!! Sorry it took forever. It helped more than you know :)', animation: 'aoi_text' },
         {
-          id: 'aoi_note',
-          prompt: 'What do you think is going on with Aoi?',
-          animation: 'note_hold',
-          facets: ['Trust', 'Sympathy', 'Anxiety'],
-        },
-        {
           id: 'aoi_next',
           prompt: 'The note is still folded in your hand. Do you read the rest, give it back, bring it up, or let it be? Why?',
           animation: 'window_think',
           facets: ['Sympathy', 'Trust', 'Anxiety'],
+        },
+        {
+          id: 'your_reading',
+          prompt: 'Away from these four moments now. Think of the last time you thought someone was annoyed with you, or laughing at you. What did you do with it, and how long did it stay with you?',
+          animation: 'window_think',
+          facets: ['Anxiety', 'Self-Consciousness'],
         },
         { text: 'The rain keeps on. Four small moments, and in each one you only ever saw the outside.', animation: 'closing' },
       ],
