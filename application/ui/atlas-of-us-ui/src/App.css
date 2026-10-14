@@ -243,6 +243,43 @@ body {
     margin: -76px -32px 4px auto;
   }
 }
+/* the home page's Atlas scenes, each a little loop (svg groups). Arms that swing set their own shoulder pivot inline */
+[class^='scene-'] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.scene-pop { animation: scene-pop 3s var(--bounce) infinite both; }
+.scene-beat { animation: scene-beat 1s ease-in-out infinite; }
+.scene-read { animation: scene-read 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.scene-flip { animation: scene-flip 2.4s ease-in-out infinite; transform-origin: 0 50%; }
+.scene-hammer { animation: scene-hammer 1.2s ease-in infinite; }
+.scene-spark { animation: scene-spark 1.2s steps(1) infinite; }
+.scene-lift { animation: scene-lift 1.8s ease-in-out infinite; }
+.scene-sweat { animation: scene-sweat 1.8s ease-in infinite; }
+.scene-wave { animation: scene-wave 1s ease-in-out infinite alternate; }
+.scene-float { animation: scene-float 2s ease-out infinite; }
+.scene-juggle { animation: scene-juggle 2.4s linear infinite; }
+.scene-tear { animation: scene-tear 2.4s ease-in infinite; }
+.scene-spin { animation: scene-juggle 3s linear infinite; }
+.scene-drop { animation: scene-drop 3s var(--bounce) infinite; }
+.scene-paint { stroke-dasharray: 100; animation: scene-paint 3s ease-in-out infinite both; }
+.scene-brush { animation: scene-wave 0.5s ease-in-out infinite alternate; }
+/* the about page's interviewer: sat on the globe, leaning in, holding the mic out and nodding along (svg groups) */
+.interview-lean {
+  animation: interview-lean 4s ease-in-out infinite;
+  transform-box: view-box;
+  transform-origin: 50px 104px; /* his hips, on the globe */
+}
+.interview-mic {
+  animation: interview-mic 4s ease-in-out infinite;
+  transform-box: view-box;
+  transform-origin: 72px 68px; /* his shoulder */
+}
+.interview-nod {
+  animation: interview-nod 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
 /* bobbing on the waves */
 .atlas-bob {
   animation: atlas-bob 3s ease-in-out infinite;
@@ -297,6 +334,80 @@ body {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -5px; }
 }
+@keyframes scene-pop {
+  0% { opacity: 0; transform: scale(0); }
+  15%, 85% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes scene-beat {
+  0%, 60%, 100% { transform: scale(1); }
+  30% { transform: scale(1.25); }
+}
+@keyframes scene-read {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes scene-flip {
+  0%, 70% { transform: scaleX(1); }
+  90%, 100% { transform: scaleX(-1); }
+}
+@keyframes scene-hammer {
+  0%, 40% { transform: rotate(-60deg); }
+  55% { transform: rotate(0); }
+  65% { transform: rotate(-8deg); }
+  100% { transform: rotate(-60deg); }
+}
+@keyframes scene-spark {
+  0%, 52%, 72% { opacity: 0; }
+  55% { opacity: 1; }
+}
+@keyframes scene-lift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(9px); }
+}
+@keyframes scene-sweat {
+  0%, 30% { opacity: 0; transform: translateY(-2px); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(14px); }
+}
+@keyframes scene-wave {
+  from { transform: rotate(-12deg); }
+  to { transform: rotate(10deg); }
+}
+@keyframes scene-float {
+  0% { opacity: 0; transform: translateY(6px) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px) scale(1); }
+}
+@keyframes scene-juggle {
+  to { transform: rotate(360deg); }
+}
+@keyframes scene-tear {
+  0%, 50% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translate(34px, -40px) rotate(50deg); }
+}
+@keyframes scene-drop {
+  0%, 20% { opacity: 0; transform: translateY(-24px); }
+  40%, 85% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@keyframes scene-paint {
+  0% { stroke-dashoffset: 100; opacity: 1; }
+  60%, 85% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes interview-lean {
+  0%, 100% { transform: rotate(6deg); }
+  45%, 70% { transform: rotate(11deg); }
+}
+@keyframes interview-mic {
+  0%, 100% { transform: rotate(0); }
+  45%, 70% { transform: rotate(-8deg); }
+}
+@keyframes interview-nod {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(6deg) translateY(1px); }
+}
 @keyframes comic-fill {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
@@ -313,7 +424,7 @@ body {
   .comic-pop {
     transform: rotate(var(--tilt, 0deg));
   }
-  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat, .atlas-compass, .atlas-bob {
+  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat, .atlas-compass, .atlas-bob, [class^='scene-'], [class^='interview-'] {
     animation: none;
   }
 }

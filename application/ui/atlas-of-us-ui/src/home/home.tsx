@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { navigate } from '../router';
 import { Nav } from '../shared_components/nav';
+import { Scenes } from './scenes';
 import { Strip } from './strip';
 
 const gunmetal = 'var(--gunmetal-black)';
@@ -24,6 +25,10 @@ export default function Home() {
           with one seat left, and ask what you'd do and <em>why</em>. Your answers map your personality. What you know, 
           what you can do and who you could become are next.
         </p>
+      </section>
+      <section style={styles.scenes} className="comic-panel">
+        <h2 style={{ ...styles.heading, textAlign: 'center' }}>Everything that makes you, you</h2>
+        <Scenes />
       </section>
       <footer style={styles.footer}>
         <button className="comic-lift" style={styles.primary} onClick={() => navigate('/roadmap')}>
@@ -81,6 +86,15 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 21,
     lineHeight: 1.35,
   },
+  scenes: {
+    maxWidth: 1000,
+    margin: '48px auto 0',
+    padding: '22px clamp(16px, 4vw, 40px) 28px',
+    boxSizing: 'border-box',
+    borderRadius: 'var(--wobbly)',
+    '--panel-fill': 'var(--ivory-white)',
+    '--tilt': '0.3deg',
+  } as CSSProperties,
   footer: {
     margin: '40px auto 0',
     textAlign: 'center',
