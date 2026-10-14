@@ -37,15 +37,13 @@ UNWIND [
   {name: 'the_thief',            title: 'Expedition II: The Thief'},
   {name: 'party_of_strangers',   title: 'The Party of Strangers'},
   {name: 'empty_weekend',        title: 'The Empty Weekend'},
-  {name: 'public_mistake',       title: 'The Public Mistake'},
   {name: 'reading_people',       title: 'Reading People'},
-  {name: 'holiday_table',        title: 'The Holiday Table'},
   {name: 'the_offer',            title: 'The Offer'},
-  {name: 'track_record',         title: 'Track Record'},
   {name: 'the_archive',          title: 'The Archive'},
   {name: 'rule_that_doesnt_fit', title: "The Rule That Doesn't Fit"},
   {name: 'proven_wrong',         title: 'Proven Wrong'},
-  {name: 'the_water',            title: 'The Water'}
+  {name: 'the_water',            title: 'The Water'},
+  {name: 'black_clay',           title: 'The Black Clay'}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
 SET s.title = scenario.title;
@@ -223,6 +221,20 @@ UNWIND [
   {order: 4, key: 'the_boat',    prompt: "Four places, and the light's going. Who goes in the boat, and do you?"},
   {order: 5, key: 'after_water', prompt: "It's over, and you came through it mostly fine. How are you feeling now, standing in the mud?"},
   {order: 6, key: 'your_storm',  prompt: 'Away from Chennai now. Think of a time when something went badly wrong around you: a real emergency, or a sudden mess. What did you actually do in the first hour, and how did you feel afterwards?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
+// The Black Clay
+MATCH (s:PersonalityScenario {name: 'black_clay'})
+UNWIND [
+  {order: 0, key: 'the_order',   prompt: 'Mariana is waiting on the line. What do you tell her?'},
+  {order: 1, key: 'the_ripple',  prompt: "It's two in the morning, and it's a flaw almost nobody else would notice. What do you do with the jar?"},
+  {order: 2, key: 'beto',        prompt: 'Beto wants to help, his way. What do you say to him?'},
+  {order: 3, key: 'the_wait',    prompt: "Three weeks of work is in the ground, and there's nothing left to do but wait until morning. How do you spend the night?"},
+  {order: 4, key: 'the_shards',  prompt: 'Seventeen pieces broken, four days to go. What goes through your head, and what do you do this morning?'},
+  {order: 5, key: 'the_call',    prompt: 'Fifteen pieces, and she wants forty. What do you do?'},
+  {order: 6, key: 'your_firing', prompt: 'Away from Oaxaca now. Think of something you worked hard on that went wrong right at the end. What did you do the next day, and how long did it take you to get going again?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;

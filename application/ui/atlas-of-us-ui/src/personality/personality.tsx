@@ -12,6 +12,7 @@ import { emptyWeekend } from './empty_weekend/script';
 import { letDown } from './let_down/script';
 import { provenWrong } from './proven_wrong/script';
 import { theWater } from './the_water/script';
+import { blackClay } from './black_clay/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -34,6 +35,7 @@ const PopUpTown = lazy(() => import('./empty_weekend/pop_up_town'));
 const PaperLantern = lazy(() => import('./let_down/paper_lantern'));
 const TheHive = lazy(() => import('./proven_wrong/the_hive'));
 const Monsoon = lazy(() => import('./the_water/monsoon'));
+const Coyotepec = lazy(() => import('./black_clay/coyotepec'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -250,13 +252,6 @@ const SCENARIOS: ScenarioInfo[] = [
     facets: emptyWeekend.facets,
   },
   {
-    id: 'public_mistake',
-    title: 'The Public Mistake',
-    kind: 'Realistic hypothetical',
-    blurb: 'You accidentally send an embarrassing error to your whole company. What happens in the first five minutes?',
-    facets: ['Anxiety', 'Self-Consciousness', 'Vulnerability', 'Morality', 'Self-Efficacy', 'Dutifulness'],
-  },
-  {
     id: 'reading_people',
     title: 'Reading People',
     kind: 'Observer judgment',
@@ -264,25 +259,11 @@ const SCENARIOS: ScenarioInfo[] = [
     facets: readingPeople.facets,
   },
   {
-    id: 'holiday_table',
-    title: 'The Holiday Table',
-    kind: 'Realistic hypothetical',
-    blurb: 'A pointed remark, an old family argument, and then you are asked to host next year.',
-    facets: ['Anger', 'Vulnerability', 'Assertiveness', 'Liberalism', 'Cooperation', 'Dutifulness'],
-  },
-  {
     id: 'the_offer',
     title: 'The Offer',
     kind: 'Reflective',
     blurb: 'An exciting but risky role in a new city, or the stable job you are good at.',
     facets: theOffer.facets,
-  },
-  {
-    id: 'track_record',
-    title: 'Track Record',
-    kind: 'Recall',
-    blurb: 'A few short prompts about your actual recent past, the good moments and the overwhelming ones.',
-    facets: ['Depression', 'Vulnerability', 'Cheerfulness', 'Orderliness', 'Dutifulness', 'Self-Discipline'],
   },
   {
     id: 'the_archive',
@@ -312,6 +293,13 @@ const SCENARIOS: ScenarioInfo[] = [
     blurb: 'The monsoon floods your street in Chennai, and the family from downstairs comes knocking.',
     facets: theWater.facets,
   },
+  {
+    id: 'black_clay',
+    title: 'The Black Clay',
+    kind: 'Realistic hypothetical, with recall',
+    blurb: 'A shop in Mexico City orders forty pots from your workshop in Oaxaca. Then you open the kiln.',
+    facets: blackClay.facets,
+  },
 ];
 
 interface Playable {
@@ -333,6 +321,7 @@ const PLAYABLE: Record<string, Playable> = {
   let_down: { script: letDown, renderScene: (animation) => <PaperLantern animation={animation} /> },
   proven_wrong: { script: provenWrong, renderScene: (animation) => <TheHive animation={animation} /> },
   the_water: { script: theWater, renderScene: (animation) => <Monsoon animation={animation} /> },
+  black_clay: { script: blackClay, renderScene: (animation) => <Coyotepec animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
@@ -628,13 +617,10 @@ const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots are where you've been dodging scenarios. Go fill them in, I'm curious.`;
 };
 
-type Badge = ScenarioStatus | 'soon';
-
-const badges: Record<Badge, { label: string; fill: string; ink: string }> = {
+const badges: Record<ScenarioStatus, { label: string; fill: string; ink: string }> = {
   complete: { label: 'Done!', fill: paleBlue, ink: blue },
   in_progress: { label: 'In progress', fill: paleCinnamon, ink: cinnamon },
   not_started: { label: 'New!', fill: '#fffef6', ink: brownRed },
-  soon: { label: 'Coming soon', fill: '#efebd8', ink: gunmetal },
 };
 
 const TILTS = [-1.2, 0.8, -0.5, 1.1, -0.9, 0.4]; //slight hand-placed wobble so the grid doesn't look machine-ruled
@@ -650,8 +636,7 @@ interface ScenarioCardProps {
 
 function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: ScenarioCardProps) {
   const status = progress?.status ?? 'not_started';
-  const badge: Badge = status === 'not_started' && !playable ? 'soon' : status;
-  const look = badges[badge];
+  const look = badges[status];
   const when = progress?.completedAt ?? progress?.startedAt;
 
   return (
@@ -668,7 +653,7 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
         <span style={dash.cardTop}>
           <span style={{ ...dash.number, background: look.ink }}>{index + 1}</span>
           <span
-            className={badge === 'complete' ? 'comic-stamp comic-slam' : 'comic-stamp'}
+            className={status === 'complete' ? 'comic-stamp comic-slam' : 'comic-stamp'}
             style={{ color: look.ink, animationDelay: '700ms' }}
           >
             {look.label}
