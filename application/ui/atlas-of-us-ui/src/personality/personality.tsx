@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getProgress, getQuestions, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getProgress, getQuestions, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import { theThief } from './the_thief/script';
 import { readingPeople } from './reading_people/script';
@@ -352,10 +352,31 @@ function Personality() {
     if (loggedIn) load();
   }, [loggedIn, load]);
 
+  //the user's traits are rescored in the background after each scenario, and no new one starts until that's done
+  const [recalculating, setRecalculating] = useState(false);
+  const [scorings, setScorings] = useState(0); //how many rescores have finished while the page was open
+  useEffect(() => {
+    if (!loggedIn) return;
+    getScoring().then(({ running }) => setRecalculating(running), () => {});
+  }, [loggedIn]);
+  useEffect(() => {
+    if (!recalculating) return;
+    const timer = window.setInterval(
+      () =>
+        getScoring().then(({ running }) => {
+          if (running) return;
+          setRecalculating(false);
+          setScorings((n) => n + 1);
+        }, () => {}), //a failed check just waits for the next one
+      SCORING_POLL_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [recalculating]);
+
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
 
-  //fetched each time the view opens, so it picks up anything measured since
+  //fetched each time the view opens or a rescore finishes, so it picks up anything measured since
   useEffect(() => {
     if (view !== 'traits' || !personId || !username) return;
     fetchTraits(personId, username).then(
@@ -365,15 +386,15 @@ function Personality() {
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
-  }, [view, personId, username]);
+  }, [view, personId, username, scorings]);
 
-  //saves an answer as the player moves past a prompt. The last answer of a scenario also rescores the user's traits,
-  //so it only resolves once that's done
+  //saves an answer as the player moves past a prompt. The last answer of a scenario also starts a rescore
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer, clock?: AnswerClock) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, clock);
+    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, clock);
+    if (saved.scored) setRecalculating(true);
   };
 
   const open = playing ? PLAYABLE[playing] : undefined;
@@ -404,13 +425,15 @@ function Personality() {
   const bubble =
     view === 'explore'
       ? "Here's how personality works, trait by trait. Every end of every scale has its downsides, so nobody gets to feel too smug. Or too bad."
-      : view === 'scenarios'
-        ? ready
-          ? greeting(firstName, completed)
-          : 'Digging up your map...'
-        : traits
-          ? traitsGreeting(firstName, traits)
-          : 'Flipping through my notes on you. Some of them are unflattering...';
+      : recalculating
+        ? "Hold on, I'm recalculating your results from everything you've told me so far. It takes a few minutes, and your next scenario unlocks as soon as I'm done."
+        : view === 'scenarios'
+          ? ready
+            ? greeting(firstName, completed)
+            : 'Digging up your map...'
+          : traits
+            ? traitsGreeting(firstName, traits)
+            : 'Flipping through my notes on you. Some of them are unflattering...';
   //a failed load replaces the greeting
   const failure =
     view === 'scenarios' && loadError
@@ -472,6 +495,7 @@ function Personality() {
                   scenario={scenario}
                   progress={progress[scenario.id]}
                   playable={scenario.id in PLAYABLE}
+                  locked={recalculating}
                   onPlay={() => setPlaying(scenario.id)}
                 />
               ))}
@@ -482,6 +506,8 @@ function Personality() {
     </RequireLogin>
   );
 }
+
+const SCORING_POLL_MS = 5000;
 
 const LIKERT = ['Strongly disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly agree'];
 
@@ -595,10 +621,11 @@ interface ScenarioCardProps {
   scenario: ScenarioInfo;
   progress?: ScenarioProgress;
   playable: boolean;
+  locked: boolean; //waiting on a rescore before another scenario can start
   onPlay: () => void;
 }
 
-function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioCardProps) {
+function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: ScenarioCardProps) {
   const status = progress?.status ?? 'not_started';
   const badge: Badge = status === 'not_started' && !playable ? 'soon' : status;
   const look = badges[badge];
@@ -611,8 +638,8 @@ function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioC
     >
       <button
         className="comic-panel comic-lift"
-        style={{ ...dash.card, ...(playable ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
-        disabled={!playable}
+        style={{ ...dash.card, ...(playable && !locked ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
+        disabled={!playable || locked}
         onClick={onPlay}
       >
         <span style={dash.cardTop}>
@@ -639,7 +666,7 @@ function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioC
 
         <span style={dash.cardFooter}>
           {when && <span>{`${status === 'complete' ? 'Finished' : 'Started'} ${formatDate(when)}`}</span>}
-          {playable && <span style={dash.go}>{status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
+          {playable && <span style={dash.go}>{locked ? 'Recalculating...' : status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
         </span>
       </button>
     </li>

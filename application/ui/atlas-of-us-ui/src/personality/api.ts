@@ -28,10 +28,13 @@ export interface AnswerClock {
   ran_out: boolean; //the clock hit zero before the user finished
 }
 
-//replaces any earlier answer to the same question. The last answer of a scenario also rescores the user's traits,
-//which takes a while
+//replaces any earlier answer to the same question. The last answer of a scenario also starts rescoring the user's
+//traits in the background, and scored says it did
 export const saveAnswer = (question_id: string, answer: string, reasoning?: string, clock?: AnswerClock) =>
   request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, clock });
+
+//whether the user's traits are still being rescored. No new scenario starts until it's done
+export const getScoring = () => request<{ running: boolean }>('GET', '/personality/scoring');
 
 //every question the logged in user has answered
 export const getProgress = () => request<SavedAnswer[]>('GET', '/personality/progress');

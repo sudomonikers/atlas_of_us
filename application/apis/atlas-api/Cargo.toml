@@ -26,9 +26,9 @@ serde_json = "1.0"
 jsonwebtoken = "9"
 argon2 = { version = "0.5", features = ["std"] }
 
-# LLM scoring
+# AWS: the atlas-jobs queue
 aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
-aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["legacy-https-client", "rt-tokio"] }
+aws-sdk-sqs = { version = "1.114.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
 
 # Email
 aws-sdk-s3 = { version = "1.152.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }

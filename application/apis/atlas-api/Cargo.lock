@@ -69,9 +69,9 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "aws-config",
- "aws-sdk-bedrockruntime",
  "aws-sdk-s3",
  "aws-sdk-sesv2",
+ "aws-sdk-sqs",
  "axum",
  "chrono",
  "futures",
@@ -169,34 +169,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aws-sdk-bedrockruntime"
-version = "1.148.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2542c0f038223ba2f9aefe3bd38c7395ccc6899d8fc58a99b8ddfeab3354f5"
-dependencies = [
- "arc-swap",
- "aws-credential-types",
- "aws-runtime",
- "aws-sigv4",
- "aws-smithy-async",
- "aws-smithy-eventstream",
- "aws-smithy-http",
- "aws-smithy-json",
- "aws-smithy-observability",
- "aws-smithy-runtime",
- "aws-smithy-runtime-api",
- "aws-smithy-schema",
- "aws-smithy-types",
- "aws-types",
- "bytes",
- "fastrand",
- "http 1.5.0",
- "http-body-util",
- "regex-lite",
- "tracing",
-]
-
-[[package]]
 name = "aws-sdk-s3"
 version = "1.152.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -237,6 +209,31 @@ name = "aws-sdk-sesv2"
 version = "1.140.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf26866eb72be4a43eb1366424e4098567ca621486feec75083b34d1d2b17fee"
+dependencies = [
+ "arc-swap",
+ "aws-credential-types",
+ "aws-runtime",
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-json",
+ "aws-smithy-observability",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-schema",
+ "aws-smithy-types",
+ "aws-types",
+ "bytes",
+ "fastrand",
+ "http 1.5.0",
+ "regex-lite",
+ "tracing",
+]
+
+[[package]]
+name = "aws-sdk-sqs"
+version = "1.114.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2551ccb129fd5668fcd948eac97715e383845495d9b9f030dc3bb45cbe0e7a23"
 dependencies = [
  "arc-swap",
  "aws-credential-types",

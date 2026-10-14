@@ -40,11 +40,18 @@ async fn main() {
         .load()
         .await;
 
+    //slow work like personality scoring is queued for atlas-jobs
+    let jobs_queue = match env::var("JOBS_QUEUE_URL") {
+        Ok(url) => Some((aws_sdk_sqs::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await), url)),
+        Err(_) => None,
+    };
+
     //create state every route can grab from
     let state = AppState {
         graph,
         s3: aws_sdk_s3::Client::new(&mail_config),
         ses: aws_sdk_sesv2::Client::new(&mail_config),
+        jobs_queue,
     };
 
     // build our application 

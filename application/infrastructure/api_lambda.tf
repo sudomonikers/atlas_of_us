@@ -23,12 +23,12 @@ resource "aws_lambda_function" "api" {
   architectures = ["arm64"]
   filename      = data.archive_file.api_placeholder.output_path
   memory_size   = 512
-  timeout       = 60 # bedrock scoring can be slow. matches the cloudfront origin read timeout
+  timeout       = 60 # matches the cloudfront origin read timeout. slow work is queued for atlas-jobs (jobs_lambda.tf)
 
   environment {
     variables = merge(
       { for name, param in data.aws_ssm_parameter.api : name => param.value },
-      { BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6" },
+      { JOBS_QUEUE_URL = aws_sqs_queue.jobs.url },
     )
   }
 
@@ -113,13 +113,10 @@ resource "aws_iam_role_policy" "api" {
     Version = "2012-10-17"
     Statement = [
       {
-        # cross region inference profiles route to the model in any us region
-        Effect = "Allow"
-        Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
-        Resource = [
-          "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/*",
-          "arn:aws:bedrock:*::foundation-model/*",
-        ]
+        # the api queues slow work for atlas-jobs, which is the one that talks to bedrock
+        Effect   = "Allow"
+        Action   = ["sqs:SendMessage"]
+        Resource = [aws_sqs_queue.jobs.arn]
       }
     ]
   })

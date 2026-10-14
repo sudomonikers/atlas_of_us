@@ -1,0 +1,26 @@
+[package]
+name = "atlas-jobs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Async Runtime
+tokio = { version = "1.53.2", features = ["full"] }
+
+# Database
+neo4rs = "0.9.0-rc.10"
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# AWS: bedrock for personality scoring
+aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
+aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["legacy-https-client", "rt-tokio"] }
+
+# Lambda (invoked with batches of SQS records)
+lambda_runtime = "1.4.0"
