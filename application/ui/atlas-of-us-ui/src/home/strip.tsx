@@ -58,6 +58,14 @@ const FACES = {
 
 const SWEAT = <path d="M-10 -136 C-13 -131 -12.5 -129 -10 -129 C-7.5 -129 -7 -131 -10 -136 Z" style={{ fill: paleBlue }} strokeWidth="1.5" />;
 
+//the head is a circle of radius 17 at (2, -117), facing right
+const HAIR = {
+  andrew: 'M-16 -110 L-21 -123 L-15 -128 L-16 -140 L-6 -136 L-2 -146 L5 -138 L12 -145 L14 -134 L23 -134 L19 -121 C15 -127 10 -126 7 -130 C3 -125 -2 -127 -5 -122 C-8 -118 -12 -114 -16 -110 Z',
+  luluBack: 'M-4 -137 C-22 -138 -30 -122 -29 -102 C-29 -88 -30 -76 -26 -64 C-18 -66 -10 -68 -4 -70 L14 -86 C20 -94 22 -104 21 -114 C21 -130 10 -138 -4 -137 Z',
+  luluTop: 'M-18 -96 C-26 -112 -24 -138 -2 -139 C14 -140 22 -130 20 -116 C14 -126 6 -130 -2 -127 C-8 -120 -10 -108 -18 -96 Z',
+  luluShine: 'M-12 -128 C-8 -133 -2 -135 4 -135',
+};
+
 //one of the two partygoers, drawn facing right with the feet at the origin. flip turns them to face left,
 //lean tips the upper body, and children (things in hand) sit between the body and the front arm
 function Person(p: { lulu?: boolean; x: number; y?: number; s?: number; flip?: boolean; lean?: number; arms: [string, string]; face: ReactNode; children?: ReactNode }) {
@@ -67,7 +75,8 @@ function Person(p: { lulu?: boolean; x: number; y?: number; s?: number; flip?: b
       {p.lulu ? <Limb d="M-7 -40 L-8 -4 M7 -40 L9 -4" /> : <Limb d="M-7 -52 L-8 -4 M7 -52 L9 -4" w={12} color={cinnamon} />}
       <path d="M-16 -1 C-16 -8 -4 -8 -2 -1 Z M3 -1 C3 -8 15 -8 17 -1 Z" style={{ fill: gunmetal }} strokeWidth="2" />
       <g transform={`rotate(${p.lean ?? 0} 0 -52)`}>
-        {p.lulu && <path d="M-8 -130 C-30 -132 -34 -104 -26 -86 C-22 -98 -18 -108 -10 -114 Z" style={{ fill: cinnamon }} />}
+        {/* lulu's long hair falls behind her head and shoulders */}
+        {p.lulu && <path d={HAIR.luluBack} style={{ fill: gunmetal }} />}
         <Arm d={p.arms[0]} />
         <path
           d={p.lulu ? 'M-14 -98 C-17 -80 -14 -64 -11 -58 L-20 -30 L20 -30 L11 -58 C14 -64 17 -80 14 -98 C5 -103 -5 -103 -14 -98 Z' : 'M-16 -98 C-20 -80 -17 -62 -14 -48 L14 -48 C17 -62 20 -80 16 -98 C6 -104 -6 -104 -16 -98 Z'}
@@ -75,10 +84,9 @@ function Person(p: { lulu?: boolean; x: number; y?: number; s?: number; flip?: b
         />
         <circle cx="2" cy="-117" r="17" style={{ fill: skin }} />
         <ellipse cx="-11" cy="-114" rx="3" ry="4.5" style={{ fill: skin }} strokeWidth="2" />
-        <path
-          d={p.lulu ? 'M-16 -108 C-24 -140 22 -146 20 -118 C14 -126 6 -130 -2 -126 C-6 -122 -9 -116 -16 -108 Z' : 'M-16 -110 C-22 -136 4 -146 18 -132 C20 -128 20 -124 19 -121 C15 -127 10 -126 7 -130 C3 -125 -2 -127 -5 -122 C-8 -118 -12 -114 -16 -110 Z'}
-          style={{ fill: p.lulu ? cinnamon : gunmetal }}
-        />
+        <path d={p.lulu ? HAIR.luluTop : HAIR.andrew} style={{ fill: gunmetal }} />
+        {/* a little shine, so it reads as silky */}
+        {p.lulu && <path d={HAIR.luluShine} fill="none" style={{ stroke: ivory, opacity: 0.55 }} strokeWidth="1.6" strokeLinecap="round" />}
         {p.face}
         {p.children}
         <Arm d={p.arms[1]} />
@@ -186,7 +194,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
     ),
   },
   {
-    label: "Andrew, confidently: Oh! I'm Andrew. I work in marketing. Lulu: No, no. That's your job. Who are you?",
+    label: "Andrew, confidently: Oh! I'm Andrew. I'm a software engineer. Lulu: No, no. That's your job. Who are you?",
     fill: 'var(--pale-cinnamon)',
     art: (
       <>
@@ -195,7 +203,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
           <Cup x={29} y={-118} r={8} />
         </Person>
         <Person lulu x={236} flip arms={[LULU.hipBack, LULU.hipFront]} face={FACES.smirk} />
-        <Bubble x={10} y={14} w={156} tail={[92, 124]} lines={["Oh! I'm Andrew.", 'I work in marketing.']} />
+        <Bubble x={10} y={14} w={156} tail={[92, 124]} lines={["Oh! I'm Andrew.", "I'm a software engineer."]} />
         <Bubble x={150} y={68} w={162} tail={[236, 124]} lines={[<>No, no. That's your <Em>job</Em>.</>, <>Who are <Em>you</Em>?</>]} />
       </>
     ),
