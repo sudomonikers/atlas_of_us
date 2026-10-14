@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { request } from '../auth/api';
+import { AtlasError } from '../shared_components/atlas-error';
 
 //a button that opens a popup where the user tells us what they want. The page they were on goes along with it
 export function Feedback({ buttonStyle }: { buttonStyle: CSSProperties }) {
@@ -52,11 +53,7 @@ export function Feedback({ buttonStyle }: { buttonStyle: CSSProperties }) {
                   placeholder="Tell us what you want..."
                   onChange={(e) => setDescription(e.target.value)}
                 />
-                {error && (
-                  <p role="alert" style={styles.error}>
-                    {error}
-                  </p>
-                )}
+                {error && <AtlasError message={error} />}
               </>
             )}
             <div style={styles.footer}>
@@ -123,14 +120,6 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: corners,
     outlineColor: 'var(--brown-red)',
     resize: 'vertical',
-  },
-  error: {
-    padding: '6px 12px',
-    background: 'var(--pale-red)',
-    border: '3px solid var(--brown-red)',
-    borderRadius: corners,
-    color: 'var(--brown-red)',
-    fontSize: 18,
   },
   footer: {
     display: 'flex',

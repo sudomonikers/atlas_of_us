@@ -14,6 +14,7 @@ import { useSession } from '../auth/api';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
+import { AtlasError } from '../shared_components/atlas-error';
 
 //scenes are split into their own chunks so their three.js code, sounds and textures only load when one is opened
 const Landfall = lazy(() => import('./landfall/landfall'));
@@ -396,33 +397,40 @@ function Personality() {
 
   const bubble =
     view === 'explore'
-      ? "Here's how personality works, trait by trait. It's honest on purpose, so every end of every scale has its downsides."
+      ? "Here's how personality works, trait by trait. Every end of every scale has its downsides, so nobody gets to feel too smug. Or too bad."
       : view === 'scenarios'
-      ? loadError
-        ? `Hmm, we couldn't load your progress. ${loadError}`
-        : ready
+        ? ready
           ? greeting(firstName, completed)
-          : 'Fetching your map...'
-      : traitsError
-        ? `Hmm, we couldn't load your traits. ${traitsError}`
+          : 'Digging up your map...'
         : traits
           ? traitsGreeting(firstName, traits)
-          : 'Flipping through our notes on you...';
+          : 'Flipping through my notes on you. Some of them are unflattering...';
+  //a failed load replaces the greeting
+  const failure =
+    view === 'scenarios' && loadError
+      ? `I couldn't load your progress. ${loadError}`
+      : view === 'traits' && traitsError
+        ? `I couldn't load your traits. ${traitsError}`
+        : undefined;
 
   return (
-    <RequireLogin reason="You need an account to play the personality scenarios and keep track of your progress.">
+    <RequireLogin reason="I don't map strangers. Make an account and let's find out who you really are.">
       <div style={dash.page} className="comic-page">
         <Nav />
         <header style={dash.header}>
           <h1 style={dash.title} className="comic-title">
             Personality
           </h1>
-          <div style={dash.guide}>
-            <Mascot />
-            <div style={dash.bubble} className="comic-bubble comic-pop">
-              {bubble}
+          {failure ? (
+            <AtlasError message={failure} size={96} style={dash.guide} />
+          ) : (
+            <div style={dash.guide}>
+              <Mascot />
+              <div style={dash.bubble} className="comic-bubble comic-pop">
+                {bubble}
+              </div>
             </div>
-          </div>
+          )}
         </header>
 
         <div style={dash.views}>
@@ -552,16 +560,17 @@ function OurApproach() {
 
 //name is missing while logged out, when the page sits behind the login card
 const greeting = (name: string | undefined, completed: number) => {
-  if (completed === 0) return `Hey ${name ?? 'there'}! Ready for your first adventure?`;
-  if (completed === SCENARIOS.length) return `Wow${name ? `, ${name}` : ''}! You've explored every single scenario!`;
-  return `Hey ${name ?? 'there'}! You've explored ${completed} of ${SCENARIOS.length} scenarios. Where to next?`;
+  const left = SCENARIOS.length - completed;
+  if (completed === 0) return `Hey ${name ?? 'there'}. Zero scenarios played. Bold strategy for someone who wants to know who they are. Pick one, you'll like it.`;
+  if (left === 0) return `Every scenario done${name ? `, ${name}` : ''}. Either you're very self-aware or you really needed a hobby. Either way, I'm proud of you.`;
+  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}. Nice work! ${left === 1 ? "The last one isn't going to play itself." : `The other ${left} aren't going to play themselves.`}`;
 };
 
 const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   const measured = traits.filter((t) => t.value !== undefined).length;
-  if (measured === 0) return `We don't know enough about you yet${name ? `, ${name}` : ''}. Play a scenario and your traits will start filling in!`;
-  if (measured === traits.length) return `Here's the whole picture${name ? `, ${name}` : ''}. Every trait has been measured!`;
-  return `Here's what we've learned so far${name ? `, ${name}` : ''}. Keep playing scenarios to fill in the rest.`;
+  if (measured === 0) return `I've got nothing on you yet${name ? `, ${name}` : ''}. Play a scenario. I can't read minds. Yet. Go give me something to work with!`;
+  if (measured === traits.length) return `Every trait measured${name ? `, ${name}` : ''}. I officially know you better than your group chat does. Look at you go.`;
+  return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots are where you've been dodging scenarios. Go fill them in, I'm curious.`;
 };
 
 type Badge = ScenarioStatus | 'soon';
@@ -841,11 +850,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
                   if (e.key === 'Escape') e.currentTarget.blur();
                 }}
               />
-              {saveError && (
-                <p role="alert" style={styles.saveError}>
-                  {saveError}
-                </p>
-              )}
+              {saveError && <AtlasError message={saveError} />}
               <div style={styles.promptFooter}>
                 <span style={styles.hint}>
                   Ctrl+Enter to continue · Esc to leave the text box
@@ -970,14 +975,6 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
     outlineColor: brownRed,
     resize: 'vertical',
-  },
-  saveError: {
-    padding: '6px 12px',
-    background: paleRed,
-    border: `3px solid ${brownRed}`,
-    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
-    color: brownRed,
-    fontSize: 18,
   },
   promptFooter: {
     display: 'flex',

@@ -5,6 +5,7 @@ import { DatePicker } from '../shared_components/date-picker';
 import { Nav } from '../shared_components/nav';
 import { PhoneNumberInput } from '../shared_components/phone-number-input';
 import { createUser, login } from './api';
+import { AtlasError } from '../shared_components/atlas-error';
 
 /* ---------------------------------------------------------------------------------------------
  * pages
@@ -146,11 +147,7 @@ function Page({ title, error, children }: { title: string; error?: string; child
         <h1 style={styles.title} className="comic-title">
           {title}
         </h1>
-        {error && (
-          <p role="alert" style={styles.error}>
-            {error}
-          </p>
-        )}
+        {error && <AtlasError message={error} style={{ marginBottom: 14 }} />}
         {children}
       </main>
     </div>
@@ -254,15 +251,6 @@ const styles: Record<string, CSSProperties> = {
   fieldError: {
     fontSize: 15,
     color: brownRed,
-  },
-  error: {
-    marginBottom: 14,
-    padding: '8px 12px',
-    background: 'var(--pale-red)',
-    border: `3px solid ${brownRed}`,
-    borderRadius: rounded,
-    color: brownRed,
-    fontSize: 18,
   },
   submit: {
     marginTop: 6,

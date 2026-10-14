@@ -175,7 +175,7 @@ const Compass = () => (
 const MONSTERS = [
   {
     name: 'The Moodweed',
-    body: "Your mood today. A bad night's sleep isn't who you are.",
+    body: "Your mood today. Grumpy before coffee? That's not the real you, and one day I'll chart it so you get the benefit of the doubt.",
     art: (
       <>
         <path d="M70 40 C66 24 78 20 74 8 M82 38 C86 24 96 24 92 10" fill="none" style={{ stroke: blue }} strokeWidth={5} />
@@ -190,7 +190,7 @@ const MONSTERS = [
   },
   {
     name: 'The Memory Kraken',
-    body: "Your history. It shaped you, and we'll chart it one day.",
+    body: "Your history. It shaped you, and I'll chart it one day. It's a big one, so I'm working up the nerve.",
     art: (
       <>
         <Thick d="M28 100 C24 70 46 62 42 44 C40 34 28 36 30 44" color={brownRed} />
@@ -207,7 +207,7 @@ const MONSTERS = [
   },
   {
     name: 'The Fibbing Serpent',
-    body: "Lies, including the ones we tell ourselves. We'll gently point them out.",
+    body: "Lies, including the ones we tell ourselves. I'll point them out. Gently. Mostly. It's how you get to the real you.",
     art: (
       <>
         <Thick d="M14 100 C18 66 44 66 48 100" color={blue} w={18} />
@@ -243,7 +243,7 @@ export function Chart() {
         <Mascot />
         <div style={styles.bubble} className="comic-bubble comic-pop">
           Nobody has ever mapped a whole person. Not your personality, not your skills, not your people. <em>All</em> of it.
-          Here's our chart so far.
+          Here's my chart so far. Yes, it's mostly fog. That's what makes it an adventure.
         </div>
       </div>
 

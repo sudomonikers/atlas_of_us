@@ -5,6 +5,7 @@ import { RequireLogin } from '../auth/require-login';
 import { navigate, usePath } from '../router';
 import { Nav } from '../shared_components/nav';
 import { getEmail, listEmails, replyToEmail, type Contact, type Email, type EmailSummary } from './api';
+import { AtlasError } from '../shared_components/atlas-error';
 
 const EMAIL_PATH = '/admin/emails/';
 
@@ -60,7 +61,7 @@ function Inbox({ emailId }: { emailId?: string }) {
         </button>
       }
     >
-      {error && <p role="alert" style={styles.error}>{error}</p>}
+      {error && <AtlasError message={error} />}
       <div style={styles.columns}>
         <section style={styles.listPanel} className="comic-panel" aria-label="Inbox">
           <h2 style={styles.panelTitle}>Inbox {emails && <span style={styles.count}>{emails.length}</span>}</h2>
@@ -110,7 +111,7 @@ function EmailView({ id, onReplied }: { id: string; onReplied: () => void }) {
     getEmail(id).then(setEmail, (e) => setError(message(e)));
   }, [id]);
 
-  if (error) return <p role="alert" style={styles.error}>{error}</p>;
+  if (error) return <AtlasError message={error} />;
   if (!email) return <p style={styles.muted}>Unfolding the letter...</p>;
 
   const flagged = [
@@ -216,7 +217,7 @@ function ReplyForm({ to, onSend }: { to?: string; onSend: (body: string) => Prom
         placeholder="Write your reply... their email is quoted underneath when it's sent."
         onChange={(e) => setBody(e.target.value)}
       />
-      {error && <p role="alert" style={styles.error}>{error}</p>}
+      {error && <AtlasError message={error} />}
       <button
         className="comic-lift"
         style={{ ...styles.send, ...(body.trim() && !sending ? {} : styles.disabled) }}

@@ -18,9 +18,9 @@ const Limb = ({ d }: { d: string }) => (
 
 //Atlas, the titan who holds up the world, and the guide who greets the user. Every so often he takes a hand off
 //the globe to wipe the sweat from his brow
-export function Mascot() {
+export function Mascot({ size = 96 }: { size?: number }) {
   return (
-    <svg width="96" height="115" viewBox="0 0 100 120" aria-hidden>
+    <svg width={size} height={size * 1.2} viewBox="0 0 100 120" aria-hidden>
       {/* colours go through style rather than fill/stroke attributes so the css variables resolve */}
       <g style={{ stroke: gunmetal }} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8 18 L16 21 M6 30 L14 30 M92 18 L84 21 M94 30 L86 30" fill="none" strokeWidth="2.5" />

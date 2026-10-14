@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { getExplore, type Breakdown, type Explore as ExploreData, type ExploreTrait } from './api';
+import { AtlasError } from '../shared_components/atlas-error';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -42,7 +43,7 @@ export default function Explore() {
     requestAnimationFrame(() => document.getElementById(anchor(name))?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
-  if (error) return <p style={styles.status}>Hmm, we couldn't load the guide. {error}</p>;
+  if (error) return <AtlasError message={`I couldn't load the guide. ${error}`} style={styles.status} />;
   if (!explore) return <p style={styles.status}>Dusting off the field guide...</p>;
 
   const { model, domains } = explore;

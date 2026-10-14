@@ -12,7 +12,7 @@ export default function Blog() {
       <div style={styles.guide}>
         <Mascot />
         <div style={styles.bubble} className="comic-bubble comic-pop">
-          Notes from the road as we map what makes a person a person. The first post is on its way.
+          This is where the notes from the road go. There aren't any yet. Andrew says he's &ldquo;working on it.&rdquo; Check back soon, it'll be worth it.
         </div>
       </div>
     </div>

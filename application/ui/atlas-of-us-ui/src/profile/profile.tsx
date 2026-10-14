@@ -4,6 +4,7 @@ import { DOMAINS, getProfile, type Profile as ProfileData } from '../personality
 import { navigate } from '../router';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
+import { AtlasError } from '../shared_components/atlas-error';
 
 const gunmetal = 'var(--gunmetal-black)';
 const blue = 'var(--air-force-blue)';
@@ -25,13 +26,15 @@ export default function Profile({ username }: { username: string }) {
   const mine = session.status === 'authenticated' && session.person.username === profile?.username;
   const shared = mine ? session.person.public : false; //the session has the owner's latest toggle
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string>(); //errors, and "Copied!"
+  const [note, setNote] = useState<string>(); //"Copied!"
+  const [failure, setFailure] = useState<string>(); //a sharing action that failed
 
   const run = (action: () => Promise<unknown>) => {
     setBusy(true);
     setNote(undefined);
+    setFailure(undefined);
     action()
-      .catch((e) => setNote(e instanceof Error ? e.message : String(e)))
+      .catch((e) => setFailure(e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(false));
   };
   const copy = () => run(() => navigator.clipboard.writeText(window.location.href).then(() => setNote('Copied!')));
@@ -43,9 +46,13 @@ export default function Profile({ username }: { username: string }) {
         <h1 style={styles.title} className="comic-title">
           {profile ? `This Is ${profile.first_name}` : 'This Is...'}
         </h1>
-        <div style={styles.bubble} className="comic-bubble comic-pop">
-          {error ?? (profile ? `@${profile.username}` : 'Looking them up...')}
-        </div>
+        {error ? (
+          <AtlasError message={error} style={styles.bubble} />
+        ) : (
+          <div style={styles.bubble} className="comic-bubble comic-pop">
+            {profile ? `@${profile.username}` : "Looking them up. I'm sure they're fascinating..."}
+          </div>
+        )}
       </header>
 
       {/* the owner's sharing controls */}
@@ -61,6 +68,7 @@ export default function Profile({ username }: { username: string }) {
             </button>
           )}
           {note && <span style={styles.note}>{note}</span>}
+          {failure && <AtlasError message={failure} />}
         </div>
       )}
 
