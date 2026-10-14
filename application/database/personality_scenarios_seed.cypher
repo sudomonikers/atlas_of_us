@@ -184,6 +184,19 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// Let Down
+MATCH (s:PersonalityScenario {name: 'let_down'})
+UNWIND [
+  {order: 0, key: 'first_notice',      prompt: "Something's off, and you can see it. What do you notice about her tonight, and what do you do about it?"},
+  {order: 1, key: 'how_you_respond',   prompt: "Juno's looking at her bowl, not at you. What do you do?"},
+  {order: 2, key: 'ever_felt_this',    prompt: "Have you ever felt the way Juno does? Tell her about it: when it was, what it was like, and what got you through. If you never have, tell her what you imagine it's like."},
+  {order: 3, key: 'the_advice',        prompt: "She's really asking. What advice do you give her, if any? Or what do you say instead?"},
+  {order: 4, key: 'the_cancellations', prompt: 'Be honest. How did you feel each time she cancelled on you? And how do you feel about it now?'},
+  {order: 5, key: 'the_silence',       prompt: 'Juno has gone quiet again. What do you do now? And how does it feel, sitting on your side of the silence?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 // -----------------------------------------------------------------------------
 // 3. Cleanup
 // -----------------------------------------------------------------------------

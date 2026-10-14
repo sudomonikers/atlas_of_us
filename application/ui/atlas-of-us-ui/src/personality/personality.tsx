@@ -9,6 +9,7 @@ import { theOffer } from './the_offer/script';
 import { partyOfStrangers } from './party_of_strangers/script';
 import { stolenIdea } from './stolen_idea/script';
 import { emptyWeekend } from './empty_weekend/script';
+import { letDown } from './let_down/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -28,6 +29,7 @@ const TheOffer = lazy(() => import('./the_offer/the_offer'));
 const SnowedIn = lazy(() => import('./party_of_strangers/snowed_in'));
 const VanishingAct = lazy(() => import('./stolen_idea/vanishing_act'));
 const PopUpTown = lazy(() => import('./empty_weekend/pop_up_town'));
+const PaperLantern = lazy(() => import('./let_down/paper_lantern'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -211,9 +213,9 @@ const SCENARIOS: ScenarioInfo[] = [
   {
     id: 'let_down',
     title: 'Let Down',
-    kind: 'Recall',
-    blurb: 'The last time a friend cancelled on you: what you did, how you felt, and how long it stayed with you.',
-    facets: ['Anger', 'Depression', 'Friendliness', 'Emotionality', 'Trust', 'Sympathy'],
+    kind: 'Realistic hypothetical',
+    blurb: 'Your best friend keeps cancelling, and when she finally turns up she is low and quiet. How do you help?',
+    facets: letDown.facets,
   },
   {
     id: 'landfall',
@@ -310,6 +312,7 @@ const PLAYABLE: Record<string, Playable> = {
   party_of_strangers: { script: partyOfStrangers, renderScene: (animation) => <SnowedIn animation={animation} /> },
   stolen_idea: { script: stolenIdea, renderScene: (animation) => <VanishingAct animation={animation} /> },
   empty_weekend: { script: emptyWeekend, renderScene: (animation) => <PopUpTown animation={animation} /> },
+  let_down: { script: letDown, renderScene: (animation) => <PaperLantern animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
