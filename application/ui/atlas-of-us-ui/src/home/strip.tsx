@@ -60,24 +60,24 @@ const SWEAT = <path d="M-10 -136 C-13 -131 -12.5 -129 -10 -129 C-7.5 -129 -7 -13
 
 //one of the two partygoers, drawn facing right with the feet at the origin. flip turns them to face left,
 //lean tips the upper body, and children (things in hand) sit between the body and the front arm
-function Person(p: { maya?: boolean; x: number; y?: number; s?: number; flip?: boolean; lean?: number; arms: [string, string]; face: ReactNode; children?: ReactNode }) {
-  const shirt = p.maya ? brownRed : blue;
+function Person(p: { lulu?: boolean; x: number; y?: number; s?: number; flip?: boolean; lean?: number; arms: [string, string]; face: ReactNode; children?: ReactNode }) {
+  const shirt = p.lulu ? brownRed : blue;
   return (
     <g transform={`translate(${p.x} ${p.y ?? 262}) scale(${p.flip ? -(p.s ?? 1) : (p.s ?? 1)} ${p.s ?? 1})`}>
-      {p.maya ? <Limb d="M-7 -40 L-8 -4 M7 -40 L9 -4" /> : <Limb d="M-7 -52 L-8 -4 M7 -52 L9 -4" w={12} color={cinnamon} />}
+      {p.lulu ? <Limb d="M-7 -40 L-8 -4 M7 -40 L9 -4" /> : <Limb d="M-7 -52 L-8 -4 M7 -52 L9 -4" w={12} color={cinnamon} />}
       <path d="M-16 -1 C-16 -8 -4 -8 -2 -1 Z M3 -1 C3 -8 15 -8 17 -1 Z" style={{ fill: gunmetal }} strokeWidth="2" />
       <g transform={`rotate(${p.lean ?? 0} 0 -52)`}>
-        {p.maya && <path d="M-8 -130 C-30 -132 -34 -104 -26 -86 C-22 -98 -18 -108 -10 -114 Z" style={{ fill: cinnamon }} />}
+        {p.lulu && <path d="M-8 -130 C-30 -132 -34 -104 -26 -86 C-22 -98 -18 -108 -10 -114 Z" style={{ fill: cinnamon }} />}
         <Arm d={p.arms[0]} />
         <path
-          d={p.maya ? 'M-14 -98 C-17 -80 -14 -64 -11 -58 L-20 -30 L20 -30 L11 -58 C14 -64 17 -80 14 -98 C5 -103 -5 -103 -14 -98 Z' : 'M-16 -98 C-20 -80 -17 -62 -14 -48 L14 -48 C17 -62 20 -80 16 -98 C6 -104 -6 -104 -16 -98 Z'}
+          d={p.lulu ? 'M-14 -98 C-17 -80 -14 -64 -11 -58 L-20 -30 L20 -30 L11 -58 C14 -64 17 -80 14 -98 C5 -103 -5 -103 -14 -98 Z' : 'M-16 -98 C-20 -80 -17 -62 -14 -48 L14 -48 C17 -62 20 -80 16 -98 C6 -104 -6 -104 -16 -98 Z'}
           style={{ fill: shirt }}
         />
         <circle cx="2" cy="-117" r="17" style={{ fill: skin }} />
         <ellipse cx="-11" cy="-114" rx="3" ry="4.5" style={{ fill: skin }} strokeWidth="2" />
         <path
-          d={p.maya ? 'M-16 -108 C-24 -140 22 -146 20 -118 C14 -126 6 -130 -2 -126 C-6 -122 -9 -116 -16 -108 Z' : 'M-16 -110 C-22 -136 4 -146 18 -132 C20 -128 20 -124 19 -121 C15 -127 10 -126 7 -130 C3 -125 -2 -127 -5 -122 C-8 -118 -12 -114 -16 -110 Z'}
-          style={{ fill: p.maya ? cinnamon : gunmetal }}
+          d={p.lulu ? 'M-16 -108 C-24 -140 22 -146 20 -118 C14 -126 6 -130 -2 -126 C-6 -122 -9 -116 -16 -108 Z' : 'M-16 -110 C-22 -136 4 -146 18 -132 C20 -128 20 -124 19 -121 C15 -127 10 -126 7 -130 C3 -125 -2 -127 -5 -122 C-8 -118 -12 -114 -16 -110 Z'}
+          style={{ fill: p.lulu ? cinnamon : gunmetal }}
         />
         {p.face}
         {p.children}
@@ -138,11 +138,11 @@ const Room = ({ wall, lights = true }: { wall: string; lights?: boolean }) => (
   </>
 );
 
-const SAM = {
+const ANDREW = {
   hang: 'M-10 -94 C-15 -80 -15 -66 -13 -56',
   cup: 'M10 -94 C14 -80 18 -72 24 -70',
 };
-const MAYA = {
+const LULU = {
   hang: 'M-10 -94 C-15 -80 -15 -66 -13 -56',
   hipBack: 'M-10 -94 C-24 -86 -24 -72 -14 -62',
   hipFront: 'M10 -94 C24 -86 24 -72 14 -62',
@@ -155,7 +155,7 @@ const FOCUS = Array.from({ length: 20 }, (_, i) => {
 
 const PANELS: { label: string; fill: string; art: ReactNode }[] = [
   {
-    label: "Saturday night. A party full of strangers. Sam stands alone by the snacks. Maya walks over: Hi! I'm Maya. So... who are you?",
+    label: "Saturday night. A party full of strangers. Andrew stands alone by the snacks. Lulu walks over: Hi! I'm Lulu. So... who are you?",
     fill: 'var(--pale-blue)',
     art: (
       <>
@@ -172,36 +172,36 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
         <path d="M12 214 L12 250 M66 214 L66 250" fill="none" strokeWidth="3" />
         <path d="M20 206 C20 194 46 194 46 206 Z" style={{ fill: '#fff' }} strokeWidth="2.5" />
         <path d="M25 198 L30 194 L33 199 M36 197 L41 194 L42 199" style={{ fill: cinnamon }} strokeWidth="1.5" />
-        <Person x={102} s={0.85} arms={[SAM.hang, SAM.cup]} face={FACES.neutral}>
+        <Person x={102} s={0.85} arms={[ANDREW.hang, ANDREW.cup]} face={FACES.neutral}>
           <Cup x={26} y={-73} />
         </Person>
-        <Person maya x={244} s={0.85} flip arms={[MAYA.hang, 'M10 -94 C20 -102 24 -116 22 -130']} face={FACES.grin} />
+        <Person lulu x={244} s={0.85} flip arms={[LULU.hang, 'M10 -94 C20 -102 24 -116 22 -130']} face={FACES.grin} />
         <rect x="8" y="8" width="168" height="40" style={{ fill: paleRed }} strokeWidth="2.5" />
         <text x="16" y="25" fontSize="14" style={{ ...shout, fill: gunmetal, stroke: 'none' }}>
           <tspan>SATURDAY NIGHT.</tspan>
           <tspan x="16" dy="16">A PARTY FULL OF STRANGERS.</tspan>
         </text>
-        <Bubble x={176} y={62} w={136} tail={[236, 150]} lines={["Hi! I'm Maya.", 'So... who are you?']} />
+        <Bubble x={176} y={62} w={136} tail={[236, 150]} lines={["Hi! I'm Lulu.", 'So... who are you?']} />
       </>
     ),
   },
   {
-    label: "Sam, confidently: Oh! I'm Sam. I work in marketing. Maya: No, no. That's your job. Who are you?",
+    label: "Andrew, confidently: Oh! I'm Andrew. I work in marketing. Lulu: No, no. That's your job. Who are you?",
     fill: 'var(--pale-cinnamon)',
     art: (
       <>
         <Room wall={paleBlue} />
-        <Person x={88} arms={[SAM.hang, 'M10 -94 C22 -94 28 -104 28 -114']} face={FACES.smile}>
+        <Person x={88} arms={[ANDREW.hang, 'M10 -94 C22 -94 28 -104 28 -114']} face={FACES.smile}>
           <Cup x={29} y={-118} r={8} />
         </Person>
-        <Person maya x={236} flip arms={[MAYA.hipBack, MAYA.hipFront]} face={FACES.smirk} />
-        <Bubble x={10} y={14} w={156} tail={[92, 124]} lines={["Oh! I'm Sam.", 'I work in marketing.']} />
+        <Person lulu x={236} flip arms={[LULU.hipBack, LULU.hipFront]} face={FACES.smirk} />
+        <Bubble x={10} y={14} w={156} tail={[92, 124]} lines={["Oh! I'm Andrew.", 'I work in marketing.']} />
         <Bubble x={150} y={68} w={162} tail={[236, 124]} lines={[<>No, no. That's your <Em>job</Em>.</>, <>Who are <Em>you</Em>?</>]} />
       </>
     ),
   },
   {
-    label: 'Maya leans in, firing off questions: What are you like? What do you know? What can you do? Who do you want to become? Sam leans back, sweating.',
+    label: 'Lulu leans in, firing off questions: What are you like? What do you know? What can you do? Who do you want to become? Andrew leans back, sweating.',
     fill: 'var(--pale-red)',
     art: (
       <>
@@ -209,7 +209,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
         <Person x={66} lean={-12} arms={['M-10 -94 C0 -84 14 -88 22 -98', 'M10 -94 C20 -86 28 -92 32 -104']} face={FACES.worried}>
           {SWEAT}
         </Person>
-        <Person maya x={218} flip lean={14} arms={[MAYA.hang, 'M10 -94 C22 -96 32 -96 42 -100']} face={FACES.eager} />
+        <Person lulu x={218} flip lean={14} arms={[LULU.hang, 'M10 -94 C22 -96 32 -96 42 -100']} face={FACES.eager} />
         <Bubble x={142} y={10} w={146} tail={[214, 140]} lines={['What are you like?']} tilt={3} />
         <Bubble x={92} y={40} w={150} tail={[212, 140]} lines={['What do you know?']} tilt={-3} />
         <Bubble x={160} y={70} w={146} tail={[210, 140]} lines={['What can you do?']} tilt={2} />
@@ -218,7 +218,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
     ),
   },
   {
-    label: 'Close up on Sam, scratching their head, a big question mark floating overhead. Scratch scratch.',
+    label: 'Close up on Andrew, scratching their head, a big question mark floating overhead. Scratch scratch.',
     fill: 'var(--pale-blue)',
     art: (
       <>
@@ -241,7 +241,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
     ),
   },
   {
-    label: "Sam slumps: I... honestly have no idea. Maya grins: Nobody does. That's the fun part.",
+    label: "Andrew slumps: I... honestly have no idea. Lulu grins: Nobody does. That's the fun part.",
     fill: 'var(--pale-cinnamon)',
     art: (
       <>
@@ -249,14 +249,14 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
         <Person x={88} lean={8} arms={['M-10 -94 C-12 -78 -10 -64 -8 -52', 'M10 -94 C14 -78 14 -64 14 -52']} face={FACES.sad}>
           <Cup x={15} y={-46} r={18} />
         </Person>
-        <Person maya x={236} flip arms={[MAYA.hipBack, 'M10 -94 C22 -90 26 -98 28 -108']} face={FACES.smirk} />
+        <Person lulu x={236} flip arms={[LULU.hipBack, 'M10 -94 C22 -90 26 -98 28 -108']} face={FACES.smirk} />
         <Bubble x={10} y={14} w={150} tail={[90, 124]} lines={['I... honestly', 'have no idea.']} />
         <Bubble x={150} y={62} w={160} tail={[236, 124]} lines={['Nobody does.', <>That's the <Em>fun</Em> part.</>]} />
       </>
     ),
   },
   {
-    label: 'Maya points at Sam\'s phone: Go figure it out at atlas-of-us.com. Sam, determined: ...Okay. I will. On a side table, a little statue of Atlas holds up the world.',
+    label: 'Lulu points at Andrew\'s phone: Go figure it out at atlas-of-us.com. Andrew, determined: ...Okay. I will. On a side table, a little statue of Atlas holds up the world.',
     fill: 'var(--pale-red)',
     art: (
       <>
@@ -267,14 +267,14 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
         <g transform="translate(247 109) scale(0.72)">
           <Mascot />
         </g>
-        <Person x={72} arms={[SAM.hang, 'M10 -94 C16 -82 20 -78 28 -84']} face={FACES.determined}>
+        <Person x={72} arms={[ANDREW.hang, 'M10 -94 C16 -82 20 -78 28 -84']} face={FACES.determined}>
           <g transform="translate(31 -92) rotate(-10)">
             <rect x="-7" y="-11" width="14" height="22" rx="2.5" style={{ fill: gunmetal }} strokeWidth="2" />
             <rect x="-4.5" y="-8" width="9" height="15" style={{ fill: paleBlue, stroke: 'none' }} />
             <circle cy="-1" r="3" style={{ fill: blue, stroke: 'none' }} />
           </g>
         </Person>
-        <Person maya x={200} flip arms={[MAYA.hang, 'M10 -94 C22 -92 34 -90 46 -94']} face={FACES.smile} />
+        <Person lulu x={200} flip arms={[LULU.hang, 'M10 -94 C22 -92 34 -90 46 -94']} face={FACES.smile} />
         <Bubble x={112} y={12} w={196} tail={[200, 124]} lines={['Go figure it out at', <Em>atlas-of-us.com</Em>]} size={17} />
         <Bubble x={8} y={58} w={100} tail={[74, 124]} lines={['...Okay.', 'I will.']} />
       </>
@@ -282,7 +282,7 @@ const PANELS: { label: string; fill: string; art: ReactNode }[] = [
   },
 ];
 
-//the home page's comic: Sam is asked who they are at a party, has no idea, and is sent to find out
+//the home page's comic: Andrew is asked who they are at a party, has no idea, and is sent to find out
 export function Strip() {
   return (
     <div style={styles.strip}>
