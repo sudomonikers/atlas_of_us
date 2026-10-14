@@ -1,17 +1,18 @@
+import { lazy, Suspense } from 'react'
 import './App.css'
-import About from './about/about'
-import Admin from './admin/admin'
 import { Auth } from './auth/auth'
-import Blog from './blog/blog'
 import Home from './home/home'
-import Personality from './personality/personality'
-import Profile from './profile/profile'
-import Roadmap from './roadmap/roadmap'
 import { usePath } from './router'
 
-function App() {
-  const path = usePath()
+//every page but home and auth is its own chunk, so the landing page doesn't download three.js and the scenes
+const About = lazy(() => import('./about/about'))
+const Admin = lazy(() => import('./admin/admin'))
+const Blog = lazy(() => import('./blog/blog'))
+const Personality = lazy(() => import('./personality/personality'))
+const Profile = lazy(() => import('./profile/profile'))
+const Roadmap = lazy(() => import('./roadmap/roadmap'))
 
+function Page({ path }: { path: string }) {
   if (path === '/login') return <Auth mode="login" />
   if (path === '/create-account') return <Auth mode="create" />
   if (path.startsWith('/u/')) return <Profile username={decodeURIComponent(path.slice(3))} />
@@ -21,6 +22,16 @@ function App() {
   if (path === '/admin' || path.startsWith('/admin/')) return <Admin />
   if (path === '/personality') return <Personality />
   return <Home />
+}
+
+function App() {
+  const path = usePath()
+
+  return (
+    <Suspense fallback={null}>
+      <Page path={path} />
+    </Suspense>
+  )
 }
 
 export default App

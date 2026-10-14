@@ -1,4 +1,3 @@
-import 'flag-icons/css/flag-icons.min.css';
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
 
 //a button showing the picked flag and code, which opens a search box over a list of every country
@@ -130,13 +129,22 @@ export function CountryCodePicker({ value, onPick }: CountryCodePickerProps) {
   );
 }
 
-//ascension and tristan da cunha are filed under st. helena in flag-icons
-const FLAG_CLASSES: Record<string, string> = { AC: 'sh-ac', TA: 'sh-ta' };
+//every flag-icons svg as its own file, keyed by file name. only the flags actually shown get downloaded,
+//instead of flag-icons' stylesheet, which is 430KB of css pointing at every flag in two shapes
+const FLAG_URLS = Object.fromEntries(
+  Object.entries(
+    import.meta.glob<string>('../../node_modules/flag-icons/flags/4x3/*.svg', { query: '?no-inline', import: 'default', eager: true }),
+  ).map(([path, url]) => [path.split('/').pop()!.replace('.svg', ''), url]),
+);
 
-//a flag from flag-icons. 🌐 for a code the user typed in themselves
+//ascension and tristan da cunha are filed under st. helena in flag-icons
+const FLAG_FILES: Record<string, string> = { AC: 'sh-ac', TA: 'sh-ta' };
+
+//a flag from flag-icons. 🌐 for a code the user typed in themselves, or one flag-icons doesn't have
 function Flag({ iso }: { iso: string }) {
-  if (!iso) return <span style={styles.flag} aria-hidden>🌐</span>;
-  return <span className={`fi fi-${FLAG_CLASSES[iso] ?? iso.toLowerCase()}`} style={styles.flag} aria-hidden />;
+  const url = iso && FLAG_URLS[FLAG_FILES[iso] ?? iso.toLowerCase()];
+  if (!url) return <span style={styles.flag} aria-hidden>🌐</span>;
+  return <img src={url} alt="" loading="lazy" style={styles.flagImage} />;
 }
 
 //calls onDismiss for a pointer down anywhere outside ref while open
@@ -578,6 +586,12 @@ const styles: Record<string, CSSProperties> = {
   flag: {
     fontSize: 22,
     lineHeight: 1,
+  },
+  flagImage: {
+    width: 29, //flag-icons' 4:3 at the old 22px font size
+    height: 22,
+    flexShrink: 0,
+    objectFit: 'contain',
   },
   caret: {
     fontSize: 14,

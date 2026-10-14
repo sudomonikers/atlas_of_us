@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Archive is painted on a 2D canvas in an opaque gouache style: every shape is a flat base coat
 // covered in short chunky brush strokes of slightly different tones, with a broken dry-brush edge.
@@ -890,12 +891,6 @@ function mixFor(cue: Cue, clock?: number): Partial<Record<Bed, number>> {
   return { wind: 0.3, crickets: 0.12, ticking };
 }
 
-interface OneShot {
-  src: string;
-  volume: number;
-  delay?: number;
-}
-
 const PAGE = new URL('./sounds/page_turn.m4a', import.meta.url).href;
 const CRATE = new URL('./sounds/crate.m4a', import.meta.url).href;
 const GEARS = new URL('./sounds/gears.m4a', import.meta.url).href;
@@ -916,61 +911,6 @@ const ONE_SHOTS: Record<string, OneShot> = {
 const MASTER_VOLUME = 0.8;
 const CROSSFADE = 2.5; //seconds
 
-//browsers only allow audio after the user has interacted with the page, so playback starts on the first key or click
-function createSoundscape() {
-  const context = new AudioContext();
-  const beds = (Object.entries(BEDS) as [Bed, string][]).map(([bed, src]) => {
-    const element = new Audio(src);
-    element.loop = true;
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    context.createMediaElementSource(element).connect(gain).connect(context.destination);
-    return { bed, element, gain };
-  });
-
-  let unlocked = false;
-  const stopListening = () => {
-    window.removeEventListener('keydown', unlock);
-    window.removeEventListener('pointerdown', unlock);
-  };
-  function unlock() {
-    context
-      .resume()
-      .then(() => Promise.all(beds.map(({ element }) => element.play())))
-      .then(() => {
-        unlocked = true;
-        stopListening();
-      })
-      .catch(() => {}); //still locked; the next key or click tries again
-  }
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('pointerdown', unlock);
-  unlock();
-
-  const timers = new Set<number>();
-  return {
-    mix(cue: Cue, clock?: number) {
-      const levels = mixFor(cue, clock);
-      for (const { bed, gain } of beds) gain.gain.setTargetAtTime((levels[bed] ?? 0) * MASTER_VOLUME, context.currentTime, CROSSFADE / 3);
-    },
-    play({ src, volume, delay = 0 }: OneShot) {
-      if (!unlocked) return;
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        const element = new Audio(src);
-        element.volume = volume * MASTER_VOLUME;
-        element.play().catch(() => {});
-      }, delay * 1000);
-      timers.add(timer);
-    },
-    dispose() {
-      stopListening();
-      timers.forEach((timer) => window.clearTimeout(timer));
-      beds.forEach(({ element }) => element.pause());
-      context.close();
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 
@@ -992,7 +932,7 @@ function TheArchive({ animation, clock }: { animation: string; clock?: number })
   const canvas = useRef<HTMLCanvasElement>(null);
   const shown = useRef({ cue: cues[active], at: 0, prev: cues[active] });
   const clockLeft = useRef(clock);
-  const sound = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const sound = useRef<Soundscape<Bed> | null>(null);
 
   useEffect(() => {
     const el = canvas.current!;
@@ -1003,7 +943,7 @@ function TheArchive({ animation, clock }: { animation: string; clock?: number })
       g.fillRect(Math.random() * 200, Math.random() * 200, 1.3, 1.3);
     }
     const grain = c.createPattern(grainCanvas, 'repeat')!;
-    const soundscape = createSoundscape();
+    const soundscape = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     sound.current = soundscape;
 
     let frame = 0;
@@ -1059,7 +999,7 @@ function TheArchive({ animation, clock }: { animation: string; clock?: number })
 
   useEffect(() => {
     clockLeft.current = clock;
-    sound.current?.mix(cues[active], clock);
+    sound.current?.mix(mixFor(cues[active], clock));
   }, [active, clock]);
 
   const card = cues[active].card;

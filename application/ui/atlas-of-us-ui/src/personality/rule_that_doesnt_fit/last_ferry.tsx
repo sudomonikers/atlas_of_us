@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Last Ferry is printed like a linocut on a 2D canvas: a few flat inks laid over cream paper, each from its
 // own block so they never quite line up, with gouge marks cut through them to show the ink or paper beneath.
@@ -844,12 +845,6 @@ function mixFor({ set, beat }: Cue): Partial<Record<Bed, number>> {
   return { rain: 0.7, harbour: 0.25 };
 }
 
-interface OneShot {
-  src: string;
-  volume: number;
-  delay?: number;
-}
-
 const CLICK = new URL('./sounds/click.m4a', import.meta.url).href;
 const CHAIN = new URL('./sounds/chain.m4a', import.meta.url).href;
 const HORN = new URL('./sounds/horn.m4a', import.meta.url).href;
@@ -868,61 +863,6 @@ const ONE_SHOTS: Record<string, OneShot> = {
 const MASTER_VOLUME = 0.8;
 const CROSSFADE = 2.5; //seconds
 
-//browsers only allow audio after the user has interacted with the page, so playback starts on the first key or click
-function createSoundscape() {
-  const context = new AudioContext();
-  const beds = (Object.entries(BEDS) as [Bed, string][]).map(([bed, src]) => {
-    const element = new Audio(src);
-    element.loop = true;
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    context.createMediaElementSource(element).connect(gain).connect(context.destination);
-    return { bed, element, gain };
-  });
-
-  let unlocked = false;
-  const stopListening = () => {
-    window.removeEventListener('keydown', unlock);
-    window.removeEventListener('pointerdown', unlock);
-  };
-  function unlock() {
-    context
-      .resume()
-      .then(() => Promise.all(beds.map(({ element }) => element.play())))
-      .then(() => {
-        unlocked = true;
-        stopListening();
-      })
-      .catch(() => {}); //still locked; the next key or click tries again
-  }
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('pointerdown', unlock);
-  unlock();
-
-  const timers = new Set<number>();
-  return {
-    mix(cue: Cue) {
-      const levels = mixFor(cue);
-      for (const { bed, gain } of beds) gain.gain.setTargetAtTime((levels[bed] ?? 0) * MASTER_VOLUME, context.currentTime, CROSSFADE / 3);
-    },
-    play({ src, volume, delay = 0 }: OneShot) {
-      if (!unlocked) return;
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        const element = new Audio(src);
-        element.volume = volume * MASTER_VOLUME;
-        element.play().catch(() => {});
-      }, delay * 1000);
-      timers.add(timer);
-    },
-    dispose() {
-      stopListening();
-      timers.forEach((timer) => window.clearTimeout(timer));
-      beds.forEach(({ element }) => element.pause());
-      context.close();
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 
@@ -943,12 +883,12 @@ function LastFerry({ animation }: { animation: string }) {
 
   const canvas = useRef<HTMLCanvasElement>(null);
   const shown = useRef({ cue: cues[active], at: 0, prev: cues[active] });
-  const sound = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const sound = useRef<Soundscape<Bed> | null>(null);
 
   useEffect(() => {
     const el = canvas.current!;
     const c = el.getContext('2d')!;
-    const soundscape = createSoundscape();
+    const soundscape = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     sound.current = soundscape;
 
     let frame = 0;
@@ -986,7 +926,7 @@ function LastFerry({ animation }: { animation: string }) {
 
   useEffect(() => {
     shown.current = { cue: cues[active], at: performance.now(), prev: shown.current.cue };
-    sound.current?.mix(cues[active]);
+    sound.current?.mix(mixFor(cues[active]));
     const shot = ONE_SHOTS[active];
     if (shot) sound.current?.play(shot);
   }, [active]);

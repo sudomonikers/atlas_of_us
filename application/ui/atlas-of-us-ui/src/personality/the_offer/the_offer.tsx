@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Offer's art style: a 1970s space-colony painting. Hard-edged toon shading under one strong sun, cream hulls
 // with orange stripes and gold foil, a painted Earth below and a black sky full of stars.
@@ -421,14 +422,36 @@ function Sky({ night }: { night: boolean }) {
 // planets
 // ---------------------------------------------------------------------------
 
-//Natural Earth II by Tom Patterson (public domain), an atlas-painted map scaled to 8k, the largest texture most GPUs take
-const EARTH_MAP = new URL('./textures/earth.jpg', import.meta.url).href;
+//Natural Earth II by Tom Patterson (public domain), an atlas-painted map. the 4k one (1MB) shows first everywhere;
+//desktops whose GPU takes 8k textures then swap in the sharp one (5.5MB, ~170MB of video memory) once it arrives
+const EARTH_MAP = new URL('./textures/earth_4k.jpg', import.meta.url).href;
+const EARTH_MAP_8K = new URL('./textures/earth.jpg', import.meta.url).href;
 
-function loadTexture(src: string) {
-  const texture = new THREE.TextureLoader().load(src);
+function loadTexture(src: string, onLoad?: (texture: THREE.Texture) => void) {
+  const texture = new THREE.TextureLoader().load(src, onLoad);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
   return texture;
+}
+
+function useEarthMap() {
+  const gl = useThree((state) => state.gl);
+  const [map, setMap] = useState(() => loadTexture(EARTH_MAP));
+
+  useEffect(() => {
+    if (gl.capabilities.maxTextureSize < 8192 || !window.matchMedia('(pointer: fine)').matches) return;
+    let cancelled = false;
+    const sharp = loadTexture(EARTH_MAP_8K, () => {
+      if (!cancelled) setMap(sharp);
+    });
+    return () => {
+      cancelled = true;
+      sharp.dispose();
+    };
+  }, [gl]);
+
+  useEffect(() => () => map.dispose(), [map]);
+  return map;
 }
 
 //where a latitude and longitude land on a three.js sphere wrapped in an equirectangular map
@@ -453,7 +476,7 @@ function facing(lat: number, lon: number, up: THREE.Vector3, ahead: THREE.Vector
 const EARTH_TURN = facing(38, -98, new THREE.Vector3(-30, 260, 25).normalize(), new THREE.Vector3(0.78, 0, -0.62));
 
 function Earth() {
-  const map = useMemo(() => loadTexture(EARTH_MAP), []);
+  const map = useEarthMap();
   const air = useMemo(() => atmosphere('#7cbcff', 1.04), []);
   const spin = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
@@ -969,12 +992,6 @@ function mixFor(key: string, { set }: Cue): Partial<Record<Bed, number>> {
   return { space: 0.55 };
 }
 
-interface OneShot {
-  src: string;
-  volume: number;
-  delay?: number;
-}
-
 const HATCH = new URL('./sounds/hatch.m4a', import.meta.url).href;
 const BURN_SOUND = new URL('./sounds/burn.m4a', import.meta.url).href;
 const ONE_SHOTS: Record<string, OneShot> = {
@@ -989,60 +1006,6 @@ const ONE_SHOTS: Record<string, OneShot> = {
 const MASTER_VOLUME = 0.8;
 const CROSSFADE = 2.5; //seconds
 
-//browsers only allow audio after the user has interacted with the page, so playback starts on the first key or click
-function createSoundscape() {
-  const context = new AudioContext();
-  const beds = (Object.entries(BEDS) as [Bed, string][]).map(([bed, src]) => {
-    const element = new Audio(src);
-    element.loop = true;
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    context.createMediaElementSource(element).connect(gain).connect(context.destination);
-    return { bed, element, gain };
-  });
-
-  let unlocked = false;
-  const stopListening = () => {
-    window.removeEventListener('keydown', unlock);
-    window.removeEventListener('pointerdown', unlock);
-  };
-  function unlock() {
-    context
-      .resume()
-      .then(() => Promise.all(beds.map(({ element }) => element.play())))
-      .then(() => {
-        unlocked = true;
-        stopListening();
-      })
-      .catch(() => {}); //still locked; the next key or click tries again
-  }
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('pointerdown', unlock);
-  unlock();
-
-  const timers = new Set<number>();
-  return {
-    mix(levels: Partial<Record<Bed, number>>) {
-      for (const { bed, gain } of beds) gain.gain.setTargetAtTime((levels[bed] ?? 0) * MASTER_VOLUME, context.currentTime, CROSSFADE / 3);
-    },
-    play({ src, volume, delay = 0 }: OneShot) {
-      if (!unlocked) return;
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        const element = new Audio(src);
-        element.volume = volume * MASTER_VOLUME;
-        element.play().catch(() => {});
-      }, delay * 1000);
-      timers.add(timer);
-    },
-    dispose() {
-      stopListening();
-      timers.forEach((timer) => window.clearTimeout(timer));
-      beds.forEach(({ element }) => element.pause());
-      context.close();
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // the scene
@@ -1065,9 +1028,9 @@ function TheOffer({ animation }: { animation: string }) {
     if (!cues[animation]) console.warn(`The Offer has no cue for the animation "${animation}"`);
   }, [animation]);
 
-  const sound = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const sound = useRef<Soundscape<Bed> | null>(null);
   useEffect(() => {
-    const soundscape = createSoundscape();
+    const soundscape = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     sound.current = soundscape;
     return () => {
       soundscape.dispose();

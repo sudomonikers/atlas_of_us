@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // Reading People is painted on a 2D canvas in a soft watercolor style rather than built in three.js.
 // Each scene is painted once into an offscreen canvas from many faint, randomly deformed layers of each shape,
@@ -1198,12 +1199,6 @@ const MIX: Record<SetId, Partial<Record<Bed, number>>> = {
   window: { rain: 0.8 },
 };
 
-interface OneShot {
-  src: string;
-  volume: number;
-  delay?: number;
-}
-
 const ONE_SHOTS: Record<string, OneShot> = {
   note_falls: { src: new URL('./sounds/page_turn.m4a', import.meta.url).href, volume: 0.7, delay: 0.4 },
   platform_leaves: { src: new URL('./sounds/train_door.m4a', import.meta.url).href, volume: 0.6 },
@@ -1212,60 +1207,6 @@ const ONE_SHOTS: Record<string, OneShot> = {
 const MASTER_VOLUME = 0.8;
 const CROSSFADE = 2.5; //seconds
 
-//browsers only allow audio after the user has interacted with the page, so playback starts on the first key or click
-function createSoundscape() {
-  const context = new AudioContext();
-  const beds = (Object.entries(BEDS) as [Bed, string][]).map(([bed, src]) => {
-    const element = new Audio(src);
-    element.loop = true;
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    context.createMediaElementSource(element).connect(gain).connect(context.destination);
-    return { bed, element, gain };
-  });
-
-  let unlocked = false;
-  const stopListening = () => {
-    window.removeEventListener('keydown', unlock);
-    window.removeEventListener('pointerdown', unlock);
-  };
-  function unlock() {
-    context
-      .resume()
-      .then(() => Promise.all(beds.map(({ element }) => element.play())))
-      .then(() => {
-        unlocked = true;
-        stopListening();
-      })
-      .catch(() => {}); //still locked; the next key or click tries again
-  }
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('pointerdown', unlock);
-  unlock();
-
-  const timers = new Set<number>();
-  return {
-    mix(set: SetId) {
-      for (const { bed, gain } of beds) gain.gain.setTargetAtTime((MIX[set][bed] ?? 0) * MASTER_VOLUME, context.currentTime, CROSSFADE / 3);
-    },
-    play({ src, volume, delay = 0 }: OneShot) {
-      if (!unlocked) return;
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        const element = new Audio(src);
-        element.volume = volume * MASTER_VOLUME;
-        element.play().catch(() => {});
-      }, delay * 1000);
-      timers.add(timer);
-    },
-    dispose() {
-      stopListening();
-      timers.forEach((timer) => window.clearTimeout(timer));
-      beds.forEach(({ element }) => element.pause());
-      void context.close();
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // the scene
@@ -1288,7 +1229,7 @@ function ReadingPeople({ animation }: { animation: string }) {
 
   const canvas = useRef<HTMLCanvasElement>(null);
   const shown = useRef({ cue: cues[active], at: 0, prev: cues[active], prevAt: 0 });
-  const sound = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const sound = useRef<Soundscape<Bed> | null>(null);
 
   useEffect(() => {
     const el = canvas.current!;
@@ -1299,7 +1240,7 @@ function ReadingPeople({ animation }: { animation: string }) {
       g.fillRect(Math.random() * 200, Math.random() * 200, 1.3, 1.3);
     }
     const grain = c.createPattern(grainCanvas, 'repeat')!;
-    const soundscape = createSoundscape();
+    const soundscape = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     sound.current = soundscape;
 
     let frame = 0;
@@ -1373,7 +1314,7 @@ function ReadingPeople({ animation }: { animation: string }) {
     const now = performance.now();
     const current = shown.current;
     shown.current = { cue: cues[active], at: now, prev: current.cue, prevAt: current.at };
-    sound.current?.mix(cues[active].set);
+    sound.current?.mix(MIX[cues[active].set]);
     const shot = ONE_SHOTS[active];
     if (shot) sound.current?.play(shot);
   }, [active]);

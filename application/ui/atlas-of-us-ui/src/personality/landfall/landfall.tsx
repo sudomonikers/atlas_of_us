@@ -8,6 +8,7 @@ import {
   type Cast, type Cue, type HandPose, type Joints, type Mood, type OneShot, type Placement, type SetDressing, type Shot,
   type Spot, type TimeOfDay, type Vec3, type Who,
 } from './world';
+import { createSoundscape, type Soundscape } from '../soundscape';
 
 // Landfall's art style: a low-poly, flat-shaded island that moves from dawn to night over the scenario.
 // The player washed up at the origin. The sea and the wreck lie toward +z, the camp sits at the top of the beach,
@@ -1819,76 +1820,11 @@ const mixFor = (cue: Cue): Mix => {
   return mix;
 };
 
-//browsers only allow audio after the user has interacted with the page, so playback starts on the first key or click
-function createSoundscape() {
-  const context = new AudioContext();
-  const output = context.createGain();
-  output.gain.value = MASTER_VOLUME;
-  output.connect(context.destination);
-
-  const beds = (Object.entries(BEDS) as [Bed, string][]).map(([bed, src]) => {
-    const element = new Audio(src);
-    element.loop = true;
-    element.preload = 'auto';
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    context.createMediaElementSource(element).connect(gain).connect(output);
-    return { bed, element, gain };
-  });
-
-  let unlocked = false;
-  const unlock = () => {
-    if (unlocked) return;
-    context
-      .resume()
-      .then(() => Promise.all(beds.map(({ element }) => element.play())))
-      .then(() => {
-        unlocked = true;
-        window.removeEventListener('keydown', unlock);
-        window.removeEventListener('pointerdown', unlock);
-      })
-      .catch(() => {}); //still locked; the next key or click tries again
-  };
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('pointerdown', unlock);
-  unlock();
-
-  const timers = new Set<number>();
-
-  return {
-    mix(levels: Mix) {
-      const now = context.currentTime;
-      for (const { bed, gain } of beds) {
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(gain.gain.value, now);
-        gain.gain.linearRampToValueAtTime(levels[bed], now + CROSSFADE);
-      }
-    },
-    play({ src, volume, delay = 0 }: OneShot) {
-      if (!unlocked) return;
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        const element = new Audio(src);
-        element.volume = volume * MASTER_VOLUME;
-        element.play().catch(() => {});
-      }, delay * 1000);
-      timers.add(timer);
-    },
-    dispose() {
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('pointerdown', unlock);
-      timers.forEach((timer) => window.clearTimeout(timer));
-      beds.forEach(({ element }) => element.pause());
-      void context.close();
-    },
-  };
-}
-
 function useSoundscape(cue: Cue, cueKey: string, oneShots: Record<string, OneShot>) {
-  const soundscape = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const soundscape = useRef<Soundscape<Bed> | null>(null);
 
   useEffect(() => {
-    const created = createSoundscape();
+    const created = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     soundscape.current = created;
     return () => {
       created.dispose();

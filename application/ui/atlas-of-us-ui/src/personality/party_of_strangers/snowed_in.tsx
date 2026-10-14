@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // Snowed In is 16-bit pixel art. Every set is drawn into a 320x180 buffer from a small palette, with ordered (Bayer)
 // dithering where a painter would blend, and blown up 5x with no smoothing so every pixel stays a hard square.
@@ -1114,12 +1115,6 @@ function mixFor({ set, beat }: Cue): Partial<Record<Bed, number>> {
   return { wind: 0.4, party: 0.1 };
 }
 
-interface OneShot {
-  src: string;
-  volume: number;
-  delay?: number;
-}
-
 const MESSAGE = new URL('./sounds/message.m4a', import.meta.url).href;
 const DOOR_CREAK = new URL('./sounds/door.m4a', import.meta.url).href;
 const ONE_SHOTS: Record<string, OneShot> = {
@@ -1138,61 +1133,6 @@ const ONE_SHOTS: Record<string, OneShot> = {
 const MASTER_VOLUME = 0.8;
 const CROSSFADE = 2.5; //seconds
 
-//browsers only allow audio after the user has interacted with the page, so playback starts on the first key or click
-function createSoundscape() {
-  const context = new AudioContext();
-  const beds = (Object.entries(BEDS) as [Bed, string][]).map(([bed, src]) => {
-    const element = new Audio(src);
-    element.loop = true;
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    context.createMediaElementSource(element).connect(gain).connect(context.destination);
-    return { bed, element, gain };
-  });
-
-  let unlocked = false;
-  const stopListening = () => {
-    window.removeEventListener('keydown', unlock);
-    window.removeEventListener('pointerdown', unlock);
-  };
-  function unlock() {
-    context
-      .resume()
-      .then(() => Promise.all(beds.map(({ element }) => element.play())))
-      .then(() => {
-        unlocked = true;
-        stopListening();
-      })
-      .catch(() => {}); //still locked; the next key or click tries again
-  }
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('pointerdown', unlock);
-  unlock();
-
-  const timers = new Set<number>();
-  return {
-    mix(cue: Cue) {
-      const levels = mixFor(cue);
-      for (const { bed, gain } of beds) gain.gain.setTargetAtTime((levels[bed] ?? 0) * MASTER_VOLUME, context.currentTime, CROSSFADE / 3);
-    },
-    play({ src, volume, delay = 0 }: OneShot) {
-      if (!unlocked) return;
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        const element = new Audio(src);
-        element.volume = volume * MASTER_VOLUME;
-        element.play().catch(() => {});
-      }, delay * 1000);
-      timers.add(timer);
-    },
-    dispose() {
-      stopListening();
-      timers.forEach((timer) => window.clearTimeout(timer));
-      beds.forEach(({ element }) => element.pause());
-      context.close();
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 
@@ -1213,7 +1153,7 @@ function SnowedIn({ animation }: { animation: string }) {
   //from is where the camera was when the cue changed, so a pan starts from wherever it had got to
   const shown = useRef({ cue: cues[active], at: 0, prev: cues[active], from: cues[active].focus });
   const camera = useRef<Focus>(cues[active].focus);
-  const sound = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const sound = useRef<Soundscape<Bed> | null>(null);
 
   useEffect(() => {
     const el = canvas.current!;
@@ -1224,7 +1164,7 @@ function SnowedIn({ animation }: { animation: string }) {
       b.height = LH;
       return b;
     });
-    const soundscape = createSoundscape();
+    const soundscape = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     sound.current = soundscape;
 
     let frame = 0;
@@ -1267,7 +1207,7 @@ function SnowedIn({ animation }: { animation: string }) {
 
   useEffect(() => {
     shown.current = { cue: cues[active], at: performance.now(), prev: shown.current.cue, from: camera.current };
-    sound.current?.mix(cues[active]);
+    sound.current?.mix(mixFor(cues[active]));
     const shot = ONE_SHOTS[active];
     if (shot) sound.current?.play(shot);
   }, [active]);

@@ -1,19 +1,12 @@
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { fetchTraits, getJob, getProgress, getQuestions, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
-import Landfall from './landfall/landfall';
 import { theThief } from './the_thief/script';
-import Thief from './the_thief/thief';
 import { readingPeople } from './reading_people/script';
-import ReadingPeople from './reading_people/reading_people';
 import { theArchive } from './the_archive/script';
-import TheArchive from './the_archive/the_archive';
 import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
-import LastFerry from './rule_that_doesnt_fit/last_ferry';
 import { theOffer } from './the_offer/script';
-import TheOffer from './the_offer/the_offer';
 import { partyOfStrangers } from './party_of_strangers/script';
-import SnowedIn from './party_of_strangers/snowed_in';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -21,6 +14,15 @@ import { useSession } from '../auth/api';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
+
+//scenes are split into their own chunks so their three.js code, sounds and textures only load when one is opened
+const Landfall = lazy(() => import('./landfall/landfall'));
+const Thief = lazy(() => import('./the_thief/thief'));
+const ReadingPeople = lazy(() => import('./reading_people/reading_people'));
+const TheArchive = lazy(() => import('./the_archive/the_archive'));
+const LastFerry = lazy(() => import('./rule_that_doesnt_fit/last_ferry'));
+const TheOffer = lazy(() => import('./the_offer/the_offer'));
+const SnowedIn = lazy(() => import('./party_of_strangers/snowed_in'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -798,7 +800,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
 
   return (
     <div style={styles.stage}>
-      {renderScene(step.animation, left === undefined ? undefined : left / clock!.seconds)}
+      <Suspense fallback={null}>{renderScene(step.animation, left === undefined ? undefined : left / clock!.seconds)}</Suspense>
 
       {left !== undefined && (
         <div style={{ ...styles.clock, ...(left < 60 ? styles.clockLow : {}) }}>

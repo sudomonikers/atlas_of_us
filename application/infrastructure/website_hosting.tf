@@ -165,6 +165,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   is_ipv6_enabled     = true
   comment             = "CloudFront distribution for my S3 bucket"
   default_root_object = "index.html"
+  http_version        = "http2and3"
   aliases             = [local.website_name]
 
   restrictions {
@@ -197,22 +198,15 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
   }
 
+  # CachingOptimized honors the Cache-Control the deploy script sets (immutable for /assets, no-cache for
+  # index.html) and lets CloudFront gzip/brotli the JS and CSS
   default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = aws_s3_bucket.bucket.id
-
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
-
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = aws_s3_bucket.bucket.id
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
+    compress               = true
+    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
 
     function_association {
       event_type   = "viewer-request"
@@ -257,6 +251,10 @@ resource "aws_s3_bucket_policy" "bucket" {
       }
     ]
   })
+}
+
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
 }
 
 data "aws_cloudfront_cache_policy" "caching_disabled" {
