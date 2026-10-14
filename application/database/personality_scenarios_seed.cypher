@@ -156,6 +156,20 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// The Stolen Idea. Every path shares face_to_face, credit and hard_feelings
+MATCH (s:PersonalityScenario {name: 'stolen_idea'})
+UNWIND [
+  {order: 0, key: 'in_the_wings',  prompt: "Standing in the wings while they cheer, what's going through you?"},
+  {order: 1, key: 'the_bow',       prompt: 'The light is on you. What do you do?'},
+  {order: 2, key: 'tell_fitch',    prompt: 'Mr. Fitch is right there, lighting a cigar. What do you do?'},
+  {order: 3, key: 'face_to_face',  prompt: "He's waiting, still grinning. What do you say to him?"},
+  {order: 4, key: 'the_favor',     prompt: "He's standing in your doorway with his hat in his hands. What do you tell him?"},
+  {order: 5, key: 'credit',        prompt: 'Be honest: how much does it matter to you that people know the Mirror Walk was yours? Is it the money, the applause, or something else?'},
+  {order: 6, key: 'hard_feelings', prompt: 'No hard feelings, he says. Are there? What would it take for you to let this go, or have you already?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 // -----------------------------------------------------------------------------
 // 3. Cleanup
 // -----------------------------------------------------------------------------

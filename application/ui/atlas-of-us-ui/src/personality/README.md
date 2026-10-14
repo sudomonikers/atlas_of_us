@@ -29,7 +29,7 @@ The following scenarios are what we are starting with:
 
 | # | Scenario | Situation type | Facets measured |
 |---|---|---|---|
-| 1 | **The Stolen Idea.** A colleague presents your idea as their own in a meeting, then asks you for a favor the next week. | Realistic hypothetical, with a timed first reaction | Anger (N), Self-Consciousness (N), Assertiveness (E), Cooperation (A), Modesty (A) |
+| 1 | **The Stolen Idea.** A colleague presents your idea as their own in a meeting, then asks you for a favor the next week. | Realistic hypothetical | Anger (N), Self-Consciousness (N), Assertiveness (E), Cooperation (A), Modesty (A), Competitiveness, Fairness, Stubbornness |
 | 2 | **Let Down.** Recall the last time a friend cancelled on you or let you down: what you did, how you felt, and how long it stayed with you. | Recall | Anger (N), Depression (N), Friendliness (E), Emotionality (O), Trust (A), Sympathy (A) |
 | 3 | **Expedition I: Landfall.** You're shipwrecked with a small group and must decide who leads, whether to explore or secure camp, and how to handle limited supplies. | Fictional role + game with stakes | Immoderation (N), Assertiveness (E), Activity Level (E), Imagination (O), Adventurousness (O), Orderliness (C), Cautiousness (C) |
 | 4 | **Expedition II: The Thief.** Rations go missing, and you have to decide what to do about the person who took them, while points and survival odds ride on your choices. | Game with stakes | Liberalism (O), Trust (A), Morality (A), Altruism (A), Cooperation (A), Sympathy (A) |

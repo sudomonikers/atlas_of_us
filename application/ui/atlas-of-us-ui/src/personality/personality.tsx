@@ -7,6 +7,7 @@ import { theArchive } from './the_archive/script';
 import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
 import { theOffer } from './the_offer/script';
 import { partyOfStrangers } from './party_of_strangers/script';
+import { stolenIdea } from './stolen_idea/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -24,6 +25,7 @@ const TheArchive = lazy(() => import('./the_archive/the_archive'));
 const LastFerry = lazy(() => import('./rule_that_doesnt_fit/last_ferry'));
 const TheOffer = lazy(() => import('./the_offer/the_offer'));
 const SnowedIn = lazy(() => import('./party_of_strangers/snowed_in'));
+const VanishingAct = lazy(() => import('./stolen_idea/vanishing_act'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -202,7 +204,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'The Stolen Idea',
     kind: 'Realistic hypothetical',
     blurb: 'A colleague presents your idea as their own, then asks you for a favor the next week.',
-    facets: ['Anger', 'Self-Consciousness', 'Assertiveness', 'Cooperation', 'Modesty'],
+    facets: stolenIdea.facets,
   },
   {
     id: 'let_down',
@@ -304,6 +306,7 @@ const PLAYABLE: Record<string, Playable> = {
   rule_that_doesnt_fit: { script: ruleThatDoesntFit, renderScene: (animation) => <LastFerry animation={animation} /> },
   the_offer: { script: theOffer, renderScene: (animation) => <TheOffer animation={animation} /> },
   party_of_strangers: { script: partyOfStrangers, renderScene: (animation) => <SnowedIn animation={animation} /> },
+  stolen_idea: { script: stolenIdea, renderScene: (animation) => <VanishingAct animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

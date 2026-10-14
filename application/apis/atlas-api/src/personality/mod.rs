@@ -467,7 +467,10 @@ async fn rescore(graph: &Graph, person_id: &str) -> Result<(), Box<dyn std::erro
     }
 
     let mut rows = graph.execute(query("
-        MATCH (t:PersonalityTrait) RETURN elementId(t) AS id, t.name AS name, t.description AS description ORDER BY name
+        MATCH (t:PersonalityTrait)
+        OPTIONAL MATCH (d:PersonalityDomain)-[:HAS_FACET]->(t)
+        RETURN elementId(t) AS id, t.name AS name, t.description AS description, coalesce(d.key, 'other') AS domain
+        ORDER BY name
     ")).await?;
     let mut traits = Vec::new();
     while let Some(row) = rows.next().await? {
