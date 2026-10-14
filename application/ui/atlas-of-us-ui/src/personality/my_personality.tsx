@@ -121,17 +121,17 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
   );
 }
 
-//how hard an answer pushed, in words
-const strength = (delta: number) => (Math.abs(delta) >= 0.6 ? 'strongly' : Math.abs(delta) >= 0.3 ? '' : 'slightly');
+//how strongly an answer showed it, in words
+const strength = (weight: number) => (weight >= 0.6 ? 'strongly' : weight >= 0.3 ? '' : 'slightly');
 
 function ContributionCard({ contribution: c }: { contribution: Contribution }) {
-  const up = c.delta >= 0;
+  const up = c.level >= 0;
   return (
     <li style={styles.contribution}>
       <div style={styles.contributionHead}>
         <span className="comic-chip">{c.scenario}</span>
         <span style={{ ...styles.push, color: up ? blue : brownRed }}>
-          {up ? '▲' : '▼'} {strength(c.delta)} {up ? 'raised' : 'lowered'}
+          {up ? '▲' : '▼'} {strength(c.weight)} {up ? 'raised' : 'lowered'}
         </span>
       </div>
       <p style={styles.contributionQuestion}>{c.question}</p>

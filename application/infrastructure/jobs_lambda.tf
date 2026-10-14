@@ -1,5 +1,5 @@
 ### JOBS LAMBDA
-# Slow work, like rescoring someone's personality in one long bedrock call, doesn't fit the api's 60 seconds behind
+# Slow work, like rescoring someone's personality with long bedrock calls, doesn't fit the api's 60 seconds behind
 # cloudfront. The api queues it here and apis/atlas-jobs works through the queue, one job at a time.
 # Terraform creates the function from a placeholder and then ignores its code.
 # Real code ships with apis/atlas-jobs/deploy.sh.

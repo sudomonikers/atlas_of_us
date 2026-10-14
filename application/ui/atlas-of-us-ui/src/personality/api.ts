@@ -30,8 +30,8 @@ export interface AnswerClock {
 
 //replaces any earlier answer to the same question. The last answer of a scenario also starts rescoring the user's
 //traits in the background, and scored says it did
-export const saveAnswer = (question_id: string, answer: string, reasoning?: string, clock?: AnswerClock) =>
-  request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, clock });
+export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, clock?: AnswerClock) =>
+  request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, context, clock });
 
 //whether the user's traits are still being rescored. No new scenario starts until it's done
 export const getScoring = () => request<{ running: boolean }>('GET', '/personality/scoring');
@@ -57,8 +57,9 @@ export const getTraits = () => request<TraitInfo[]>('GET', '/personality/traits'
 
 export interface Shift {
   trait: string; //the trait's name
-  delta: number; //-1 (towards low) to 1 (towards high)
   evidence: string; //the llm's reason
+  level: number; //where the answer puts them, -1 (the low end) to 1 (the high end), 0 is typical
+  weight: number; //how strongly the answer shows it, 0 to 1
 }
 
 export interface AnswerEvidence {
@@ -123,7 +124,8 @@ export interface Contribution {
   question: string;
   answer: string;
   reasoning?: string;
-  delta: number; //-1 (towards low) to 1 (towards high)
+  level: number; //where the answer puts them, -1 (the low end) to 1 (the high end), 0 is typical
+  weight: number; //how strongly the answer shows it, 0 to 1
   evidence: string; //the llm's reason
 }
 
@@ -152,7 +154,7 @@ export async function fetchTraits(personId: string, username: string): Promise<T
   const [all, mine, evidence] = await Promise.all([getTraits(), getProfile(username), getPersonEvidence(personId)]);
   const scores = new Map(mine.traits.map((t) => [t.id, t]));
   const contributions = evidence.flatMap(({ shifts, reasoning, ...answer }) =>
-    shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, delta: s.delta, evidence: s.evidence })),
+    shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, level: s.level, weight: s.weight, evidence: s.evidence })),
   );
   return all.map((t) => {
     const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
@@ -165,7 +167,7 @@ export async function fetchTraits(personId: string, username: string): Promise<T
       value: scores.get(t.id)?.value,
       confidence: scores.get(t.id)?.confidence,
       average: t.average ?? undefined,
-      contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
+      contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => b.weight - a.weight),
     };
   });
 }

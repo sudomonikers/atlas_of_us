@@ -392,11 +392,11 @@ function Personality() {
   }, [view, personId, username, scorings]);
 
   //saves an answer as the player moves past a prompt. The last answer of a scenario also starts a rescore
-  const answer = (scenario: string) => async (step: PromptFrame, given: Answer, clock?: AnswerClock) => {
+  const answer = (scenario: string) => async (step: PromptFrame, given: Answer, context: string, clock?: AnswerClock) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, clock);
+    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, clock);
     if (saved.scored) setRecalculating(true);
   };
 
@@ -700,7 +700,7 @@ interface ScriptPlayerProps {
   script: Script;
   renderScene: (animation: string, clock?: number) => ReactNode; //the scenario's background, driven by the current step's animation and how much of the clock is left, 1 to 0
   earlier: SavedAnswer[]; //the user's answers from when the scenario was opened, for Sections that recall them
-  onAnswer: (step: PromptFrame, answer: Answer, clock?: AnswerClock) => Promise<void>; //saves an answer, with where the clock stood if it has started; the player waits for it before moving on
+  onAnswer: (step: PromptFrame, answer: Answer, context: string, clock?: AnswerClock) => Promise<void>; //saves an answer, with what the user saw before it and where the clock stood if it has started; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
   onFinish: () => void; //called when the user moves past the final step
 }
@@ -754,6 +754,19 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
     return { seconds: clock.seconds, left: Math.round(Math.max(0, deadline - at) / 1000), ran_out: !!stopped?.ranOut };
   };
 
+  //what the user saw since the last question along the path they took, and the choices offered, so the scorer
+  //knows what they're answering
+  const context = (prompt: PromptFrame) => {
+    const lines: string[] = [];
+    for (let i = history.length - 2; i >= 0; i--) {
+      const seen = script.sections[history[i].section].steps[history[i].index];
+      if (isPrompt(seen)) break;
+      lines.unshift(seen.speaker ? `${seen.speaker}: ${seen.text}` : seen.text);
+    }
+    if (prompt.choices) lines.push(`Choices offered: ${prompt.choices.map((c) => c.label).join(' / ')}`);
+    return lines.join('\n');
+  };
+
   const nextPosition = (): Position | undefined => {
     if (isPrompt(step) && step.choices && answer?.choice !== undefined) {
       return { section: step.choices[answer.choice].next, index: 0 };
@@ -777,7 +790,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
       setSaving(true);
       setSaveError(undefined);
       try {
-        await onAnswer(step, answer, clockNow());
+        await onAnswer(step, answer, context(step), clockNow());
       } catch (e) {
         setSaveError(e instanceof Error ? e.message : String(e));
         return;

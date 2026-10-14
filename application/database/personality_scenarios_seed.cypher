@@ -7,7 +7,7 @@
 //
 // name matches the scenario id the UI uses, and key matches the prompt id in that
 // scenario's script (e.g. ui/src/personality/landfall/script.ts). Users' answers are
-// (:Person)-[:ANSWERED {answer, reasoning, answeredDate, scoring}]->(:PersonalityScenarioQuestion),
+// (:Person)-[:ANSWERED {answer, reasoning, context, answeredDate, scoring}]->(:PersonalityScenarioQuestion),
 // written by the api.
 //
 // Every answer, multiple choice or free text, is scored by the api's llm job from the

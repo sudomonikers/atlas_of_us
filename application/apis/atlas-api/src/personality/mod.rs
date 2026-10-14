@@ -280,6 +280,7 @@ pub async fn list_scenario_questions(
 }
 
 const MAX_ANSWER_CHARS: usize = 2000;
+const MAX_CONTEXT_CHARS: usize = 8000;
 const MAX_CLOCK_SECONDS: i64 = 24 * 60 * 60;
 
 #[derive(Deserialize)]
@@ -287,6 +288,7 @@ pub struct AnswerPayload {
     question_id: String,
     answer: String, //the picked choice, or the whole answer when the question has no choices
     reasoning: Option<String>, //why, in the user's words
+    context: String, //the story the user saw just before the question, and the choices offered, for the scorer
     clock: Option<AnswerClock>, //only for answers given once a scenario's clock has started
 }
 
@@ -330,6 +332,9 @@ pub async fn answer_question(
     if too_long(&body.answer) || body.reasoning.as_deref().is_some_and(too_long) {
         return Err((StatusCode::BAD_REQUEST, format!("Answers can be up to {MAX_ANSWER_CHARS} characters. Try shortening yours.")));
     }
+    if body.context.chars().count() > MAX_CONTEXT_CHARS {
+        return Err((StatusCode::BAD_REQUEST, "That question's story is too long to save. Try reloading the page.".to_string()));
+    }
     if body.clock.as_ref().is_some_and(|c| !(1..=MAX_CLOCK_SECONDS).contains(&c.seconds) || !(0..=c.seconds).contains(&c.left)) {
         return Err((StatusCode::BAD_REQUEST, "That scenario's clock doesn't look right. Try reloading the page.".to_string()));
     }
@@ -338,7 +343,7 @@ pub async fn answer_question(
         MATCH (p:Person) WHERE elementId(p) = $personId
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
         MERGE (p)-[a:ANSWERED]->(q)
-        SET a.answer = $answer, a.reasoning = $reasoning, a.answeredDate = datetime(),
+        SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(),
             a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut
         WITH s, q, a
         MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
@@ -351,6 +356,7 @@ pub async fn answer_question(
         .param("questionId", body.question_id)
         .param("answer", body.answer)
         .param("reasoning", body.reasoning)
+        .param("context", body.context)
         //null clears the clock from an earlier answer to the same question
         .param("clockSeconds", body.clock.as_ref().map(|c| c.seconds))
         .param("clockLeft", body.clock.as_ref().map(|c| c.left))
@@ -365,7 +371,7 @@ pub async fn answer_question(
     //Earlier questions can go unanswered, when a scenario's clock runs out before them
     let scored = row.get::<bool>("last_question").map_err(|e| internal(&e))?;
     if scored {
-        start_scoring(&state, &user.person_id).await.map_err(|e| internal(&e))?;
+        start_scoring(&state, &user.person_id, Some(&answer.scenario)).await.map_err(|e| internal(&e))?;
     }
     Ok(Json(AnswerResponse { answer, scored }))
 }
@@ -400,7 +406,7 @@ pub async fn rescore_personality(State(state): State<AppState>, user: AuthUser) 
         tracing::error!("{e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
     };
-    start_scoring(&state, &user.person_id).await.map_err(|e| internal(&e))?;
+    start_scoring(&state, &user.person_id, None).await.map_err(|e| internal(&e))?;
     Ok(StatusCode::ACCEPTED)
 }
 
@@ -435,12 +441,13 @@ pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Resul
  * scoring
  * ------------------------------------------------------------------------------------------- */
 
-//one piece of evidence about a trait. delta is -1 (the low end) to 1 (the high end)
+//one piece of evidence about a trait
 #[derive(Serialize, Deserialize)]
 struct Shift {
     r#trait: String,
-    delta: f64,
     evidence: String, //what in the answer shows it
+    level: f64, //where the answer puts them, -1 (the low end) to 1 (the high end), 0 is typical
+    weight: f64, //how strongly the answer shows it, 0 to 1
 }
 
 #[derive(Serialize, Deserialize)]
@@ -448,6 +455,7 @@ struct ScoredAnswer {
     id: String, //the ANSWERED relationship's id
     scenario: String,
     prompt: String,
+    context: Option<String>, //the story the person saw just before the question
     answer: String,
     reasoning: Option<String>,
     clock_seconds: Option<i64>,
@@ -475,18 +483,21 @@ struct JobTrait {
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-//gathers the person's answers into a scoring job, marks it running on the person, and queues it for atlas-jobs.
+//gathers the person's answers to one scenario, or to all of them when there's none, into a scoring job,
+//marks it running on the person, and queues it for atlas-jobs.
 //Without a queue (running locally) the job is logged instead, to run through atlas-jobs by hand
-async fn start_scoring(state: &AppState, person_id: &str) -> Result<(), BoxError> {
+async fn start_scoring(state: &AppState, person_id: &str, scenario: Option<&str>) -> Result<(), BoxError> {
     let graph = &state.graph;
     let mut rows = graph.execute(query("
         MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-        WHERE elementId(p) = $personId
-        RETURN elementId(a) AS id, s.title AS scenario, q.prompt AS prompt, a.answer AS answer, a.reasoning AS reasoning,
+        WHERE elementId(p) = $personId AND ($scenario IS NULL OR s.name = $scenario)
+        RETURN elementId(a) AS id, s.title AS scenario, q.prompt AS prompt, a.context AS context,
+               a.answer AS answer, a.reasoning AS reasoning,
                a.clockSeconds AS clock_seconds, a.clockLeft AS clock_left, a.clockRanOut AS clock_ran_out
         ORDER BY s.name, q.order
     ")
         .param("personId", person_id)
+        .param("scenario", scenario)
     ).await?;
     let mut answers = Vec::new();
     while let Some(row) = rows.next().await? {
