@@ -170,6 +170,20 @@ UNWIND [
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order;
 
+// The Empty Weekend. Saturday morning and Saturday night branch; every path shares the rest
+MATCH (s:PersonalityScenario {name: 'empty_weekend'})
+UNWIND [
+  {order: 0, key: 'phone_gone',   prompt: "Nobody can reach you, and you can't reach anybody, until Monday. Lying on the bed that first night, how does that sit with you?"},
+  {order: 1, key: 'the_morning',  prompt: 'A whole Saturday morning and nothing you have to do. Where do you go?'},
+  {order: 2, key: 'the_shelf',    prompt: "You've got all afternoon, a chair, and every shelf in the shop. What do you take down, and why that one?"},
+  {order: 3, key: 'the_invite',   prompt: 'Agnes is saving you a seat at the Anchor. What do you do with your Saturday night?'},
+  {order: 4, key: 'the_list',     prompt: 'One day left. Do you write a list of your own? What goes on it, and how much of it do you actually do?'},
+  {order: 5, key: 'the_pier',     prompt: 'Standing in the middle of all of it, what do you notice first? How long before you have had enough, or could you stay all night?'},
+  {order: 6, key: 'how_you_feel', prompt: "It's Sunday night and the weekend is nearly gone. How do you feel right now: rested, restless, a bit low, something else? Where do you think that comes from?"}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order;
+
 // -----------------------------------------------------------------------------
 // 3. Cleanup
 // -----------------------------------------------------------------------------

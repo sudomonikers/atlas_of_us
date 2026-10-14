@@ -8,6 +8,7 @@ import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
 import { theOffer } from './the_offer/script';
 import { partyOfStrangers } from './party_of_strangers/script';
 import { stolenIdea } from './stolen_idea/script';
+import { emptyWeekend } from './empty_weekend/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -26,6 +27,7 @@ const LastFerry = lazy(() => import('./rule_that_doesnt_fit/last_ferry'));
 const TheOffer = lazy(() => import('./the_offer/the_offer'));
 const SnowedIn = lazy(() => import('./party_of_strangers/snowed_in'));
 const VanishingAct = lazy(() => import('./stolen_idea/vanishing_act'));
+const PopUpTown = lazy(() => import('./empty_weekend/pop_up_town'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -239,7 +241,7 @@ const SCENARIOS: ScenarioInfo[] = [
     title: 'The Empty Weekend',
     kind: 'Reflective',
     blurb: '48 hours with no obligations and a broken phone. How do you spend it, and how do you feel by Sunday night?',
-    facets: ['Depression', 'Gregariousness', 'Activity Level', 'Artistic Interests', 'Intellect', 'Self-Discipline'],
+    facets: emptyWeekend.facets,
   },
   {
     id: 'public_mistake',
@@ -307,6 +309,7 @@ const PLAYABLE: Record<string, Playable> = {
   the_offer: { script: theOffer, renderScene: (animation) => <TheOffer animation={animation} /> },
   party_of_strangers: { script: partyOfStrangers, renderScene: (animation) => <SnowedIn animation={animation} /> },
   stolen_idea: { script: stolenIdea, renderScene: (animation) => <VanishingAct animation={animation} /> },
+  empty_weekend: { script: emptyWeekend, renderScene: (animation) => <PopUpTown animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

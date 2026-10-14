@@ -497,7 +497,8 @@ async fn rescore(graph: &Graph, person_id: &str) -> Result<(), Box<dyn std::erro
     }).collect();
     let body = serde_json::to_vec(&json!({
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 8192,
+        //every answer's shifts come back in one tool call, which grows with each scenario played
+        "max_tokens": 32000,
         "temperature": 0,
         "system": SCORING_PROMPT,
         "tools": [{
@@ -547,6 +548,10 @@ async fn rescore(graph: &Graph, person_id: &str) -> Result<(), Box<dyn std::erro
         }
     };
     let response: serde_json::Value = serde_json::from_slice(output.body().as_ref())?;
+    //a tool call cut off by max_tokens comes back with its input missing or partial
+    if response["stop_reason"] == "max_tokens" {
+        return Err(format!("personality scoring ran out of tokens on {} answers", answers.len()).into());
+    }
     let input = response["content"].as_array()
         .and_then(|content| content.iter().find(|block| block["type"] == "tool_use"))
         .ok_or("bedrock didn't return any scores")?["input"].clone();
