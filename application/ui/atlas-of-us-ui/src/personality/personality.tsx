@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getProgress, getQuestions, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { landfall } from './landfall/script';
 import { theThief } from './the_thief/script';
 import { readingPeople } from './reading_people/script';
@@ -14,9 +14,11 @@ import { provenWrong } from './proven_wrong/script';
 import { theWater } from './the_water/script';
 import { blackClay } from './black_clay/script';
 import { owambe } from './owambe/script';
+import { soapHouse } from './soap_house/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
+import { Checkbox } from '../shared_components/checkbox';
 import { useSession } from '../auth/api';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
@@ -38,6 +40,7 @@ const TheHive = lazy(() => import('./proven_wrong/the_hive'));
 const Monsoon = lazy(() => import('./the_water/monsoon'));
 const Coyotepec = lazy(() => import('./black_clay/coyotepec'));
 const Signboard = lazy(() => import('./owambe/signboard'));
+const Miniature = lazy(() => import('./soap_house/miniature'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -121,7 +124,7 @@ export interface PromptFrame {
   prompt: string; //the question shown to the user above the text box
   animation: string;
   speaker?: string;
-  facets: PersonalityTrait[]; //traits this prompt is designed to draw out
+  facets: PersonalityTrait[]; //traits this prompt is designed to draw out, sent with the answer so the scorer knows them
   choices?: Choice[]; //if present the user picks one, then explains why in the text box
 }
 
@@ -169,14 +172,6 @@ interface ScenarioProgress {
   status: ScenarioStatus;
   startedAt?: string; //ISO timestamp
   completedAt?: string; //ISO timestamp
-}
-
-//the user's answers, plus the question lists needed to tell in progress from complete
-async function fetchProgress() {
-  const answers = await getProgress();
-  const names = [...new Set([...Object.keys(PLAYABLE), ...answers.map((a) => a.scenario)])];
-  const lists = await Promise.all(names.map(getQuestions));
-  return { answers, questions: Object.fromEntries(names.map((name, i) => [name, lists[i]])) };
 }
 
 //some questions answered is in progress, the last one is complete. Questions on a clock can be skipped
@@ -308,6 +303,13 @@ const SCENARIOS: ScenarioInfo[] = [
     blurb: "Your cousin's wedding in Lagos: the family lace, a fight over the entrance, the MC's microphone, and a power cut.",
     facets: owambe.facets,
   },
+  {
+    id: 'soap_house',
+    title: 'The Soap House',
+    kind: 'Realistic hypothetical, with recall',
+    blurb: "Your father leaves the family soap house in Aleppo to you and your siblings, in three equal shares. It isn't that simple.",
+    facets: soapHouse.facets,
+  },
 ];
 
 interface Playable {
@@ -331,6 +333,7 @@ const PLAYABLE: Record<string, Playable> = {
   the_water: { script: theWater, renderScene: (animation) => <Monsoon animation={animation} /> },
   black_clay: { script: blackClay, renderScene: (animation) => <Coyotepec animation={animation} /> },
   owambe: { script: owambe, renderScene: (animation) => <Signboard animation={animation} /> },
+  soap_house: { script: soapHouse, renderScene: (animation) => <Miniature animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------
@@ -352,13 +355,17 @@ function Personality() {
   const username = session.status === 'authenticated' ? session.person.username : undefined;
   const [view, setView] = useState<View>('scenarios');
   const [playing, setPlaying] = useState<string>(); //id of the scenario currently open
+  const [starting, setStarting] = useState<string>(); //id of the scenario whose start note is showing
   const [answers, setAnswers] = useState<SavedAnswer[]>(); //undefined until loaded
   const [questions, setQuestions] = useState<Record<string, ScenarioQuestion[]>>({}); //keyed by scenario name
   const [loadError, setLoadError] = useState<string>();
+  //the user's traits are rescored in the background after each scenario, and no new one starts until that's done
+  const [recalculating, setRecalculating] = useState(false);
+  const [scorings, setScorings] = useState(0); //how many rescores have finished while the page was open
 
   const load = useCallback(
     () =>
-      fetchProgress().then(
+      getProgress().then(
         (loaded) => {
           setAnswers(loaded.answers);
           setQuestions(loaded.questions);
@@ -373,9 +380,6 @@ function Personality() {
     if (loggedIn) load();
   }, [loggedIn, load]);
 
-  //the user's traits are rescored in the background after each scenario, and no new one starts until that's done
-  const [recalculating, setRecalculating] = useState(false);
-  const [scorings, setScorings] = useState(0); //how many rescores have finished while the page was open
   useEffect(() => {
     if (!loggedIn) return;
     getScoring().then(({ running }) => setRecalculating(running), () => {});
@@ -414,7 +418,7 @@ function Personality() {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, clock);
+    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets, clock);
     if (saved.scored) setRecalculating(true);
   };
 
@@ -503,6 +507,21 @@ function Personality() {
 
         {view === 'scenarios' && <OurApproach />}
 
+        {/* every scenario opens with how to get the most out of it */}
+        {starting && (
+          <div style={dash.startBackdrop} onClick={() => setStarting(undefined)} onKeyDown={(e) => e.key === 'Escape' && setStarting(undefined)}>
+            <div style={dash.startDialog} role="dialog" aria-modal aria-label="Before you start" onClick={(e) => e.stopPropagation()}>
+              <GettingTheMost
+                onBack={() => setStarting(undefined)}
+                onStart={() => {
+                  setPlaying(starting);
+                  setStarting(undefined);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {view === 'scenarios' && ready && (
           <>
             <div style={dash.meter}>
@@ -517,7 +536,7 @@ function Personality() {
                   progress={progress[scenario.id]}
                   playable={scenario.id in PLAYABLE}
                   locked={recalculating}
-                  onPlay={() => setPlaying(scenario.id)}
+                  onPlay={() => (startNoteHidden() ? setPlaying(scenario.id) : setStarting(scenario.id))}
                 />
               ))}
             </ul>
@@ -546,6 +565,84 @@ const APPROACH = [
     body: 'Family, friends, work, alone, past and future, even fantasy lands, to see how you change across different contexts.',
   },
 ];
+
+const TIPS = [
+  {
+    title: 'Be honest, not impressive',
+    body: "Answer the way you'd actually act, not the way you'd like to come across. Flattering answers are the hardest to read, and you're the one who loses out.",
+  },
+  {
+    title: 'Tell us why',
+    body: 'Your reasoning matters more than the option you pick. Two people can make the same choice for completely different reasons.',
+  },
+  {
+    title: 'Be specific',
+    body: 'Details beat adjectives. "I froze, then rang my mum" says more than "I\'m bad in a crisis."',
+  },
+  {
+    title: 'Keep playing',
+    body: "We read everything you've told us after every 5 scenarios, and each read gets surer. Faded bars on My Personality are early reads.",
+  },
+  {
+    title: 'Be yourself, jokes included',
+    body: 'Short answers and jokes are fine. How you answer says something too.',
+  },
+];
+
+//whether the user has asked not to see the start note again. Kept in this browser only; if storage is blocked the note
+//just keeps showing
+const HIDE_START_NOTE = 'atlas.hideStartNote';
+const startNoteHidden = () => {
+  try {
+    return localStorage.getItem(HIDE_START_NOTE) === '1';
+  } catch {
+    return false;
+  }
+};
+
+//how to answer to get the most accurate results. Shown before every scenario starts, until the user turns it off
+function GettingTheMost({ onBack, onStart }: { onBack: () => void; onStart: () => void }) {
+  const [hide, setHide] = useState(false);
+  const start = () => {
+    if (hide) {
+      try {
+        localStorage.setItem(HIDE_START_NOTE, '1');
+      } catch {
+        //storage is blocked, so it will show again next time
+      }
+    }
+    onStart();
+  };
+  return (
+    <section style={{ ...dash.approach, ...dash.tips }} className="comic-panel comic-pop">
+      <div style={dash.approachColumn}>
+        <h2 style={dash.approachHeading}>Get the most out of it.</h2>
+        <ol style={dash.approachList}>
+          {TIPS.map((tip, i) => (
+            <li key={tip.title} style={dash.approachItem}>
+              <span style={dash.approachNumber}>{i + 1}</span>
+              <span>
+                <strong style={dash.approachItemTitle}>{tip.title}.</strong> {tip.body}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div style={dash.startFooter}>
+        <span style={dash.startHide}>
+          <Checkbox checked={hide} onChange={setHide} label="Don't show this again" />
+        </span>
+        <button className="comic-lift" style={dash.startBack} onClick={onBack}>
+          Back
+        </button>
+        <button className="comic-lift" style={dash.startGo} onClick={start} autoFocus>
+          Let's go ▶
+        </button>
+      </div>
+    </section>
+  );
+}
 
 //why the personality track exists, pulled from the README
 function OurApproach() {
@@ -612,16 +709,24 @@ function OurApproach() {
 }
 
 //name is missing while logged out, when the page sits behind the login card
+//traits are rescored from everything the user has answered each time they finish this many more scenarios. Matches the api
+const SCORE_EVERY = 5;
+
 const greeting = (name: string | undefined, completed: number) => {
   const left = SCENARIOS.length - completed;
-  if (completed === 0) return `Hey ${name ?? 'there'}. Zero scenarios played. Bold strategy for someone who wants to know who they are. Pick one, you'll like it.`;
+  const toNext = SCORE_EVERY - (completed % SCORE_EVERY);
+  if (completed === 0) return `Hey ${name ?? 'there'}. Zero scenarios played. Bold strategy for someone who wants to know who they are. Finish ${SCORE_EVERY} and I'll tell you what I make of you.`;
   if (left === 0) return `Every scenario done${name ? `, ${name}` : ''}. Either you're very self-aware or you really needed a hobby. Either way, I'm proud of you.`;
-  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}. Nice work! ${left === 1 ? "The last one isn't going to play itself." : `The other ${left} aren't going to play themselves.`}`;
+  const next =
+    completed < SCORE_EVERY
+      ? `${toNext} more and I'll read everything you've told me and tell you who you are.`
+      : `${toNext} more and I'll read it all again and update your results.`;
+  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}. Nice work! ${toNext > left ? (left === 1 ? "The last one isn't going to play itself." : `The other ${left} aren't going to play themselves.`) : next}`;
 };
 
 const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   const measured = traits.filter((t) => t.value !== undefined).length;
-  if (measured === 0) return `I've got nothing on you yet${name ? `, ${name}` : ''}. Play a scenario. I can't read minds. Yet. Go give me something to work with!`;
+  if (measured === 0) return `I've got nothing on you yet${name ? `, ${name}` : ''}. I read everything at once, after every ${SCORE_EVERY} scenarios you finish. I can't read minds. Yet. Go give me something to work with!`;
   if (measured === traits.length) return `Every trait measured${name ? `, ${name}` : ''}. I officially know you better than your group chat does. Look at you go.`;
   return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots are where you've been dodging scenarios. Go fill them in, I'm curious.`;
 };
@@ -1150,6 +1255,58 @@ const dash: Record<string, CSSProperties> = {
     '--panel-fill': paleRed,
     '--tilt': '-0.3deg',
   } as CSSProperties,
+  tips: {
+    margin: 0,
+    maxWidth: 640,
+    '--panel-fill': paleBlue,
+    '--tilt': '0.3deg',
+  } as CSSProperties,
+  startBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 40,
+    display: 'grid',
+    padding: 16,
+    overflowY: 'auto',
+    background: 'rgba(57, 61, 63, 0.55)',
+  },
+  //auto margins centre it when it fits, and let it scroll from the top when it doesn't
+  startDialog: {
+    margin: 'auto',
+  },
+  startFooter: {
+    gridColumn: '1 / -1',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  startHide: {
+    marginRight: 'auto',
+  },
+  startBack: {
+    padding: '4px 18px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: 'var(--wobbly)',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1,
+  },
+  startGo: {
+    padding: '4px 18px',
+    background: brownRed,
+    color: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: 'var(--wobbly)',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1,
+  },
   approachColumn: {
     display: 'flex',
     flexDirection: 'column',

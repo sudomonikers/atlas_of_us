@@ -23,7 +23,7 @@ export default function MyPersonality({ traits }: { traits: Trait[] }) {
       </div>
       <p style={styles.traitsIntro}>
         Each bar shows where you sit between low and high on a trait. Low isn't bad and high isn't good, they're just
-        different. The bars fill in as you play scenarios and we read your answers.
+        different.
       </p>
       <div style={styles.compare}>
         <button className="comic-chip comic-lift" style={styles.compareButton} aria-pressed={compare} onClick={() => setCompare((c) => !c)}>
@@ -62,6 +62,7 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
   const percent = toPercent(trait.value);
   const average = compare ? toPercent(trait.average) : undefined;
   const explained = trait.contributions.length > 0;
+  const early = percent !== undefined && (trait.confidence ?? 0) < 0.5; //based on little evidence, so shown faded
 
   return (
     <li style={styles.traitItem}>
@@ -82,7 +83,7 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
                 <span style={styles.traitValue}>{percent}</span>
               </span>
             )}
-            {percent !== undefined && (trait.confidence ?? 0) < 0.5 && (
+            {early && (
               <span className="comic-chip" title="Based on only a little of what you've told us so far">
                 Early read
               </span>
@@ -94,7 +95,7 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
           <div style={{ ...styles.traitScale, ...styles.gathering }}>Still gathering information on this one...</div>
         ) : (
           //read only: looks like a slider, but there's nothing to drag
-          <div style={styles.traitScale} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+          <div style={{ ...styles.traitScale, ...(early ? styles.tentative : {}) }} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
             <div style={styles.bar}>
               <div style={styles.barTrack}>
                 <div className="comic-meter-fill" style={{ ...styles.barFill, width: `${percent}%` }} />
@@ -295,6 +296,9 @@ const styles: Record<string, CSSProperties> = {
   },
   traitScale: {
     flex: '2 1 360px',
+  },
+  tentative: {
+    opacity: 0.5,
   },
   traitHead: {
     display: 'flex',

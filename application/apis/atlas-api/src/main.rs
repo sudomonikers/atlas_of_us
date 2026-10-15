@@ -11,21 +11,32 @@ mod admin;
 
 use axum::{
     Json, Router,
-    response::IntoResponse,
+    extract::{MatchedPath, Request},
+    response::{IntoResponse, Response},
     routing::get,
 };
 use serde_json::json;
 use neo4rs::Graph;
-use std::env;
+use std::{env, io::IsTerminal, time::Duration};
+use tower_http::{
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
+    trace::TraceLayer,
+};
+use tracing::Span;
 
 use state::AppState;
 
 #[tokio::main]
 async fn main() {
-    //logs go to stdout. RUST_LOG overrides the level, e.g. RUST_LOG=debug
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
-        .init();
+    //logs go to stdout, which lambda sends to cloudwatch and kubernetes to its log collector. Readable text in a
+    //terminal, and json lines everywhere else so their fields can be searched. RUST_LOG overrides the level, e.g. RUST_LOG=debug
+    let logs = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()));
+    if std::io::stdout().is_terminal() {
+        logs.init();
+    } else {
+        logs.json().flatten_event(true).init();
+    }
 
     //instantiate neo4j connector
    let graph = Graph::new(
@@ -56,7 +67,6 @@ async fn main() {
 
     // build our application 
     let app = Router::new()
-        .route("/api", get(health_check))
         .nest("/api/auth", auth::router())
         .nest("/api/personality", personality::router())
         .nest("/api/topics", topics::router())
@@ -64,6 +74,19 @@ async fn main() {
         .nest("/api/physical", physical::router())
         .nest("/api/feedback", feedback::router())
         .nest("/api/admin", admin::router(state.clone()))
+        .layer(PropagateRequestIdLayer::x_request_id())
+        .layer(TraceLayer::new_for_http()
+            .make_span_with(request_span)
+            .on_request(|req: &Request, _: &Span| {
+                tracing::info!("started");
+                tracing::debug!(path = req.uri().path(), "request path"); //the route hides usernames and ids, which can help when debugging
+            })
+            .on_response(|res: &Response, latency: Duration, _: &Span| {
+                tracing::info!(status = res.status().as_u16(), latency_ms = latency.as_millis() as u64, "finished");
+            }))
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+        //added after the layers so it isn't logged: load balancers and kubernetes probes hit it every few seconds
+        .route("/api", get(health_check))
         .with_state(state);
 
     //lambda sets AWS_LAMBDA_RUNTIME_API, otherwise run as a normal server
@@ -74,8 +97,16 @@ async fn main() {
 
     // listen globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Server started successfully at 0.0.0.0:3000");
+    tracing::info!("Server started successfully at 0.0.0.0:3000");
     axum::serve(listener, app).await.unwrap();
+}
+
+//the request's id, kept from an x-request-id header if the caller sent one, and its route rather than its path, so
+//requests group by endpoint and usernames and ids stay out of the logs. Unmatched requests log their path instead
+fn request_span(req: &Request) -> Span {
+    let id = req.extensions().get::<RequestId>().and_then(|id| id.header_value().to_str().ok()).unwrap_or_default();
+    let route = req.extensions().get::<MatchedPath>().map_or(req.uri().path(), |p| p.as_str());
+    tracing::info_span!("request", id, method = %req.method(), route)
 }
 
 async fn health_check() -> impl IntoResponse {

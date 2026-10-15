@@ -1,0 +1,1742 @@
+{
+ "chris": {
+  "Achievement-Striving": {
+   "value": 0.45,
+   "confidence": 0.6
+  },
+  "Activity Level": {
+   "value": 0.45,
+   "confidence": 0.75
+  },
+  "Adaptability": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Adventurousness": {
+   "value": 0.5,
+   "confidence": 0.65
+  },
+  "Altruism": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Anger": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Anxiety": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Artistic Interests": {
+   "value": 0.35,
+   "confidence": 0.65
+  },
+  "Assertiveness": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Boldness": {
+   "value": 0.35,
+   "confidence": 0.75
+  },
+  "Cautiousness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Cheerfulness": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Competitiveness": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Cooperation": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Decisiveness": {
+   "value": 0.6,
+   "confidence": 0.65
+  },
+  "Depression": {
+   "value": 0.25,
+   "confidence": 0.65
+  },
+  "Dutifulness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Emotionality": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Excitement-Seeking": {
+   "value": 0.25,
+   "confidence": 0.7
+  },
+  "Fairness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Friendliness": {
+   "value": 0.5,
+   "confidence": 0.65
+  },
+  "Gregariousness": {
+   "value": 0.4,
+   "confidence": 0.7
+  },
+  "Imagination": {
+   "value": 0.2,
+   "confidence": 0.65
+  },
+  "Immoderation": {
+   "value": 0.25,
+   "confidence": 0.75
+  },
+  "Independence": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Intellect": {
+   "value": 0.5,
+   "confidence": 0.65
+  },
+  "Liberalism": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Modesty": {
+   "value": 0.6,
+   "confidence": 0.75
+  },
+  "Morality": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Optimism": {
+   "value": 0.6,
+   "confidence": 0.75
+  },
+  "Orderliness": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Patience": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Perfectionism": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Playfulness": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Resilience": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Self-Consciousness": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Self-Discipline": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Self-Efficacy": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Sensory Sensitivity": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Stubbornness": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Sympathy": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Trust": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Vulnerability": {
+   "value": 0.25,
+   "confidence": 0.75
+  }
+ },
+ "kai": {
+  "Achievement-Striving": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Activity Level": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Adaptability": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Adventurousness": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Altruism": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Anger": {
+   "value": 0.15,
+   "confidence": 0.85
+  },
+  "Anxiety": {
+   "value": 0.1,
+   "confidence": 0.9
+  },
+  "Artistic Interests": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Assertiveness": {
+   "value": 0.25,
+   "confidence": 0.7
+  },
+  "Boldness": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Cautiousness": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Cheerfulness": {
+   "value": 0.78,
+   "confidence": 0.9
+  },
+  "Competitiveness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Cooperation": {
+   "value": 0.72,
+   "confidence": 0.85
+  },
+  "Decisiveness": {
+   "value": 0.78,
+   "confidence": 0.9
+  },
+  "Depression": {
+   "value": 0.15,
+   "confidence": 0.85
+  },
+  "Dutifulness": {
+   "value": 0.35,
+   "confidence": 0.85
+  },
+  "Emotionality": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Excitement-Seeking": {
+   "value": 0.82,
+   "confidence": 0.9
+  },
+  "Fairness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Friendliness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Gregariousness": {
+   "value": 0.82,
+   "confidence": 0.9
+  },
+  "Imagination": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Immoderation": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Independence": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Intellect": {
+   "value": 0.35,
+   "confidence": 0.65
+  },
+  "Liberalism": {
+   "value": 0.6,
+   "confidence": 0.8
+  },
+  "Modesty": {
+   "value": 0.77,
+   "confidence": 0.9
+  },
+  "Morality": {
+   "value": 0.77,
+   "confidence": 0.9
+  },
+  "Optimism": {
+   "value": 0.78,
+   "confidence": 0.9
+  },
+  "Orderliness": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Patience": {
+   "value": 0.3,
+   "confidence": 0.8
+  },
+  "Perfectionism": {
+   "value": 0.3,
+   "confidence": 0.8
+  },
+  "Playfulness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Resilience": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Self-Consciousness": {
+   "value": 0.15,
+   "confidence": 0.9
+  },
+  "Self-Discipline": {
+   "value": 0.25,
+   "confidence": 0.9
+  },
+  "Self-Efficacy": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Sensory Sensitivity": {
+   "value": 0.15,
+   "confidence": 0.85
+  },
+  "Stubbornness": {
+   "value": 0.3,
+   "confidence": 0.8
+  },
+  "Sympathy": {
+   "value": 0.73,
+   "confidence": 0.85
+  },
+  "Trust": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Vulnerability": {
+   "value": 0.15,
+   "confidence": 0.9
+  }
+ },
+ "noor": {
+  "Achievement-Striving": {
+   "value": 0.7,
+   "confidence": 0.85
+  },
+  "Activity Level": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Adaptability": {
+   "value": 0.7,
+   "confidence": 0.75
+  },
+  "Adventurousness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Altruism": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Anger": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Anxiety": {
+   "value": 0.3,
+   "confidence": 0.7
+  },
+  "Artistic Interests": {
+   "value": 0.35,
+   "confidence": 0.65
+  },
+  "Assertiveness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Boldness": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Cautiousness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Cheerfulness": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Competitiveness": {
+   "value": 0.25,
+   "confidence": 0.7
+  },
+  "Cooperation": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Decisiveness": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Depression": {
+   "value": 0.25,
+   "confidence": 0.75
+  },
+  "Dutifulness": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Emotionality": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Excitement-Seeking": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Fairness": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Friendliness": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Gregariousness": {
+   "value": 0.2,
+   "confidence": 0.9
+  },
+  "Imagination": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Immoderation": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Independence": {
+   "value": 0.65,
+   "confidence": 0.7
+  },
+  "Intellect": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Liberalism": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Modesty": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Morality": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Optimism": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Orderliness": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Patience": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Perfectionism": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Playfulness": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Resilience": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Self-Consciousness": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Self-Discipline": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Self-Efficacy": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Sensory Sensitivity": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Stubbornness": {
+   "value": 0.4,
+   "confidence": 0.75
+  },
+  "Sympathy": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Trust": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Vulnerability": {
+   "value": 0.2,
+   "confidence": 0.85
+  }
+ },
+ "dev": {
+  "Achievement-Striving": {
+   "value": 0.72,
+   "confidence": 0.8
+  },
+  "Activity Level": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Adaptability": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Adventurousness": {
+   "value": 0.92,
+   "confidence": 0.95
+  },
+  "Altruism": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Anger": {
+   "value": 0.72,
+   "confidence": 0.85
+  },
+  "Anxiety": {
+   "value": 0.68,
+   "confidence": 0.8
+  },
+  "Artistic Interests": {
+   "value": 0.77,
+   "confidence": 0.8
+  },
+  "Assertiveness": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Boldness": {
+   "value": 0.83,
+   "confidence": 0.9
+  },
+  "Cautiousness": {
+   "value": 0.3,
+   "confidence": 0.85
+  },
+  "Cheerfulness": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Competitiveness": {
+   "value": 0.83,
+   "confidence": 0.9
+  },
+  "Cooperation": {
+   "value": 0.72,
+   "confidence": 0.8
+  },
+  "Decisiveness": {
+   "value": 0.88,
+   "confidence": 0.95
+  },
+  "Depression": {
+   "value": 0.15,
+   "confidence": 0.75
+  },
+  "Dutifulness": {
+   "value": 0.35,
+   "confidence": 0.85
+  },
+  "Emotionality": {
+   "value": 0.58,
+   "confidence": 0.65
+  },
+  "Excitement-Seeking": {
+   "value": 0.83,
+   "confidence": 0.9
+  },
+  "Fairness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Friendliness": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Gregariousness": {
+   "value": 0.87,
+   "confidence": 0.95
+  },
+  "Imagination": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Immoderation": {
+   "value": 0.72,
+   "confidence": 0.8
+  },
+  "Independence": {
+   "value": 0.77,
+   "confidence": 0.85
+  },
+  "Intellect": {
+   "value": 0.72,
+   "confidence": 0.8
+  },
+  "Liberalism": {
+   "value": 0.73,
+   "confidence": 0.85
+  },
+  "Modesty": {
+   "value": 0.78,
+   "confidence": 0.9
+  },
+  "Morality": {
+   "value": 0.48,
+   "confidence": 0.9
+  },
+  "Optimism": {
+   "value": 0.82,
+   "confidence": 0.9
+  },
+  "Orderliness": {
+   "value": 0.25,
+   "confidence": 0.9
+  },
+  "Patience": {
+   "value": 0.25,
+   "confidence": 0.9
+  },
+  "Perfectionism": {
+   "value": 0.3,
+   "confidence": 0.85
+  },
+  "Playfulness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Resilience": {
+   "value": 0.82,
+   "confidence": 0.9
+  },
+  "Self-Consciousness": {
+   "value": 0.43,
+   "confidence": 0.75
+  },
+  "Self-Discipline": {
+   "value": 0.28,
+   "confidence": 0.9
+  },
+  "Self-Efficacy": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Sensory Sensitivity": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Stubbornness": {
+   "value": 0.6,
+   "confidence": 0.85
+  },
+  "Sympathy": {
+   "value": 0.78,
+   "confidence": 0.9
+  },
+  "Trust": {
+   "value": 0.48,
+   "confidence": 0.8
+  },
+  "Vulnerability": {
+   "value": 0.45,
+   "confidence": 0.75
+  }
+ },
+ "grace": {
+  "Achievement-Striving": {
+   "value": 0.35,
+   "confidence": 0.6
+  },
+  "Activity Level": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Adaptability": {
+   "value": 0.68,
+   "confidence": 0.75
+  },
+  "Adventurousness": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Altruism": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Anger": {
+   "value": 0.15,
+   "confidence": 0.8
+  },
+  "Anxiety": {
+   "value": 0.2,
+   "confidence": 0.75
+  },
+  "Artistic Interests": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Assertiveness": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Boldness": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Cautiousness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Cheerfulness": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Competitiveness": {
+   "value": 0.15,
+   "confidence": 0.75
+  },
+  "Cooperation": {
+   "value": 0.72,
+   "confidence": 0.8
+  },
+  "Decisiveness": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Depression": {
+   "value": 0.15,
+   "confidence": 0.75
+  },
+  "Dutifulness": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Emotionality": {
+   "value": 0.6,
+   "confidence": 0.75
+  },
+  "Excitement-Seeking": {
+   "value": 0.45,
+   "confidence": 0.65
+  },
+  "Fairness": {
+   "value": 0.88,
+   "confidence": 0.9
+  },
+  "Friendliness": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Gregariousness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Imagination": {
+   "value": 0.4,
+   "confidence": 0.65
+  },
+  "Immoderation": {
+   "value": 0.15,
+   "confidence": 0.85
+  },
+  "Independence": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Intellect": {
+   "value": 0.5,
+   "confidence": 0.65
+  },
+  "Liberalism": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Modesty": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Morality": {
+   "value": 0.88,
+   "confidence": 0.9
+  },
+  "Optimism": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Orderliness": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Patience": {
+   "value": 0.72,
+   "confidence": 0.8
+  },
+  "Perfectionism": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Playfulness": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Resilience": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Self-Consciousness": {
+   "value": 0.2,
+   "confidence": 0.75
+  },
+  "Self-Discipline": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Self-Efficacy": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Sensory Sensitivity": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Stubbornness": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Sympathy": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Trust": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Vulnerability": {
+   "value": 0.15,
+   "confidence": 0.85
+  }
+ },
+ "jules": {
+  "Achievement-Striving": {
+   "value": 0.35,
+   "confidence": 0.75
+  },
+  "Activity Level": {
+   "value": 0.15,
+   "confidence": 0.9
+  },
+  "Adaptability": {
+   "value": 0.35,
+   "confidence": 0.7
+  },
+  "Adventurousness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Altruism": {
+   "value": 0.45,
+   "confidence": 0.75
+  },
+  "Anger": {
+   "value": 0.25,
+   "confidence": 0.7
+  },
+  "Anxiety": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Artistic Interests": {
+   "value": 0.3,
+   "confidence": 0.65
+  },
+  "Assertiveness": {
+   "value": 0.15,
+   "confidence": 0.85
+  },
+  "Boldness": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Cautiousness": {
+   "value": 0.4,
+   "confidence": 0.7
+  },
+  "Cheerfulness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Competitiveness": {
+   "value": 0.55,
+   "confidence": 0.8
+  },
+  "Cooperation": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Decisiveness": {
+   "value": 0.3,
+   "confidence": 0.8
+  },
+  "Depression": {
+   "value": 0.65,
+   "confidence": 0.85
+  },
+  "Dutifulness": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Emotionality": {
+   "value": 0.55,
+   "confidence": 0.75
+  },
+  "Excitement-Seeking": {
+   "value": 0.25,
+   "confidence": 0.7
+  },
+  "Fairness": {
+   "value": 0.4,
+   "confidence": 0.8
+  },
+  "Friendliness": {
+   "value": 0.45,
+   "confidence": 0.75
+  },
+  "Gregariousness": {
+   "value": 0.15,
+   "confidence": 0.9
+  },
+  "Imagination": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Immoderation": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Independence": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Intellect": {
+   "value": 0.35,
+   "confidence": 0.65
+  },
+  "Liberalism": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Modesty": {
+   "value": 0.5,
+   "confidence": 0.8
+  },
+  "Morality": {
+   "value": 0.45,
+   "confidence": 0.85
+  },
+  "Optimism": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Orderliness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Patience": {
+   "value": 0.35,
+   "confidence": 0.7
+  },
+  "Perfectionism": {
+   "value": 0.7,
+   "confidence": 0.85
+  },
+  "Playfulness": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Resilience": {
+   "value": 0.2,
+   "confidence": 0.9
+  },
+  "Self-Consciousness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Self-Discipline": {
+   "value": 0.2,
+   "confidence": 0.9
+  },
+  "Self-Efficacy": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Sensory Sensitivity": {
+   "value": 0.6,
+   "confidence": 0.8
+  },
+  "Stubbornness": {
+   "value": 0.6,
+   "confidence": 0.8
+  },
+  "Sympathy": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Trust": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Vulnerability": {
+   "value": 0.75,
+   "confidence": 0.9
+  }
+ },
+ "morgan": {
+  "Achievement-Striving": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Activity Level": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Adaptability": {
+   "value": 0.68,
+   "confidence": 0.75
+  },
+  "Adventurousness": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Altruism": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Anger": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Anxiety": {
+   "value": 0.35,
+   "confidence": 0.75
+  },
+  "Artistic Interests": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Assertiveness": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Boldness": {
+   "value": 0.55,
+   "confidence": 0.8
+  },
+  "Cautiousness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Cheerfulness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Competitiveness": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Cooperation": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Decisiveness": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Depression": {
+   "value": 0.15,
+   "confidence": 0.8
+  },
+  "Dutifulness": {
+   "value": 0.88,
+   "confidence": 0.9
+  },
+  "Emotionality": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Excitement-Seeking": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Fairness": {
+   "value": 0.55,
+   "confidence": 0.75
+  },
+  "Friendliness": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Gregariousness": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Imagination": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Immoderation": {
+   "value": 0.15,
+   "confidence": 0.85
+  },
+  "Independence": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Intellect": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Liberalism": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Modesty": {
+   "value": 0.4,
+   "confidence": 0.8
+  },
+  "Morality": {
+   "value": 0.6,
+   "confidence": 0.8
+  },
+  "Optimism": {
+   "value": 0.4,
+   "confidence": 0.7
+  },
+  "Orderliness": {
+   "value": 0.88,
+   "confidence": 0.9
+  },
+  "Patience": {
+   "value": 0.6,
+   "confidence": 0.8
+  },
+  "Perfectionism": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Playfulness": {
+   "value": 0.3,
+   "confidence": 0.7
+  },
+  "Resilience": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Self-Consciousness": {
+   "value": 0.25,
+   "confidence": 0.75
+  },
+  "Self-Discipline": {
+   "value": 0.88,
+   "confidence": 0.9
+  },
+  "Self-Efficacy": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Sensory Sensitivity": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Stubbornness": {
+   "value": 0.78,
+   "confidence": 0.85
+  },
+  "Sympathy": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Trust": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Vulnerability": {
+   "value": 0.15,
+   "confidence": 0.85
+  }
+ },
+ "ray": {
+  "Achievement-Striving": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Activity Level": {
+   "value": 0.25,
+   "confidence": 0.9
+  },
+  "Adaptability": {
+   "value": 0.3,
+   "confidence": 0.7
+  },
+  "Adventurousness": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Altruism": {
+   "value": 0.4,
+   "confidence": 0.7
+  },
+  "Anger": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Anxiety": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Artistic Interests": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Assertiveness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Boldness": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Cautiousness": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Cheerfulness": {
+   "value": 0.3,
+   "confidence": 0.8
+  },
+  "Competitiveness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Cooperation": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Decisiveness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Depression": {
+   "value": 0.65,
+   "confidence": 0.85
+  },
+  "Dutifulness": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Emotionality": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Excitement-Seeking": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Fairness": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Friendliness": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Gregariousness": {
+   "value": 0.35,
+   "confidence": 0.85
+  },
+  "Imagination": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Immoderation": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Independence": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Intellect": {
+   "value": 0.4,
+   "confidence": 0.7
+  },
+  "Liberalism": {
+   "value": 0.6,
+   "confidence": 0.8
+  },
+  "Modesty": {
+   "value": 0.4,
+   "confidence": 0.75
+  },
+  "Morality": {
+   "value": 0.3,
+   "confidence": 0.85
+  },
+  "Optimism": {
+   "value": 0.3,
+   "confidence": 0.85
+  },
+  "Orderliness": {
+   "value": 0.35,
+   "confidence": 0.85
+  },
+  "Patience": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Perfectionism": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Playfulness": {
+   "value": 0.55,
+   "confidence": 0.7
+  },
+  "Resilience": {
+   "value": 0.4,
+   "confidence": 0.8
+  },
+  "Self-Consciousness": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Self-Discipline": {
+   "value": 0.4,
+   "confidence": 0.8
+  },
+  "Self-Efficacy": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Sensory Sensitivity": {
+   "value": 0.7,
+   "confidence": 0.85
+  },
+  "Stubbornness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Sympathy": {
+   "value": 0.5,
+   "confidence": 0.75
+  },
+  "Trust": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Vulnerability": {
+   "value": 0.6,
+   "confidence": 0.8
+  }
+ },
+ "ruth": {
+  "Achievement-Striving": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Activity Level": {
+   "value": 0.25,
+   "confidence": 0.95
+  },
+  "Adaptability": {
+   "value": 0.45,
+   "confidence": 0.6
+  },
+  "Adventurousness": {
+   "value": 0.2,
+   "confidence": 0.9
+  },
+  "Altruism": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Anger": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Anxiety": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Artistic Interests": {
+   "value": 0.3,
+   "confidence": 0.6
+  },
+  "Assertiveness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Boldness": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Cautiousness": {
+   "value": 0.75,
+   "confidence": 0.9
+  },
+  "Cheerfulness": {
+   "value": 0.35,
+   "confidence": 0.65
+  },
+  "Competitiveness": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Cooperation": {
+   "value": 0.7,
+   "confidence": 0.85
+  },
+  "Decisiveness": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Depression": {
+   "value": 0.4,
+   "confidence": 0.7
+  },
+  "Dutifulness": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Emotionality": {
+   "value": 0.55,
+   "confidence": 0.75
+  },
+  "Excitement-Seeking": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Fairness": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Friendliness": {
+   "value": 0.6,
+   "confidence": 0.75
+  },
+  "Gregariousness": {
+   "value": 0.2,
+   "confidence": 0.95
+  },
+  "Imagination": {
+   "value": 0.3,
+   "confidence": 0.7
+  },
+  "Immoderation": {
+   "value": 0.2,
+   "confidence": 0.85
+  },
+  "Independence": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Intellect": {
+   "value": 0.4,
+   "confidence": 0.6
+  },
+  "Liberalism": {
+   "value": 0.25,
+   "confidence": 0.85
+  },
+  "Modesty": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Morality": {
+   "value": 0.85,
+   "confidence": 0.9
+  },
+  "Optimism": {
+   "value": 0.35,
+   "confidence": 0.6
+  },
+  "Orderliness": {
+   "value": 0.8,
+   "confidence": 0.95
+  },
+  "Patience": {
+   "value": 0.65,
+   "confidence": 0.8
+  },
+  "Perfectionism": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Playfulness": {
+   "value": 0.2,
+   "confidence": 0.75
+  },
+  "Resilience": {
+   "value": 0.4,
+   "confidence": 0.75
+  },
+  "Self-Consciousness": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Self-Discipline": {
+   "value": 0.85,
+   "confidence": 0.95
+  },
+  "Self-Efficacy": {
+   "value": 0.35,
+   "confidence": 0.8
+  },
+  "Sensory Sensitivity": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Stubbornness": {
+   "value": 0.45,
+   "confidence": 0.7
+  },
+  "Sympathy": {
+   "value": 0.8,
+   "confidence": 0.9
+  },
+  "Trust": {
+   "value": 0.45,
+   "confidence": 0.75
+  },
+  "Vulnerability": {
+   "value": 0.65,
+   "confidence": 0.85
+  }
+ },
+ "sam": {
+  "Achievement-Striving": {
+   "value": 0.35,
+   "confidence": 0.6
+  },
+  "Activity Level": {
+   "value": 0.4,
+   "confidence": 0.75
+  },
+  "Adaptability": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Adventurousness": {
+   "value": 0.85,
+   "confidence": 0.85
+  },
+  "Altruism": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Anger": {
+   "value": 0.15,
+   "confidence": 0.8
+  },
+  "Anxiety": {
+   "value": 0.3,
+   "confidence": 0.7
+  },
+  "Artistic Interests": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Assertiveness": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Boldness": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Cautiousness": {
+   "value": 0.5,
+   "confidence": 0.7
+  },
+  "Cheerfulness": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Competitiveness": {
+   "value": 0.2,
+   "confidence": 0.75
+  },
+  "Cooperation": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Decisiveness": {
+   "value": 0.6,
+   "confidence": 0.75
+  },
+  "Depression": {
+   "value": 0.35,
+   "confidence": 0.7
+  },
+  "Dutifulness": {
+   "value": 0.65,
+   "confidence": 0.75
+  },
+  "Emotionality": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Excitement-Seeking": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Fairness": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Friendliness": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Gregariousness": {
+   "value": 0.4,
+   "confidence": 0.75
+  },
+  "Imagination": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Immoderation": {
+   "value": 0.2,
+   "confidence": 0.8
+  },
+  "Independence": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Intellect": {
+   "value": 0.6,
+   "confidence": 0.7
+  },
+  "Liberalism": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Modesty": {
+   "value": 0.75,
+   "confidence": 0.85
+  },
+  "Morality": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Optimism": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Orderliness": {
+   "value": 0.3,
+   "confidence": 0.75
+  },
+  "Patience": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Perfectionism": {
+   "value": 0.5,
+   "confidence": 0.75
+  },
+  "Playfulness": {
+   "value": 0.7,
+   "confidence": 0.8
+  },
+  "Resilience": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Self-Consciousness": {
+   "value": 0.4,
+   "confidence": 0.75
+  },
+  "Self-Discipline": {
+   "value": 0.3,
+   "confidence": 0.8
+  },
+  "Self-Efficacy": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Sensory Sensitivity": {
+   "value": 0.35,
+   "confidence": 0.7
+  },
+  "Stubbornness": {
+   "value": 0.25,
+   "confidence": 0.8
+  },
+  "Sympathy": {
+   "value": 0.8,
+   "confidence": 0.85
+  },
+  "Trust": {
+   "value": 0.75,
+   "confidence": 0.8
+  },
+  "Vulnerability": {
+   "value": 0.2,
+   "confidence": 0.75
+  }
+ }
+}

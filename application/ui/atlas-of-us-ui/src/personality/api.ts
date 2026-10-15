@@ -15,9 +15,6 @@ export interface SavedAnswer {
   answered_date: string;
 }
 
-export const getQuestions = (scenario: string) =>
-  request<ScenarioQuestion[]>('GET', `/personality/scenarios/${encodeURIComponent(scenario)}/questions`);
-
 //the longest answer or reasoning the api keeps, in characters
 export const MAX_ANSWER_LENGTH = 2000;
 
@@ -29,15 +26,21 @@ export interface AnswerClock {
 }
 
 //replaces any earlier answer to the same question. The last answer of a scenario also starts rescoring the user's
-//traits in the background, and scored says it did
-export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, clock?: AnswerClock) =>
-  request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, context, clock });
+//traits in the background, and scored says it did. facets are the traits the question was written to draw out, so the
+//scorer knows what the person had a chance to show
+export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, facets: string[], clock?: AnswerClock) =>
+  request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, context, facets, clock });
 
 //whether the user's traits are still being rescored. No new scenario starts until it's done
 export const getScoring = () => request<{ running: boolean }>('GET', '/personality/scoring');
 
-//every question the logged in user has answered
-export const getProgress = () => request<SavedAnswer[]>('GET', '/personality/progress');
+export interface Progress {
+  answers: SavedAnswer[]; //every question the logged in user has answered
+  questions: Record<string, ScenarioQuestion[]>; //every scenario's questions in the order they're asked, keyed by scenario name
+}
+
+//the user's answers, and every scenario's questions to tell in progress from complete
+export const getProgress = () => request<Progress>('GET', '/personality/progress');
 
 export interface TraitInfo {
   id: string;

@@ -1,7 +1,7 @@
 //the Atlas of Us job worker. The api queues slow work on SQS, and Lambda invokes this with one record at a time
 mod personality;
 
-use std::env;
+use std::{env, io::IsTerminal};
 
 use neo4rs::Graph;
 use serde::Deserialize;
@@ -23,10 +23,15 @@ async fn run(graph: &Graph, body: &str) {
 
 #[tokio::main]
 async fn main() {
-    //logs go to stdout. RUST_LOG overrides the level, e.g. RUST_LOG=debug
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
-        .init();
+    //logs go to stdout, which lambda sends to cloudwatch. Readable text in a terminal, and json lines everywhere else so
+    //their fields can be searched. RUST_LOG overrides the level, e.g. RUST_LOG=debug
+    let logs = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()));
+    if std::io::stdout().is_terminal() {
+        logs.init();
+    } else {
+        logs.json().flatten_event(true).init();
+    }
 
     let graph = Graph::new(
         env::var("NEO4J_URI").unwrap_or_else(|_| "127.0.0.1:7687".to_string()),

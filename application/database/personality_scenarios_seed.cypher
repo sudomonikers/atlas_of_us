@@ -46,7 +46,8 @@ UNWIND [
   {name: 'proven_wrong',         title: 'Proven Wrong'},
   {name: 'the_water',            title: 'The Water'},
   {name: 'black_clay',           title: 'The Black Clay'},
-  {name: 'owambe',               title: 'The Owambe'}
+  {name: 'owambe',               title: 'The Owambe'},
+  {name: 'soap_house',           title: 'The Soap House'}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
 SET s.title = scenario.title;
@@ -261,6 +262,19 @@ UNWIND [
   {order: 5, key: 'in_the_dark',    prompt: 'What do you do?'},
   {order: 6, key: 'the_note',       prompt: 'Write your note to Tolu and Emeka, to open ten years from now.'},
   {order: 7, real_life: true, key: 'your_tradition', prompt: 'Away from Lagos now. Think of a tradition in your own family or culture. Do you keep it, change it, or let it go, and why?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+
+MATCH (s:PersonalityScenario {name: 'soap_house'})
+UNWIND [
+  {order: 0, key: 'the_praise', prompt: 'Everyone near you heard. What do you say?'},
+  {order: 1, key: 'the_will',   prompt: 'They both look at you. What do you think is fair here, and what do you say?'},
+  {order: 2, key: 'the_sale',   prompt: 'Mr. Haddad is waiting for an answer. What do you do?'},
+  {order: 3, key: 'abu_samir',  prompt: 'Do you give Abu Samir anything from your own share? What, if anything, and why?'},
+  {order: 4, key: 'the_seal',   prompt: 'There is one seal. Who should have it?'},
+  {order: 5, key: 'the_rift',   prompt: 'They each want you on their side. What do you do?'},
+  {order: 6, real_life: true, key: 'your_share', prompt: "Away from Aleppo now. Think of a time you had to share something that couldn't be split evenly: money, work, credit, or someone's time and care. How did you split it, and did everyone think it was fair?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);

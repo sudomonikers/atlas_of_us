@@ -97,8 +97,9 @@ function PersonalitySection({ profile }: { profile: ProfileData }) {
           <ul style={styles.traits}>
             {domain.traits.map((t) => {
               const percent = Math.round(Math.min(Math.max(t.value, 0), 1) * 100);
+              const early = t.confidence < 0.5; //based on little evidence, so shown faded
               return (
-                <li key={t.id} style={styles.trait}>
+                <li key={t.id} style={{ ...styles.trait, ...(early ? styles.tentative : {}) }} title={early ? 'Early read: based on only a little so far' : undefined}>
                   <span style={styles.traitName}>{t.name}</span>
                   <div style={styles.scale} role="meter" aria-label={t.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
                     <div style={styles.track}>
@@ -245,6 +246,9 @@ const styles: Record<string, CSSProperties> = {
     margin: '2px 4px 0',
     fontSize: 14,
     opacity: 0.6,
+  },
+  tentative: {
+    opacity: 0.5,
   },
   value: {
     width: 40,

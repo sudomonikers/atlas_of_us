@@ -1,9 +1,12 @@
 
+use std::collections::HashMap;
+
 use aws_sdk_sqs::error::DisplayErrorContext;
-use axum::{Json, Router, extract::{Path, State}, http::StatusCode, routing::{get, post, put}};
+use axum::{Extension, Json, Router, extract::{Path, State}, http::StatusCode, routing::{get, post, put}};
 use neo4rs::query;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tower_http::request_id::RequestId;
 
 use crate::{auth::AuthUser, state::AppState};
 
@@ -13,9 +16,8 @@ pub fn router() -> Router<AppState> {
         .route("/explore", get(get_explore))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/profiles/{username}", get(get_profile))
-        .route("/scenarios/{name}/questions", get(list_scenario_questions))
-        .route("/answers", put(answer_question))
-        .route("/progress", get(get_progress))
+        .route("/answers", put(answer_question).delete(clear_answers))
+        .route("/progress", get(get_user_scenario_progress))
         .route("/rescore", post(rescore_personality))
         .route("/scoring", get(get_scoring))
 }
@@ -254,31 +256,6 @@ pub struct ScenarioQuestion {
     prompt: String,
 }
 
-//the questions in a scenario, in the order they're asked. Empty if the scenario doesn't exist
-pub async fn list_scenario_questions(
-    State(state): State<AppState>,
-    Path(name): Path<String>,
-) -> Result<Json<Vec<ScenarioQuestion>>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-
-    let mut rows = state.graph.execute(query("
-        MATCH (:PersonalityScenario {name: $name})-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)
-        RETURN elementId(q) AS id, q.key AS key, q.prompt AS prompt
-        ORDER BY q.order
-    ")
-        .param("name", name)
-    ).await.map_err(|e| internal(&e))?;
-
-    let mut questions = Vec::new();
-    while let Some(row) = rows.next().await.map_err(|e| internal(&e))? {
-        questions.push(row.to::<ScenarioQuestion>().map_err(|e| internal(&e))?);
-    }
-    Ok(Json(questions))
-}
-
 const MAX_ANSWER_CHARS: usize = 2000;
 const MAX_CONTEXT_CHARS: usize = 8000;
 const MAX_CLOCK_SECONDS: i64 = 24 * 60 * 60;
@@ -290,6 +267,8 @@ pub struct AnswerPayload {
     reasoning: Option<String>, //why, in the user's words
     context: String, //the story the user saw just before the question, and the choices offered, for the scorer
     clock: Option<AnswerClock>, //only for answers given once a scenario's clock has started
+    #[serde(default)]
+    facets: Vec<String>, //the traits the question was written to draw out
 }
 
 //where the scenario's clock stood when the answer was given
@@ -314,14 +293,17 @@ pub struct Answer {
 pub struct AnswerResponse {
     #[serde(flatten)]
     answer: Answer,
-    scored: bool, //this answer finished the scenario, so the person's traits are being rescored in the background
+    scored: bool, //this answer finished a scenario and brought the person to a multiple of SCORE_EVERY, so their traits are being rescored
 }
 
 //saves the logged in user's answer, replacing any earlier answer to the same question.
-//Answering the last question of a scenario starts a scoring job, which rescores the person's traits in the background
+//Answering the first question of a scenario starts a fresh run, so it first clears the rest of their answers to it: a
+//replay down another branch, or one where the clock runs out sooner, would otherwise keep answers from the old run.
+//Finishing every SCORE_EVERY-th scenario starts a scoring job, which rescores the person's traits from all their answers
 pub async fn answer_question(
     State(state): State<AppState>,
     user: AuthUser,
+    Extension(request_id): Extension<RequestId>,
     Json(body): Json<AnswerPayload>,
 ) -> Result<Json<AnswerResponse>, (StatusCode, String)> {
     let internal = |e: &dyn std::fmt::Display| {
@@ -339,12 +321,28 @@ pub async fn answer_question(
         return Err((StatusCode::BAD_REQUEST, "That scenario's clock doesn't look right. Try reloading the page.".to_string()));
     }
 
+    //a first answer clears the old run's answers, each in its own transaction. Deleting a relationship locks the question
+    //at its other end, and players share questions: one transaction locking several of them deadlocked against the
+    //others when many people started the same scene at once
+    tracing::debug!("answer {}: clearing an old run", user.person_id);
+    state.graph.run(query("
+        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
+          AND NOT EXISTS { (s)-[:HAS_QUESTION]->(earlier:PersonalityScenarioQuestion) WHERE earlier.order < q.order }
+        MATCH (p)-[old:ANSWERED]->(other:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s) WHERE other <> q
+        CALL (old) { DELETE old } IN TRANSACTIONS OF 1 ROW
+    ")
+        .param("personId", user.person_id.clone())
+        .param("questionId", body.question_id.clone())
+    ).await.map_err(|e| internal(&e))?;
+
+    tracing::debug!("answer {}: saving", user.person_id);
     let mut rows = state.graph.execute(query("
         MATCH (p:Person) WHERE elementId(p) = $personId
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
         MERGE (p)-[a:ANSWERED]->(q)
         SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(),
-            a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut
+            a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut, a.facets = $facets
         WITH s, q, a
         MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
         WITH s, q, a, max(each.order) AS last
@@ -361,6 +359,7 @@ pub async fn answer_question(
         .param("clockSeconds", body.clock.as_ref().map(|c| c.seconds))
         .param("clockLeft", body.clock.as_ref().map(|c| c.left))
         .param("clockRanOut", body.clock.as_ref().map(|c| c.ran_out))
+        .param("facets", body.facets)
     ).await.map_err(|e| internal(&e))?;
     let Some(row) = rows.next().await.map_err(|e| internal(&e))? else {
         return Err((StatusCode::NOT_FOUND, "That question doesn't exist anymore. Try reloading the page.".to_string()));
@@ -369,15 +368,38 @@ pub async fn answer_question(
 
     //only on the last question, so replaying a finished scenario doesn't rescore on its first answer.
     //Earlier questions can go unanswered, when a scenario's clock runs out before them
-    let scored = row.get::<bool>("last_question").map_err(|e| internal(&e))?;
+    let finished = row.get::<bool>("last_question").map_err(|e| internal(&e))?;
+    //the stream holds its pooled connection until it's dropped, and what follows needs connections of its own
+    drop(rows);
+    let scored = finished && finished_scenarios(&state, &user.person_id).await.map_err(|e| internal(&e))? % SCORE_EVERY == 0;
     if scored {
-        start_scoring(&state, &user.person_id, Some(&answer.scenario)).await.map_err(|e| internal(&e))?;
+        tracing::debug!("answer {}: finished a multiple of {SCORE_EVERY} scenarios, starting scoring", user.person_id);
+        start_scoring(&state, &user.person_id, &request_id).await.map_err(|e| internal(&e))?;
     }
     Ok(Json(AnswerResponse { answer, scored }))
 }
 
-//every scenario question the logged in user has answered
-pub async fn get_progress(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<Answer>>, (StatusCode, String)> {
+pub async fn clear_answers(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
+    state.graph.run(query("
+        MATCH (p:Person) WHERE elementId(p) = $personId
+        OPTIONAL MATCH (p)-[a:ANSWERED|HAS_PERSONALITY_TRAIT]->()
+        DELETE a
+    ")
+        .param("personId", user.person_id)
+    ).await.map_err(|e| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    })?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Serialize)]
+pub struct Progress {
+    answers: Vec<Answer>, //every question the logged in user has answered
+    questions: HashMap<String, Vec<ScenarioQuestion>>, //every scenario's questions in the order they're asked, keyed by scenario name
+}
+
+pub async fn get_user_scenario_progress(State(state): State<AppState>, user: AuthUser) -> Result<Json<Progress>, (StatusCode, String)> {
     let internal = |e: &dyn std::fmt::Display| {
         tracing::error!("{e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
@@ -390,23 +412,36 @@ pub async fn get_progress(State(state): State<AppState>, user: AuthUser) -> Resu
                a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date
         ORDER BY s.name, q.order
     ")
-        .param("personId", user.person_id)
+        .param("personId", user.person_id.clone())
     ).await.map_err(|e| internal(&e))?;
-
     let mut answers = Vec::new();
     while let Some(row) = rows.next().await.map_err(|e| internal(&e))? {
         answers.push(row.to::<Answer>().map_err(|e| internal(&e))?);
     }
-    Ok(Json(answers))
+    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
+
+    let mut rows = state.graph.execute(query("
+        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)
+        WITH s, q ORDER BY q.order
+        RETURN s.name AS name, collect({id: elementId(q), key: q.key, prompt: q.prompt}) AS questions
+    ")).await.map_err(|e| internal(&e))?;
+    let mut questions = HashMap::new();
+    while let Some(row) = rows.next().await.map_err(|e| internal(&e))? {
+        questions.insert(row.get::<String>("name").map_err(|e| internal(&e))?, row.get("questions").map_err(|e| internal(&e))?);
+    }
+    Ok(Json(Progress { answers, questions }))
 }
 
-//rescores the logged in user without finishing a scenario, e.g. after changing the prompt. Responds once the job has started
-pub async fn rescore_personality(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
+pub async fn rescore_personality(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Extension(request_id): Extension<RequestId>,
+) -> Result<StatusCode, (StatusCode, String)> {
     let internal = |e: &dyn std::fmt::Display| {
         tracing::error!("{e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
     };
-    start_scoring(&state, &user.person_id, None).await.map_err(|e| internal(&e))?;
+    start_scoring(&state, &user.person_id, &request_id).await.map_err(|e| internal(&e))?;
     Ok(StatusCode::ACCEPTED)
 }
 
@@ -455,12 +490,31 @@ struct ScoredAnswer {
     id: String, //the ANSWERED relationship's id
     scenario: String,
     prompt: String,
+    real_life: bool, //the question asks about the person's own life rather than the story
     context: Option<String>, //the story the person saw just before the question
     answer: String,
     reasoning: Option<String>,
     clock_seconds: Option<i64>,
     clock_left: Option<i64>,
     clock_ran_out: Option<bool>,
+    facets: Option<Vec<String>>, //the traits the question was written to draw out, missing on older answers
+}
+
+//traits are rescored, from all of a person's answers, each time they've finished this many more scenarios
+const SCORE_EVERY: i64 = 5;
+
+//how many scenarios the person has finished, meaning they've answered its last question
+async fn finished_scenarios(state: &AppState, person_id: &str) -> Result<i64, BoxError> {
+    let mut rows = state.graph.execute(query("
+        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
+        WITH s, max(each.order) AS last
+        MATCH (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {order: last})<-[:ANSWERED]-(p:Person)
+        WHERE elementId(p) = $personId
+        RETURN count(DISTINCT s) AS finished
+    ")
+        .param("personId", person_id)
+    ).await?;
+    Ok(rows.next().await?.ok_or("no count")?.get::<i64>("finished")?)
 }
 
 //a job left this long is treated as finished: atlas-jobs has 15 minutes, and the queue gives a job two tries
@@ -471,6 +525,7 @@ const STALE_JOB_MINUTES: i64 = 35;
 struct ScoringJob {
     id: String, //the JobRunning node's id
     person_id: String,
+    request_id: String, //the request that queued it, so its logs and the job's can be found together
     answers: Vec<ScoredAnswer>,
     traits: Vec<JobTrait>,
 }
@@ -483,58 +538,68 @@ struct JobTrait {
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-//gathers the person's answers to one scenario, or to all of them when there's none, into a scoring job,
-//marks it running on the person, and queues it for atlas-jobs.
-//Without a queue (running locally) the job is logged instead, to run through atlas-jobs by hand
-async fn start_scoring(state: &AppState, person_id: &str, scenario: Option<&str>) -> Result<(), BoxError> {
+async fn start_scoring(state: &AppState, person_id: &str, request_id: &RequestId) -> Result<(), BoxError> {
     let graph = &state.graph;
-    let mut rows = graph.execute(query("
-        MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-        WHERE elementId(p) = $personId AND ($scenario IS NULL OR s.name = $scenario)
-        RETURN elementId(a) AS id, s.title AS scenario, q.prompt AS prompt, a.context AS context,
-               a.answer AS answer, a.reasoning AS reasoning,
-               a.clockSeconds AS clock_seconds, a.clockLeft AS clock_left, a.clockRanOut AS clock_ran_out
-        ORDER BY s.name, q.order
-    ")
-        .param("personId", person_id)
-        .param("scenario", scenario)
-    ).await?;
-    let mut answers = Vec::new();
-    while let Some(row) = rows.next().await? {
-        answers.push(row.to::<ScoredAnswer>()?);
-    }
+    tracing::debug!("scoring {person_id}: reading answers");
+    let answers = {
+        let mut rows = graph.execute(query("
+            MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
+            WHERE elementId(p) = $personId
+            RETURN elementId(a) AS id, s.title AS scenario, q.prompt AS prompt, coalesce(q.real_life, false) AS real_life,
+                   a.context AS context,
+                   a.answer AS answer, a.reasoning AS reasoning,
+                   a.clockSeconds AS clock_seconds, a.clockLeft AS clock_left, a.clockRanOut AS clock_ran_out,
+                   a.facets AS facets
+            ORDER BY s.name, q.order
+        ")
+            .param("personId", person_id)
+        ).await?;
+        let mut answers = Vec::new();
+        while let Some(row) = rows.next().await? {
+            answers.push(row.to::<ScoredAnswer>()?);
+        }
+        answers
+    };
 
-    let mut rows = graph.execute(query("
-        MATCH (t:PersonalityTrait)
-        RETURN t.name AS name, t.description AS description
-        ORDER BY name
-    ")).await?;
-    let mut traits = Vec::new();
-    while let Some(row) = rows.next().await? {
-        traits.push(row.to::<JobTrait>()?);
-    }
+    tracing::debug!("scoring {person_id}: reading traits");
+    let traits = {
+        let mut rows = graph.execute(query("
+            MATCH (t:PersonalityTrait)
+            RETURN t.name AS name, t.description AS description
+            ORDER BY name
+        ")).await?;
+        let mut traits = Vec::new();
+        while let Some(row) = rows.next().await? {
+            traits.push(row.to::<JobTrait>()?);
+        }
+        traits
+    };
 
-    //the ui watches for this node, and stale ones left by a job that died are cleared on the way
-    let mut rows = graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
-        OPTIONAL MATCH (p)-[:HAS_JOB]->(stale:JobRunning)
-        WHERE stale.startedAt < datetime() - duration({minutes: $staleMinutes})
-        DETACH DELETE stale
-        WITH DISTINCT p
-        CREATE (p)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring', startedAt: datetime()})
-        RETURN elementId(j) AS id
-    ")
-        .param("personId", person_id)
-        .param("staleMinutes", STALE_JOB_MINUTES)
-    ).await?;
-    let id = rows.next().await?.ok_or("couldn't find the person to score")?.get::<String>("id")?;
-    let job = ScoringJob { id, person_id: person_id.to_string(), answers, traits };
+    tracing::debug!("scoring {person_id}: marking the job running");
+    let id = {
+        let mut rows = graph.execute(query("
+            MATCH (p:Person) WHERE elementId(p) = $personId
+            OPTIONAL MATCH (p)-[:HAS_JOB]->(stale:JobRunning)
+            WHERE stale.startedAt < datetime() - duration({minutes: $staleMinutes})
+            DETACH DELETE stale
+            WITH DISTINCT p
+            CREATE (p)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring', startedAt: datetime()})
+            RETURN elementId(j) AS id
+        ")
+            .param("personId", person_id)
+            .param("staleMinutes", STALE_JOB_MINUTES)
+        ).await?;
+        rows.next().await?.ok_or("couldn't find the person to score")?.get::<String>("id")?
+    };
+    let request_id = request_id.header_value().to_str().unwrap_or_default().to_string();
+    let job = ScoringJob { id, person_id: person_id.to_string(), request_id, answers, traits };
 
     let body = json!({"kind": "personality_scoring", "job": job}).to_string();
     let Some((sqs, url)) = &state.jobs_queue else {
         tracing::info!("JOBS_QUEUE_URL isn't set, so run this job through atlas-jobs by hand: {body}");
         return Ok(());
     };
+    tracing::debug!("scoring {person_id}: queueing");
     if let Err(e) = sqs.send_message().queue_url(url).message_body(body).send().await {
         //nothing will pick the job up, so don't leave the person locked out waiting for it
         graph.run(query("MATCH (j:JobRunning) WHERE elementId(j) = $id DETACH DELETE j").param("id", job.id)).await?;
