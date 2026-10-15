@@ -13,6 +13,7 @@ import { letDown } from './let_down/script';
 import { provenWrong } from './proven_wrong/script';
 import { theWater } from './the_water/script';
 import { blackClay } from './black_clay/script';
+import { owambe } from './owambe/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -36,6 +37,7 @@ const PaperLantern = lazy(() => import('./let_down/paper_lantern'));
 const TheHive = lazy(() => import('./proven_wrong/the_hive'));
 const Monsoon = lazy(() => import('./the_water/monsoon'));
 const Coyotepec = lazy(() => import('./black_clay/coyotepec'));
+const Signboard = lazy(() => import('./owambe/signboard'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -98,7 +100,6 @@ export type PersonalityTrait =
   | 'Independence'
   | 'Boldness'
   | 'Playfulness'
-  | 'Introspection'
   | 'Sensory Sensitivity'
   | 'Decisiveness'
   | 'Adaptability'
@@ -300,6 +301,13 @@ const SCENARIOS: ScenarioInfo[] = [
     blurb: 'A shop in Mexico City orders forty pots from your workshop in Oaxaca. Then you open the kiln.',
     facets: blackClay.facets,
   },
+  {
+    id: 'owambe',
+    title: 'The Owambe',
+    kind: 'Realistic hypothetical, with recall',
+    blurb: "Your cousin's wedding in Lagos: the family lace, a fight over the entrance, the MC's microphone, and a power cut.",
+    facets: owambe.facets,
+  },
 ];
 
 interface Playable {
@@ -322,6 +330,7 @@ const PLAYABLE: Record<string, Playable> = {
   proven_wrong: { script: provenWrong, renderScene: (animation) => <TheHive animation={animation} /> },
   the_water: { script: theWater, renderScene: (animation) => <Monsoon animation={animation} /> },
   black_clay: { script: blackClay, renderScene: (animation) => <Coyotepec animation={animation} /> },
+  owambe: { script: owambe, renderScene: (animation) => <Signboard animation={animation} /> },
 };
 
 /* ---------------------------------------------------------------------------------------------

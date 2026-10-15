@@ -133,8 +133,6 @@ UNWIND [
     description: "Acting despite fear or social risk, whether for gain, adventure or principle." },
   { name: "Playfulness",
     description: "Bringing humor, lightness and fun to situations." },
-  { name: "Introspection",
-    description: "Habitually examining one's own thoughts, motives and feelings." },
   { name: "Sensory Sensitivity",
     description: "Being strongly affected by noise, light, crowds and subtle cues." },
   { name: "Decisiveness",

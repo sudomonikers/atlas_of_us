@@ -45,7 +45,8 @@ UNWIND [
   {name: 'rule_that_doesnt_fit', title: "The Rule That Doesn't Fit"},
   {name: 'proven_wrong',         title: 'Proven Wrong'},
   {name: 'the_water',            title: 'The Water'},
-  {name: 'black_clay',           title: 'The Black Clay'}
+  {name: 'black_clay',           title: 'The Black Clay'},
+  {name: 'owambe',               title: 'The Owambe'}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
 SET s.title = scenario.title;
@@ -225,11 +226,13 @@ MATCH (s:PersonalityScenario {name: 'the_water'})
 UNWIND [
   {order: 0, key: 'the_knock',   prompt: "The water's still rising, and the three of them are dripping on your landing. What do you do, and what's going through your head?"},
   {order: 1, key: 'the_night',   prompt: 'Five people, one gas stove, two cans of water, one torch, and no idea how long this will last. How do you get everyone through the night?'},
-  {order: 2, key: 'who_goes',    prompt: 'Somebody needs to wade out for drinking water. What do you do?'},
-  {order: 3, key: 'rajan',       prompt: "The water's still coming up, and Rajan sir won't leave. What do you do?"},
-  {order: 4, key: 'the_boat',    prompt: "Four places for six of you, and the light's going. Paati won't go without you, and the boat might not come back tonight. Who goes, and do you?"},
-  {order: 5, key: 'the_mud',     prompt: "Selvi has lost nearly everything in her flat. Honestly, how do you think the next few months go, for her and for the street?"},
-  {order: 6, real_life: true, key: 'your_storm',  prompt: 'Away from Chennai now. Think of a time when something went badly wrong around you: a real emergency, or a sudden mess. What did you actually do in the first hour, and how did you feel afterwards?'}
+  {order: 2, key: 'the_noise',   prompt: "Five of you in one room, and the noise doesn't stop. Can you sleep through it? What gets to you most?"},
+  {order: 3, key: 'who_goes',    prompt: 'Somebody needs to wade out for drinking water. What do you do?'},
+  {order: 4, key: 'rajan',       prompt: "The water's still coming up, and Rajan sir won't leave. What do you do?"},
+  {order: 5, key: 'the_boat',    prompt: "Four places for six of you, and the light's going. Paati won't go without you, and the boat might not come back tonight. Who goes, and do you?"},
+  {order: 6, key: 'three_days',  prompt: 'Three days with nothing to do but wait for the water to go down. How do you spend them, and how do you take the waiting?'},
+  {order: 7, key: 'the_mud',     prompt: "Selvi has lost nearly everything in her flat. Honestly, how do you think the next few months go, for her and for the street?"},
+  {order: 8, real_life: true, key: 'your_storm',  prompt: 'Away from Chennai now. Think of a time when something went badly wrong around you: a real emergency, or a sudden mess. What did you actually do in the first hour, and how did you feel afterwards?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
@@ -244,6 +247,20 @@ UNWIND [
   {order: 4, key: 'the_shards',  prompt: 'Seventeen pieces broken, four days to go. What goes through your head, and what do you do this morning?'},
   {order: 5, key: 'the_call',    prompt: 'Fifteen pieces, and she wants forty. What do you do?'},
   {order: 6, real_life: true, key: 'your_firing', prompt: 'Away from Oaxaca now. Think of something you worked hard on that went wrong right at the end. What did you do the next day, and how long did it take you to get going again?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+
+MATCH (s:PersonalityScenario {name: 'owambe'})
+UNWIND [
+  {order: 0, key: 'the_aso_ebi',    prompt: 'The lace is on the table and her tape measure is round her neck. What do you ask her to make, and how should it look?'},
+  {order: 1, key: 'the_entrance',   prompt: 'They both turn to you. What do you say?'},
+  {order: 2, key: 'the_mic',        prompt: 'The microphone is in your hand and the hall is waiting. What do you say?'},
+  {order: 3, key: 'the_dance',      prompt: 'Grandma wants you on the floor. What do you do?'},
+  {order: 4, key: 'the_blackout',   prompt: "Four hundred guests in the dark, and the generator won't start. How do you think the rest of the night goes?"},
+  {order: 5, key: 'in_the_dark',    prompt: 'What do you do?'},
+  {order: 6, key: 'the_note',       prompt: 'Write your note to Tolu and Emeka, to open ten years from now.'},
+  {order: 7, real_life: true, key: 'your_tradition', prompt: 'Away from Lagos now. Think of a tradition in your own family or culture. Do you keep it, change it, or let it go, and why?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);

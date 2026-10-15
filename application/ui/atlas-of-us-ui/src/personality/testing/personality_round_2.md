@@ -195,3 +195,59 @@ The traits in the middle are Intellect, Fairness and Sympathy.
 - **Orderliness, Patience, Artistic Interests:** add them to the "keep neighbouring traits apart" rule. A quick plan isn't Orderliness, and curiosity isn't Artistic Interests.
 - **Thin traits:** the light-hearted scene suggested in round 1 would cover Artistic Interests and Liberalism. Patience and Sensory Sensitivity each need one more prompt somewhere.
 - **No change to `PRIOR` or `REAL_LIFE`.** With both personas, consistent evidence reaches the ends and small amounts of evidence stay nearer the middle.
+
+## Changes made as a result (14 Oct 2026)
+To be tested in round 3.
+
+**Introspection removed** (finding 1)
+- **Seeds:** taken out of `database/personality_seed.cypher`. Its Explore entry and its six interactions were taken out of `personality_explore_seed.cypher`.
+- **UI:** removed from the `PersonalityTrait` type in `personality.tsx`, and from every scene's facet lists:
+  - **Empty Weekend:** `phone_gone` now lists Anxiety, `the_shelf` Intellect and Artistic Interests, `how_you_feel` Cheerfulness.
+  - **Proven Wrong:** `how_you_got_sure` now lists Modesty, and `changed_mind` lists Stubbornness and Intellect.
+  - **Landfall:** `your_mind` now lists only Imagination.
+  - **README:** updated to match.
+- **Database:** the node was deleted with:
+  ```cypher
+  MATCH (t:PersonalityTrait {name: 'Introspection'}) DETACH DELETE t;
+  ```
+  Shifts saved earlier still name it, but `recombine` matches traits by name and skips it. A rescore clears them.
+
+**Scoring rules (`SCORING_PROMPT` in `apis/atlas-jobs/src/personality.rs`)**
+- **Emotionality** (finding 1): scored only from what people say about their own real life. Naming a feeling because the question asked for one doesn't count.
+- **Anxiety is felt, not done** (finding 2): a bold, calm or quick choice is no longer evidence of low Anxiety. Only what people say about worrying counts.
+- **Keeping neighbouring traits apart** (finding 4) gained three distinctions:
+  - A quick practical plan in a crisis is Self-Efficacy, not Orderliness.
+  - Patience is bearing delay calmly, not holding a grudge.
+  - Curiosity about how something works is Intellect or Imagination, not Artistic Interests.
+
+**Scenes** (finding 5). The Water gets two new prompts, aimed at the traits with little evidence, and now has 9 questions.
+
+| Order | Key | Prompt | Draws out |
+|---|---|---|---|
+| 2 | `the_noise` | After "the rain hammers on the roof, Faisal snores… a dog barks and barks": can you sleep through it, and what gets to you most? | Sensory Sensitivity, Anxiety |
+| 6 | `three_days` | Three days with nothing to do but wait for the water to go down: how do you spend them, and how do you take the waiting? | Patience, Activity Level |
+
+The narration now runs "On the third day, the water goes down…", where it used to say "Three days later…". The "You don't sleep much" line is gone, because the new prompt asks whether you can.
+
+**New scene: The Owambe** (`owambe/`, findings 5 and round 1's finding 7). The light-hearted scene, aimed at the traits the crisis scenes don't reach. Your cousin Tolu's wedding in Lagos, in 8 questions:
+
+| Order | Key | The moment | Draws out |
+|---|---|---|---|
+| 0 | `the_aso_ebi` | Tell the tailor what to make from the family lace | Artistic Interests, Imagination |
+| 1 | `the_entrance` | Tolu wants her own routine, and her mother wants the juju band as always (choice) | Liberalism, Cooperation |
+| 2 | `the_mic` | The MC hands you the microphone in front of four hundred guests | Playfulness, Gregariousness, Self-Consciousness |
+| 3 | `the_dance` | Grandma waves you onto the dance floor (choice) | Cheerfulness, Gregariousness, Excitement-Seeking |
+| 4 | `the_blackout` | The power cuts out: how do you think the rest of the night goes? | Optimism, Adaptability |
+| 5 | `in_the_dark` | Fix the generator, get everyone singing, or bring out candles (choice) | Intellect, Playfulness, Orderliness |
+| 6 | `the_note` | Write a note for the couple's tenth anniversary | Optimism, Imagination, Friendliness |
+| 7 | `your_tradition` | A tradition of your own: keep it, change it, or let it go? (real life) | Liberalism |
+
+- **Visuals** (`signboard.tsx`): painted like a Lagos sign-writer's board.
+- **Sounds:** street, crowd, music and generator ambiences, plus a cheer and a horn. They come from the Sonniss bundles in Downloads and are encoded with `scripts/encode-audio.sh`.
+- **Wiring:** the scene is registered in `personality.tsx`, and added to the seed and the README.
+
+**Not changed:**
+- **`PRIOR` and `REAL_LIFE`:** both are working.
+- **Morality:** it's the IPIP definition (frankness), and that works as designed.
+
+**Round 1 and 2 answer files:** they no longer cover every prompt, so `play.mjs` will stop on The Water's new questions. Write new answer files for future rounds.

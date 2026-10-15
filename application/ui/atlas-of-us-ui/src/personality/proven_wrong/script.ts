@@ -13,7 +13,7 @@ const DUNMORE = 'Mrs. Dunmore';
 export const provenWrong: Script = {
   id: 'proven_wrong',
   title: 'Proven Wrong',
-  facets: ['Intellect', 'Stubbornness', 'Introspection', 'Modesty', 'Fairness', 'Self-Consciousness', 'Assertiveness'],
+  facets: ['Intellect', 'Stubbornness', 'Modesty', 'Fairness', 'Self-Consciousness', 'Assertiveness'],
   start: 'opening',
   sections: {
     // -------------------------------------------------------------------------
@@ -151,14 +151,14 @@ export const provenWrong: Script = {
           id: 'how_you_got_sure',
           prompt: 'Looking back over the last six months, what, if anything, would you have done differently?',
           animation: 'dusk',
-          facets: ['Introspection', 'Intellect'],
+          facets: ['Intellect', 'Modesty'],
         },
         { text: 'The light goes. Somewhere, a blackbird is still singing.', animation: 'dusk_late' },
         {
           id: 'changed_mind',
           prompt: 'Away from the allotment now. Think of something in your own life you were certain about and turned out to be wrong. How long did it take you to change your mind, and what finally did it?',
           animation: 'dusk_late',
-          facets: ['Introspection', 'Stubbornness', 'Intellect'],
+          facets: ['Stubbornness', 'Intellect'],
         },
       ],
       next: 'closing',

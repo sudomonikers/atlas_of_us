@@ -14,7 +14,7 @@ const MUTHU = 'Muthu';
 export const theWater: Script = {
   id: 'the_water',
   title: 'The Water',
-  facets: ['Vulnerability', 'Anxiety', 'Altruism', 'Cooperation', 'Self-Efficacy', 'Activity Level', 'Optimism'],
+  facets: ['Vulnerability', 'Anxiety', 'Altruism', 'Cooperation', 'Self-Efficacy', 'Activity Level', 'Optimism', 'Patience', 'Sensory Sensitivity'],
   start: 'opening',
   sections: {
     // -------------------------------------------------------------------------
@@ -52,7 +52,13 @@ export const theWater: Script = {
           animation: 'flat_night',
           facets: ['Self-Efficacy', 'Cooperation', 'Activity Level'],
         },
-        { text: "Some time after three, Arun falls asleep with his head in his grandmother's lap. You don't sleep much.", animation: 'flat_sleep' },
+        { text: "Some time after three, Arun falls asleep with his head in his grandmother's lap. The rain hammers on the roof, Faisal snores, the room smells of wet clothes, and somewhere a dog barks and barks.", animation: 'flat_sleep' },
+        {
+          id: 'the_noise',
+          prompt: "Five of you in one room, and the noise doesn't stop. Can you sleep through it? What gets to you most?",
+          animation: 'flat_sleep',
+          facets: ['Sensory Sensitivity', 'Anxiety'],
+        },
       ],
       next: 'morning',
     },
@@ -152,7 +158,14 @@ export const theWater: Script = {
     // -------------------------------------------------------------------------
     after: {
       steps: [
-        { text: 'Three days later, the water goes down as quietly as it came up.', animation: 'after_mud' },
+        { text: 'Wherever you sleep that night, the days after are all the same: no power, no signal, and the water barely moving.', animation: 'flood_morning' },
+        {
+          id: 'three_days',
+          prompt: 'Three days with nothing to do but wait for the water to go down. How do you spend them, and how do you take the waiting?',
+          animation: 'flood_morning',
+          facets: ['Patience', 'Activity Level'],
+        },
+        { text: 'On the third day, the water goes down as quietly as it came up.', animation: 'after_mud' },
         { text: 'It leaves a brown line at shoulder height on every wall in the street. Mattresses, fridges and schoolbooks are piled up outside the gates, drying in the sun.', animation: 'after_mud' },
         { text: "Selvi's flat is ruined. She stands in the doorway holding Arun's swollen maths book. She doesn't cry. She starts sweeping.", animation: 'after_mud' },
         {

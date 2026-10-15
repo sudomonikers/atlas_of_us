@@ -350,7 +350,7 @@ export const landfall: Script = {
           id: 'your_mind',
           prompt: 'Away from the island now. When you\'re on your own with nothing to do, where does your mind go? Tell us about the last time.',
           animation: 'starfield_overhead',
-          facets: ['Imagination', 'Introspection'],
+          facets: ['Imagination'],
         },
         { text: 'Sleep comes slowly.', animation: 'fade_to_dark' },
         { text: 'Sometime in the night you half-wake to the soft scrape of the supply crate\'s lid.', animation: 'black_screen_faint_scrape' },
