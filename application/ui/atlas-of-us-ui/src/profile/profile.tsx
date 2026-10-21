@@ -140,7 +140,7 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
                   <span style={styles.traitName}>
                     {t.name}
                     {early && (
-                      <span className="comic-chip" title="Based on only a little so far">
+                      <span className="comic-chip" title="I've only got a little to go on here, so take it with a grain of salt">
                         Early read
                       </span>
                     )}

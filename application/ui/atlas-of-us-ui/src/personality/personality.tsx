@@ -454,7 +454,7 @@ function Personality() {
   //saves an answer as the player moves past a prompt. The last answer of a scenario also starts a rescore
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer, context: string, clock?: AnswerClock) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
-    if (!question) throw new Error("This question isn't set up on the server yet, so your answer can't be saved.");
+    if (!question) throw new Error("This question isn't hooked up on my end yet, so I can't save your answer. Not your fault.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
     const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets, clock);
     if (saved.scored) setRecalculating(true);

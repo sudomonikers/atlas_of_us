@@ -43,11 +43,11 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, b
     },
     body: body === undefined ? undefined : payload,
   }).catch(() => {
-    throw new Error("Couldn't reach the server. Try again in a moment.");
+    throw new Error("I can't reach my server. Give it a moment and try again.");
   });
   //the api's 4xx messages are written for users. Anything else could be a raw error, so it's never shown
-  if (res.status >= 500) throw new Error('Something went wrong on our end. Please try again.');
-  if (!res.ok) throw new Error((await res.text()) || 'Something went wrong. Please try again.');
+  if (res.status >= 500) throw new Error("Something broke on my end, not yours. Try again?");
+  if (!res.ok) throw new Error((await res.text()) || 'Something went sideways. Try again?');
   return res.status === 204 ? (undefined as T) : res.json();
 }
 

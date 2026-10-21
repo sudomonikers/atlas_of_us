@@ -261,8 +261,8 @@ function parseTyped(text: string) {
 function dateProblem(text: string) {
   if (!text) return '';
   const date = parseTyped(text);
-  if (!date) return 'Enter a real date as MM/DD/YYYY, e.g. 04/27/1994.';
-  if (date > startOfToday()) return "Your birthday can't be in the future.";
+  if (!date) return "That's not a date I recognize. Try MM/DD/YYYY, like 04/27/1994.";
+  if (date > startOfToday()) return "Born in the future? Bold. Try a date that's already happened.";
   if (date.getFullYear() < MIN_YEAR) return `Your birthday has to be after ${MIN_YEAR}.`;
   return '';
 }

@@ -66,7 +66,7 @@ function CreateUser({ onAuthenticated, onSwitch }: PageProps) {
   const mismatch = !passwordsMatch(form.password, form.confirm);
 
   const submit = useSubmit(async () => {
-    if (mismatch) throw new Error("Those passwords don't match.");
+    if (mismatch) throw new Error("Those passwords don't match. One of them is lying.");
     const { first_name, last_name, username, email, birthday, password } = form;
     await createUser({ first_name, last_name, username, phone, email, birthday, password });
     onAuthenticated();

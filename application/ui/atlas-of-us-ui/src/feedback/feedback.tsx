@@ -41,16 +41,16 @@ export function Feedback({ buttonStyle }: { buttonStyle: CSSProperties }) {
           <div style={styles.box} className="comic-panel comic-pop" role="dialog" aria-label="Feedback" onClick={(e) => e.stopPropagation()}>
             <h2 style={styles.title}>Feedback</h2>
             {sent ? (
-              <p style={styles.text}>Thanks! We read every one of these.</p>
+              <p style={styles.text}>Got it. Andrew reads every single one of these, so choose your words wisely.</p>
             ) : (
               <>
-                <p style={styles.text}>What would you like to see, or what went wrong?</p>
+                <p style={styles.text}>Got a wish, a gripe or a bug? Lay it on me.</p>
                 <textarea
                   autoFocus
                   style={styles.input}
                   rows={6}
                   value={description}
-                  placeholder="Tell us what you want..."
+                  placeholder="Tell me what you want, what you really really want..."
                   onChange={(e) => setDescription(e.target.value)}
                 />
                 {error && <AtlasError message={error} />}

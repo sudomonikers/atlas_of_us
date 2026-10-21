@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
 import { PersonalityReport } from './report';
+import { AtlasError } from '../shared_components/atlas-error';
 import { ProgressMeter } from '../shared_components/progress-meter';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -93,7 +94,7 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
               </span>
             )}
             {early && (
-              <span className="comic-chip" title="Based on only a little of what you've told us so far">
+              <span className="comic-chip" title="I've only got a little to go on here, so take it with a grain of salt">
                 Early read
               </span>
             )}
@@ -101,7 +102,7 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
           {trait.description && <p style={styles.traitDescription}>{trait.description}</p>}
         </div>
         {percent === undefined ? (
-          <div style={{ ...styles.traitScale, ...styles.gathering }}>Still gathering information on this one...</div>
+          <div style={{ ...styles.traitScale, ...styles.gathering }}>Still sizing you up on this one...</div>
         ) : (
           //read only: looks like a slider, but there's nothing to drag
           <div style={{ ...styles.traitScale, ...(early ? styles.tentative : {}) }} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
@@ -196,14 +197,14 @@ function ContributionCard({ contribution: c, onContested }: { contribution: Cont
   );
 }
 
-const OUTCOMES: Record<Contest['status'], string> = { pending: 'Reviewing...', accepted: 'Changed', rejected: 'Not changed' };
+const OUTCOMES: Record<Contest['status'], string> = { pending: 'Thinking it over...', accepted: 'You got me', rejected: 'Not budging' };
 
 //one thing the person said about the evidence, and what came of it
 function ContestEntry({ contest: c }: { contest: Contest }) {
   return (
     <li style={styles.contest}>
       <p>
-        <strong>{c.kind === 'explain' ? 'You explained:' : 'You said this was wrong:'}</strong> {c.message}
+        <strong>{c.kind === 'explain' ? 'You explained:' : 'You said I got it wrong:'}</strong> {c.message}
       </p>
       <span className="comic-chip" style={styles.outcome}>
         {OUTCOMES[c.status]}
@@ -219,8 +220,8 @@ function ContestEntry({ contest: c }: { contest: Contest }) {
 }
 
 const KINDS: { kind: Contest['kind']; label: string; placeholder: string }[] = [
-  { kind: 'explain', label: 'Let me explain', placeholder: 'Why did you answer the way you did?' },
-  { kind: 'wrong', label: 'This is wrong', placeholder: 'What did we get wrong about your answer?' },
+  { kind: 'explain', label: 'Let me explain', placeholder: "Why did you answer the way you did? I'm listening." },
+  { kind: 'wrong', label: 'This is wrong', placeholder: 'What did I get wrong? Go on, I can take it.' },
 ];
 
 //explaining an answer, or saying the evidence got it wrong. Sent for review, which changes this evidence or explains why not
@@ -260,7 +261,7 @@ function ContestForm({ contribution: c, onCancel, onSent }: { contribution: Cont
         placeholder={KINDS.find((k) => k.kind === kind)?.placeholder}
         onChange={(e) => setMessage(e.target.value)}
       />
-      {error && <p style={styles.contestError}>{error}</p>}
+      {error && <AtlasError message={error} />}
       <div style={styles.contestKinds}>
         <button className="comic-chip comic-lift" style={styles.contestKind} onClick={onCancel}>
           Cancel
@@ -491,10 +492,6 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
     outlineColor: brownRed,
     resize: 'vertical',
-  },
-  contestError: {
-    color: brownRed,
-    fontSize: 15,
   },
   traitLabel: {
     flex: '1 1 280px',

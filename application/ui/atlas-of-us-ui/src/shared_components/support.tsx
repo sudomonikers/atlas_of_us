@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { Mascot } from './mascot';
 
 const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
@@ -8,14 +9,18 @@ const comic = 'var(--font-comic)';
 //the Stripe payment link people chip in through. Public, so it's fine in the bundle
 const SUPPORT_URL = 'https://buy.stripe.com/6oU3co0sj1rg8NL9ay7IY00';
 
-//begs for a dollar toward the servers, in every page's footer and the popup
+//Atlas begging for a dollar toward the servers, in every page's footer and the popup
 export function Plea() {
   return (
     <>
-      <p style={styles.text}>
-        Atlas is free and ad-free. Every person who maps their personality costs about $0.68 in AI and servers, and Andrew
-        is fresh out of VC money. Plz help. Chip in a dollar and you've covered yourself, with a few cents left over for coffee.
-      </p>
+      <div style={styles.wrap}>
+        <Mascot size={70} />
+        <p style={styles.text} className="comic-bubble">
+          Real talk: every person I map costs about $0.68 in AI and servers, and Andrew is fresh out of VC money (he never
+          had any). No ads, no selling your data, just me with my hat out. Chip in a dollar and you've paid your own way.
+          Mostly.
+        </p>
+      </div>
       <a className="comic-lift" style={styles.button} href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
         Chip in $1 ☕
       </a>
@@ -39,8 +44,18 @@ export function SupportPopup({ onClose }: { onClose: () => void }) {
 }
 
 const styles: Record<string, CSSProperties> = {
+  wrap: {
+    maxWidth: 640,
+    margin: '0 auto 14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 18, //room for the bubble's tail
+    textAlign: 'left',
+  },
   text: {
-    margin: '0 0 10px',
+    flex: 1,
+    margin: 0,
+    padding: '8px 14px',
     fontSize: 19,
     lineHeight: 1.3,
   },

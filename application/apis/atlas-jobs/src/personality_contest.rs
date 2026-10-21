@@ -125,7 +125,7 @@ pub async fn run(graph: &Graph, job: ContestJob) {
             tracing::error!("contest review failed: {e}");
             let rejected = settle(graph, &job, |_, contest| {
                 contest.status = Status::Rejected;
-                contest.reply = Some("We couldn't review this one, so nothing changed. Try again in a little while.".to_string());
+                contest.reply = Some("I couldn't get to this one, so nothing changed. Try me again in a little while.".to_string());
                 Ok(())
             }).await;
             if let Err(e) = rejected {
