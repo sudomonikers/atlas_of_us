@@ -13,6 +13,7 @@ the graph itself, read `../data_model/personality/personality.md`.
 | API | `application/apis/atlas-api/src/personality/mod.rs` | Saves answers, decides when to score, queues scoring and contest jobs, serves scores and evidence |
 | Scoring job | `application/apis/atlas-jobs/src/personality_scoring.rs` | A Lambda job that reads a person's answers with Bedrock and writes their traits |
 | Contest job | `application/apis/atlas-jobs/src/personality_contest.rs` | A Lambda job that reviews one piece of evidence the person contested |
+| Report | `application/apis/atlas-jobs/src/personality_report.rs` | Writes a fully scored person's report, called by both jobs |
 | Queue and Lambda | `application/infrastructure/jobs_lambda.tf` | The SQS queue between the API and the job, and the job's Lambda, model and timeout |
 | Seeds | `application/database/personality_*.cypher` | The traits, the scenarios and their questions, and the Explore reading material |
 
@@ -149,8 +150,25 @@ Finally it removes the `JobRunning` node, whether scoring worked or not, so a fa
 - Facets with confidence below 0.5 are faded and tagged "Early read".
 - Each facet's "Why?" lists the answers behind it and what in them shows the facet, from the evidence on the answers (`GET /api/personality/people/{id}/evidence`).
   Each piece of evidence can be contested (see below).
-- **Public profiles:** `GET /api/personality/profiles/{username}` serves a person's scores to their profile page.
+- **Public profiles:** `GET /api/personality/profiles/{username}` serves a person's scores and report to their profile page.
 - **Explore** teaches the Big Five and each facet from reading material in the graph (`GET /api/personality/model`).
+
+## The report
+Once a person has finished every scenario and every answer is scored, they get a written report on all their traits.
+It sits at the top of My Personality and on their profile.
+- **When it's written:**
+  - after each scoring job (so after the last batch, any replay, and any full rescore);
+  - after each accepted contest.
+  - Until the person is fully scored, nothing is written, and an existing report is left alone.
+- **What it reads:** each measured trait, with its value, confidence and everyone's average, plus its five strongest pieces of evidence. One Bedrock call (`write_report`) returns:
+  - a headline;
+  - an overview;
+  - a paragraph per domain;
+  - strengths and things to watch out for.
+- **Privacy:** the report is shown to anyone who can see the profile, so the prompt forbids quoting, retelling or naming scenes, answers or choices. It describes patterns only, with no clinical words.
+- **Storage:** JSON on `Person.personalityReport`, written at `Person.personalityReportAt`. Clearing answers removes it.
+- **Failures:** a report that fails is logged and the old one is kept. It never fails the scoring or contest job.
+- **After a contest:** the contest job rewrites the report after it marks the contest accepted. My Personality keeps polling while an accepted contest is newer than the report.
 
 ## Contesting evidence
 Each evidence card under "Why?" has a flag button. The person can use it to explain why they answered as they did, or to
@@ -211,7 +229,7 @@ All under `/api/personality`.
 | `GET /traits` | Every facet, with its domain and everyone's average |
 | `GET /model` | The Big Five, its domains and facets, and how they interact, for Explore |
 | `GET /people/{id}/evidence` | Every scored answer and its shifts. Only the signed-in person's own |
-| `GET /profiles/{username}` | A person's scores. Private profiles are only seen by their owner |
+| `GET /profiles/{username}` | A person's scores and report. Private profiles are only seen by their owner |
 | `PUT /answers` | Saves an answer, and scores its batch when that finishes it |
 | `DELETE /answers` | Clears the signed-in person's answers |
 | `GET /progress` | The signed-in person's answers, and every scenario's questions |

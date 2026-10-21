@@ -1,5 +1,6 @@
 //the Atlas of Us job worker. The api queues slow work on SQS, and Lambda invokes this with one record at a time
 mod personality_contest;
+mod personality_report;
 mod personality_scoring;
 
 use std::{env, io::IsTerminal};
@@ -13,6 +14,7 @@ use serde::Deserialize;
 enum Job {
     PersonalityScoring(personality_scoring::ScoringJob),
     PersonalityContest(personality_contest::ContestJob),
+    PersonalityReport(personality_report::ReportJob),
 }
 
 //jobs handle their own failures, so a bad one is logged and never retried
@@ -20,6 +22,7 @@ async fn run(graph: &Graph, body: &str) {
     match serde_json::from_str::<Job>(body) {
         Ok(Job::PersonalityScoring(job)) => personality_scoring::run(graph, job).await,
         Ok(Job::PersonalityContest(job)) => personality_contest::run(graph, job).await,
+        Ok(Job::PersonalityReport(job)) => personality_report::run(graph, job).await,
         Err(e) => tracing::error!("unreadable job: {e}"),
     }
 }

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::Instrument;
 
+use crate::personality_report;
 use crate::personality_scoring::{BoxError, SCORING_PROMPT, ScoredAnswer, Shift, answer_json, invoke, save_traits};
 
 //the person contesting one piece of evidence: explaining their answer, or saying the scorer got it wrong
@@ -86,14 +87,15 @@ pub fn notes(contests: Option<&str>) -> Result<Option<Vec<serde_json::Value>>, s
 }
 
 //reviews a contested piece of evidence, changing just that evidence or rejecting the contest, and rescores the person's
-//traits when it changes. A contest that can't be reviewed is rejected, so it never stays pending
+//traits and rewrites their report when it changes. A contest that can't be reviewed is rejected, so it never stays pending
 pub async fn run(graph: &Graph, job: ContestJob) {
     let span = tracing::info_span!("contest", person_id = job.person_id, answer_id = job.answer_id, request_id = job.request_id);
     async {
         let started = Instant::now();
         let reviewed: Result<bool, BoxError> = async {
             let client = aws_sdk_bedrockruntime::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await);
-            let ruling = review(&client, &env::var("BEDROCK_MODEL_ID")?, &job).await?;
+            let model = env::var("BEDROCK_MODEL_ID")?;
+            let ruling = review(&client, &model, &job).await?;
             let accepted = ruling.accepted;
             settle(graph, &job, |shifts, contest| {
                 if accepted {
@@ -115,6 +117,7 @@ pub async fn run(graph: &Graph, job: ContestJob) {
             }).await?;
             if accepted {
                 save_traits(graph, &job.person_id).await?;
+                personality_report::refresh(graph, &client, &model, &job.person_id).await;
             }
             Ok(accepted)
         }.await;

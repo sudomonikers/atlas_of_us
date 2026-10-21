@@ -133,12 +133,24 @@ pub struct PersonTrait {
     confidence: f64, //how much evidence the value is based on, 0 to 1
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
+struct ProfileRow {
+    username: String,
+    first_name: String,
+    public: bool,
+    traits: Vec<PersonTrait>,
+    report: Option<String>, //json, written by atlas-jobs once the person is fully scored
+    report_at: Option<String>,
+}
+
+#[derive(Serialize)]
 pub struct Profile {
     username: String,
     first_name: String,
     public: bool,
     traits: Vec<PersonTrait>,
+    report: Option<serde_json::Value>, //the written report on all their traits, once they've finished every scenario
+    report_at: Option<String>, //when it was last written
 }
 
 //someone's profile. Private ones are only seen by their owner, and look missing to everyone else
@@ -156,16 +168,24 @@ pub async fn get_profile(
             collect(CASE WHEN t IS NULL THEN null ELSE {
                 id: elementId(t), name: t.name, description: t.description, domain: d.key, value: toFloat(r.value),
                 confidence: toFloat(coalesce(r.confidence, 0))
-            } END) AS traits
+            } END) AS traits, p.personalityReport AS report, p.personalityReportAt AS report_at
     ")
         .param("username", username)
         .param("viewerId", user.map(|u| u.person_id).unwrap_or_default())
     ).await.map_err(internal)?;
 
-    match rows.next().await.map_err(internal)? {
-        Some(row) => Ok(Json(row.to::<Profile>().map_err(internal)?)),
-        None => Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string())),
-    }
+    let Some(row) = rows.next().await.map_err(internal)? else {
+        return Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string()));
+    };
+    let row = row.to::<ProfileRow>().map_err(internal)?;
+    Ok(Json(Profile {
+        report: row.report.as_deref().map(serde_json::from_str).transpose().map_err(internal)?,
+        report_at: row.report_at,
+        username: row.username,
+        first_name: row.first_name,
+        public: row.public,
+        traits: row.traits,
+    }))
 }
 
 #[derive(Deserialize)]
@@ -364,6 +384,8 @@ pub async fn clear_answers(State(state): State<AppState>, user: AuthUser) -> Res
         MATCH (p:Person) WHERE elementId(p) = $personId
         OPTIONAL MATCH (p)-[a:ANSWERED|HAS_PERSONALITY_TRAIT]->()
         DELETE a
+        WITH DISTINCT p
+        REMOVE p.personalityReport, p.personalityReportAt
     ")
         .param("personId", user.person_id)
     ).await.map_err(internal)?;

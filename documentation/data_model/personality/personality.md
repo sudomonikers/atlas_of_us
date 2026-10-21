@@ -23,6 +23,12 @@ There are 30 traits we measure, the Big Five facets. Each has its own node conta
 MERGE (a:Person {name: "Andrew Link"})-[:HAS_PERSONALITY_TRAIT {value: 0.9, confidence: 0.85}]-(c:PersonalityTrait {name: "Cooperation"});
 ```
 
+Once every scenario is answered and scored, atlas-jobs writes a report on all of the person's traits onto the Person itself, as a JSON string, along with when it was written:
+```cypher
+SET p.personalityReport = '{"headline": "...", "overview": "...", "domains": [{"key": "openness", "text": "..."}], "strengths": ["..."], "watch_outs": ["..."]}',
+    p.personalityReportAt = toString(datetime())
+```
+
 ## Explaining the model
 The Explore tab teaches people what the Big Five is and what each trait means, and all of that reading material lives in the graph too (seeded by `personality_explore_seed.cypher`). A single PersonalityModel node holds the overview, history and limits of the Big Five. It links to the five PersonalityDomain nodes, and each domain links to its six facets:
 ```cypher

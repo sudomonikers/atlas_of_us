@@ -41,7 +41,7 @@ const STOPS = [
   {
     title: 'Your personality',
     icon: 'flag',
-    body: "Personality tests are broken: a vague statement, five buttons, and nobody ever asks why. So we drop you into situations instead. A shipwreck, a party full of strangers, a ferry with one seat left. You decide what to do, tell us why, and we map you across the Big Five and the parts of being human it leaves out.",
+    body: "Personality tests are broken: a vague statement, five buttons, and nobody ever asks why. So we drop you into situations instead. You decide what to do, tell us why, and we map you across the Big Five.",
   },
   { title: 'What you know', icon: 'books', body: 'A map of every idea people hold, true, disputed or flat-out wrong, and how deeply you hold each one.' },
   { title: 'What you can do', icon: 'anvil', body: 'Every skill from cooking to coding, measured from fumbling novice to effortless expert.' },

@@ -171,18 +171,29 @@ export const DOMAINS = [
   { key: 'neuroticism', title: 'Neuroticism', blurb: 'How strongly you react to stress and bad feelings.' },
 ];
 
+//the written report on all of someone's traits, once they've finished every scenario
+export interface Report {
+  headline: string;
+  overview: string; //paragraphs separated by blank lines
+  domains: { key: string; text: string }[]; //key is a DOMAINS key
+  strengths: string[];
+  watch_outs: string[];
+}
+
 export interface Profile {
   username: string;
   first_name: string;
   public: boolean;
   traits: TraitScore[]; //only the measured ones
+  report: Report | null;
+  report_at: string | null; //when the report was last written
 }
 
 //someone's profile at /u/{username}: their trait scores, never their answers. Private ones 404 for everyone but the owner
 export const getProfile = (username: string) => request<Profile>('GET', `/personality/profiles/${encodeURIComponent(username)}`);
 
-//every trait, with the user's value where one has been measured and the answers behind it
-export async function fetchTraits(personId: string, username: string): Promise<Trait[]> {
+//every trait, with the user's value where one has been measured and the answers behind it, and their report
+export async function fetchTraits(personId: string, username: string): Promise<{ traits: Trait[] } & Pick<Profile, 'report' | 'report_at'>> {
   const [all, mine, evidence] = await Promise.all([getTraits(), getProfile(username), getPersonEvidence(personId)]);
   const scores = new Map(mine.traits.map((t) => [t.id, t]));
   const contributions = evidence.flatMap(({ id, shifts, contests, reasoning, ...answer }) => {
@@ -203,7 +214,7 @@ export async function fetchTraits(personId: string, username: string): Promise<T
       })),
     ];
   });
-  return all.map((t) => {
+  const traits = all.map((t) => {
     const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
     const description = facet ? facet[2] : t.description ?? undefined;
     return {
@@ -217,4 +228,5 @@ export async function fetchTraits(personId: string, username: string): Promise<T
       contributions: contributions.filter((c) => c.trait === t.name).sort((a, b) => b.weight - a.weight),
     };
   });
+  return { traits, report: mine.report, report_at: mine.report_at };
 }

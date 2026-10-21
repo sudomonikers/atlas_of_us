@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, getProfile, type Profile as ProfileData } from '../personality/api';
+import { PersonalityReport } from '../personality/report';
 import { navigate } from '../router';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
@@ -83,13 +84,14 @@ export default function Profile({ username }: { username: string }) {
   );
 }
 
-//measured traits only, grouped by domain like My Personality
+//their report once they've finished every scenario, then measured traits only, grouped by domain like My Personality
 function PersonalitySection({ profile }: { profile: ProfileData }) {
   const domains = DOMAINS.map((d) => ({ ...d, traits: profile.traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
 
   return (
     <section style={styles.section} className="comic-panel">
       <h2 style={styles.sectionTitle}>Personality</h2>
+      {profile.report && <PersonalityReport report={profile.report} />}
       {!domains.length && <p>{profile.first_name} hasn't played enough scenarios to be measured yet.</p>}
       {domains.map((domain) => (
         <div key={domain.key} style={styles.domain}>

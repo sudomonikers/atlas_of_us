@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Profile, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { theStoryGame } from './the_story_game/script';
 import { theFestival } from './the_festival/script';
 import { theBigParty } from './the_big_party/script';
@@ -413,21 +413,29 @@ function Personality() {
 
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
+  const [report, setReport] = useState<Pick<Profile, 'report' | 'report_at'>>();
 
   //fetched each time the view opens, a rescore finishes or a contest is sent, so it picks up anything measured since
   useEffect(() => {
     if (view !== 'traits' || !personId || !username) return;
     fetchTraits(personId, username).then(
-      (loaded) => {
-        setTraits(loaded);
+      ({ traits, ...report }) => {
+        setTraits(traits);
+        setReport(report);
         setTraitsError(undefined);
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
   }, [view, personId, username, scorings]);
 
-  //a contest is reviewed in the background, so the traits are fetched again until every contest has its outcome
-  const reviewing = traits?.some((t) => t.contributions.some((c) => c.contests.some((contest) => contest.status === 'pending')));
+  //a contest is reviewed in the background, so the traits are fetched again until every contest has its outcome, and
+  //until the report has been rewritten since the last one accepted
+  const reportAt = report?.report_at ? Date.parse(report.report_at) : undefined;
+  const reviewing = traits?.some((t) =>
+    t.contributions.some((c) =>
+      c.contests.some((contest) => contest.status === 'pending' || (reportAt !== undefined && contest.status === 'accepted' && Date.parse(contest.at) > reportAt)),
+    ),
+  );
   useEffect(() => {
     if (!reviewing) return;
     const timer = window.setTimeout(() => setScorings((n) => n + 1), SCORING_POLL_MS);
@@ -521,7 +529,7 @@ function Personality() {
           ))}
         </div>
 
-        {view === 'traits' && traits && <MyPersonality traits={traits} onContested={() => setScorings((n) => n + 1)} />}
+        {view === 'traits' && traits && <MyPersonality traits={traits} report={report?.report ?? null} onContested={() => setScorings((n) => n + 1)} />}
 
         {view === 'explore' && <Explore />}
 

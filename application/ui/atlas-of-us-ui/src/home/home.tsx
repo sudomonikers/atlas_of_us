@@ -22,8 +22,8 @@ export default function Home() {
         <p style={styles.text}>
           The Atlas of Us is a map of you. All the things that make you you from your physical self to your mental thoughts 
           to your personality to your skills and dreams and desires. The Atlas endeavors to capture all that you are, and 
-          show you all that you could be. No horoscopes, no ten-question quizzes. We drop you into situations, like a party 
-          full of strangers or a ferry with one seat left, and ask what you'd do and <em>why</em>. 
+          show you all that you could be. No horoscopes, no ten-question quizzes. We drop you into situations, like a store 
+          where someone is shoplifting or bungie jumping off a bridge with just rope, and ask what you'd do and <em>why</em>. 
         </p>
       </section>
       <section style={styles.scenes} className="comic-panel">

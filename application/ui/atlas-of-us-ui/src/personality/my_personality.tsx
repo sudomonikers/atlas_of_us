@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
-import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Shift, type Trait } from './api';
+import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
+import { PersonalityReport } from './report';
 import { ProgressMeter } from '../shared_components/progress-meter';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -10,9 +11,9 @@ const gunmetal = 'var(--gunmetal-black)';
 const paleBlue = 'var(--pale-blue)';
 const comic = 'var(--font-comic)';
 
-//the "My Personality" view: where the user sits on every trait, grouped by domain. onContested is called when the user
-//contests a piece of evidence, so the traits can be fetched again
-export default function MyPersonality({ traits, onContested }: { traits: Trait[]; onContested: () => void }) {
+//the "My Personality" view: their report once they've finished every scenario, then where they sit on every trait,
+//grouped by domain. onContested is called when the user contests a piece of evidence, so the traits can be fetched again
+export default function MyPersonality({ traits, report, onContested }: { traits: Trait[]; report: Report | null; onContested: () => void }) {
   const [compare, setCompare] = useState(false); //overlay everyone's average on each bar
   const measured = traits.filter((t) => t.value !== undefined).length;
   const domains = DOMAINS.map((d) => ({ ...d, traits: traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
@@ -22,6 +23,13 @@ export default function MyPersonality({ traits, onContested }: { traits: Trait[]
       <div style={styles.meter}>
         <ProgressMeter done={measured} total={traits.length} label="measured" />
       </div>
+      {report ? (
+        <section style={styles.report} className="comic-panel">
+          <PersonalityReport report={report} />
+        </section>
+      ) : (
+        <p style={styles.traitsIntro}>Finish every scenario and I'll write up your full report.</p>
+      )}
       <p style={styles.traitsIntro}>
         Each bar shows where you sit between low and high on a trait. Low isn't bad and high isn't good, they're just
         different.
@@ -271,6 +279,15 @@ const styles: Record<string, CSSProperties> = {
     maxWidth: 1100,
     margin: '0 auto 32px',
   },
+  report: {
+    maxWidth: 1100,
+    margin: '0 auto 32px',
+    padding: '22px 28px 8px',
+    boxSizing: 'border-box',
+    background: '#fff',
+    borderRadius: 'var(--wobbly)',
+    '--panel-fill': paleBlue,
+  } as CSSProperties,
   traitsIntro: {
     maxWidth: 1100,
     margin: '-12px auto 16px',
