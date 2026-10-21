@@ -8,6 +8,7 @@ mod topics;
 mod auth;
 mod feedback;
 mod admin;
+mod profile;
 
 use axum::{
     Json, Router,
@@ -74,7 +75,8 @@ async fn main() {
         .nest("/api/physical", physical::router())
         .nest("/api/feedback", feedback::router())
         .nest("/api/admin", admin::router(state.clone()))
-        .route("/share/{username}", get(personality::share_page))
+        .nest("/api/profiles", profile::router())
+        .route("/share/{username}", get(profile::share_page))
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(TraceLayer::new_for_http()
             .make_span_with(request_span)

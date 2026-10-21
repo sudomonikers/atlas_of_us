@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Profile, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type PersonPersonality, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { theStoryGame } from './the_story_game/script';
 import { theFestival } from './the_festival/script';
 import { theBigParty } from './the_big_party/script';
@@ -23,6 +23,8 @@ import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
 import { Checkbox } from '../shared_components/checkbox';
 import { useSession } from '../auth/api';
+import { Footer } from '../shared_components/footer';
+import { SupportPopup } from '../shared_components/support';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
@@ -413,7 +415,8 @@ function Personality() {
 
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
-  const [report, setReport] = useState<Pick<Profile, 'report' | 'report_at'>>();
+  const [report, setReport] = useState<Omit<PersonPersonality, 'traits'>>();
+  const [asking, setAsking] = useState(false); //the chip-in popup, shown the first time they see their report
 
   //fetched each time the view opens, a rescore finishes or a contest is sent, so it picks up anything measured since
   useEffect(() => {
@@ -423,6 +426,7 @@ function Personality() {
         setTraits(traits);
         setReport(report);
         setTraitsError(undefined);
+        if (report.report && !supportAsked()) setAsking(true);
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
@@ -531,6 +535,8 @@ function Personality() {
 
         {view === 'traits' && traits && <MyPersonality traits={traits} report={report?.report ?? null} onContested={() => setScorings((n) => n + 1)} />}
 
+        {asking && <SupportPopup onClose={() => setAsking(false)} />}
+
         {view === 'explore' && <Explore />}
 
         {view === 'scenarios' && <OurApproach />}
@@ -570,6 +576,7 @@ function Personality() {
             </ul>
           </>
         )}
+        <Footer />
       </div>
     </RequireLogin>
   );
@@ -626,6 +633,18 @@ const startNoteHidden = () => {
   } catch {
     return false;
   }
+};
+
+//whether the chip-in popup has shown in this browser, marking it shown. If storage is blocked it shows every time
+const SUPPORT_ASKED = 'atlas.supportAsked';
+const supportAsked = () => {
+  try {
+    if (localStorage.getItem(SUPPORT_ASKED) === '1') return true;
+    localStorage.setItem(SUPPORT_ASKED, '1');
+  } catch {
+    //storage is blocked
+  }
+  return false;
 };
 
 //how to answer to get the most accurate results. Shown before every scenario starts, until the user turns it off

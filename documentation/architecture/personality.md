@@ -147,10 +147,11 @@ Finally it removes the `JobRunning` node, whether scoring worked or not, so a fa
 
 ## Showing the results
 - **My Personality** shows every facet, grouped by domain, against everyone's average.
-- Facets with confidence below 0.5 are faded and tagged "Early read".
+- Facets shown by fewer than 3 answers are faded and tagged "Early read", on My Personality and profiles alike.
 - Each facet's "Why?" lists the answers behind it and what in them shows the facet, from the evidence on the answers (`GET /api/personality/people/{id}/evidence`).
   Each piece of evidence can be contested (see below).
-- **Public profiles:** `GET /api/personality/profiles/{username}` serves a person's scores and report to their profile page.
+- **Public profiles:** `GET /api/profiles/{username}`, in atlas-api's profile module, serves a person's profile page. It decides who may see it and
+  gets their scores and report from personality's `person_personality`, so other parts of the Atlas can add their own sections later.
   Owners of public profiles get share buttons for LinkedIn, X, Reddit and Facebook, the phone's share sheet (the way onto Instagram) and Copy link.
   Shared links point at `/share/{username}`, which CloudFront sends to atlas-api: sites like LinkedIn don't run javascript, so the API serves a page with
   og: and twitter: tags (their first name, their report's headline, and `/og-image.png`), then redirects people to `/u/{username}`. Private profiles get the generic site card.
@@ -232,7 +233,6 @@ All under `/api/personality`.
 | `GET /traits` | Every facet, with its domain and everyone's average |
 | `GET /model` | The Big Five, its domains and facets, and how they interact, for Explore |
 | `GET /people/{id}/evidence` | Every scored answer and its shifts. Only the signed-in person's own |
-| `GET /profiles/{username}` | A person's scores and report. Private profiles are only seen by their owner |
 | `PUT /answers` | Saves an answer, and scores its batch when that finishes it |
 | `DELETE /answers` | Clears the signed-in person's answers |
 | `GET /progress` | The signed-in person's answers, and every scenario's questions |

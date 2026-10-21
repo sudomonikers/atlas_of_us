@@ -2,6 +2,7 @@ import { useId, useState, type CSSProperties, type FormEvent, type ReactNode } f
 
 import { navigate } from '../router';
 import { DatePicker } from '../shared_components/date-picker';
+import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { PhoneNumberInput } from '../shared_components/phone-number-input';
 import { createUser, login } from './api';
@@ -150,6 +151,7 @@ function Page({ title, error, children }: { title: string; error?: string; child
         {error && <AtlasError message={error} style={{ marginBottom: 14 }} />}
         {children}
       </main>
+      <Footer />
     </div>
   );
 }

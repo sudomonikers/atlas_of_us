@@ -1,11 +1,13 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { setPublic, useSession } from '../auth/api';
-import { DOMAINS, getProfile, type Profile as ProfileData } from '../personality/api';
+import { DOMAINS, type PersonPersonality } from '../personality/api';
 import { PersonalityReport } from '../personality/report';
 import { navigate } from '../router';
+import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
 import { AtlasError } from '../shared_components/atlas-error';
+import { getProfile, type Profile as ProfileData } from './api';
 
 const gunmetal = 'var(--gunmetal-black)';
 const blue = 'var(--air-force-blue)';
@@ -41,8 +43,8 @@ export default function Profile({ username }: { username: string }) {
   //share links go through the api's /share page, so sites that don't run javascript still get a preview card
   const shareUrl = `${window.location.origin}/share/${profile?.username}`;
   //the post's text, filled in for them. Their report's headline when they have one
-  const shareText = profile?.report
-    ? `Atlas Of Us summed up my personality: "${profile.report.headline}" Find out yours:`
+  const shareText = profile?.personality.report
+    ? `Atlas Of Us summed up my personality: "${profile.personality.report.headline}" Find out yours:`
     : "I'm mapping my personality on Atlas Of Us, one scenario at a time. Find out yours:";
   const copy = () => run(() => navigator.clipboard.writeText(shareUrl).then(() => setNote('Copied!')));
   //the phone's share sheet, the only way onto Instagram. Closing it without sharing isn't a failure
@@ -105,37 +107,45 @@ export default function Profile({ username }: { username: string }) {
         </div>
       )}
 
-      {profile && <PersonalitySection profile={profile} />}
+      {profile && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
 
       <div style={styles.footer}>
         <button className="comic-lift" style={styles.button} onClick={() => navigate(mine ? '/personality' : '/')}>
           {mine ? 'Back to the Atlas ▶' : 'Map yourself ▶'}
         </button>
       </div>
+      <Footer />
     </div>
   );
 }
 
 //their report once they've finished every scenario, then measured traits only, grouped by domain like My Personality
-function PersonalitySection({ profile }: { profile: ProfileData }) {
-  const domains = DOMAINS.map((d) => ({ ...d, traits: profile.traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
+function PersonalitySection({ personality, firstName }: { personality: PersonPersonality; firstName: string }) {
+  const domains = DOMAINS.map((d) => ({ ...d, traits: personality.traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
 
   return (
     <section style={styles.section} className="comic-panel">
       <h2 style={styles.sectionTitle}>Personality</h2>
-      {profile.report && <PersonalityReport report={profile.report} />}
-      {!domains.length && <p>{profile.first_name} hasn't played enough scenarios to be measured yet.</p>}
+      {personality.report && <PersonalityReport report={personality.report} />}
+      {!domains.length && <p>{firstName} hasn't played enough scenarios to be measured yet.</p>}
       {domains.map((domain) => (
         <div key={domain.key} style={styles.domain}>
           <h3 style={styles.domainTitle}>{domain.title}</h3>
           <ul style={styles.traits}>
             {domain.traits.map((t) => {
               const percent = Math.round(Math.min(Math.max(t.value, 0), 1) * 100);
-              const early = t.confidence < 0.5; //based on little evidence, so shown faded
+              const early = t.answers < 3; //based on fewer than 3 answers, so shown faded
               return (
-                <li key={t.id} style={{ ...styles.trait, ...(early ? styles.tentative : {}) }} title={early ? 'Early read: based on only a little so far' : undefined}>
-                  <span style={styles.traitName}>{t.name}</span>
-                  <div style={styles.scale} role="meter" aria-label={t.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                <li key={t.id} style={styles.trait}>
+                  <span style={styles.traitName}>
+                    {t.name}
+                    {early && (
+                      <span className="comic-chip" title="Based on only a little so far">
+                        Early read
+                      </span>
+                    )}
+                  </span>
+                  <div style={{ ...styles.scale, ...(early ? styles.tentative : {}) }} role="meter" aria-label={t.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
                     <div style={styles.track}>
                       <div className="comic-meter-fill" style={{ ...styles.fill, width: `${percent}%` }} />
                     </div>
@@ -260,6 +270,10 @@ const styles: Record<string, CSSProperties> = {
   },
   traitName: {
     flex: '1 1 200px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
     fontFamily: comic,
     fontSize: 22,
     letterSpacing: 0.5,

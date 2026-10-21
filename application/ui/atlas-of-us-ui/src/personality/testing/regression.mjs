@@ -126,8 +126,8 @@ async function run(persona) {
     await call('POST', '/personality/rescore', undefined, token);
     await scoringDone(token);
   }
-  const profile = await call('GET', `/personality/profiles/${persona.account.username}`, undefined, token);
-  return Object.fromEntries(profile.traits.map((t) => [t.name, { value: t.value, confidence: t.confidence }]));
+  const profile = await call('GET', `/profiles/${persona.account.username}`, undefined, token);
+  return Object.fromEntries(profile.personality.traits.map((t) => [t.name, { value: t.value, confidence: t.confidence }]));
 }
 
 // ---------------------------------------------------------------------------

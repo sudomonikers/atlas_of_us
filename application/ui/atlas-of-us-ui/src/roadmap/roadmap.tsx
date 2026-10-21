@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useSession } from '../auth/api';
 import { navigate } from '../router';
+import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { Chart } from './chart';
 
@@ -102,6 +103,7 @@ export default function Roadmap() {
           <span style={{ ...styles.roll, bottom: -12 }} />
         </div>
       </aside>
+      <Footer />
     </div>
   );
 }

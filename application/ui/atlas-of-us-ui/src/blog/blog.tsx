@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Mascot } from '../shared_components/mascot';
+import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 
 export default function Blog() {
@@ -15,6 +16,7 @@ export default function Blog() {
           This is where the notes from the road go. There aren't any yet. Andrew says he's &ldquo;working on it.&rdquo; Check back soon, it'll be worth it.
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

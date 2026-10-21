@@ -1,4 +1,5 @@
 import { request } from '../auth/api';
+import { getProfile } from '../profile/api';
 
 export interface ScenarioQuestion {
   id: string;
@@ -53,6 +54,7 @@ export interface TraitInfo {
 export interface TraitScore extends Omit<TraitInfo, 'average'> {
   value: number; //how strongly the person has the trait, 0 to 1
   confidence: number; //how much evidence the value is based on, 0 to 1
+  answers: number; //how many answers show the trait. Under 3 is an early read
 }
 
 //every trait we measure
@@ -180,21 +182,16 @@ export interface Report {
   watch_outs: string[];
 }
 
-export interface Profile {
-  username: string;
-  first_name: string;
-  public: boolean;
+//someone's measured traits and report, as their profile shows them
+export interface PersonPersonality {
   traits: TraitScore[]; //only the measured ones
   report: Report | null;
   report_at: string | null; //when the report was last written
 }
 
-//someone's profile at /u/{username}: their trait scores, never their answers. Private ones 404 for everyone but the owner
-export const getProfile = (username: string) => request<Profile>('GET', `/personality/profiles/${encodeURIComponent(username)}`);
-
 //every trait, with the user's value where one has been measured and the answers behind it, and their report
-export async function fetchTraits(personId: string, username: string): Promise<{ traits: Trait[] } & Pick<Profile, 'report' | 'report_at'>> {
-  const [all, mine, evidence] = await Promise.all([getTraits(), getProfile(username), getPersonEvidence(personId)]);
+export async function fetchTraits(personId: string, username: string): Promise<{ traits: Trait[] } & Omit<PersonPersonality, 'traits'>> {
+  const [all, { personality: mine }, evidence] = await Promise.all([getTraits(), getProfile(username), getPersonEvidence(personId)]);
   const scores = new Map(mine.traits.map((t) => [t.id, t]));
   const contributions = evidence.flatMap(({ id, shifts, contests, reasoning, ...answer }) => {
     const base = { ...answer, answer_id: id, reasoning: reasoning ?? undefined };

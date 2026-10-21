@@ -3,6 +3,7 @@ import { useSession } from '../auth/api';
 import { Feedback } from '../feedback/feedback';
 import { navigate } from '../router';
 import { Nav } from '../shared_components/nav';
+import { Footer } from '../shared_components/footer';
 import andrew from './andrew.png';
 import { Interviewer } from './interviewer';
 
@@ -158,6 +159,7 @@ export default function About() {
           Map my personality ▶
         </button>
       </footer>
+      <Footer />
     </div>
   );
 }

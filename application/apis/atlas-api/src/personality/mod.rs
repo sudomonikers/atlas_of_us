@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use aws_sdk_sqs::error::DisplayErrorContext;
-use axum::{Extension, Json, Router, extract::{Path, State}, http::StatusCode, response::Html, routing::{get, post, put}};
-use neo4rs::query;
+use axum::{Extension, Json, Router, extract::{Path, State}, http::StatusCode, routing::{get, post, put}};
+use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::request_id::RequestId;
@@ -14,7 +14,6 @@ pub fn router() -> Router<AppState> {
         .route("/traits", get(list_all_personality_traits))
         .route("/model", get(get_model))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
-        .route("/profiles/{username}", get(get_profile))
         .route("/answers", put(answer_question).delete(clear_answers))
         .route("/progress", get(get_user_scenario_progress))
         .route("/rescore", post(rescore_personality))
@@ -131,113 +130,54 @@ pub struct PersonTrait {
     domain: String, //the PersonalityDomain's key, e.g. 'openness'
     value: f64, //how strongly the person has the trait, 0 to 1
     confidence: f64, //how much evidence the value is based on, 0 to 1
+    #[serde(default)]
+    answers: usize, //how many answers show the trait. Under 3 is an early read
 }
 
-#[derive(Deserialize)]
-struct ProfileRow {
-    username: String,
-    first_name: String,
-    public: bool,
-    traits: Vec<PersonTrait>,
-    report: Option<String>, //json, written by atlas-jobs once the person is fully scored
-    report_at: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct Profile {
-    username: String,
-    first_name: String,
-    public: bool,
-    traits: Vec<PersonTrait>,
+//a person's personality, as their profile shows it
+#[derive(Serialize, Deserialize)]
+pub struct PersonPersonality {
+    traits: Vec<PersonTrait>, //only the measured ones
     report: Option<serde_json::Value>, //the written report on all their traits, once they've finished every scenario
     report_at: Option<String>, //when it was last written
 }
 
-//someone's profile. Private ones are only seen by their owner, and look missing to everyone else
-pub async fn get_profile(
-    State(state): State<AppState>,
-    user: Option<AuthUser>,
-    Path(username): Path<String>,
-) -> Result<Json<Profile>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {username: toLower($username)})
-        WHERE coalesce(p.public, false) OR elementId(p) = $viewerId
+impl PersonPersonality {
+    //the report's one-line summary, once there is one
+    pub fn headline(&self) -> Option<&str> {
+        self.report.as_ref()?["headline"].as_str()
+    }
+}
+
+//a person's measured traits and report. Says nothing about who may see them: the caller checks that
+pub async fn person_personality(graph: &Graph, person_id: &str) -> Result<PersonPersonality, (StatusCode, String)> {
+    let mut rows = graph.execute(query("
+        MATCH (p:Person) WHERE elementId(p) = $personId
         OPTIONAL MATCH (p)-[r:HAS_PERSONALITY_TRAIT]->(t:PersonalityTrait)<-[:HAS_FACET]-(d:PersonalityDomain)
         WITH p, r, t, d ORDER BY t.name
-        RETURN p.username AS username, p.firstName AS first_name, coalesce(p.public, false) AS public,
-            collect(CASE WHEN t IS NULL THEN null ELSE {
+        RETURN collect(CASE WHEN t IS NULL THEN null ELSE {
                 id: elementId(t), name: t.name, description: t.description, domain: d.key, value: toFloat(r.value),
                 confidence: toFloat(coalesce(r.confidence, 0))
-            } END) AS traits, p.personalityReport AS report, p.personalityReportAt AS report_at
+            } END) AS traits, [(p)-[a:ANSWERED]->() WHERE a.scoring IS NOT NULL | a.scoring] AS scorings,
+            p.personalityReport AS report, p.personalityReportAt AS report_at
     ")
-        .param("username", username)
-        .param("viewerId", user.map(|u| u.person_id).unwrap_or_default())
+        .param("personId", person_id)
     ).await.map_err(internal)?;
 
-    let Some(row) = rows.next().await.map_err(internal)? else {
-        return Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string()));
-    };
-    let row = row.to::<ProfileRow>().map_err(internal)?;
-    Ok(Json(Profile {
-        report: row.report.as_deref().map(serde_json::from_str).transpose().map_err(internal)?,
-        report_at: row.report_at,
-        username: row.username,
-        first_name: row.first_name,
-        public: row.public,
-        traits: row.traits,
-    }))
-}
-
-//where share links and their preview image live
-const SITE: &str = "https://atlas-of-us.com";
-
-//the page a shared profile link opens, at /share/{username}. Sites like LinkedIn and X don't run javascript, so they'd only
-//see the ui's bare index.html: this gives them a preview card, then sends people on to the profile itself. Only public
-//profiles get their name and headline on it
-pub async fn share_page(State(state): State<AppState>, Path(username): Path<String>) -> Result<Html<String>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {username: toLower($username)}) WHERE coalesce(p.public, false)
-        RETURN p.firstName AS first_name, p.personalityReport AS report
-    ")
-        .param("username", username.as_str())
-    ).await.map_err(internal)?;
-
-    let (title, description) = match rows.next().await.map_err(internal)? {
-        Some(row) => {
-            let first_name = row.get::<String>("first_name").map_err(internal)?;
-            let headline = row.get::<Option<String>>("report").map_err(internal)?
-                .and_then(|r| serde_json::from_str::<serde_json::Value>(&r).ok())
-                .and_then(|r| r["headline"].as_str().map(str::to_string));
-            (format!("This Is {first_name}"), headline.unwrap_or_else(|| format!("See how {first_name} maps out on Atlas Of Us.")))
+    let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no personality row for the person"))?;
+    let mut traits = row.get::<Vec<PersonTrait>>("traits").map_err(internal)?;
+    for scoring in row.get::<Vec<String>>("scorings").map_err(internal)? {
+        for s in serde_json::from_str::<Vec<Shift>>(&scoring).map_err(internal)?.into_iter().filter(|s| s.weight > 0.0) {
+            if let Some(t) = traits.iter_mut().find(|t| t.name == s.r#trait) {
+                t.answers += 1;
+            }
         }
-        None => ("Atlas Of Us".to_string(), "Map your personality, one scenario at a time.".to_string()),
-    };
-    let (title, description, username) = (escape(&title), escape(&description), escape(&username));
-    let url = format!("{SITE}/share/{username}");
-    Ok(Html(format!(r#"<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>{title} | Atlas Of Us</title>
-<meta name="description" content="{description}">
-<link rel="canonical" href="{url}">
-<meta property="og:type" content="profile">
-<meta property="og:site_name" content="Atlas Of Us">
-<meta property="og:title" content="{title}">
-<meta property="og:description" content="{description}">
-<meta property="og:url" content="{url}">
-<meta property="og:image" content="{SITE}/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta http-equiv="refresh" content="0; url=/u/{username}">
-</head>
-<body><a href="/u/{username}">{title}</a></body>
-</html>"#)))
-}
-
-fn escape(text: &str) -> String {
-    text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&#39;")
+    }
+    Ok(PersonPersonality {
+        traits,
+        report: row.get::<Option<String>>("report").map_err(internal)?.as_deref().map(serde_json::from_str).transpose().map_err(internal)?,
+        report_at: row.get("report_at").map_err(internal)?,
+    })
 }
 
 #[derive(Deserialize)]
