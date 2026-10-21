@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { DOMAINS, type Contribution, type Trait } from './api';
+import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Shift, type Trait } from './api';
 import { ProgressMeter } from '../shared_components/progress-meter';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -10,8 +10,9 @@ const gunmetal = 'var(--gunmetal-black)';
 const paleBlue = 'var(--pale-blue)';
 const comic = 'var(--font-comic)';
 
-//the "My Personality" view: where the user sits on every trait, grouped by domain
-export default function MyPersonality({ traits }: { traits: Trait[] }) {
+//the "My Personality" view: where the user sits on every trait, grouped by domain. onContested is called when the user
+//contests a piece of evidence, so the traits can be fetched again
+export default function MyPersonality({ traits, onContested }: { traits: Trait[]; onContested: () => void }) {
   const [compare, setCompare] = useState(false); //overlay everyone's average on each bar
   const measured = traits.filter((t) => t.value !== undefined).length;
   const domains = DOMAINS.map((d) => ({ ...d, traits: traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
@@ -46,7 +47,7 @@ export default function MyPersonality({ traits }: { traits: Trait[] }) {
           </header>
           <ul style={styles.traitList}>
             {domain.traits.map((t) => (
-              <TraitRow key={t.id} trait={t} compare={compare} />
+              <TraitRow key={t.id} trait={t} compare={compare} onContested={onContested} />
             ))}
           </ul>
         </section>
@@ -57,12 +58,12 @@ export default function MyPersonality({ traits }: { traits: Trait[] }) {
 
 const toPercent = (value?: number) => (value === undefined ? undefined : Math.round(Math.min(Math.max(value, 0), 1) * 100));
 
-function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
+function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: boolean; onContested: () => void }) {
   const [open, setOpen] = useState(false);
   const percent = toPercent(trait.value);
   const average = compare ? toPercent(trait.average) : undefined;
   const explained = trait.contributions.length > 0;
-  const early = percent !== undefined && trait.contributions.length < 3; //based on fewer than 3 answers, so shown faded
+  const early = percent !== undefined && trait.contributions.filter((c) => c.weight > 0).length < 3; //based on fewer than 3 answers, so shown faded
 
   return (
     <li style={styles.traitItem}>
@@ -113,8 +114,8 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
       </button>
       {open && (
         <ol style={styles.contributions}>
-          {trait.contributions.map((c, i) => (
-            <ContributionCard key={i} contribution={c} />
+          {trait.contributions.map((c) => (
+            <ContributionCard key={`${c.answer_id} ${c.trait}`} contribution={c} onContested={onContested} />
           ))}
         </ol>
       )}
@@ -122,18 +123,39 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
   );
 }
 
-//how strongly an answer showed it, in words
-const strength = (weight: number) => (weight >= 0.6 ? 'strongly' : weight >= 0.3 ? '' : 'slightly');
+//how an answer moved the trait, in words
+const push = ({ level, weight }: Shift) =>
+  weight === 0
+    ? 'no longer counts'
+    : `${weight >= 0.6 ? 'strongly ' : weight >= 0.3 ? '' : 'slightly '}${level >= 0.5 ? 'raised' : 'lowered'}`;
 
-function ContributionCard({ contribution: c }: { contribution: Contribution }) {
+//how a contest changed the evidence. A change too small to alter the words says which way it went
+const pull = ({ level, weight }: Shift) => Math.abs(level - 0.5) * weight;
+const change = (before: Shift, after: Shift) =>
+  push(before) !== push(after)
+    ? `${push(before)} → ${push(after)}`
+    : pull(after) === pull(before)
+      ? `still ${push(after)}, reworded`
+      : `still ${push(after)}, but ${pull(after) < pull(before) ? 'less' : 'more'} than before`;
+
+function ContributionCard({ contribution: c, onContested }: { contribution: Contribution; onContested: () => void }) {
+  const [contesting, setContesting] = useState(false);
   const up = c.level >= 0.5;
+  const removed = c.weight === 0;
+  const pending = c.contests.some((contest) => contest.status === 'pending');
+  const contestable = !pending && !c.dropped && c.contests.length < MAX_CONTESTS_PER_EVIDENCE;
   return (
     <li style={styles.contribution}>
       <div style={styles.contributionHead}>
         <span className="comic-chip">{c.scenario}</span>
-        <span style={{ ...styles.push, color: up ? blue : brownRed }}>
-          {up ? '▲' : '▼'} {strength(c.weight)} {up ? 'raised' : 'lowered'}
+        <span style={{ ...styles.push, color: removed ? gunmetal : up ? blue : brownRed }}>
+          {removed ? '✕' : up ? '▲' : '▼'} {push(c)}
         </span>
+        {contestable && !contesting && (
+          <button className="comic-lift" style={styles.contestButton} title="Contest this" aria-label="Contest this" onClick={() => setContesting(true)}>
+            ⚑
+          </button>
+        )}
       </div>
       <p style={styles.contributionQuestion}>{c.question}</p>
       <p style={styles.contributionAnswer}>
@@ -144,8 +166,102 @@ function ContributionCard({ contribution: c }: { contribution: Contribution }) {
           <strong>Because:</strong> {c.reasoning}
         </p>
       )}
-      <p style={styles.contributionWhy}>{c.evidence}</p>
+      <p style={{ ...styles.contributionWhy, ...(removed && !c.dropped ? styles.removed : {}) }}>{c.evidence}</p>
+      {c.contests.length > 0 && (
+        <ol style={styles.contests}>
+          {c.contests.map((contest, i) => (
+            <ContestEntry key={i} contest={contest} />
+          ))}
+        </ol>
+      )}
+      {contesting && (
+        <ContestForm
+          contribution={c}
+          onCancel={() => setContesting(false)}
+          onSent={() => {
+            setContesting(false);
+            onContested();
+          }}
+        />
+      )}
     </li>
+  );
+}
+
+const OUTCOMES: Record<Contest['status'], string> = { pending: 'Reviewing...', accepted: 'Changed', rejected: 'Not changed' };
+
+//one thing the person said about the evidence, and what came of it
+function ContestEntry({ contest: c }: { contest: Contest }) {
+  return (
+    <li style={styles.contest}>
+      <p>
+        <strong>{c.kind === 'explain' ? 'You explained:' : 'You said this was wrong:'}</strong> {c.message}
+      </p>
+      <span className="comic-chip" style={styles.outcome}>
+        {OUTCOMES[c.status]}
+      </span>
+      {c.reply && <p style={styles.reply}>{c.reply}</p>}
+      {c.before && c.after && (
+        <p style={styles.change}>
+          {change(c.before, c.after)}
+        </p>
+      )}
+    </li>
+  );
+}
+
+const KINDS: { kind: Contest['kind']; label: string; placeholder: string }[] = [
+  { kind: 'explain', label: 'Let me explain', placeholder: 'Why did you answer the way you did?' },
+  { kind: 'wrong', label: 'This is wrong', placeholder: 'What did we get wrong about your answer?' },
+];
+
+//explaining an answer, or saying the evidence got it wrong. Sent for review, which changes this evidence or explains why not
+function ContestForm({ contribution: c, onCancel, onSent }: { contribution: Contribution; onCancel: () => void; onSent: () => void }) {
+  const [kind, setKind] = useState<Contest['kind']>('explain');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string>();
+  const send = () => {
+    setSending(true);
+    setError(undefined);
+    contestEvidence(c.answer_id, c.trait, kind, message).then(onSent, (e) => {
+      setError(e instanceof Error ? e.message : String(e));
+      setSending(false);
+    });
+  };
+  return (
+    <div style={styles.contestForm}>
+      <div style={styles.contestKinds}>
+        {KINDS.map((k) => (
+          <button
+            key={k.kind}
+            className="comic-chip comic-lift"
+            style={{ ...styles.contestKind, ...(kind === k.kind ? styles.contestKindOn : {}) }}
+            aria-pressed={kind === k.kind}
+            onClick={() => setKind(k.kind)}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+      <textarea
+        style={styles.contestText}
+        rows={3}
+        maxLength={MAX_ANSWER_LENGTH}
+        value={message}
+        placeholder={KINDS.find((k) => k.kind === kind)?.placeholder}
+        onChange={(e) => setMessage(e.target.value)}
+      />
+      {error && <p style={styles.contestError}>{error}</p>}
+      <div style={styles.contestKinds}>
+        <button className="comic-chip comic-lift" style={styles.contestKind} onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="comic-chip comic-lift" style={styles.contestKind} disabled={sending || !message.trim()} onClick={send}>
+          {sending ? 'Sending...' : 'Send'}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -287,6 +403,81 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 8,
     fontSize: 16,
     lineHeight: 1.25,
+  },
+  //evidence a contest found the answer doesn't show
+  removed: {
+    opacity: 0.5,
+    textDecoration: 'line-through',
+  },
+  //a flag in the card's corner
+  contestButton: {
+    marginLeft: 'auto',
+    padding: '0 6px',
+    background: 'none',
+    border: 'none',
+    color: gunmetal,
+    font: 'inherit',
+    fontSize: 18,
+    cursor: 'pointer',
+  },
+  contests: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    margin: 0,
+    padding: '8px 0 0',
+    borderTop: `2px dashed rgba(57, 61, 63, 0.35)`,
+    listStyle: 'none',
+  },
+  contest: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+    fontSize: 15,
+    lineHeight: 1.25,
+  },
+  outcome: {
+    fontSize: 13,
+  },
+  reply: {
+    fontStyle: 'italic',
+  },
+  change: {
+    fontFamily: comic,
+    letterSpacing: 0.5,
+  },
+  contestForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  contestKinds: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  contestKind: {
+    color: gunmetal,
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+  },
+  contestKindOn: {
+    background: paleBlue,
+  },
+  contestText: {
+    fontSize: 16,
+    padding: '6px 10px',
+    background: '#fff',
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
+    outlineColor: brownRed,
+    resize: 'vertical',
+  },
+  contestError: {
+    color: brownRed,
+    fontSize: 15,
   },
   traitLabel: {
     flex: '1 1 280px',

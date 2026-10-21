@@ -5,7 +5,8 @@ Each message is `{"kind": "...", "job": {...}}` and carries everything the job n
 
 | kind | what it does |
 |---|---|
-| `personality_scoring` | Scores one person from all of their answers at once: one Bedrock call reads every answer, with the story they saw before each question, and sets every trait along with the answers that show it most clearly. The api queues it each time the person finishes another 5 scenarios. Then it removes the `JobRunning` node the api put on them, so the ui unlocks the scenarios again. |
+| `personality_scoring` | Scores one person's answers in batches of 6 scenarios, one Bedrock call per batch. It records the evidence for each trait on the answers it came from, then scores every trait from all of the person's evidence. The api queues it when the person finishes every scenario in a batch, or replays one in a finished batch. Then it removes the `JobRunning` node the api put on them, so the ui unlocks the scenarios again. |
+| `personality_contest` | Reviews one piece of evidence the person contested, by explaining their answer or saying the evidence misread it. One Bedrock call reads every answer in that scene, with its evidence and what the person said before, and either changes or removes just that evidence, or rejects the contest. Either way it writes a reply for the person. When the evidence changes, it rescores every trait. A contest that can't be reviewed is rejected, so it never stays pending. |
 
 ## Deploying
 

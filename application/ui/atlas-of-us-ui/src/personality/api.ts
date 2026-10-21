@@ -65,17 +65,39 @@ export interface Shift {
   weight: number; //how strongly the answer shows it, 0 to 1
 }
 
+//the person contesting one piece of evidence: explaining their answer, or saying the scorer got it wrong
+export interface Contest {
+  trait: string;
+  kind: 'explain' | 'wrong';
+  message: string;
+  at: string; //when they sent it
+  status: 'pending' | 'accepted' | 'rejected';
+  reply?: string; //the reviewer's answer
+  before?: Shift; //the evidence before an accepted contest changed it
+  after?: Shift;
+  removed?: boolean; //the reviewer found the answer doesn't show the trait, so the evidence no longer counts
+}
+
 export interface AnswerEvidence {
+  id: string; //the answer's id
   scenario: string; //the scenario's title
   question: string;
   answer: string;
   reasoning: string | null;
   shifts: Shift[];
+  contests: Contest[]; //oldest first
 }
 
 //every scored answer and how it moved the person's traits. Only the logged in user's own are allowed
 export const getPersonEvidence = (personId: string) =>
   request<AnswerEvidence[]>('GET', `/personality/people/${encodeURIComponent(personId)}/evidence`);
+
+//how many times the api lets one piece of evidence be contested
+export const MAX_CONTESTS_PER_EVIDENCE = 3;
+
+//contests one piece of evidence. It's reviewed in the background, and its outcome shows up in the evidence
+export const contestEvidence = (answer_id: string, trait: string, kind: Contest['kind'], message: string) =>
+  request<void>('POST', '/personality/contests', { answer_id, trait, kind, message });
 
 //where being high or low on a domain or trait helps, and what to watch out for at each end
 export interface Breakdown {
@@ -127,6 +149,8 @@ export interface Trait {
 }
 
 export interface Contribution {
+  answer_id: string;
+  trait: string;
   scenario: string;
   question: string;
   answer: string;
@@ -134,6 +158,8 @@ export interface Contribution {
   level: number; //where the answer puts them, 0 (the low end) to 1 (the high end), 0.5 is typical
   weight: number; //how strongly the answer shows it, 0 to 1
   evidence: string; //the llm's reason
+  contests: Contest[]; //the person's contests of this evidence, oldest first
+  dropped?: boolean; //a rescore since the contests found nothing for the trait in this answer, so only they are left
 }
 
 //the Big Five domains. Keys match the api's PersonalityDomain keys
@@ -159,9 +185,24 @@ export const getProfile = (username: string) => request<Profile>('GET', `/person
 export async function fetchTraits(personId: string, username: string): Promise<Trait[]> {
   const [all, mine, evidence] = await Promise.all([getTraits(), getProfile(username), getPersonEvidence(personId)]);
   const scores = new Map(mine.traits.map((t) => [t.id, t]));
-  const contributions = evidence.flatMap(({ shifts, reasoning, ...answer }) =>
-    shifts.map((s) => ({ ...answer, reasoning: reasoning ?? undefined, trait: s.trait, level: s.level, weight: s.weight, evidence: s.evidence })),
-  );
+  const contributions = evidence.flatMap(({ id, shifts, contests, reasoning, ...answer }) => {
+    const base = { ...answer, answer_id: id, reasoning: reasoning ?? undefined };
+    const contested = (trait: string) => contests.filter((c) => c.trait === trait);
+    //a contest's trait can go missing from the answer when it's rescored, and its history still shows
+    const dropped = [...new Set(contests.map((c) => c.trait))].filter((trait) => !shifts.some((s) => s.trait === trait));
+    return [
+      ...shifts.map((s) => ({ ...base, ...s, contests: contested(s.trait) })),
+      ...dropped.map((trait) => ({
+        ...base,
+        trait,
+        level: 0.5,
+        weight: 0,
+        evidence: 'Since your contest, this answer no longer counts toward this trait.',
+        contests: contested(trait),
+        dropped: true,
+      })),
+    ];
+  });
   return all.map((t) => {
     const facet = /^(\w+) facet: (.*)$/s.exec(t.description ?? '');
     const description = facet ? facet[2] : t.description ?? undefined;

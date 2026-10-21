@@ -19,6 +19,7 @@ pub fn router() -> Router<AppState> {
         .route("/progress", get(get_user_scenario_progress))
         .route("/rescore", post(rescore_personality))
         .route("/scoring", get(get_scoring))
+        .route("/contests", post(contest_evidence))
 }
 
 fn internal(e: impl std::fmt::Display) -> (StatusCode, String) {
@@ -169,20 +170,24 @@ pub async fn get_profile(
 
 #[derive(Deserialize)]
 struct EvidenceRow {
+    id: String,
     scenario: String,
     question: String,
     answer: String,
     reasoning: Option<String>,
     scoring: String, //json list of Shifts, written when the person was last scored
+    contests: Option<String>, //json list of the person's contests of those Shifts
 }
 
 #[derive(Serialize)]
 pub struct AnswerEvidence {
+    id: String, //the ANSWERED relationship's id
     scenario: String, //the scenario's title
     question: String,
     answer: String,
     reasoning: Option<String>,
     shifts: Vec<Shift>, //how this answer moved each trait the last time the person was scored
+    contests: Vec<serde_json::Value>, //each contest of a shift, oldest first, as atlas-jobs writes them
 }
 
 //every scored answer and how it moved the person's traits, so they can see what went into their scores. People can only see their own
@@ -202,7 +207,8 @@ pub async fn list_person_evidence(
         WHERE a.scoring IS NOT NULL
         WITH p, s, q, a ORDER BY s.name, q.order
         RETURN elementId(p) AS person_id, collect(CASE WHEN a IS NULL THEN null ELSE {
-            scenario: s.title, question: q.prompt, answer: a.answer, reasoning: a.reasoning, scoring: a.scoring
+            id: elementId(a), scenario: s.title, question: q.prompt, answer: a.answer, reasoning: a.reasoning,
+            scoring: a.scoring, contests: a.contests
         } END) AS answers
     ")
         .param("personId", person_id)
@@ -213,6 +219,8 @@ pub async fn list_person_evidence(
     };
     let answers = row.get::<Vec<EvidenceRow>>("answers").map_err(internal)?.into_iter().map(|a| Ok(AnswerEvidence {
         shifts: serde_json::from_str(&a.scoring).map_err(internal)?,
+        contests: serde_json::from_str(a.contests.as_deref().unwrap_or("[]")).map_err(internal)?,
+        id: a.id,
         scenario: a.scenario,
         question: a.question,
         answer: a.answer,
@@ -309,7 +317,7 @@ pub async fn answer_question(
         MATCH (p:Person) WHERE elementId(p) = $personId
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
         MERGE (p)-[a:ANSWERED]->(q)
-        SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(), a.scoring = null,
+        SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(), a.scoring = null, a.contests = null,
             a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut, a.facets = $facets
         WITH s, q, a
         MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
@@ -427,6 +435,143 @@ pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Resul
     Ok(Json(ScoringStatus { running }))
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ContestKind {
+    Explain, //the person explains why they answered as they did
+    Wrong, //the person says the evidence misreads their answer
+}
+
+#[derive(Deserialize)]
+pub struct ContestPayload {
+    answer_id: String, //the ANSWERED relationship's id
+    r#trait: String, //the trait whose evidence on that answer is contested
+    kind: ContestKind,
+    message: String,
+}
+
+//a contest of one piece of evidence, with every answer in its scene for atlas-jobs to review it against
+#[derive(Serialize)]
+struct ContestJob {
+    person_id: String,
+    request_id: String, //the request that queued it, so its logs and the job's can be found together
+    answer_id: String,
+    r#trait: String,
+    kind: ContestKind,
+    message: String,
+    scene: Vec<ScoredAnswer>, //the scene's answers, ordered by question, each with its evidence and earlier contests
+}
+
+//so a run of contests can't run up the bedrock bill: how many can wait for review at once, and how many times one piece
+//of evidence can be contested
+const MAX_PENDING_CONTESTS: usize = 3;
+const MAX_CONTESTS_PER_EVIDENCE: usize = 3;
+
+//contests one piece of evidence on the logged in user's answer: they explain the answer, or say the evidence misread it.
+//It's saved as pending on the answer, then atlas-jobs reviews it and either changes that evidence or rejects it with a reply
+pub async fn contest_evidence(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Extension(request_id): Extension<RequestId>,
+    Json(body): Json<ContestPayload>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let message = body.message.trim().to_string();
+    if message.is_empty() || message.chars().count() > MAX_ANSWER_CHARS {
+        return Err((StatusCode::BAD_REQUEST, format!("Tell us what you think in up to {MAX_ANSWER_CHARS} characters.")));
+    }
+
+    //the answer's evidence and contests, and every answer in its scene in the order they were asked
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person)-[a:ANSWERED]->(:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
+        WHERE elementId(p) = $personId AND elementId(a) = $answerId AND a.scoring IS NOT NULL
+        MATCH (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)<-[each:ANSWERED]-(p)
+        WITH s, a, q, each, EXISTS {
+            MATCH (p)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring'})
+            WHERE j.startedAt > datetime() - duration({minutes: $staleMinutes})
+        } AS scoring_running, [(p)-[other:ANSWERED]->() WHERE other.contests CONTAINS $pendingMark | other.contests] AS pending
+        ORDER BY q.order
+        RETURN a.scoring AS scoring, a.contests AS contests, toString(datetime()) AS now, scoring_running, pending, collect({
+            id: elementId(each), scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
+            context: each.context, answer: each.answer, reasoning: each.reasoning,
+            clock_seconds: each.clockSeconds, clock_left: each.clockLeft, clock_ran_out: each.clockRanOut, facets: each.facets,
+            scoring: each.scoring, contests: each.contests
+        }) AS scene
+    ")
+        .param("personId", user.person_id.clone())
+        .param("answerId", body.answer_id.clone())
+        .param("staleMinutes", STALE_JOB_MINUTES)
+        .param("pendingMark", r#""status":"pending""#) //how a pending contest reads in the json, to find the answers holding one
+    ).await.map_err(internal)?;
+    let Some(row) = rows.next().await.map_err(internal)? else {
+        return Err((StatusCode::NOT_FOUND, "We couldn't find that answer. Try reloading the page.".to_string()));
+    };
+    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
+
+    if row.get::<bool>("scoring_running").map_err(internal)? {
+        return Err((StatusCode::CONFLICT, "Your results are being recalculated. Try again once that's done.".to_string()));
+    }
+    let shifts: Vec<Shift> = serde_json::from_str(&row.get::<String>("scoring").map_err(internal)?).map_err(internal)?;
+    if !shifts.iter().any(|s| s.r#trait == body.r#trait) {
+        return Err((StatusCode::NOT_FOUND, "That evidence isn't there anymore. Try reloading the page.".to_string()));
+    }
+    let old = row.get::<Option<String>>("contests").map_err(internal)?;
+    let mut contests: Vec<serde_json::Value> = serde_json::from_str(old.as_deref().unwrap_or("[]")).map_err(internal)?;
+    let on_this = contests.iter().filter(|c| c["trait"] == body.r#trait.as_str()).collect::<Vec<_>>();
+    if on_this.iter().any(|c| c["status"] == "pending") {
+        return Err((StatusCode::CONFLICT, "We're still looking at what you said about this one.".to_string()));
+    }
+    if on_this.len() >= MAX_CONTESTS_PER_EVIDENCE {
+        return Err((StatusCode::TOO_MANY_REQUESTS, format!("You've contested this one {MAX_CONTESTS_PER_EVIDENCE} times already, so it stays as it is.")));
+    }
+    //the answers holding the person's pending contests, each a json list of contests
+    let pending = row.get::<Vec<String>>("pending").map_err(internal)?.iter()
+        .map(|list| serde_json::from_str::<Vec<serde_json::Value>>(list).map(|list| list.iter().filter(|c| c["status"] == "pending").count()))
+        .sum::<Result<usize, _>>().map_err(internal)?;
+    if pending >= MAX_PENDING_CONTESTS {
+        return Err((StatusCode::TOO_MANY_REQUESTS, format!("We're still looking at {pending} of your contests. Try again once they're done.")));
+    }
+    contests.push(json!({
+        "trait": body.r#trait, "kind": body.kind, "message": message, "at": row.get::<String>("now").map_err(internal)?, "status": "pending",
+    }));
+    let contests = serde_json::to_string(&contests).map_err(internal)?;
+
+    //only if the contests haven't changed since they were read, so a double click can't open two
+    let mut rows = state.graph.execute(query("
+        MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = $answerId AND coalesce(a.contests, '') = coalesce($old, '')
+        SET a.contests = $contests
+        RETURN count(a) AS saved
+    ")
+        .param("answerId", body.answer_id.clone())
+        .param("old", old.clone())
+        .param("contests", contests.clone())
+    ).await.map_err(internal)?;
+    let saved = rows.next().await.map_err(internal)?.map(|r| r.get::<i64>("saved")).transpose().map_err(internal)?;
+    drop(rows);
+    if saved != Some(1) {
+        return Err((StatusCode::CONFLICT, "That answer just changed. Try reloading the page.".to_string()));
+    }
+
+    let job = ContestJob {
+        person_id: user.person_id,
+        request_id: request_id.header_value().to_str().unwrap_or_default().to_string(),
+        answer_id: body.answer_id,
+        r#trait: body.r#trait,
+        kind: body.kind,
+        message,
+        scene: row.get("scene").map_err(internal)?,
+    };
+    if let Err(e) = queue(&state, "personality_contest", &job).await {
+        //nothing will review it, so don't leave it pending
+        state.graph.run(query("MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = $answerId AND a.contests = $contests SET a.contests = $old")
+            .param("answerId", job.answer_id)
+            .param("contests", contests)
+            .param("old", old)
+        ).await.map_err(internal)?;
+        return Err(internal(e));
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
 //one piece of evidence about a trait
 #[derive(Serialize, Deserialize)]
 struct Shift {
@@ -449,6 +594,8 @@ struct ScoredAnswer {
     clock_left: Option<i64>,
     clock_ran_out: Option<bool>,
     facets: Vec<String>, //the traits the question was written to draw out
+    scoring: Option<String>, //json list of the answer's Shifts. Only read for contests
+    contests: Option<String>, //json list of the person's contests of the answer's Shifts
 }
 
 //scenarios are scored in batches of this many, by their order: the first six are a batch, then the next six, and so on.
@@ -500,7 +647,8 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
             RETURN s.order / $batchSize AS batch, collect({
                 id: elementId(a), scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
                 context: a.context, answer: a.answer, reasoning: a.reasoning,
-                clock_seconds: a.clockSeconds, clock_left: a.clockLeft, clock_ran_out: a.clockRanOut, facets: a.facets
+                clock_seconds: a.clockSeconds, clock_left: a.clockLeft, clock_ran_out: a.clockRanOut, facets: a.facets,
+                contests: a.contests
             }) AS answers
             ORDER BY batch
         ")
@@ -534,16 +682,22 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
     let request_id = request_id.header_value().to_str().unwrap_or_default().to_string();
     let job = ScoringJob { id, person_id: person_id.to_string(), request_id, batches };
 
-    let body = json!({"kind": "personality_scoring", "job": job}).to_string();
+    tracing::debug!("scoring {person_id}: queueing");
+    if let Err(e) = queue(state, "personality_scoring", &job).await {
+        //nothing will pick the job up, so don't leave the person locked out waiting for it
+        graph.run(query("MATCH (j:JobRunning) WHERE elementId(j) = $id DETACH DELETE j").param("id", job.id)).await?;
+        return Err(e);
+    }
+    Ok(())
+}
+
+//sends a job to atlas-jobs, or logs it to run by hand when there's no queue
+async fn queue(state: &AppState, kind: &str, job: impl Serialize) -> Result<(), BoxError> {
+    let body = json!({"kind": kind, "job": job}).to_string();
     let Some((sqs, url)) = &state.jobs_queue else {
         tracing::info!("JOBS_QUEUE_URL isn't set, so run this job through atlas-jobs by hand: {body}");
         return Ok(());
     };
-    tracing::debug!("scoring {person_id}: queueing");
-    if let Err(e) = sqs.send_message().queue_url(url).message_body(body).send().await {
-        //nothing will pick the job up, so don't leave the person locked out waiting for it
-        graph.run(query("MATCH (j:JobRunning) WHERE elementId(j) = $id DETACH DELETE j").param("id", job.id)).await?;
-        return Err(DisplayErrorContext(e).to_string().into());
-    }
+    sqs.send_message().queue_url(url).message_body(body).send().await.map_err(|e| DisplayErrorContext(e).to_string())?;
     Ok(())
 }

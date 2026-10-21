@@ -414,7 +414,7 @@ function Personality() {
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
 
-  //fetched each time the view opens or a rescore finishes, so it picks up anything measured since
+  //fetched each time the view opens, a rescore finishes or a contest is sent, so it picks up anything measured since
   useEffect(() => {
     if (view !== 'traits' || !personId || !username) return;
     fetchTraits(personId, username).then(
@@ -425,6 +425,14 @@ function Personality() {
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
   }, [view, personId, username, scorings]);
+
+  //a contest is reviewed in the background, so the traits are fetched again until every contest has its outcome
+  const reviewing = traits?.some((t) => t.contributions.some((c) => c.contests.some((contest) => contest.status === 'pending')));
+  useEffect(() => {
+    if (!reviewing) return;
+    const timer = window.setTimeout(() => setScorings((n) => n + 1), SCORING_POLL_MS);
+    return () => window.clearTimeout(timer);
+  }, [reviewing, traits]);
 
   //saves an answer as the player moves past a prompt. The last answer of a scenario also starts a rescore
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer, context: string, clock?: AnswerClock) => {
@@ -513,7 +521,7 @@ function Personality() {
           ))}
         </div>
 
-        {view === 'traits' && traits && <MyPersonality traits={traits} />}
+        {view === 'traits' && traits && <MyPersonality traits={traits} onContested={() => setScorings((n) => n + 1)} />}
 
         {view === 'explore' && <Explore />}
 

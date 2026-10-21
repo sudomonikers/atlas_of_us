@@ -68,6 +68,12 @@ resource "aws_lambda_event_source_mapping" "jobs" {
   event_source_arn = aws_sqs_queue.jobs.arn
   function_name    = aws_lambda_function.jobs.arn
   batch_size       = 1
+
+  # at most this many jobs, and so this many bedrock calls, at once. A flood of jobs waits in the queue instead of fanning
+  # out, and unlike reserved concurrency nothing is throttled, so no job burns its two tries waiting
+  scaling_config {
+    maximum_concurrency = 5
+  }
 }
 
 ###IAM

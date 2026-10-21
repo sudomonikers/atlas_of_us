@@ -59,10 +59,12 @@ Each answer is an ANSWERED relationship from the Person to the question, holding
 - `clockSeconds`, `clockLeft`, `clockRanOut`: where a scenario's countdown stood, only on answers given under one
 - `answeredDate`
 - `scoring`: a JSON list of the evidence the scorer found in this answer, each `{trait, evidence, level, weight}`. This is what My Personality shows under "Why?"
+- `contests`: a JSON list of the person's contests of that evidence, oldest first. Each has the `trait`, the `kind` (`explain` for explaining their answer, `wrong` for saying the evidence misread it), their `message`, when they sent it (`at`), and its `status` (`pending`, `accepted` or `rejected`). A settled contest has the reviewer's `reply`, and an accepted one has the evidence `before` and `after` it changed, or `removed: true` when the reviewer found the answer doesn't show the trait (the evidence stays, at weight 0). Replaying the scene clears them
 ```cypher
 MATCH (a:Person {name: "Andrew Link"}), (q:PersonalityScenarioQuestion {key: "the_war"})
 MERGE (a)-[:ANSWERED {answer: "Knock on his door and suggest a mediator. Neutral ground.", reasoning: "A fence isn't worth years of not speaking to the man next door", context: "...", facets: ["Cooperation", "Anger"], answeredDate: datetime(),
-  scoring: '[{"trait":"Cooperation","evidence":"Looks for neutral ground over a fight they could win","level":0.7,"weight":0.6}]'}]->(q);
+  scoring: '[{"trait":"Cooperation","evidence":"Looks for neutral ground over a fight they could win","level":0.7,"weight":0.6}]',
+  contests: '[{"trait":"Cooperation","kind":"explain","message":"I only went to a mediator because last time we talked alone it got ugly","at":"2026-10-20T09:12:00Z","status":"rejected","reply":"Going to a mediator to keep things from getting ugly still keeps the peace, so this stays as it is."}]'}]->(q);
 ```
 
 While a person is being scored, they have a JobRunning node, which the UI watches to lock the scenarios until scoring finishes. The scoring job deletes it when it's done:
