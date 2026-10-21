@@ -141,7 +141,8 @@ Finally it removes the `JobRunning` node, whether scoring worked or not, so a fa
 **Retries and limits:**
 - The queue runs at most 5 jobs at once (`maximum_concurrency` in `jobs_lambda.tf`), so a flood of jobs waits rather
   than making many Bedrock calls in parallel. `infrastructure/budget.tf` emails when the month's Claude spend on
-  Bedrock nears or is forecast to pass $50.
+  Bedrock nears or is forecast to pass $100, and once it actually passes, a Budgets action denies the jobs role Bedrock
+  until it's reversed in the Budgets console.
 - Bedrock throttling is retried with backoff up to 32 seconds.
 - A response cut off by the token limit fails the job rather than saving partial scores.
 
