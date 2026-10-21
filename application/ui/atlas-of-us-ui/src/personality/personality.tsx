@@ -377,6 +377,7 @@ function Personality() {
   //the user's traits are rescored in the background after each scenario, and no new one starts until that's done
   const [recalculating, setRecalculating] = useState(false);
   const [scorings, setScorings] = useState(0); //how many rescores have finished while the page was open
+  const [outOfBudget, setOutOfBudget] = useState(false); //the month's AI budget ran out, so nothing gets scored
 
   const load = useCallback(
     () =>
@@ -397,13 +398,17 @@ function Personality() {
 
   useEffect(() => {
     if (!loggedIn) return;
-    getScoring().then(({ running }) => setRecalculating(running), () => {});
+    getScoring().then(({ running, out_of_budget }) => {
+      setRecalculating(running);
+      setOutOfBudget(out_of_budget);
+    }, () => {});
   }, [loggedIn]);
   useEffect(() => {
     if (!recalculating) return;
     const timer = window.setInterval(
       () =>
-        getScoring().then(({ running }) => {
+        getScoring().then(({ running, out_of_budget }) => {
+          setOutOfBudget(out_of_budget);
           if (running) return;
           setRecalculating(false);
           setScorings((n) => n + 1);
@@ -482,6 +487,8 @@ function Personality() {
   const bubble =
     view === 'explore'
       ? "Here's how personality works, trait by trait. Every end of every scale has its downsides, so nobody gets to feel too smug. Or too bad."
+      : outOfBudget
+        ? "Bad news: I've burned through this month's AI budget, so I can't score anything right now. Your answers are saved, and I'll be back once I'm topped up. Chipping in at the bottom of the page helps."
       : recalculating
         ? "Hold on, I'm recalculating your results from everything you've told me so far. It takes a few minutes, and your next scenario unlocks as soon as I'm done."
         : view === 'scenarios'

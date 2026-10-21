@@ -430,23 +430,24 @@ pub async fn rescore_personality(
 #[derive(Serialize)]
 pub struct ScoringStatus {
     running: bool, //a scoring job for the logged in user hasn't finished yet
+    out_of_budget: bool, //the month's bedrock budget ran out, so nothing gets scored (see infrastructure/budget.tf)
 }
 
-//whether a scoring job for the logged in user is still running
+//whether a scoring job for the logged in user is still running, and whether anything can be scored at all
 pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Result<Json<ScoringStatus>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         OPTIONAL MATCH (p:Person)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring'})
         WHERE elementId(p) = $personId AND j.startedAt > datetime() - duration({minutes: $staleMinutes})
-        RETURN count(j) > 0 AS running
+        RETURN count(j) > 0 AS running, exists { MATCH (:BedrockCutoff) } AS out_of_budget
     ")
         .param("personId", user.person_id)
         .param("staleMinutes", STALE_JOB_MINUTES)
     ).await.map_err(internal)?;
-    let running = match rows.next().await.map_err(internal)? {
-        Some(row) => row.get::<bool>("running").map_err(internal)?,
-        None => false,
-    };
-    Ok(Json(ScoringStatus { running }))
+    let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no scoring status"))?;
+    Ok(Json(ScoringStatus {
+        running: row.get("running").map_err(internal)?,
+        out_of_budget: row.get("out_of_budget").map_err(internal)?,
+    }))
 }
 
 #[derive(Serialize, Deserialize)]

@@ -72,6 +72,11 @@ While a person is being scored, they have a JobRunning node, which the UI watche
 (:Person)-[:HAS_JOB]->(:JobRunning {kind: "personality_scoring", startedAt: datetime()})
 ```
 
+While the monthly Bedrock budget cutoff is on (see infrastructure/budget.tf), atlas-jobs keeps one BedrockCutoff node, which the UI reads to say nothing can be scored. The next Bedrock call that gets through deletes it:
+```cypher
+(:BedrockCutoff)
+```
+
 ### Topics Graph
 Topic nodes encompass the sub-graph which is essentially a knowledge graph of everything a Person can know, understand, believe, value or any other verb. This sub-graph was originally called Knowledge Graph, but was changed to Topic Graph because some information or knowledge is not provable or is false, and we want to include things that are not strictly true, but somewhat ambiguous or even false. Many people believe false things or "know" them to be true. Our job is not to verify the veracity of different pieces of information, but rather to understand people and what makes them up. To that end we have Topics, not Knowledge. 
 

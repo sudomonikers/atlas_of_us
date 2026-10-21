@@ -95,7 +95,7 @@ pub async fn run(graph: &Graph, job: ContestJob) {
         let reviewed: Result<bool, BoxError> = async {
             let client = aws_sdk_bedrockruntime::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await);
             let model = env::var("BEDROCK_MODEL_ID")?;
-            let ruling = review(&client, &model, &job).await?;
+            let ruling = review(graph, &client, &model, &job).await?;
             let accepted = ruling.accepted;
             settle(graph, &job, |shifts, contest| {
                 if accepted {
@@ -137,7 +137,7 @@ pub async fn run(graph: &Graph, job: ContestJob) {
 }
 
 //one bedrock call over the contested answer's scene, deciding whether its evidence for the trait changes
-async fn review(client: &aws_sdk_bedrockruntime::Client, model: &str, job: &ContestJob) -> Result<LlmRuling, BoxError> {
+async fn review(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &str, job: &ContestJob) -> Result<LlmRuling, BoxError> {
     let index = job.scene.iter().position(|a| a.id == job.answer_id).ok_or("the contested answer isn't in its scene")?;
     let answer_list = job.scene.iter().enumerate().map(|(index, a)| {
         let mut answer = answer_json(index, a)?;
@@ -151,7 +151,7 @@ async fn review(client: &aws_sdk_bedrockruntime::Client, model: &str, job: &Cont
         "kind": job.kind, "person_wrote": job.message,
     });
 
-    let input = invoke(client, model, json!({
+    let input = invoke(graph, client, model, json!({
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 2000,
         "temperature": 0,

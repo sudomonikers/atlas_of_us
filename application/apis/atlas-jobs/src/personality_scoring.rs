@@ -251,7 +251,7 @@ pub async fn run(graph: &Graph, job: ScoringJob) {
             let client = aws_sdk_bedrockruntime::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await);
             let model = env::var("BEDROCK_MODEL_ID")?;
             for answers in &job.batches {
-                let traits = score_answers(&client, &model, answers).await?;
+                let traits = score_answers(graph, &client, &model, answers).await?;
                 save_evidence(graph, answers, traits).await?;
             }
             save_traits(graph, &job.person_id).await?;
@@ -284,12 +284,13 @@ pub fn answer_json(index: usize, a: &ScoredAnswer) -> Result<serde_json::Value, 
 
 //one bedrock call over a batch's answers, returning the evidence it found for each trait
 async fn score_answers(
+    graph: &Graph,
     client: &aws_sdk_bedrockruntime::Client,
     model: &str,
     answers: &[ScoredAnswer],
 ) -> Result<Vec<LlmTrait>, BoxError> {
     let answer_list = answers.iter().enumerate().map(|(index, a)| answer_json(index, a)).collect::<Result<Vec<_>, _>>()?;
-    let input = invoke(client, model, json!({
+    let input = invoke(graph, client, model, json!({
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 32000,
         "temperature": 0,
@@ -327,8 +328,10 @@ async fn score_answers(
     Ok(serde_json::from_value::<LlmScores>(input)?.traits)
 }
 
-//sends a request to bedrock, retrying while it's throttled, and returns the input of the tool call it replies with
-pub async fn invoke(client: &aws_sdk_bedrockruntime::Client, model: &str, body: serde_json::Value) -> Result<serde_json::Value, BoxError> {
+//sends a request to bedrock, retrying while it's throttled, and returns the input of the tool call it replies with.
+//Access denied means the budget cutoff (infrastructure/budget.tf) is on, which a BedrockCutoff node tells the ui until a
+//call gets through again
+pub async fn invoke(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &str, body: serde_json::Value) -> Result<serde_json::Value, BoxError> {
     let body = serde_json::to_vec(&body)?;
     let mut delay = Duration::from_secs(1);
     let output = loop {
@@ -339,9 +342,15 @@ pub async fn invoke(client: &aws_sdk_bedrockruntime::Client, model: &str, body: 
                 tokio::time::sleep(delay).await;
                 delay *= 2;
             }
-            sent => break sent.map_err(|e| DisplayErrorContext(e).to_string())?,
+            sent => break sent,
         }
     };
+    match &output {
+        Ok(_) => graph.run(query("MATCH (c:BedrockCutoff) DELETE c")).await?,
+        Err(e) if e.as_service_error().is_some_and(|e| e.is_access_denied_exception()) => graph.run(query("MERGE (:BedrockCutoff)")).await?,
+        Err(_) => {}
+    }
+    let output = output.map_err(|e| DisplayErrorContext(e).to_string())?;
     let response: serde_json::Value = serde_json::from_slice(output.body().as_ref())?;
     //what the call cost: cache reads are the prompt, billed at a tenth of the input price
     let usage = &response["usage"];

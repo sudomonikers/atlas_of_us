@@ -124,7 +124,7 @@ async fn write(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &s
         entry
     }).collect();
 
-    let input = invoke(client, model, json!({
+    let input = invoke(graph, client, model, json!({
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4000,
         "temperature": 0,

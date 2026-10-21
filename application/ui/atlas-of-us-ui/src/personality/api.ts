@@ -32,8 +32,9 @@ export interface AnswerClock {
 export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, facets: string[], clock?: AnswerClock) =>
   request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, context, facets, clock });
 
-//whether the user's traits are still being rescored. No new scenario starts until it's done
-export const getScoring = () => request<{ running: boolean }>('GET', '/personality/scoring');
+//whether the user's traits are still being rescored (no new scenario starts until it's done), and whether the month's
+//AI budget has run out, so nothing can be scored
+export const getScoring = () => request<{ running: boolean; out_of_budget: boolean }>('GET', '/personality/scoring');
 
 export interface Progress {
   answers: SavedAnswer[]; //every question the logged in user has answered
