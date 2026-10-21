@@ -14,7 +14,7 @@ export function Plea() {
     <>
       <p style={styles.text}>
         Atlas is free and ad-free. Every person who maps their personality costs about $0.68 in AI and servers, and Andrew
-        is poor. Plz help. Chip in a dollar and you've covered yourself, with a few cents left over for snacks.
+        is fresh out of VC money. Plz help. Chip in a dollar and you've covered yourself, with a few cents left over for coffee.
       </p>
       <a className="comic-lift" style={styles.button} href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
         Chip in $1 ☕
