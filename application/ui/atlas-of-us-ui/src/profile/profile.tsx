@@ -38,7 +38,27 @@ export default function Profile({ username }: { username: string }) {
       .catch((e) => setFailure(e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(false));
   };
-  const copy = () => run(() => navigator.clipboard.writeText(window.location.href).then(() => setNote('Copied!')));
+  //share links go through the api's /share page, so sites that don't run javascript still get a preview card
+  const shareUrl = `${window.location.origin}/share/${profile?.username}`;
+  //the post's text, filled in for them. Their report's headline when they have one
+  const shareText = profile?.report
+    ? `Atlas Of Us summed up my personality: "${profile.report.headline}" Find out yours:`
+    : "I'm mapping my personality on Atlas Of Us, one scenario at a time. Find out yours:";
+  const copy = () => run(() => navigator.clipboard.writeText(shareUrl).then(() => setNote('Copied!')));
+  //the phone's share sheet, the only way onto Instagram. Closing it without sharing isn't a failure
+  const shareSheet = () =>
+    run(() => navigator.share({ title: 'Atlas Of Us', text: shareText, url: shareUrl }).catch((e) => {
+      if (!(e instanceof DOMException && e.name === 'AbortError')) throw e;
+    }));
+  const url = encodeURIComponent(shareUrl);
+  const text = encodeURIComponent(shareText);
+  const sites = [
+    //share-offsite can't take text, so this opens LinkedIn's post composer with the text and link in it instead
+    { name: 'LinkedIn', href: `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(`${shareText} ${shareUrl}`)}` },
+    { name: 'X', href: `https://x.com/intent/post?url=${url}&text=${text}` },
+    { name: 'Reddit', href: `https://www.reddit.com/r/Atlas_Of_Us/submit?type=LINK&url=${url}&title=${text}` },
+    { name: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${url}` },
+  ];
 
   return (
     <div style={styles.page} className="comic-page">
@@ -64,9 +84,21 @@ export default function Profile({ username }: { username: string }) {
             {shared ? 'Anyone with the link can see this page.' : 'Only you can see this page.'}
           </span>
           {shared && (
-            <button className="comic-lift" style={styles.small} disabled={busy} onClick={copy}>
-              Copy link
-            </button>
+            <div style={styles.buttons}>
+              {sites.map((site) => (
+                <a key={site.name} className="comic-lift" style={styles.small} href={site.href} target="_blank" rel="noopener noreferrer">
+                  {site.name}
+                </a>
+              ))}
+              {'share' in navigator && (
+                <button className="comic-lift" style={styles.small} disabled={busy} onClick={shareSheet}>
+                  Share…
+                </button>
+              )}
+              <button className="comic-lift" style={styles.small} disabled={busy} onClick={copy}>
+                Copy link
+              </button>
+            </div>
           )}
           {note && <span style={styles.note}>{note}</span>}
           {failure && <AtlasError message={failure} />}
@@ -169,6 +201,12 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: 'var(--font-comic)',
     fontSize: 20,
     letterSpacing: 1,
+    textDecoration: 'none',
+  },
+  buttons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   note: {
     color: 'var(--brown-red)',

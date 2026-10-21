@@ -227,6 +227,18 @@ resource "aws_cloudfront_distribution" "cdn" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
   }
 
+  # shared profile links. The api answers with a preview card for sites that don't run javascript, then sends people to /u/
+  ordered_cache_behavior {
+    path_pattern             = "/share/*"
+    allowed_methods          = ["GET", "HEAD"]
+    cached_methods           = ["GET", "HEAD"]
+    target_origin_id         = "api-lambda-origin"
+    viewer_protocol_policy   = "redirect-to-https"
+    compress                 = true
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+  }
+
   viewer_certificate {
     acm_certificate_arn      = aws_acm_certificate.cert.arn
     ssl_support_method       = "sni-only"

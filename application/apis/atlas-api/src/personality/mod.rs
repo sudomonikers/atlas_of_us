@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use aws_sdk_sqs::error::DisplayErrorContext;
-use axum::{Extension, Json, Router, extract::{Path, State}, http::StatusCode, routing::{get, post, put}};
+use axum::{Extension, Json, Router, extract::{Path, State}, http::StatusCode, response::Html, routing::{get, post, put}};
 use neo4rs::query;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -186,6 +186,58 @@ pub async fn get_profile(
         public: row.public,
         traits: row.traits,
     }))
+}
+
+//where share links and their preview image live
+const SITE: &str = "https://atlas-of-us.com";
+
+//the page a shared profile link opens, at /share/{username}. Sites like LinkedIn and X don't run javascript, so they'd only
+//see the ui's bare index.html: this gives them a preview card, then sends people on to the profile itself. Only public
+//profiles get their name and headline on it
+pub async fn share_page(State(state): State<AppState>, Path(username): Path<String>) -> Result<Html<String>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person {username: toLower($username)}) WHERE coalesce(p.public, false)
+        RETURN p.firstName AS first_name, p.personalityReport AS report
+    ")
+        .param("username", username.as_str())
+    ).await.map_err(internal)?;
+
+    let (title, description) = match rows.next().await.map_err(internal)? {
+        Some(row) => {
+            let first_name = row.get::<String>("first_name").map_err(internal)?;
+            let headline = row.get::<Option<String>>("report").map_err(internal)?
+                .and_then(|r| serde_json::from_str::<serde_json::Value>(&r).ok())
+                .and_then(|r| r["headline"].as_str().map(str::to_string));
+            (format!("This Is {first_name}"), headline.unwrap_or_else(|| format!("See how {first_name} maps out on Atlas Of Us.")))
+        }
+        None => ("Atlas Of Us".to_string(), "Map your personality, one scenario at a time.".to_string()),
+    };
+    let (title, description, username) = (escape(&title), escape(&description), escape(&username));
+    let url = format!("{SITE}/share/{username}");
+    Ok(Html(format!(r#"<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{title} | Atlas Of Us</title>
+<meta name="description" content="{description}">
+<link rel="canonical" href="{url}">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="Atlas Of Us">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{description}">
+<meta property="og:url" content="{url}">
+<meta property="og:image" content="{SITE}/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url=/u/{username}">
+</head>
+<body><a href="/u/{username}">{title}</a></body>
+</html>"#)))
+}
+
+fn escape(text: &str) -> String {
+    text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&#39;")
 }
 
 #[derive(Deserialize)]

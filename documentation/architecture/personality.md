@@ -151,6 +151,9 @@ Finally it removes the `JobRunning` node, whether scoring worked or not, so a fa
 - Each facet's "Why?" lists the answers behind it and what in them shows the facet, from the evidence on the answers (`GET /api/personality/people/{id}/evidence`).
   Each piece of evidence can be contested (see below).
 - **Public profiles:** `GET /api/personality/profiles/{username}` serves a person's scores and report to their profile page.
+  Owners of public profiles get share buttons for LinkedIn, X, Reddit and Facebook, the phone's share sheet (the way onto Instagram) and Copy link.
+  Shared links point at `/share/{username}`, which CloudFront sends to atlas-api: sites like LinkedIn don't run javascript, so the API serves a page with
+  og: and twitter: tags (their first name, their report's headline, and `/og-image.png`), then redirects people to `/u/{username}`. Private profiles get the generic site card.
 - **Explore** teaches the Big Five and each facet from reading material in the graph (`GET /api/personality/model`).
 
 ## The report

@@ -169,7 +169,7 @@ resource "aws_wafv2_web_acl" "cdn" {
     }
   }
 
-  # everything else on the api. Generous: the ui polls the scoring job every 3 seconds (100 per window)
+  # everything else on the api, and its shared profile pages. Generous: the ui polls the scoring job every 3 seconds (100 per window)
   rule {
     name     = "rate-limit-api"
     priority = 4
@@ -190,15 +190,32 @@ resource "aws_wafv2_web_acl" "cdn" {
         aggregate_key_type    = "IP"
 
         scope_down_statement {
-          byte_match_statement {
-            search_string         = "/api/"
-            positional_constraint = "STARTS_WITH"
-            field_to_match {
-              uri_path {}
+          or_statement {
+            statement {
+              byte_match_statement {
+                search_string         = "/api/"
+                positional_constraint = "STARTS_WITH"
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+              }
             }
-            text_transformation {
-              priority = 0
-              type     = "LOWERCASE"
+            statement {
+              byte_match_statement {
+                search_string         = "/share/"
+                positional_constraint = "STARTS_WITH"
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+              }
             }
           }
         }
