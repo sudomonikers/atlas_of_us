@@ -172,6 +172,7 @@ It sits at the top of My Personality and on their profile.
   - an overview;
   - a paragraph per domain;
   - strengths and things to watch out for.
+- **Voice:** Atlas writes it. The prompt opens with atlas-jobs' own `src/atlas_personality.md`, a report-specific copy of `documentation/atlas_personality.md`. It's read in at build time, so editing it changes new reports after the next atlas-jobs deploy.
 - **Privacy:** the report is shown to anyone who can see the profile, so the prompt forbids quoting, retelling or naming scenes, answers or choices. It describes patterns only, with no clinical words.
 - **Storage:** JSON on `Person.personalityReport`, written at `Person.personalityReportAt`. Clearing answers removes it.
 - **Failures:** a report that fails is logged and the old one is kept. It never fails the scoring or contest job.
