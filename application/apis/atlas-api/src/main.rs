@@ -1,10 +1,6 @@
 mod state;
 
-//one module + router per graph layer (see documentation/data_model/data_model.md)
-mod personality;
-mod physical;
-mod skills;
-mod topics;
+mod domains;
 mod auth;
 mod feedback;
 mod admin;
@@ -25,6 +21,7 @@ use tower_http::{
 };
 use tracing::Span;
 
+use domains::{personality, physical, skills, topics};
 use state::AppState;
 
 #[tokio::main]

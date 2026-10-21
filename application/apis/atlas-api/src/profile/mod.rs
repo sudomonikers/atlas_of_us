@@ -4,7 +4,7 @@ use axum::{Json, Router, extract::{Path, State}, http::StatusCode, response::Htm
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::AuthUser, personality, state::AppState};
+use crate::{auth::AuthUser, domains::personality, state::AppState};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/{username}", get(get_profile))

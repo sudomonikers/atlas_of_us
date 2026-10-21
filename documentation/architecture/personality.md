@@ -10,7 +10,7 @@ the graph itself, read `../data_model/personality/personality.md`.
 | Piece | Where | What it does |
 |---|---|---|
 | UI | `application/ui/atlas-of-us-ui/src/personality/` | The scenes, the scenario list, My Personality and the Explore tab |
-| API | `application/apis/atlas-api/src/personality/mod.rs` | Saves answers, decides when to score, queues scoring and contest jobs, serves scores and evidence |
+| API | `application/apis/atlas-api/src/domains/personality/mod.rs` | Saves answers, decides when to score, queues scoring and contest jobs, serves scores and evidence |
 | Scoring job | `application/apis/atlas-jobs/src/personality_scoring.rs` | A Lambda job that reads a person's answers with Bedrock and writes their traits |
 | Contest job | `application/apis/atlas-jobs/src/personality_contest.rs` | A Lambda job that reviews one piece of evidence the person contested |
 | Report | `application/apis/atlas-jobs/src/personality_report.rs` | Writes a fully scored person's report, called by both jobs |
