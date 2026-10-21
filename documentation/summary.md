@@ -16,7 +16,7 @@ So to figure out what an individual can possible be, the Atlas Of Us has a compr
 9. Works (Specific creations like Monet's Water Lilies or "The Prestige")
 
 ## What we don't do - yet
-These 6 traits give us a pretty decent snapshot of each individual's stable inertia in time, but of course it doesn't account for a person's STATE. I might score extremely high in the Boldness personality trait, but if I got horrible sleep the night before I may act more tentatively today since I am feeling low-energy. State in any given moment is NOT something we currently model, though we have plans to incorporate this in the future.
+These 6 traits give us a pretty decent snapshot of each individual's stable inertia in time, but of course it doesn't account for a person's STATE. I might score extremely high in the Assertiveness personality trait, but if I got horrible sleep the night before I may act more tentatively today since I am feeling low-energy. State in any given moment is NOT something we currently model, though we have plans to incorporate this in the future.
 
 You may notice that these 6 traits also do not account for a person's history. What are we if not a combination of our memories and past experiences? Don't those shape who we are? Well, yes they do, and we believe we capture the outputs of those experiences and memories in our 6 main human traits, though incorporating those things would give us a good indication of the trajectory of a person and deeper insight into their motivations and reasons for being the way they are. We have plans to incorporate this in the future as well.
 

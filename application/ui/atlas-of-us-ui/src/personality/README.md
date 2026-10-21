@@ -1,8 +1,9 @@
-# The Personality Track
+# The Personality Module
 Start by reading the Personality Data Model here: atlas_of_us/documentation/data_model/personality/personality.md
-Also read the Seed script for Personality here: atlas_of_us/application/database/personality_seed.cypher
+How the module works end to end, from a typed answer to a trait score, is in
+atlas_of_us/documentation/architecture/personality.md.
 
-There are about 44 personality traits we are looking to measure here, and measuring is hard.
+We measure the 30 facets of the Big Five, six per domain, and measuring is hard.
 
 Your personality is the combination of many long-standing traits that shape how you *generally* act, think, and feel. If you’ve ever taken a personality test (which many of us did at school) you might be familiar with the idea that they are utter bullshit and do a terrible job of modeling people. Why? Well here at the Atlas Of Us we would argue that the underlying model isn’t the problem, but rather the way these tests gather information about you is bad.
 
@@ -16,32 +17,42 @@ There are several problems with this style of eliciting answers. First of all, t
 
 Another problem is that people generally are not the same all the time. You more than likely have a different personality at work than you do at home with your family than you do when out with your friends.
 
-We aim to solve all of these problems as much as we can by doing a couple of things:
-1. Eliciting information through gamifying the survey and putting the users in actual situations
-2. Allowing the users to explain their thoughts, feelings, and decisions. Then use AI to read and understand them, and adjust their scores based on those explanations.
-3. Simulating a large variety of situations across family, friends, work, alone, past and future, as well as fantasy lands to see how they change across different contexts.
+We aim to solve these problems by doing a few things:
+1. Putting the user in actual situations, instead of asking them to rate statements about themselves.
+2. Letting them explain their thoughts, feelings and decisions, then using AI to read those explanations and score
+   from them.
+3. Covering a wide range of situations, from parties and work to a crisis and a quiet weekend, so a trait has several
+   chances to show.
 
-To do this, we have several game-style scenarios. Each scenario is its own component, and has its own script. The scenarios are Three.js scenes that place the user directly in whatever the scenario is for visual effect, but it is mostly a text based game where a situation is laid out usually through dialogue or set exposition, and then the user is prompted to give their feelings, thoughts, and decisions as applicable. They can also explain their reason for giving the answers they do. These answers are sent to the backend where an AI model will be used to understand their answers and reasoning, and can adjust their scores as needed.
+## Scenes are built from the IPIP-NEO
+We keep the questionnaire's content and throw away its format. The IPIP-NEO is the public-domain questionnaire behind
+the 30 facets, with ten statements ("items") per facet, like "I worry about things" or "I love large parties". Each
+item describes a behaviour the research has validated as a sign of its facet.
 
-Each scene has its own art style and vibe, but uses the same underlying gameplay loop. The user is given a text box where dialogues displays and they click through like in a PokeMon game. At certain points they are expected to type in their ideas and explain them. Other than that they do not interact with the scent. It is like playing Road To Empress or reading a Choose Your Own Adventure book.
+So every scene is written to a set of those items:
+- **We test 150 items, 5 per facet,** spread over 18 scenes. Each item is in exactly one scene, and every facet is in at
+  least two.
+- **A scene turns its items into moments.** Instead of asking "do you love large parties?", The Big Party puts you at
+  one, with two hundred people and four you know, and asks what you do next.
+- **Both ends have to look reasonable.** A moment that has an obviously right answer only measures what the player
+  thinks we want to hear.
+- **Some things a story can't show,** like how often your mind wanders. Those items are asked about directly, as an
+  interview, with every frequency pinned down ("on how many of the last 30 days") rather than "often".
+- **Every scene ends with a real-life question** about the player's own life. These are the strongest evidence we get.
 
-The following scenarios are what we are starting with:
+Which items are in which scene, and why the scenes play in the order they do, is in `scene_grouping.md`. All 300 items,
+with the IDs those docs use, are in `ipip_neo_items.md`.
 
-| # | Scenario | Situation type | Facets measured |
-|---|---|---|---|
-| 1 | **The Stolen Idea.** A colleague presents your idea as their own in a meeting, then asks you for a favor the next week. | Realistic hypothetical | Anger (N), Self-Consciousness (N), Assertiveness (E), Cooperation (A), Modesty (A), Competitiveness, Fairness, Stubbornness |
-| 2 | **Let Down.** Your best friend has cancelled on you three times this month, and when she finally turns up she is low and quiet. You decide how to comfort her, share a time you felt the same, give her advice, and wait out her silence afterwards. | Realistic hypothetical, with recall | Anger (N), Depression (N), Friendliness (E), Emotionality (O), Trust (A), Sympathy (A), Altruism (A) |
-| 3 | **Expedition I: Landfall.** You're shipwrecked with a small group and must decide who leads, whether to explore or secure camp, and how to handle limited supplies. | Fictional role + game with stakes | Immoderation (N), Assertiveness (E), Activity Level (E), Imagination (O), Adventurousness (O), Orderliness (C), Cautiousness (C) |
-| 4 | **Expedition II: The Thief.** Rations go missing, and you have to decide what to do about the person who took them, while points and survival odds ride on your choices. | Game with stakes | Liberalism (O), Trust (A), Morality (A), Altruism (A), Cooperation (A), Sympathy (A) |
-| 5 | **The Party of Strangers.** The only person you know cancels as you arrive, and the night moves through small talk, a loud opinionated guest, and an invitation to an after-party. | Realistic hypothetical, with timed beats | Self-Consciousness (N), Immoderation (N), Friendliness (E), Gregariousness (E), Excitement-Seeking (E), Cheerfulness (E) |
-| 6 | **The Empty Weekend.** You have 48 hours with no obligations and a broken phone, and you describe how you'd spend it and how you'd feel by Sunday night. | Reflective | Depression (N), Gregariousness (E), Activity Level (E), Artistic Interests (O), Intellect (O), Self-Discipline (C), Playfulness, Sensory Sensitivity |
-| 7 | **Reading People.** Four short vignettes about other people's behavior, such as an unanswered message, someone tripping on stage, or a colleague's bragging, and you explain what you think is going on. | Observer judgment | Anxiety (N), Self-Consciousness (N), Emotionality (O), Trust (A), Modesty (A), Sympathy (A) |
-| 8 | **The Offer.** You're offered an exciting but risky role in a new city in place of a stable job you're good at, and you talk through how you'd decide. | Reflective | Anxiety (N), Excitement-Seeking (E), Adventurousness (O), Self-Efficacy (C), Achievement-Striving (C), Cautiousness (C) |
-| 9 | **The Archive.** You have a timed task to sort a mysterious archive, with optional letters, artwork, and puzzles you can explore along the way. | Game with stakes (revealed behavior) | Imagination (O), Artistic Interests (O), Intellect (O), Orderliness (C), Achievement-Striving (C), Self-Discipline (C) |
-| 10 | **The Rule That Doesn't Fit.** You're the person responsible for enforcing a rule, and a stranger with a sympathetic and possibly true story asks you to break it. | Realistic hypothetical, with time pressure | Friendliness (E), Liberalism (O), Morality (A), Altruism (A), Sympathy (A), Dutifulness (C) |
-| 11 | **Proven Wrong.** For months you've blamed your neighbour's rose spray for your dying bees, loudly and in public, and the vote to ban spraying is days away. Then the lab results come back: it was mites, in your own hive. You decide what to do with the letter, answer an ally who wants to fight on, face the vote and your neighbour, and look back at how you got so sure. | Realistic hypothetical, with recall | Self-Consciousness (N), Assertiveness (E), Intellect (O), Modesty (A), Fairness, Stubbornness |
-| 12 | **The Water.** The monsoon floods your street in Chennai in the middle of the night, and the family from downstairs comes up to your flat. You get everyone through the night, decide who wades out for drinking water, deal with an old teacher who won't leave his house, choose who gets a place on a fishermen's rescue boat, and look back once the water's gone. | Realistic hypothetical, with recall | Anxiety (N), Vulnerability (N), Activity Level (E), Altruism (A), Cooperation (A), Self-Efficacy (C), Optimism, Patience, Sensory Sensitivity |
-| 13 | **The Black Clay.** A design shop in Mexico City orders forty pieces of barro negro from your family workshop in San Bartolo Coyotepec, Oaxaca, in three weeks. You take the order, decide what to do about a flaw only you can see, answer a cousin with a faster way, wait out a night while the kiln cools, open it to find half the work broken, and decide what to tell the shop. | Realistic hypothetical, with recall | Perfectionism, Patience, Resilience, Optimism, Independence, Decisiveness, Adaptability |
-| 14 | **The Owambe.** Your cousin Tolu is getting married in Lagos, and the whole family is in the same coral lace. You design your outfit with the tailor, take sides when the bride and her mother fight over the entrance, are handed the MC's microphone, choose whether to dance, deal with a power cut in a hall of four hundred guests, write the couple a note for their tenth anniversary, and look at a tradition of your own. | Realistic hypothetical, with recall | Artistic Interests (O), Imagination (O), Liberalism (O), Intellect (O), Cheerfulness (E), Gregariousness (E), Playfulness, Optimism |
-| 15 | **The Soap House.** Your father leaves the family's hundred-year-old olive oil soap house in Aleppo to you and your two siblings in equal shares: one nursed him for six years, one lives in Hamburg and needs money. You answer a neighbour who credits you instead of your sister, say what's fair about the will, decide whether to sell to a buyer who needs all three signatures, decide what the old soap-maker gets, give away the family seal, handle the two of them feuding, and recall a time you shared something that couldn't be split evenly. | Realistic hypothetical, with recall | Fairness, Cooperation (A), Altruism (A), Modesty (A), Sympathy (A), Assertiveness (E) |
+## Playing a scene
+Each scene has its own art style and vibe, but uses the same underlying gameplay loop. The user is given a text box where dialogues displays and they click through like in a PokeMon game. At certain points they are expected to type in their ideas and explain them. Other than that they do not interact with the scene. It is like playing Road To Empress or reading a Choose Your Own Adventure book.
 
+## What's in this folder
+- `personality.tsx`: the scenario list, the script player and the dashboard. Every scene is registered here.
+- `my_personality.tsx` and `explore.tsx`: the My Personality and Explore tabs.
+- `api.ts`: the calls to the api.
+- `soundscape.ts`: looping beds and one-shot sounds, shared by every scene.
+- A folder per scene: its `script.ts`, its art and its sounds.
+- `scene_grouping.md` and `ipip_neo_items.md`: what each scene tests.
+- `CREATE_SCENE.md`: how to add a scene.
+- `testing/`: the persona regression harness, its personas and past results. The early round notes and results there
+  are from the first version of the module, before scenes were built from IPIP-NEO items.

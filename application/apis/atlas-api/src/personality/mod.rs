@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 
 use aws_sdk_sqs::error::DisplayErrorContext;
@@ -13,7 +12,7 @@ use crate::{auth::AuthUser, state::AppState};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
-        .route("/explore", get(get_explore))
+        .route("/model", get(get_model))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/profiles/{username}", get(get_profile))
         .route("/answers", put(answer_question).delete(clear_answers))
@@ -22,44 +21,34 @@ pub fn router() -> Router<AppState> {
         .route("/scoring", get(get_scoring))
 }
 
+fn internal(e: impl std::fmt::Display) -> (StatusCode, String) {
+    tracing::error!("{e}");
+    (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PersonalityTrait {
     name: String,
     description: Option<String>,
     id: String,
-    domain: String, //the PersonalityDomain's key, e.g. 'openness', or 'other'
+    domain: String, //the PersonalityDomain's key, e.g. 'openness'
     average: Option<f64>, //everyone's mean value for the trait, 0 to 1. Missing until someone has been measured on it
 }
 
 pub async fn list_all_personality_traits(State(state): State<AppState>) -> Result<Json<Vec<PersonalityTrait>>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-
     let mut rows = state.graph.execute(query("
-            MATCH (p:PersonalityTrait)
-            OPTIONAL MATCH (d:PersonalityDomain)-[:HAS_FACET]->(p)
+            MATCH (d:PersonalityDomain)-[:HAS_FACET]->(p:PersonalityTrait)
             OPTIONAL MATCH (:Person)-[r:HAS_PERSONALITY_TRAIT]->(p)
-            RETURN p.name AS name, p.description AS description, elementId(p) AS id, coalesce(d.key, 'other') AS domain,
+            RETURN p.name AS name, p.description AS description, elementId(p) AS id, d.key AS domain,
                    avg(toFloat(r.value)) AS average
             ORDER BY name"
-        )).await.map_err(|e| internal(&e))?;
+        )).await.map_err(internal)?;
 
     let mut traits = Vec::new();
-    while let Some(row) = rows.next().await.map_err(|e| internal(&e))? {
-        traits.push(row.to::<PersonalityTrait>().map_err(|e| internal(&e))?);
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        traits.push(row.to::<PersonalityTrait>().map_err(internal)?);
     }
     Ok(Json(traits))
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ExploreModel {
-    name: String,
-    overview: Option<String>,
-    history: Option<String>,
-    limits: Option<String>,
-    our_take: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -69,72 +58,68 @@ pub struct Interaction {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ExploreTrait {
+pub struct DomainTrait {
     id: String,
     name: String,
     description: Option<String>,
     overview: Option<String>,
-    high_good: Option<Vec<String>>, //where being high helps
-    low_good: Option<Vec<String>>, //where being low helps
-    high_watch: Option<Vec<String>>, //what to watch out for when high
-    low_watch: Option<Vec<String>>, //what to watch out for when low
+    high_good: Vec<String>, //where being high helps
+    low_good: Vec<String>, //where being low helps
+    high_watch: Vec<String>, //what to watch out for when high
+    low_watch: Vec<String>, //what to watch out for when low
     interactions: Vec<Interaction>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ExploreDomain {
+pub struct Domain {
     key: String,
     name: String,
     overview: Option<String>,
-    high_good: Option<Vec<String>>, //where being high helps
-    low_good: Option<Vec<String>>, //where being low helps
-    high_watch: Option<Vec<String>>, //what to watch out for when high
-    low_watch: Option<Vec<String>>, //what to watch out for when low
-    traits: Vec<ExploreTrait>,
+    high_good: Vec<String>, //where being high helps
+    low_good: Vec<String>, //where being low helps
+    high_watch: Vec<String>, //what to watch out for when high
+    low_watch: Vec<String>, //what to watch out for when low
+    traits: Vec<DomainTrait>,
 }
 
-#[derive(Serialize)]
-pub struct Explore {
-    model: ExploreModel,
-    domains: Vec<ExploreDomain>,
+#[derive(Serialize, Deserialize)]
+pub struct Model {
+    name: Option<String>,
+    overview: Option<String>,
+    history: Option<String>,
+    limits: Option<String>,
+    our_take: Option<String>,
+    domains: Vec<Domain>,
 }
 
-//the Big Five model, its domains, and every trait with its breakdown and interactions. The Explore tab's reading material
-pub async fn get_explore(State(state): State<AppState>) -> Result<Json<Explore>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-
+//the personality model: what it is, where it came from and its limits, then every domain with its traits, each with
+//what being high or low on it means and how it interacts with other traits
+pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (StatusCode, String)> {
     //built inside out: each trait's interactions, then each domain's traits, then the domains
     let mut rows = state.graph.execute(query("
-        MATCH (m:PersonalityModel {name: 'Big Five'})-[:HAS_DOMAIN]->(d:PersonalityDomain)
+        MATCH (d:PersonalityDomain)
         OPTIONAL MATCH (d)-[:HAS_FACET]->(t:PersonalityTrait)
         OPTIONAL MATCH (t)-[r:INTERACTS_WITH]->(o:PersonalityTrait)
-        WITH m, d, t, r, o ORDER BY o.name
-        WITH m, d, t, collect(CASE WHEN o IS NULL THEN null ELSE {name: o.name, description: r.description} END) AS interactions
+        WITH d, t, r, o ORDER BY o.name
+        WITH d, t, collect(CASE WHEN o IS NULL THEN null ELSE {name: o.name, description: r.description} END) AS interactions
         ORDER BY t.name
-        WITH m, d, collect(CASE WHEN t IS NULL THEN null ELSE {
+        WITH d, collect(CASE WHEN t IS NULL THEN null ELSE {
             id: elementId(t), name: t.name, description: t.description, overview: t.overview,
             high_good: t.highGood, low_good: t.lowGood, high_watch: t.highWatch, low_watch: t.lowWatch,
             interactions: interactions
         } END) AS traits
         ORDER BY d.order
-        RETURN {name: m.name, overview: m.overview, history: m.history, limits: m.limits, our_take: m.ourTake} AS model,
-               collect({
-                   key: d.key, name: d.name, overview: d.overview,
-                   high_good: d.highGood, low_good: d.lowGood, high_watch: d.highWatch, low_watch: d.lowWatch,
-                   traits: traits
-               }) AS domains
-    ")).await.map_err(|e| internal(&e))?;
+        WITH collect({
+            key: d.key, name: d.name, overview: d.overview,
+            high_good: d.highGood, low_good: d.lowGood, high_watch: d.highWatch, low_watch: d.lowWatch,
+            traits: traits
+        }) AS domains
+        OPTIONAL MATCH (m:PersonalityModel)
+        RETURN m.name AS name, m.overview AS overview, m.history AS history, m.limits AS limits, m.ourTake AS our_take, domains
+    ")).await.map_err(internal)?;
 
-    match rows.next().await.map_err(|e| internal(&e))? {
-        Some(row) => Ok(Json(Explore {
-            model: row.get("model").map_err(|e| internal(&e))?,
-            domains: row.get("domains").map_err(|e| internal(&e))?,
-        })),
-        None => Err((StatusCode::NOT_FOUND, "The personality guide isn't set up yet. Check back soon.".to_string())),
-    }
+    let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no personality model row"))?;
+    Ok(Json(row.to::<Model>().map_err(internal)?))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -142,7 +127,7 @@ pub struct PersonTrait {
     id: String, //the PersonalityTrait's id
     name: String,
     description: Option<String>,
-    domain: String, //the PersonalityDomain's key, e.g. 'openness', or 'other'
+    domain: String, //the PersonalityDomain's key, e.g. 'openness'
     value: f64, //how strongly the person has the trait, 0 to 1
     confidence: f64, //how much evidence the value is based on, 0 to 1
 }
@@ -155,35 +140,29 @@ pub struct Profile {
     traits: Vec<PersonTrait>,
 }
 
-//someone's profile at /u/{username}. Private ones are only seen by their owner, and look missing to everyone else
+//someone's profile. Private ones are only seen by their owner, and look missing to everyone else
 pub async fn get_profile(
     State(state): State<AppState>,
     user: Option<AuthUser>,
     Path(username): Path<String>,
 ) -> Result<Json<Profile>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-
     let mut rows = state.graph.execute(query("
         MATCH (p:Person {username: toLower($username)})
         WHERE coalesce(p.public, false) OR elementId(p) = $viewerId
-        OPTIONAL MATCH (p)-[r:HAS_PERSONALITY_TRAIT]->(t:PersonalityTrait)
-        OPTIONAL MATCH (d:PersonalityDomain)-[:HAS_FACET]->(t)
+        OPTIONAL MATCH (p)-[r:HAS_PERSONALITY_TRAIT]->(t:PersonalityTrait)<-[:HAS_FACET]-(d:PersonalityDomain)
         WITH p, r, t, d ORDER BY t.name
         RETURN p.username AS username, p.firstName AS first_name, coalesce(p.public, false) AS public,
             collect(CASE WHEN t IS NULL THEN null ELSE {
-                id: elementId(t), name: t.name, description: t.description, domain: coalesce(d.key, 'other'), value: toFloat(r.value),
+                id: elementId(t), name: t.name, description: t.description, domain: d.key, value: toFloat(r.value),
                 confidence: toFloat(coalesce(r.confidence, 0))
             } END) AS traits
     ")
         .param("username", username)
         .param("viewerId", user.map(|u| u.person_id).unwrap_or_default())
-    ).await.map_err(|e| internal(&e))?;
+    ).await.map_err(internal)?;
 
-    match rows.next().await.map_err(|e| internal(&e))? {
-        Some(row) => Ok(Json(row.to::<Profile>().map_err(|e| internal(&e))?)),
+    match rows.next().await.map_err(internal)? {
+        Some(row) => Ok(Json(row.to::<Profile>().map_err(internal)?)),
         None => Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string())),
     }
 }
@@ -212,10 +191,6 @@ pub async fn list_person_evidence(
     user: AuthUser,
     Path(person_id): Path<String>,
 ) -> Result<Json<Vec<AnswerEvidence>>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
     if person_id != user.person_id {
         return Err((StatusCode::FORBIDDEN, "You can only see what went into your own personality traits.".to_string()));
     }
@@ -231,21 +206,18 @@ pub async fn list_person_evidence(
         } END) AS answers
     ")
         .param("personId", person_id)
-    ).await.map_err(|e| internal(&e))?;
+    ).await.map_err(internal)?;
 
-    let Some(row) = rows.next().await.map_err(|e| internal(&e))? else {
+    let Some(row) = rows.next().await.map_err(internal)? else {
         return Err((StatusCode::NOT_FOUND, "We couldn't find that person.".to_string()));
     };
-    let mut answers = Vec::new();
-    for answer in row.get::<Vec<EvidenceRow>>("answers").map_err(|e| internal(&e))? {
-        answers.push(AnswerEvidence {
-            shifts: serde_json::from_str(&answer.scoring).map_err(|e| internal(&e))?,
-            scenario: answer.scenario,
-            question: answer.question,
-            answer: answer.answer,
-            reasoning: answer.reasoning,
-        });
-    }
+    let answers = row.get::<Vec<EvidenceRow>>("answers").map_err(internal)?.into_iter().map(|a| Ok(AnswerEvidence {
+        shifts: serde_json::from_str(&a.scoring).map_err(internal)?,
+        scenario: a.scenario,
+        question: a.question,
+        answer: a.answer,
+        reasoning: a.reasoning,
+    })).collect::<Result<_, _>>()?;
     Ok(Json(answers))
 }
 
@@ -293,23 +265,19 @@ pub struct Answer {
 pub struct AnswerResponse {
     #[serde(flatten)]
     answer: Answer,
-    scored: bool, //this answer finished a scenario and brought the person to a multiple of SCORE_EVERY, so their traits are being rescored
+    scored: bool, //this answer finished the last unfinished scenario in its batch, or replayed one in a finished batch, so that batch is being scored
 }
 
 //saves the logged in user's answer, replacing any earlier answer to the same question.
 //Answering the first question of a scenario starts a fresh run, so it first clears the rest of their answers to it: a
 //replay down another branch, or one where the clock runs out sooner, would otherwise keep answers from the old run.
-//Finishing every SCORE_EVERY-th scenario starts a scoring job, which rescores the person's traits from all their answers
+//Finishing every scenario in a batch, or replaying one in a finished batch, starts a scoring job for that batch
 pub async fn answer_question(
     State(state): State<AppState>,
     user: AuthUser,
     Extension(request_id): Extension<RequestId>,
     Json(body): Json<AnswerPayload>,
 ) -> Result<Json<AnswerResponse>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
     let too_long = |text: &str| text.chars().count() > MAX_ANSWER_CHARS;
     if too_long(&body.answer) || body.reasoning.as_deref().is_some_and(too_long) {
         return Err((StatusCode::BAD_REQUEST, format!("Answers can be up to {MAX_ANSWER_CHARS} characters. Try shortening yours.")));
@@ -334,19 +302,19 @@ pub async fn answer_question(
     ")
         .param("personId", user.person_id.clone())
         .param("questionId", body.question_id.clone())
-    ).await.map_err(|e| internal(&e))?;
+    ).await.map_err(internal)?;
 
     tracing::debug!("answer {}: saving", user.person_id);
     let mut rows = state.graph.execute(query("
         MATCH (p:Person) WHERE elementId(p) = $personId
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
         MERGE (p)-[a:ANSWERED]->(q)
-        SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(),
+        SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(), a.scoring = null,
             a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut, a.facets = $facets
         WITH s, q, a
         MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
         WITH s, q, a, max(each.order) AS last
-        RETURN s.name AS scenario, elementId(q) AS question_id, q.key AS question_key,
+        RETURN s.name AS scenario, elementId(s) AS scenario_id, elementId(q) AS question_id, q.key AS question_key,
                a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date,
                q.order = last AS last_question
     ")
@@ -360,21 +328,25 @@ pub async fn answer_question(
         .param("clockLeft", body.clock.as_ref().map(|c| c.left))
         .param("clockRanOut", body.clock.as_ref().map(|c| c.ran_out))
         .param("facets", body.facets)
-    ).await.map_err(|e| internal(&e))?;
-    let Some(row) = rows.next().await.map_err(|e| internal(&e))? else {
+    ).await.map_err(internal)?;
+    let Some(row) = rows.next().await.map_err(internal)? else {
         return Err((StatusCode::NOT_FOUND, "That question doesn't exist anymore. Try reloading the page.".to_string()));
     };
-    let answer = row.to::<Answer>().map_err(|e| internal(&e))?;
+    let answer = row.to::<Answer>().map_err(internal)?;
 
     //only on the last question, so replaying a finished scenario doesn't rescore on its first answer.
     //Earlier questions can go unanswered, when a scenario's clock runs out before them
-    let finished = row.get::<bool>("last_question").map_err(|e| internal(&e))?;
+    let finished = row.get::<bool>("last_question").map_err(internal)?;
+    let scenario_id = row.get::<String>("scenario_id").map_err(internal)?;
     //the stream holds its pooled connection until it's dropped, and what follows needs connections of its own
     drop(rows);
-    let scored = finished && finished_scenarios(&state, &user.person_id).await.map_err(|e| internal(&e))? % SCORE_EVERY == 0;
+    let (batch, scored) = match finished {
+        true => batch_finished(&state, &user.person_id, &scenario_id).await.map_err(internal)?,
+        false => (0, false),
+    };
     if scored {
-        tracing::debug!("answer {}: finished a multiple of {SCORE_EVERY} scenarios, starting scoring", user.person_id);
-        start_scoring(&state, &user.person_id, &request_id).await.map_err(|e| internal(&e))?;
+        tracing::debug!("answer {}: batch {batch} is finished, starting scoring", user.person_id);
+        start_scoring(&state, &user.person_id, Some(batch), &request_id).await.map_err(internal)?;
     }
     Ok(Json(AnswerResponse { answer, scored }))
 }
@@ -386,10 +358,7 @@ pub async fn clear_answers(State(state): State<AppState>, user: AuthUser) -> Res
         DELETE a
     ")
         .param("personId", user.person_id)
-    ).await.map_err(|e| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    })?;
+    ).await.map_err(internal)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -400,11 +369,6 @@ pub struct Progress {
 }
 
 pub async fn get_user_scenario_progress(State(state): State<AppState>, user: AuthUser) -> Result<Json<Progress>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-
     let mut rows = state.graph.execute(query("
         MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
         WHERE elementId(p) = $personId
@@ -413,10 +377,10 @@ pub async fn get_user_scenario_progress(State(state): State<AppState>, user: Aut
         ORDER BY s.name, q.order
     ")
         .param("personId", user.person_id.clone())
-    ).await.map_err(|e| internal(&e))?;
+    ).await.map_err(internal)?;
     let mut answers = Vec::new();
-    while let Some(row) = rows.next().await.map_err(|e| internal(&e))? {
-        answers.push(row.to::<Answer>().map_err(|e| internal(&e))?);
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        answers.push(row.to::<Answer>().map_err(internal)?);
     }
     drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
 
@@ -424,10 +388,10 @@ pub async fn get_user_scenario_progress(State(state): State<AppState>, user: Aut
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)
         WITH s, q ORDER BY q.order
         RETURN s.name AS name, collect({id: elementId(q), key: q.key, prompt: q.prompt}) AS questions
-    ")).await.map_err(|e| internal(&e))?;
+    ")).await.map_err(internal)?;
     let mut questions = HashMap::new();
-    while let Some(row) = rows.next().await.map_err(|e| internal(&e))? {
-        questions.insert(row.get::<String>("name").map_err(|e| internal(&e))?, row.get("questions").map_err(|e| internal(&e))?);
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        questions.insert(row.get::<String>("name").map_err(internal)?, row.get("questions").map_err(internal)?);
     }
     Ok(Json(Progress { answers, questions }))
 }
@@ -437,11 +401,7 @@ pub async fn rescore_personality(
     user: AuthUser,
     Extension(request_id): Extension<RequestId>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-    start_scoring(&state, &user.person_id, &request_id).await.map_err(|e| internal(&e))?;
+    start_scoring(&state, &user.person_id, None, &request_id).await.map_err(internal)?;
     Ok(StatusCode::ACCEPTED)
 }
 
@@ -450,13 +410,8 @@ pub struct ScoringStatus {
     running: bool, //a scoring job for the logged in user hasn't finished yet
 }
 
-//whether the logged in user's traits are still being rescored. The ui polls this and holds off new scenarios until it's done
+//whether a scoring job for the logged in user is still running
 pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Result<Json<ScoringStatus>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-
     let mut rows = state.graph.execute(query("
         OPTIONAL MATCH (p:Person)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring'})
         WHERE elementId(p) = $personId AND j.startedAt > datetime() - duration({minutes: $staleMinutes})
@@ -464,24 +419,20 @@ pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Resul
     ")
         .param("personId", user.person_id)
         .param("staleMinutes", STALE_JOB_MINUTES)
-    ).await.map_err(|e| internal(&e))?;
-    let running = match rows.next().await.map_err(|e| internal(&e))? {
-        Some(row) => row.get::<bool>("running").map_err(|e| internal(&e))?,
+    ).await.map_err(internal)?;
+    let running = match rows.next().await.map_err(internal)? {
+        Some(row) => row.get::<bool>("running").map_err(internal)?,
         None => false,
     };
     Ok(Json(ScoringStatus { running }))
 }
-
-/* ---------------------------------------------------------------------------------------------
- * scoring
- * ------------------------------------------------------------------------------------------- */
 
 //one piece of evidence about a trait
 #[derive(Serialize, Deserialize)]
 struct Shift {
     r#trait: String,
     evidence: String, //what in the answer shows it
-    level: f64, //where the answer puts them, -1 (the low end) to 1 (the high end), 0 is typical
+    level: f64, //where the answer puts them, 0 (the low end) to 1 (the high end), 0.5 is typical
     weight: f64, //how strongly the answer shows it, 0 to 1
 }
 
@@ -497,24 +448,30 @@ struct ScoredAnswer {
     clock_seconds: Option<i64>,
     clock_left: Option<i64>,
     clock_ran_out: Option<bool>,
-    facets: Option<Vec<String>>, //the traits the question was written to draw out, missing on older answers
+    facets: Vec<String>, //the traits the question was written to draw out
 }
 
-//traits are rescored, from all of a person's answers, each time they've finished this many more scenarios
-const SCORE_EVERY: i64 = 5;
+//scenarios are scored in batches of this many, by their order: the first six are a batch, then the next six, and so on.
+//A third of the 18 scenes, so each call still reads across several scenes without reading everything
+const BATCH_SIZE: i64 = 6;
 
-//how many scenarios the person has finished, meaning they've answered its last question
-async fn finished_scenarios(state: &AppState, person_id: &str) -> Result<i64, BoxError> {
+//the scenario's batch, and whether the person has finished every scenario in it, meaning answered its last question
+async fn batch_finished(state: &AppState, person_id: &str, scenario_id: &str) -> Result<(i64, bool), BoxError> {
     let mut rows = state.graph.execute(query("
-        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
-        WITH s, max(each.order) AS last
-        MATCH (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {order: last})<-[:ANSWERED]-(p:Person)
-        WHERE elementId(p) = $personId
-        RETURN count(DISTINCT s) AS finished
+        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (finished:PersonalityScenario) WHERE elementId(finished) = $scenarioId
+        WITH p, finished.order / $batchSize AS batch
+        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion) WHERE s.order / $batchSize = batch
+        WITH p, batch, s, max(each.order) AS last
+        OPTIONAL MATCH (s)-[:HAS_QUESTION]->(:PersonalityScenarioQuestion {order: last})<-[a:ANSWERED]-(p)
+        RETURN batch, count(s) = count(a) AS finished
     ")
         .param("personId", person_id)
+        .param("scenarioId", scenario_id)
+        .param("batchSize", BATCH_SIZE)
     ).await?;
-    Ok(rows.next().await?.ok_or("no count")?.get::<i64>("finished")?)
+    let row = rows.next().await?.ok_or("couldn't find the person or the scenario")?;
+    Ok((row.get::<i64>("batch")?, row.get::<bool>("finished")?))
 }
 
 //a job left this long is treated as finished: atlas-jobs has 15 minutes, and the queue gives a job two tries
@@ -526,53 +483,36 @@ struct ScoringJob {
     id: String, //the JobRunning node's id
     person_id: String,
     request_id: String, //the request that queued it, so its logs and the job's can be found together
-    answers: Vec<ScoredAnswer>,
-    traits: Vec<JobTrait>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct JobTrait {
-    name: String,
-    description: Option<String>,
+    batches: Vec<Vec<ScoredAnswer>>, //each batch's answers, ordered by scenario, then question
 }
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-async fn start_scoring(state: &AppState, person_id: &str, request_id: &RequestId) -> Result<(), BoxError> {
+//scores one batch, or every batch when it's None
+async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, request_id: &RequestId) -> Result<(), BoxError> {
     let graph = &state.graph;
     tracing::debug!("scoring {person_id}: reading answers");
-    let answers = {
+    let batches = {
         let mut rows = graph.execute(query("
             MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-            WHERE elementId(p) = $personId
-            RETURN elementId(a) AS id, s.title AS scenario, q.prompt AS prompt, coalesce(q.real_life, false) AS real_life,
-                   a.context AS context,
-                   a.answer AS answer, a.reasoning AS reasoning,
-                   a.clockSeconds AS clock_seconds, a.clockLeft AS clock_left, a.clockRanOut AS clock_ran_out,
-                   a.facets AS facets
-            ORDER BY s.name, q.order
+            WHERE elementId(p) = $personId AND ($batch IS NULL OR s.order / $batchSize = $batch)
+            WITH s, q, a ORDER BY s.order, q.order
+            RETURN s.order / $batchSize AS batch, collect({
+                id: elementId(a), scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
+                context: a.context, answer: a.answer, reasoning: a.reasoning,
+                clock_seconds: a.clockSeconds, clock_left: a.clockLeft, clock_ran_out: a.clockRanOut, facets: a.facets
+            }) AS answers
+            ORDER BY batch
         ")
             .param("personId", person_id)
+            .param("batch", batch)
+            .param("batchSize", BATCH_SIZE)
         ).await?;
-        let mut answers = Vec::new();
+        let mut batches = Vec::<Vec<ScoredAnswer>>::new();
         while let Some(row) = rows.next().await? {
-            answers.push(row.to::<ScoredAnswer>()?);
+            batches.push(row.get("answers")?);
         }
-        answers
-    };
-
-    tracing::debug!("scoring {person_id}: reading traits");
-    let traits = {
-        let mut rows = graph.execute(query("
-            MATCH (t:PersonalityTrait)
-            RETURN t.name AS name, t.description AS description
-            ORDER BY name
-        ")).await?;
-        let mut traits = Vec::new();
-        while let Some(row) = rows.next().await? {
-            traits.push(row.to::<JobTrait>()?);
-        }
-        traits
+        batches
     };
 
     tracing::debug!("scoring {person_id}: marking the job running");
@@ -592,7 +532,7 @@ async fn start_scoring(state: &AppState, person_id: &str, request_id: &RequestId
         rows.next().await?.ok_or("couldn't find the person to score")?.get::<String>("id")?
     };
     let request_id = request_id.header_value().to_str().unwrap_or_default().to_string();
-    let job = ScoringJob { id, person_id: person_id.to_string(), request_id, answers, traits };
+    let job = ScoringJob { id, person_id: person_id.to_string(), request_id, batches };
 
     let body = json!({"kind": "personality_scoring", "job": job}).to_string();
     let Some((sqs, url)) = &state.jobs_queue else {

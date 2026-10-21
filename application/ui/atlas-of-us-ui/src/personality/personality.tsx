@@ -1,20 +1,23 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
-import { landfall } from './landfall/script';
-import { theThief } from './the_thief/script';
-import { readingPeople } from './reading_people/script';
-import { theArchive } from './the_archive/script';
-import { ruleThatDoesntFit } from './rule_that_doesnt_fit/script';
-import { theOffer } from './the_offer/script';
-import { partyOfStrangers } from './party_of_strangers/script';
-import { stolenIdea } from './stolen_idea/script';
-import { emptyWeekend } from './empty_weekend/script';
-import { letDown } from './let_down/script';
-import { provenWrong } from './proven_wrong/script';
-import { theWater } from './the_water/script';
-import { blackClay } from './black_clay/script';
-import { owambe } from './owambe/script';
-import { soapHouse } from './soap_house/script';
+import { theStoryGame } from './the_story_game/script';
+import { theFestival } from './the_festival/script';
+import { theBigParty } from './the_big_party/script';
+import { theDare } from './the_dare/script';
+import { theCommittee } from './the_committee/script';
+import { theNightClass } from './the_night_class/script';
+import { theNightMarket } from './the_night_market/script';
+import { theBadDay } from './the_bad_day/script';
+import { theTimeStudy } from './the_time_study/script';
+import { theStranger } from './the_stranger/script';
+import { theFeud } from './the_feud/script';
+import { theFreeWeekend } from './the_free_weekend/script';
+import { theHouseguest } from './the_houseguest/script';
+import { theShoplifter } from './the_shoplifter/script';
+import { theEmergency } from './the_emergency/script';
+import { thePromotion } from './the_promotion/script';
+import { theCabin } from './the_cabin/script';
+import { thePortrait } from './the_portrait/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -25,22 +28,25 @@ import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
 import { AtlasError } from '../shared_components/atlas-error';
 
-//scenes are split into their own chunks so their three.js code, sounds and textures only load when one is opened
-const Landfall = lazy(() => import('./landfall/landfall'));
-const Thief = lazy(() => import('./the_thief/thief'));
-const ReadingPeople = lazy(() => import('./reading_people/reading_people'));
-const TheArchive = lazy(() => import('./the_archive/the_archive'));
-const LastFerry = lazy(() => import('./rule_that_doesnt_fit/last_ferry'));
-const TheOffer = lazy(() => import('./the_offer/the_offer'));
-const SnowedIn = lazy(() => import('./party_of_strangers/snowed_in'));
-const VanishingAct = lazy(() => import('./stolen_idea/vanishing_act'));
-const PopUpTown = lazy(() => import('./empty_weekend/pop_up_town'));
-const PaperLantern = lazy(() => import('./let_down/paper_lantern'));
-const TheHive = lazy(() => import('./proven_wrong/the_hive'));
-const Monsoon = lazy(() => import('./the_water/monsoon'));
-const Coyotepec = lazy(() => import('./black_clay/coyotepec'));
-const Signboard = lazy(() => import('./owambe/signboard'));
-const Miniature = lazy(() => import('./soap_house/miniature'));
+//scenes are split into their own chunks so their art, sounds and textures only load when one is opened
+const Sketchbook = lazy(() => import('./the_story_game/sketchbook'));
+const Poster = lazy(() => import('./the_festival/poster'));
+const Ballroom = lazy(() => import('./the_big_party/ballroom'));
+const KitCam = lazy(() => import('./the_dare/kitcam'));
+const Riso = lazy(() => import('./the_committee/riso'));
+const Chalkboard = lazy(() => import('./the_night_class/chalk'));
+const Woodcut = lazy(() => import('./the_night_market/woodcut'));
+const Funnies = lazy(() => import('./the_bad_day/funnies'));
+const Notebook = lazy(() => import('./the_time_study/notebook'));
+const Stencil = lazy(() => import('./the_stranger/stencil'));
+const Blueprint = lazy(() => import('./the_feud/blueprint'));
+const Sampler = lazy(() => import('./the_free_weekend/sampler'));
+const Dollhouse = lazy(() => import('./the_houseguest/dollhouse'));
+const Cctv = lazy(() => import('./the_shoplifter/cctv'));
+const SafetyCard = lazy(() => import('./the_emergency/card'));
+const PixelOffice = lazy(() => import('./the_promotion/pixel'));
+const PaperCabin = lazy(() => import('./the_cabin/papercut'));
+const Oils = lazy(() => import('./the_portrait/oils'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -92,21 +98,7 @@ export type PersonalityTrait =
   | 'Depression'
   | 'Self-Consciousness'
   | 'Immoderation'
-  | 'Vulnerability'
-  // additional
-  | 'Patience'
-  | 'Resilience'
-  | 'Optimism'
-  | 'Perfectionism'
-  | 'Competitiveness'
-  | 'Stubbornness'
-  | 'Independence'
-  | 'Boldness'
-  | 'Playfulness'
-  | 'Sensory Sensitivity'
-  | 'Decisiveness'
-  | 'Adaptability'
-  | 'Fairness';
+  | 'Vulnerability';
 
 export interface Frame {
   text: string; //the text displayed on screen for the user
@@ -117,6 +109,7 @@ export interface Frame {
 export interface Choice {
   label: string; //the option shown to the user
   next: string; //id of the Section to continue with if this choice is picked
+  other?: boolean; //the user's own answer, written in the text box rather than picked from the list
 }
 
 export interface PromptFrame {
@@ -133,14 +126,6 @@ export type Step = Frame | PromptFrame;
 export interface Section {
   steps: Step[];
   next?: string; //id of the Section that follows; omitted on the final Section, ignored when the last step is a PromptFrame with choices
-  recall?: Recall; //when set, the Section that follows depends on how the user answered an earlier scenario
-}
-
-//picks the next Section from the user's saved answer to another scenario's question, falling back to the Section's next
-export interface Recall {
-  scenario: string; //the earlier scenario's id, e.g. 'landfall'
-  question: string; //the prompt id in that scenario's script
-  choices: Record<string, string>; //choice label to the id of the Section to continue with
 }
 
 //a real countdown over part of the script. Prompts between from and until can be skipped when it runs out
@@ -195,7 +180,7 @@ function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQu
  * scenarios
  * ------------------------------------------------------------------------------------------- */
 
-interface ScenarioInfo {
+export interface ScenarioInfo {
   id: string;
   title: string;
   kind: string; //the situation type
@@ -203,138 +188,166 @@ interface ScenarioInfo {
   facets: PersonalityTrait[];
 }
 
-//every scenario in the personality track, in the order listed in the README
-const SCENARIOS: ScenarioInfo[] = [
-  {
-    id: 'stolen_idea',
-    title: 'The Stolen Idea',
-    kind: 'Realistic hypothetical',
-    blurb: 'A colleague presents your idea as their own, then asks you for a favor the next week.',
-    facets: stolenIdea.facets,
-  },
-  {
-    id: 'let_down',
-    title: 'Let Down',
-    kind: 'Realistic hypothetical',
-    blurb: 'Your best friend keeps cancelling, and when she finally turns up she is low and quiet. How do you help?',
-    facets: letDown.facets,
-  },
-  {
-    id: 'landfall',
-    title: 'Expedition I: Landfall',
-    kind: 'Fictional role',
-    blurb: "You're shipwrecked with a small group and must decide who leads, what to do first, and how to handle supplies.",
-    facets: landfall.facets,
-  },
-  {
-    id: 'the_thief',
-    title: 'Expedition II: The Thief',
-    kind: 'Game with stakes',
-    blurb: 'Rations go missing, and you have to decide what to do about the person who took them.',
-    facets: theThief.facets,
-  },
-  {
-    id: 'party_of_strangers',
-    title: 'The Party of Strangers',
-    kind: 'Realistic hypothetical',
-    blurb: 'The only person you know cancels as you arrive, and the night carries on without them.',
-    facets: partyOfStrangers.facets,
-  },
-  {
-    id: 'empty_weekend',
-    title: 'The Empty Weekend',
-    kind: 'Reflective',
-    blurb: '48 hours with no obligations and a broken phone. How do you spend it, and how do you feel by Sunday night?',
-    facets: emptyWeekend.facets,
-  },
-  {
-    id: 'reading_people',
-    title: 'Reading People',
-    kind: 'Observer judgment',
-    blurb: "Four short vignettes about other people's behavior, and what you think is really going on.",
-    facets: readingPeople.facets,
-  },
-  {
-    id: 'the_offer',
-    title: 'The Offer',
-    kind: 'Reflective',
-    blurb: 'An exciting but risky role in a new city, or the stable job you are good at.',
-    facets: theOffer.facets,
-  },
-  {
-    id: 'the_archive',
-    title: 'The Archive',
-    kind: 'Game with stakes',
-    blurb: 'A timed task to sort a mysterious archive, with letters, artwork, and puzzles to explore along the way.',
-    facets: theArchive.facets,
-  },
-  {
-    id: 'rule_that_doesnt_fit',
-    title: "The Rule That Doesn't Fit",
-    kind: 'Realistic hypothetical',
-    blurb: 'You enforce a rule, and a stranger with a sympathetic and possibly true story asks you to break it.',
-    facets: ruleThatDoesntFit.facets,
-  },
-  {
-    id: 'proven_wrong',
-    title: 'Proven Wrong',
-    kind: 'Realistic hypothetical, with recall',
-    blurb: 'For months you have blamed your neighbour for your dying bees. Then the lab results come back.',
-    facets: provenWrong.facets,
-  },
-  {
-    id: 'the_water',
-    title: 'The Water',
-    kind: 'Realistic hypothetical, with recall',
-    blurb: 'The monsoon floods your street in Chennai, and the family from downstairs comes knocking.',
-    facets: theWater.facets,
-  },
-  {
-    id: 'black_clay',
-    title: 'The Black Clay',
-    kind: 'Realistic hypothetical, with recall',
-    blurb: 'A shop in Mexico City orders forty pots from your workshop in Oaxaca. Then you open the kiln.',
-    facets: blackClay.facets,
-  },
-  {
-    id: 'owambe',
-    title: 'The Owambe',
-    kind: 'Realistic hypothetical, with recall',
-    blurb: "Your cousin's wedding in Lagos: the family lace, a fight over the entrance, the MC's microphone, and a power cut.",
-    facets: owambe.facets,
-  },
-  {
-    id: 'soap_house',
-    title: 'The Soap House',
-    kind: 'Realistic hypothetical, with recall',
-    blurb: "Your father leaves the family soap house in Aleppo to you and your siblings, in three equal shares. It isn't that simple.",
-    facets: soapHouse.facets,
-  },
-];
-
-interface Playable {
+export interface Playable {
   script: Script;
   renderScene: (animation: string, clock?: number) => ReactNode;
 }
 
+//every scenario, in play order. Each is written to a set of IPIP-NEO items: which ones,
+//and why the order, are in scene_grouping.md
+const SCENARIOS: ScenarioInfo[] = [
+  {
+    id: 'the_story_game',
+    title: 'The Story Game',
+    kind: 'Live',
+    blurb: 'A narrator invites you to build a world together, one question at a time.',
+    facets: theStoryGame.facets,
+  },
+  {
+    id: 'the_night_class',
+    title: 'The Night Class',
+    kind: 'Story',
+    blurb: 'An evening class on big questions, a thought experiment, and a lively room.',
+    facets: theNightClass.facets,
+  },
+  {
+    id: 'the_big_party',
+    title: 'The Big Party',
+    kind: 'Story, timed beats',
+    blurb: "A friend's 40th: two hundred people, a loud band, and you know about four of them.",
+    facets: theBigParty.facets,
+  },
+  {
+    id: 'the_time_study',
+    title: 'The Time Study',
+    kind: 'Interview',
+    blurb: 'A researcher who studies how people spend their days asks about yours.',
+    facets: theTimeStudy.facets,
+  },
+  {
+    id: 'the_night_market',
+    title: 'The Night Market',
+    kind: 'Story',
+    blurb: 'A fable: ten silver coins, a market town at night, and a coach home at dawn.',
+    facets: theNightMarket.facets,
+  },
+  {
+    id: 'the_bad_day',
+    title: 'The Bad Day',
+    kind: 'Story, timed',
+    blurb: 'Traffic, a broken printer, a receptionist who keeps talking. A comedy of small disasters.',
+    facets: theBadDay.facets,
+  },
+  {
+    id: 'the_dare',
+    title: 'The Dare',
+    kind: 'Story',
+    blurb: 'A trip abroad with a friend who chases adrenaline.',
+    facets: theDare.facets,
+  },
+  {
+    id: 'the_shoplifter',
+    title: 'The Shoplifter',
+    kind: 'Story',
+    blurb: 'Your shop says always call the police. Then you catch a teenager stealing.',
+    facets: theShoplifter.facets,
+  },
+  {
+    id: 'the_committee',
+    title: 'The Committee',
+    kind: 'Story',
+    blurb: 'A neighborhood committee is putting on a street festival, and nobody is in charge.',
+    facets: theCommittee.facets,
+  },
+  {
+    id: 'the_houseguest',
+    title: 'The Houseguest',
+    kind: 'Story',
+    blurb: "A friend of a friend stays with you for a week. They're messy, closed off, and going through something.",
+    facets: theHouseguest.facets,
+  },
+  {
+    id: 'the_promotion',
+    title: 'The Promotion',
+    kind: 'Story',
+    blurb: "You and a peer are up for the same promotion, and there are easy ways to tip it.",
+    facets: thePromotion.facets,
+  },
+  {
+    id: 'the_festival',
+    title: 'The Festival',
+    kind: 'Live',
+    blurb: 'A free afternoon at a city arts festival, and a map of everything on.',
+    facets: theFestival.facets,
+  },
+  {
+    id: 'the_free_weekend',
+    title: 'The Free Weekend',
+    kind: 'Story',
+    blurb: "Nothing booked but a promise to help a friend move. Then a much better invitation arrives.",
+    facets: theFreeWeekend.facets,
+  },
+  {
+    id: 'the_stranger',
+    title: 'The Stranger',
+    kind: 'Story',
+    blurb: 'A man stops you in the street. His wallet was stolen, and he needs bus fare home.',
+    facets: theStranger.facets,
+  },
+  {
+    id: 'the_emergency',
+    title: 'The Emergency',
+    kind: 'Live, timed',
+    blurb: "A grease fire breaks out in the kitchen during a dinner you're hosting.",
+    facets: theEmergency.facets,
+  },
+  {
+    id: 'the_feud',
+    title: 'The Feud',
+    kind: 'Story',
+    blurb: 'Your neighbor builds a fence three feet onto your land.',
+    facets: theFeud.facets,
+  },
+  {
+    id: 'the_cabin',
+    title: 'The Cabin',
+    kind: 'Story + Interview, real clock',
+    blurb: "A winter weekend with old friends, a tradition someone wants to break, and a friend who still isn't here.",
+    facets: theCabin.facets,
+  },
+  {
+    id: 'the_portrait',
+    title: 'The Portrait',
+    kind: 'Interview',
+    blurb: 'A painter does your portrait, and talks while they work.',
+    facets: thePortrait.facets,
+  },
+];
+
 //scenarios that have been built so far, keyed by ScenarioInfo id
 const PLAYABLE: Record<string, Playable> = {
-  landfall: { script: landfall, renderScene: (animation) => <Landfall animation={animation} /> },
-  the_thief: { script: theThief, renderScene: (animation) => <Thief animation={animation} /> },
-  reading_people: { script: readingPeople, renderScene: (animation) => <ReadingPeople animation={animation} /> },
-  the_archive: { script: theArchive, renderScene: (animation, clock) => <TheArchive animation={animation} clock={clock} /> },
-  rule_that_doesnt_fit: { script: ruleThatDoesntFit, renderScene: (animation) => <LastFerry animation={animation} /> },
-  the_offer: { script: theOffer, renderScene: (animation) => <TheOffer animation={animation} /> },
-  party_of_strangers: { script: partyOfStrangers, renderScene: (animation) => <SnowedIn animation={animation} /> },
-  stolen_idea: { script: stolenIdea, renderScene: (animation) => <VanishingAct animation={animation} /> },
-  empty_weekend: { script: emptyWeekend, renderScene: (animation) => <PopUpTown animation={animation} /> },
-  let_down: { script: letDown, renderScene: (animation) => <PaperLantern animation={animation} /> },
-  proven_wrong: { script: provenWrong, renderScene: (animation) => <TheHive animation={animation} /> },
-  the_water: { script: theWater, renderScene: (animation) => <Monsoon animation={animation} /> },
-  black_clay: { script: blackClay, renderScene: (animation) => <Coyotepec animation={animation} /> },
-  owambe: { script: owambe, renderScene: (animation) => <Signboard animation={animation} /> },
-  soap_house: { script: soapHouse, renderScene: (animation) => <Miniature animation={animation} /> },
+  the_story_game: { script: theStoryGame, renderScene: (animation) => <Sketchbook animation={animation} /> },
+  the_festival: { script: theFestival, renderScene: (animation) => <Poster animation={animation} /> },
+  the_big_party: { script: theBigParty, renderScene: (animation) => <Ballroom animation={animation} /> },
+  the_dare: { script: theDare, renderScene: (animation) => <KitCam animation={animation} /> },
+  the_committee: { script: theCommittee, renderScene: (animation) => <Riso animation={animation} /> },
+  the_night_class: { script: theNightClass, renderScene: (animation) => <Chalkboard animation={animation} /> },
+  the_night_market: { script: theNightMarket, renderScene: (animation) => <Woodcut animation={animation} /> },
+  the_bad_day: { script: theBadDay, renderScene: (animation, clock) => <Funnies animation={animation} clock={clock} /> },
+  the_time_study: { script: theTimeStudy, renderScene: (animation) => <Notebook animation={animation} /> },
+  the_stranger: { script: theStranger, renderScene: (animation) => <Stencil animation={animation} /> },
+  the_feud: { script: theFeud, renderScene: (animation) => <Blueprint animation={animation} /> },
+  the_free_weekend: { script: theFreeWeekend, renderScene: (animation) => <Sampler animation={animation} /> },
+  the_houseguest: { script: theHouseguest, renderScene: (animation) => <Dollhouse animation={animation} /> },
+  the_shoplifter: { script: theShoplifter, renderScene: (animation) => <Cctv animation={animation} /> },
+  the_emergency: { script: theEmergency, renderScene: (animation, clock) => <SafetyCard animation={animation} clock={clock} /> },
+  the_promotion: { script: thePromotion, renderScene: (animation) => <PixelOffice animation={animation} /> },
+  the_cabin: { script: theCabin, renderScene: (animation, clock) => <PaperCabin animation={animation} clock={clock} /> },
+  the_portrait: { script: thePortrait, renderScene: (animation) => <Oils animation={animation} /> },
 };
+
+//traits are rescored from everything the user has answered each time they finish this many more scenarios. Matches the api
+const SCORE_EVERY = 6;
 
 /* ---------------------------------------------------------------------------------------------
  * dashboard
@@ -432,7 +445,6 @@ function Personality() {
       <ScriptPlayer
         script={open.script}
         renderScene={open.renderScene}
-        earlier={answers ?? []}
         onAnswer={answer(playing)}
         onExit={exit}
         onFinish={exit}
@@ -581,7 +593,7 @@ const TIPS = [
   },
   {
     title: 'Keep playing',
-    body: "We read everything you've told us after every 5 scenarios, and each read gets surer. Faded bars on My Personality are early reads.",
+    body: `We read everything you've told us after every ${SCORE_EVERY} scenarios, and each read gets surer. Faded bars on My Personality are early reads.`,
   },
   {
     title: 'Be yourself, jokes included',
@@ -644,7 +656,7 @@ function GettingTheMost({ onBack, onStart }: { onBack: () => void; onStart: () =
   );
 }
 
-//why the personality track exists, pulled from the README
+//why we measure personality through scenes, pulled from the README
 function OurApproach() {
   return (
     <section style={dash.approach} className="comic-panel comic-pop">
@@ -709,9 +721,6 @@ function OurApproach() {
 }
 
 //name is missing while logged out, when the page sits behind the login card
-//traits are rescored from everything the user has answered each time they finish this many more scenarios. Matches the api
-const SCORE_EVERY = 5;
-
 const greeting = (name: string | undefined, completed: number) => {
   const left = SCENARIOS.length - completed;
   const toNext = SCORE_EVERY - (completed % SCORE_EVERY);
@@ -818,13 +827,12 @@ const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 interface ScriptPlayerProps {
   script: Script;
   renderScene: (animation: string, clock?: number) => ReactNode; //the scenario's background, driven by the current step's animation and how much of the clock is left, 1 to 0
-  earlier: SavedAnswer[]; //the user's answers from when the scenario was opened, for Sections that recall them
   onAnswer: (step: PromptFrame, answer: Answer, context: string, clock?: AnswerClock) => Promise<void>; //saves an answer, with what the user saw before it and where the clock stood if it has started; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
   onFinish: () => void; //called when the user moves past the final step
 }
 
-function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish }: ScriptPlayerProps) {
+function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish }: ScriptPlayerProps) {
   //every position the user has visited, so the left arrow can walk back through branches
   const [history, setHistory] = useState<Position[]>([{ section: script.start, index: 0 }]);
   const [shown, setShown] = useState(0); //how many characters of the current text have been written out
@@ -891,10 +899,7 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
       return { section: step.choices[answer.choice].next, index: 0 };
     }
     if (position.index + 1 < section.steps.length) return { ...position, index: position.index + 1 };
-    const { recall } = section;
-    const recalled = recall && earlier.find((a) => a.scenario === recall.scenario && a.question_key === recall.question);
-    const next = (recalled && recall.choices[recalled.answer]) || section.next;
-    if (next) return { section: next, index: 0 };
+    if (section.next) return { section: section.next, index: 0 };
     return undefined;
   };
 
@@ -1011,7 +1016,13 @@ function ScriptPlayer({ script, renderScene, earlier, onAnswer, onExit, onFinish
                 rows={3}
                 maxLength={MAX_ANSWER_LENGTH}
                 value={answer?.text ?? ''}
-                placeholder={step.choices ? 'Why? Explain your thinking...' : 'Type your answer and explain your thinking...'}
+                placeholder={
+                  !step.choices
+                    ? 'Type your answer and explain your thinking...'
+                    : answer?.choice !== undefined && step.choices[answer.choice].other
+                      ? 'Tell me your own answer, and why...'
+                      : 'Why? Explain your thinking...'
+                }
                 onChange={(e) => updateAnswer(step.id, { text: e.target.value })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) forward();

@@ -1,4 +1,4 @@
-// Personality regression test (see ai_testing.md). Every persona in personas/ is a test account with a personality,
+// Personality regression test (see documentation/architecture/ADRs/personality_testing_harness.md). Every persona in personas/ is a test account with a personality,
 // target scores and scripted answers. For each one, all at once: log in (creating the account the first time), play
 // every scene through the local api the way the ui's ScriptPlayer does, wait for scoring, then read back the scores.
 // Each account's answers are cleared first, so every run starts from nothing, like a new player.
@@ -8,9 +8,11 @@
 //   node src/personality/testing/regression.mjs --check    check every persona's answers and targets, without playing
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-const dir = import.meta.dirname; //this testing folder; the scenes are one up
+const dir = import.meta.dirname; //this testing folder
+const scenes = `${dir}/..`;
+const RESULTS = `${dir}/results`;
 const API = 'http://localhost:3000/api';
-const SCENES = ['landfall', 'the_thief', 'empty_weekend', 'party_of_strangers', 'reading_people', 'let_down', 'the_archive', 'proven_wrong', 'stolen_idea', 'rule_that_doesnt_fit', 'the_offer', 'the_water', 'black_clay', 'owambe', 'soap_house']; //landfall first, the thief recalls it
+const SCENES = ['the_story_game', 'the_night_class', 'the_big_party', 'the_time_study', 'the_night_market', 'the_bad_day', 'the_dare', 'the_shoplifter', 'the_committee', 'the_houseguest', 'the_promotion', 'the_festival', 'the_free_weekend', 'the_stranger', 'the_emergency', 'the_feud', 'the_cabin', 'the_portrait']; //every scene, in play order
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function call(method, path, body, token) {
@@ -34,10 +36,9 @@ async function login({ account }) {
 }
 
 //walks one scene the way the ui's ScriptPlayer does, yielding each prompt with the persona's answer and the context the
-//ui would send. A { choice, text } answer picks a choice with text as the reasoning, left is the archive clock's seconds
+//ui would send. A { choice, text } answer picks a choice with text as the reasoning, left is the clock's seconds
 //remaining, and ran_out: true runs the clock out straight after that answer
-function* walk(name, script, mine, given) {
-  given[name] = {};
+function* walk(name, script, mine) {
   let pos = { section: script.start, index: 0 };
   let seen = []; //what the player saw since the last prompt
   let ranOut = false;
@@ -53,7 +54,6 @@ function* walk(name, script, mine, given) {
       const text = typeof a === 'string' ? a : a.text;
       const clock = script.clock && (ranOut ? { seconds: script.clock.seconds, left: 0, ran_out: true } : a.left !== undefined ? { seconds: script.clock.seconds, left: a.left, ran_out: false } : undefined);
       yield { key: step.id, answer: label ?? text, reasoning: label ? text : undefined, context: seen.join('\n'), facets: step.facets, clock };
-      if (label) given[name][step.id] = label;
       seen = [];
       if (step.choices) next = { section: step.choices[a.choice].next, index: 0 };
       if (a.ran_out) {
@@ -64,23 +64,19 @@ function* walk(name, script, mine, given) {
       seen.push(step.speaker ? `${step.speaker}: ${step.text}` : step.text);
     }
     if (!next && pos.index + 1 < sec.steps.length) next = { ...pos, index: pos.index + 1 };
-    else if (!next) {
-      const r = sec.recall;
-      const target = (r && r.choices[given[r.scenario]?.[r.question]]) || sec.next;
-      next = target && { section: target, index: 0 };
-    }
+    else if (!next) next = sec.next && { section: sec.next, index: 0 };
     pos = next;
   }
 }
 
-const scripts = Object.fromEntries(await Promise.all(SCENES.map(async (name) => [name, Object.values(await import(`${dir}/../${name}/script.ts`))[0]])));
+const scripts = Object.fromEntries(await Promise.all(SCENES.map(async (name) => [name, Object.values(await import(`${scenes}/${name}/script.ts`))[0]])));
 
 //plays one scene through the api, then waits for any scoring its last answer started, as the ui does before the next
 //scene. Says whether it started one
-async function playScene(name, mine, token, given) {
+async function playScene(name, mine, token) {
   const questions = Object.fromEntries((await call('GET', '/personality/progress', undefined, token)).questions[name].map((q) => [q.key, q]));
   let scored = false;
-  for (const { key, ...answer } of walk(name, scripts[name], mine, given)) {
+  for (const { key, ...answer } of walk(name, scripts[name], mine)) {
     if (!questions[key]) throw new Error(`${name}: ${key} isn't on the server`);
     scored = (await call('PUT', '/personality/answers', { question_id: questions[key].id, ...answer }, token)).scored;
   }
@@ -96,17 +92,18 @@ const scoringDone = async (token) => {
 //checks a persona without the api: every prompt on its path has an answer, every answer is used, and it has a target per trait
 function check(persona, traits) {
   const problems = [];
-  const given = {};
   for (const scene of SCENES) {
     const used = new Set();
     try {
-      for (const { key } of walk(scene, scripts[scene], persona.answers[scene] ?? {}, given)) used.add(key);
+      for (const { key } of walk(scene, scripts[scene], persona.answers[scene] ?? {})) used.add(key);
     } catch (e) {
       problems.push(e.message);
     }
     const unused = Object.keys(persona.answers[scene] ?? {}).filter((k) => !used.has(k));
     if (unused.length) problems.push(`${scene}: unused answers ${unused.join(', ')}`);
   }
+  const unknown = Object.keys(persona.answers).filter((s) => !SCENES.includes(s));
+  if (unknown.length) problems.push(`answers for scenes that don't exist: ${unknown.join(', ')}`);
   const missing = traits.filter((t) => !(t in persona.targets));
   const extra = Object.keys(persona.targets).filter((t) => !traits.includes(t));
   if (missing.length) problems.push(`no target for ${missing.join(', ')}`);
@@ -118,11 +115,10 @@ async function run(persona) {
   const token = await login(persona);
   //start from nothing, so the run scores at the same points a new player's would
   await call('DELETE', '/personality/answers', undefined, token);
-  const given = {};
   let scored = false;
   for (const scene of SCENES) {
     if (!persona.answers[scene]) throw new Error(`${persona.name}: no answers for ${scene}`);
-    scored = await playScene(scene, persona.answers[scene], token, given);
+    scored = await playScene(scene, persona.answers[scene], token);
     process.stdout.write(`  ${persona.name}: ${scene}\n`);
   }
   //scoring only runs every few scenes, so unless the last one just scored, score once more from everything
@@ -195,9 +191,9 @@ if (process.argv.includes('--check')) {
   process.exit(ok ? 0 : 1);
 }
 
-mkdirSync(`${dir}/results`, { recursive: true });
-const runs = readdirSync(`${dir}/results`).filter((f) => f.endsWith('.json')).sort();
-const previous = runs.length ? JSON.parse(readFileSync(`${dir}/results/${runs[runs.length - 1]}`, 'utf8')) : undefined;
+mkdirSync(RESULTS, { recursive: true });
+const runs = readdirSync(RESULTS).filter((f) => f.endsWith('.json')).sort();
+const previous = runs.length ? JSON.parse(readFileSync(`${RESULTS}/${runs[runs.length - 1]}`, 'utf8')) : undefined;
 
 console.log(`Playing ${personas.length} personas in parallel...`);
 const started = Date.now();
@@ -208,7 +204,7 @@ const saved = { ...previous, ...Object.fromEntries(Object.entries(now).filter(([
 
 const text = report(personas, now, previous);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-writeFileSync(`${dir}/results/${stamp}.json`, JSON.stringify(saved, null, 1));
-writeFileSync(`${dir}/results/${stamp}.md`, text);
+writeFileSync(`${RESULTS}/${stamp}.json`, JSON.stringify(saved, null, 1));
+writeFileSync(`${RESULTS}/${stamp}.md`, text);
 console.log(text);
-console.log(`Done in ${Math.round((Date.now() - started) / 1000)}s. Saved to results/${stamp}.md`);
+console.log(`Done in ${Math.round((Date.now() - started) / 1000)}s. Saved to ${RESULTS}/${stamp}.md`);

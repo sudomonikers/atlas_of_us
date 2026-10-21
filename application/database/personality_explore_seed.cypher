@@ -36,7 +36,7 @@ MERGE (m:PersonalityModel {name: "Big Five"})
 SET m.overview = "The Big Five is the most widely used and best supported model of personality in psychology. It says most of the stable differences between people can be described along five broad dimensions: Openness, Conscientiousness, Extraversion, Agreeableness and Neuroticism. Each one is a scale, not a type. You aren't an introvert or an extravert, you sit somewhere along a line, and most people sit near the middle of most of them. Each domain splits into six narrower facets, and two people with the same domain score can get there through very different facets. Your scores are fairly stable across adulthood, but they do drift: on average people become more conscientious, more agreeable and less neurotic as they age.",
     m.history = "The model wasn't invented, it was found. Starting in the 1930s, researchers worked from the lexical hypothesis: if a difference between people matters, language will have a word for it. They collected thousands of English adjectives that describe people, had people rate themselves and each other on them, and used factor analysis to see which words cluster together. The same five clusters kept appearing across different researchers, samples and later languages. Costa and McCrae built the NEO questionnaires around them in the 1980s, and the IPIP-NEO facets used here are a free, public-domain version of that work.",
     m.limits = "It's the best model we have, not a complete one. It describes how people tend to behave, but it doesn't explain why, and it says little about values, beliefs, skills or how someone changes with circumstance. Almost all of the data comes from questionnaires where people rate themselves, which rewards self-flattery and self-ignorance alike. Most of the research has been done on Western, educated, relatively wealthy people, and the five factors replicate less cleanly in some other cultures. Different questionnaires carve the facets differently, so a facet name here won't always mean exactly what it means elsewhere. Scores predict real outcomes like job performance, health and relationship stability, but only modestly: a trait shifts the odds, it doesn't decide anything.",
-    m.ourTake = "We use the Big Five because it holds up better than anything else, but we don't gather it the way most tests do. Instead of asking you to rate vague statements, we put you in situations and read what you do and why. We also measure fourteen extra traits, like Patience, Resilience and Stubbornness, that matter in everyday life but don't map cleanly onto the five domains. Those extra traits are our own addition. They overlap with the Big Five and with each other, and they don't have the decades of research behind them that the core facets do, so treat them as a useful description rather than established science.";
+    m.ourTake = "We use the Big Five because it holds up better than anything else, but we don't gather it the way most tests do. Instead of asking you to rate vague statements, we put you in situations and read what you do and why. Every scene is written to items from the IPIP-NEO, the public questionnaire behind the thirty facets, so we measure the same facets the research does. We just read them from what you do in a situation rather than how you rate yourself.";
 
 
 // -----------------------------------------------------------------------------
@@ -78,11 +78,7 @@ UNWIND [
     highGood: ["Spotting risks and problems early, before calmer people have noticed them.", "Taking criticism and danger seriously, so you prepare and improve.", "Empathy for people who are struggling, because you know the feeling."],
     lowGood: ["Crises, emergencies and high-pressure work, where calm is contagious.", "Taking risks and recovering from setbacks without being knocked off course.", "Being steady for other people when they can't be steady themselves."],
     highWatch: ["Treating feelings as evidence, and acting on threats that aren't real.", "Exhausting the people around you with reassurance they can't actually give.", "Avoiding anything that might go badly, which over time includes most good things."],
-    lowWatch: ["Under-reacting to real danger because it doesn't feel dangerous.", "Struggling to understand, or being impatient with, people who are anxious.", "Complacency: nothing feels urgent, so nothing gets fixed."] },
-
-  { key: "other", name: "Beyond the Big Five", order: 5,
-    overview: "These are traits we measure because they shape everyday life in ways people recognise, even though they aren't part of the Big Five. Most of them overlap with it: Resilience sits close to low Neuroticism, Perfectionism blends high Conscientiousness with high Neuroticism, and Stubbornness is partly low Agreeableness. They are our own selection, not a validated scientific model, so read them as useful descriptions rather than separate dimensions of personality.",
-    highGood: null, lowGood: null, highWatch: null, lowWatch: null }
+    lowWatch: ["Under-reacting to real danger because it doesn't feel dangerous.", "Struggling to understand, or being impatient with, people who are anxious.", "Complacency: nothing feels urgent, so nothing gets fixed."] }
 
 ] AS d
 MERGE (n:PersonalityDomain {key: d.key})
@@ -92,10 +88,9 @@ WITH n
 MATCH (m:PersonalityModel {name: "Big Five"})
 MERGE (m)-[:HAS_DOMAIN]->(n);
 
-// facets belong to the domain in their description prefix, e.g. "openness facet: ...". Everything else is Beyond the Big Five
+// facets belong to the domain in their description prefix, e.g. "openness facet: ..."
 MATCH (d:PersonalityDomain), (t:PersonalityTrait)
-WHERE (d.key <> "other" AND t.description STARTS WITH d.key + " facet:")
-   OR (d.key = "other" AND NOT t.description CONTAINS " facet:")
+WHERE t.description STARTS WITH d.key + " facet:"
 MERGE (d)-[:HAS_FACET]->(t);
 
 
@@ -318,99 +313,7 @@ UNWIND [
     highGood: ["Knowing when you need help, and asking for it.", "Avoiding situations that genuinely exceed what you can handle.", "Empathy for people who are overwhelmed."],
     lowGood: ["Emergencies, high-pressure work and anything that needs a cool head.", "Being the steady person others lean on.", "Recovering quickly from stressful periods."],
     highWatch: ["Freezing or panicking exactly when you need to act.", "Avoiding responsibility because pressure feels unbearable.", "Leaning so hard on others that they burn out."],
-    lowWatch: ["Taking on more than anyone should, because you can.", "Not noticing your own stress until your body does.", "Impatience with people who are struggling to cope."] },
-
-  // ---- beyond the big five ----
-  { name: "Patience",
-    overview: "Patience is tolerating delay, difficulty and slowness without getting frustrated. High scorers can wait, repeat and work slowly toward something without needing quick results. Low scorers get frustrated with slowness in people, systems and themselves. Patience is behind a lot of long-term success, in skills, relationships and money, because most good things compound slowly. But patience is easy to confuse with passivity. Some patient people wait for things that are never going to come, and tolerate situations that should have been changed. Impatient people are harder to be around, but they often force things to happen.",
-    highGood: ["Teaching, parenting and caring for people who learn slowly.", "Long-term investments in skills, health and money.", "Staying calm through bureaucracy and delays."],
-    lowGood: ["Pushing slow systems and people to move faster.", "Refusing to tolerate problems that should be fixed now.", "Fast-paced work that rewards urgency."],
-    highWatch: ["Waiting for things that are never going to change.", "Tolerating poor treatment because you can.", "Calling it patience when it's really avoiding action."],
-    lowWatch: ["Snapping at people who are doing their best.", "Abandoning things right before they would have paid off.", "Rushing work and making mistakes."] },
-
-  { name: "Resilience",
-    overview: "Resilience is the ability to recover from setbacks and keep going through hardship. High scorers get knocked down and get back up, often learning something on the way. Low scorers take longer to recover and can be thrown off course for a long time by a single blow. It overlaps heavily with low Neuroticism, and it's partly a skill that can be built. Resilience is mostly a strength, but very resilient people sometimes keep pushing through situations they should have left, and can be dismissive of people who need more time to recover. Being able to endure something doesn't mean you should.",
-    highGood: ["Long, hard pursuits with many failures along the way.", "Recovering from loss, rejection and disappointment.", "Being a stable presence through hard times."],
-    lowGood: ["Taking setbacks seriously enough to change course.", "Recognising when something has really hurt you.", "Empathy for people who are struggling to recover."],
-    highWatch: ["Enduring things you should have walked away from.", "Pushing on without processing what happened.", "Expecting others to bounce back as fast as you."],
-    lowWatch: ["Getting stuck after a setback for much longer than it warranted.", "Avoiding challenges because failing feels unsurvivable.", "Letting one bad experience define a whole area of life."] },
-
-  { name: "Optimism",
-    overview: "Optimism is expecting good outcomes. High scorers believe things will work out, and that belief makes them more likely to try, persist and recover. Low scorers, pessimists, expect things to go wrong and plan accordingly. Optimists are generally happier and healthier, and their confidence can be self-fulfilling. But optimists also systematically underestimate risks, costs and timelines, and they're the people who start the business without checking the numbers. Pessimists are less fun, but they're often better calibrated, and their worst-case planning saves projects that optimists would have sunk.",
-    highGood: ["Starting hard things that need belief to get going.", "Keeping morale up in a team through bad stretches.", "Recovering from setbacks, because you expect the next try to go better."],
-    lowGood: ["Planning for risks and worst cases.", "Spotting flaws in plans that everyone else is excited about.", "Avoiding disappointment by keeping expectations realistic."],
-    highWatch: ["Underestimating costs, timelines and risks.", "Ignoring warning signs because they don't fit the story.", "Dismissing people who raise problems as negative."],
-    lowWatch: ["Not trying, because you've already decided it won't work.", "Dragging down the mood of everyone around you.", "Pessimism that becomes self-fulfilling."] },
-
-  { name: "Perfectionism",
-    overview: "Perfectionism is holding yourself or your work to exacting, sometimes unforgiving standards. It's a blend of high Conscientiousness and high Neuroticism, and the research splits it into two kinds: striving for excellence, which helps, and fear of falling short, which mostly hurts. High scorers produce careful, polished work, but they often produce less of it, procrastinate because starting means risking imperfection, and suffer disproportionately over small flaws. Low scorers ship things, move on and don't agonise. Their work is rougher, but they often get further, because done beats perfect most of the time.",
-    highGood: ["Detail-critical work where small mistakes are costly.", "Craft and polish that set work apart.", "High standards that lift a team's quality."],
-    lowGood: ["Shipping, iterating and learning from real feedback.", "Getting through large volumes of work.", "Being kind to yourself when things go wrong."],
-    highWatch: ["Procrastinating because starting means risking imperfection.", "Agonising over flaws nobody else will notice.", "Holding others to standards that make you impossible to work with."],
-    lowWatch: ["Sloppy work that costs time later.", "Settling for good enough when it mattered.", "Being seen as careless in settings that value precision."] },
-
-  { name: "Competitiveness",
-    overview: "Competitiveness is wanting to win and measuring yourself against others. High scorers are motivated by rivals, rankings and beating people. Low scorers are motivated by the work itself or by cooperation, and are uncomfortable with zero-sum contests. Competition drives a lot of excellence, and competitive people often achieve more. But it also makes it hard to celebrate other people's success, it turns friends into rivals, and it ties your satisfaction to a comparison you can never win for long. Low scorers can be better collaborators, but may lose out in environments that reward fighting for position.",
-    highGood: ["Sports, sales and any field with clear winners.", "Pushing yourself harder because of a rival.", "Not backing down when something's at stake."],
-    lowGood: ["Collaboration, where shared success matters more than credit.", "Enjoying activities for their own sake.", "Celebrating other people's wins without envy."],
-    highWatch: ["Treating friends and colleagues as rivals.", "Never being satisfied, because someone is always ahead.", "Winning things that didn't matter at the cost of things that did."],
-    lowWatch: ["Losing out to people who fought for it.", "Lacking the drive that competition would have given you.", "Being taken advantage of in zero-sum situations."] },
-
-  { name: "Stubbornness",
-    overview: "Stubbornness is holding your position or course despite pressure and good reasons to change. High scorers don't back down easily, and they finish things that others give up on. Low scorers are flexible and change their minds readily. Stubbornness gets a bad name, but determination is just stubbornness pointed at the right thing. The problem is that stubborn people tend to dig in hardest exactly when they're wrong, because being challenged triggers it. Flexible people avoid that trap, but at the low end they can be pushed around, and they rarely see anything difficult through.",
-    highGood: ["Seeing hard things through when everyone says to quit.", "Resisting pressure to compromise on what matters.", "Defending a correct position against the crowd."],
-    lowGood: ["Changing your mind when the evidence changes.", "Compromise in relationships and teams.", "Adapting quickly when a plan isn't working."],
-    highWatch: ["Digging in hardest when you're wrong.", "Treating every disagreement as a fight.", "Sinking more into failing projects because quitting feels like losing."],
-    lowWatch: ["Being talked out of good decisions.", "Giving up when it gets hard.", "Having no position of your own, just the last one you heard."] },
-
-  { name: "Independence",
-    overview: "Independence is preferring to decide and do things for yourself rather than rely on others. High scorers like autonomy, trust their own judgement and resist being told what to do. Low scorers are comfortable relying on others, working within a team and taking direction. Independence is valuable, but it often hides a difficulty trusting people or asking for help, and very independent people tend to be lonelier than they admit. Low scorers can build stronger networks of mutual support, but at the extreme they can struggle to function without someone else making the call.",
-    highGood: ["Self-directed work, freelancing and starting things.", "Making decisions without needing consensus.", "Coping when no one is around to help."],
-    lowGood: ["Teamwork and shared decision-making.", "Building strong networks of mutual support.", "Learning from others instead of reinventing everything."],
-    highWatch: ["Refusing help until you're overwhelmed.", "Not letting people close because relying on them feels risky.", "Reinventing things others could have shown you."],
-    lowWatch: ["Struggling to decide anything alone.", "Depending on people who may not always be there.", "Going along with other people's choices for your own life."] },
-
-  { name: "Boldness",
-    overview: "Boldness is taking social or physical risks despite fear, for something you want. High scorers speak up, take chances and do the uncomfortable thing. Low scorers hold back, wait for safety and avoid risky moves. Boldness is different from not feeling fear, it's acting anyway. It's behind a lot of what people admire, and a lot of what they regret. Bold people take more shots and so have more wins, but also more embarrassing and costly failures. Low scorers avoid those failures, but they often look back on the conversations they didn't have and the chances they didn't take.",
-    highGood: ["Asking for what you want, whether it's a job, a date or a raise.", "Standing up to people with power.", "Taking chances that open doors."],
-    lowGood: ["Avoiding needless risks and embarrassments.", "Waiting for the right moment instead of rushing.", "Keeping a low profile when attention would be dangerous."],
-    highWatch: ["Reckless moves that you'd have avoided with a moment's thought.", "Confusing courage with not considering consequences.", "Embarrassing yourself and the people with you."],
-    lowWatch: ["Regretting the things you didn't do far more than the things you did.", "Letting fear make your decisions.", "Watching bolder people get what you wanted."] },
-
-  { name: "Playfulness",
-    overview: "Playfulness is bringing humour, lightness and fun to situations. High scorers joke, tease, invent games and don't take things too seriously. Low scorers are more serious and focused, and prefer to get things done. Playfulness makes people enjoyable to be around and helps groups bond, and playful approaches can lead to creative solutions. But it can also be a way to avoid anything heavy, and constant joking can wear people down or hurt them. Serious people are less fun, but they're often more reliable when it counts, and more trusted with things that matter.",
-    highGood: ["Defusing tension and bonding groups.", "Creative work where play leads to new ideas.", "Parenting, teaching and anywhere fun helps people learn."],
-    lowGood: ["Serious work and situations that need gravity.", "Being trusted with important responsibilities.", "Focusing without being distracted by fun."],
-    highWatch: ["Joking when someone needed you to take them seriously.", "Teasing that hurts more than you realise.", "Never being taken seriously yourself."],
-    lowWatch: ["Being seen as stiff or humourless.", "Missing the bonding that play creates.", "Treating everything as serious, which makes it all heavier."] },
-
-  { name: "Sensory Sensitivity",
-    overview: "Sensory Sensitivity is how strongly you're affected by noise, light, crowds, textures and other sensations. High scorers notice things others miss, but are also easily overwhelmed by busy, loud environments. Low scorers can tune out stimulation and function anywhere. High sensitivity is useful for noticing detail, mood and quality, and it often comes with a rich appreciation of art and nature. But much of the modern world is loud and busy, and high scorers can spend a lot of energy just coping with it. Low scorers move through those environments easily, but can miss subtle signals that matter.",
-    highGood: ["Noticing details, moods and changes others miss.", "Work involving craft, taste and quality.", "Deep appreciation of music, food and nature."],
-    lowGood: ["Loud, busy, chaotic workplaces and cities.", "Staying focused in distracting environments.", "Travel and situations you can't control."],
-    highWatch: ["Getting overwhelmed and shutting down in busy places.", "Avoiding situations that would be worth the discomfort.", "Expecting others to accommodate every sensitivity."],
-    lowWatch: ["Missing subtle signals, like a shift in someone's mood.", "Not noticing how loud or overwhelming you are to others.", "Overlooking quality and detail."] },
-
-  { name: "Decisiveness",
-    overview: "Decisiveness is making choices quickly and committing to them. High scorers decide fast and don't look back. Low scorers deliberate, weigh options and struggle to commit, often worrying they've picked wrong. Decisive people are valued as leaders because groups hate uncertainty, and many decisions matter less than the time spent making them. But fast decisions are wrong more often, and decisive people tend to commit harder to their mistakes. Indecisive people are frustrating to wait for, but on the decisions that really matter, their care can prevent serious errors.",
-    highGood: ["Leadership and emergencies, where a decision now beats a perfect one later.", "Keeping projects moving.", "Not wasting energy on choices that don't matter."],
-    lowGood: ["Big, irreversible decisions that deserve care.", "Gathering more information before committing.", "Staying open to changing course."],
-    highWatch: ["Deciding before you have enough information.", "Committing harder to bad decisions because you made them.", "Steamrolling people who needed time to think."],
-    lowWatch: ["Paralysis that makes the decision for you.", "Frustrating everyone waiting on you.", "Second-guessing choices long after they're made."] },
-
-  { name: "Adaptability",
-    overview: "Adaptability is adjusting comfortably to change, new circumstances and the unexpected. High scorers roll with it when plans change, move easily between environments and recover quickly from disruption. Low scorers prefer stability and find change stressful. Adaptability is increasingly valuable in a world that changes fast. But very adaptable people can bend so easily that they lose track of what they actually want, and they sometimes adapt to situations they should have resisted. Less adaptable people struggle with change, but they're often more consistent and more clearly themselves.",
-    highGood: ["Moving, travelling and changing careers.", "Fast-changing work environments.", "Handling crises and surprises."],
-    lowGood: ["Stable roles where consistency matters.", "Resisting changes that are bad, instead of going along with them.", "Keeping a clear sense of self across situations."],
-    highWatch: ["Adapting to situations you should have fought.", "Losing track of what you want because you're always fitting in.", "Changing so easily that people don't know where you stand."],
-    lowWatch: ["Being thrown by changes everyone else handles.", "Holding on to routines after they stop working.", "Missing opportunities that require leaving your comfort zone."] },
-
-  { name: "Fairness",
-    overview: "Fairness is refusing to cheat, exploit or take advantage of others, even when it would pay off. High scorers play by the rules, split things evenly and won't profit at someone else's expense. Low scorers are more willing to take an edge when they can get away with it. Fairness builds trust, and fair people are valued partners. But the uncomfortable truth is that in the short term, unfairness often pays, and fair people can lose out to those who don't share their scruples. High scorers can also become rigid scorekeepers, more focused on fairness than on what actually helps.",
-    highGood: ["Being trusted with money, power and shared resources.", "Leading teams that feel fairly treated.", "Long-term relationships and partnerships."],
-    lowGood: ["Competitive situations where others aren't playing fair either.", "Pragmatic decisions where strict fairness would help no one.", "Getting ahead in systems that reward taking an edge."],
-    highWatch: ["Losing out to people who don't play fair.", "Rigid scorekeeping in relationships.", "Moral outrage that costs more than the unfairness did."],
-    lowWatch: ["Gaining in the short term and losing trust for good.", "Rationalising exploitation as how the world works.", "Ending up surrounded by people who treat you the same way."] }
+    lowWatch: ["Taking on more than anyone should, because you can.", "Not noticing your own stress until your body does.", "Impatience with people who are struggling to cope."] }
 
 ] AS t
 MATCH (n:PersonalityTrait {name: t.name})
@@ -428,143 +331,65 @@ UNWIND [
   { from: "Imagination", to: "Self-Discipline", description: "With discipline, imagination turns into finished work. Without it, you get a head full of projects and a desk with nothing done." },
   { from: "Imagination", to: "Anxiety", description: "A vivid imagination gives anxiety better material. High scorers in both can picture disasters in detail and react as if they'd happened." },
   { from: "Imagination", to: "Intellect", description: "Together they make an inventive thinker who can both picture new possibilities and reason about whether they'd work." },
-  { from: "Artistic Interests", to: "Sensory Sensitivity", description: "Sensitivity deepens the experience of beauty, but makes ugly, loud and cluttered places harder to bear." },
-  { from: "Artistic Interests", to: "Perfectionism", description: "Strong taste plus perfectionism means you can see exactly what's wrong with your own work, which can stop you finishing anything." },
   { from: "Artistic Interests", to: "Emotionality", description: "People high in both are deeply moved by art, and often use it to make sense of what they feel." },
   { from: "Emotionality", to: "Depression", description: "Paying close attention to your feelings helps when you're well. When you're low, it can turn into dwelling on the low." },
   { from: "Emotionality", to: "Sympathy", description: "Knowing your own feelings well makes it easier to recognise them in others, so these often rise together." },
   { from: "Adventurousness", to: "Excitement-Seeking", description: "Adventurousness wants new things, excitement-seeking wants intense ones. High in both, you'll chase new thrills, with the injuries and bills to match." },
   { from: "Adventurousness", to: "Cautiousness", description: "Caution makes adventure survivable. Low caution with high adventurousness is how people end up in the stories nobody wants to be in." },
-  { from: "Adventurousness", to: "Adaptability", description: "Adventurous people usually adapt well, but they choose change. Adaptability is coping with change you didn't choose, and it isn't guaranteed." },
   { from: "Adventurousness", to: "Anxiety", description: "High in both is a painful mix: you want new experiences, then worry your way through them, or talk yourself out of going." },
-  { from: "Intellect", to: "Decisiveness", description: "Love of ideas can slow decisions down, because there's always another angle to consider. Decisiveness is what gets the thinking to an answer." },
   { from: "Intellect", to: "Modesty", description: "High intellect with low modesty is the person who needs to win every debate. With high modesty, the same mind is a pleasure to learn from." },
-  { from: "Intellect", to: "Stubbornness", description: "A clever person who digs in is hard to correct, because they can always find an argument for what they already believe." },
   { from: "Liberalism", to: "Dutifulness", description: "These pull against each other: one questions the rules, the other keeps them. High in both, you'll follow rules you think are wrong and resent it." },
   { from: "Liberalism", to: "Trust", description: "Questioning authority with low trust can tip into seeing conspiracies everywhere. With high trust, it stays healthy scepticism." },
-  { from: "Liberalism", to: "Stubbornness", description: "A stubborn rule-breaker can drive real change, or reject every convention just to prove they can." },
 
   // ---- conscientiousness ----
   { from: "Self-Efficacy", to: "Achievement-Striving", description: "Believing you can do it and wanting to do it big is a strong engine for success, and also for overcommitting." },
   { from: "Self-Efficacy", to: "Modesty", description: "Low modesty plus high self-efficacy can come across as arrogance. High modesty can hide real confidence that people would trust if they could see it." },
   { from: "Self-Efficacy", to: "Vulnerability", description: "Believing you can cope is one of the best buffers against panic. Low self-efficacy and high vulnerability feed each other." },
-  { from: "Self-Efficacy", to: "Independence", description: "Together they make someone who handles everything alone, which is impressive until it isn't." },
-  { from: "Orderliness", to: "Perfectionism", description: "Order plus perfectionism can turn every space and system into something to control, and every lapse into stress." },
-  { from: "Orderliness", to: "Adaptability", description: "Highly orderly people often struggle when plans change. Adaptability is what stops a disrupted plan from feeling like a crisis." },
   { from: "Orderliness", to: "Imagination", description: "Order gives imagination a place to land. Without it, good ideas get lost in the mess." },
   { from: "Dutifulness", to: "Altruism", description: "Duty plus a love of helping makes someone everybody leans on, and who rarely leans back." },
-  { from: "Dutifulness", to: "Fairness", description: "Together they make someone deeply principled, who keeps promises and plays straight even when it costs them." },
   { from: "Dutifulness", to: "Self-Consciousness", description: "When self-consciousness is high, duty can become fear of being seen as letting people down, rather than keeping a commitment you believe in." },
-  { from: "Achievement-Striving", to: "Perfectionism", description: "Ambition with perfectionism is the classic route to burnout: big goals and no tolerance for falling short of them." },
-  { from: "Achievement-Striving", to: "Competitiveness", description: "Competitiveness points ambition at other people. That adds fuel, but makes your success depend on someone else's results." },
   { from: "Achievement-Striving", to: "Self-Discipline", description: "Ambition without discipline is a lot of plans. Discipline without ambition is reliable work toward small goals. Together they get big things done." },
   { from: "Self-Discipline", to: "Immoderation", description: "Discipline is the counterweight to cravings. High immoderation with low discipline is where habits turn into problems." },
-  { from: "Self-Discipline", to: "Patience", description: "Together they make someone who can work slowly toward something for years, which is how most hard things get done." },
   { from: "Self-Discipline", to: "Depression", description: "Low mood saps discipline, and failing to keep up feeds the low mood. Each makes the other harder to fix." },
   { from: "Cautiousness", to: "Anxiety", description: "Together they make someone who prepares for everything, and often never starts." },
-  { from: "Cautiousness", to: "Decisiveness", description: "These pull in opposite directions. The best decision-makers have both: they think it through, then commit." },
   { from: "Cautiousness", to: "Excitement-Seeking", description: "Low caution with high excitement-seeking is the most accident-prone combination in the model." },
-  { from: "Cautiousness", to: "Boldness", description: "Bold and cautious isn't a contradiction. It's taking risks that have been thought through." },
 
   // ---- extraversion ----
   { from: "Friendliness", to: "Trust", description: "Warmth plus trust makes friends fast, and makes you an easy target for people who fake warmth back." },
   { from: "Friendliness", to: "Gregariousness", description: "These often go together, but not always. Some warm people are happiest one-on-one, and some sociable people like crowds but keep everyone at arm's length." },
   { from: "Friendliness", to: "Morality", description: "Warmth that isn't backed by honesty becomes charm, and people eventually notice." },
   { from: "Gregariousness", to: "Self-Consciousness", description: "Wanting company while worrying how you come across is draining: you seek out groups, then spend the evening monitoring yourself." },
-  { from: "Gregariousness", to: "Independence", description: "Independent people who love company want people around but not in charge, which can confuse those trying to get close." },
   { from: "Assertiveness", to: "Cooperation", description: "Assertive and cooperative is the effective leader: clear about what they want, willing to give ground. Assertive and uncooperative is the bully." },
   { from: "Assertiveness", to: "Anger", description: "Assertiveness plus a short fuse makes someone who's hard to argue with, and harder to work for." },
   { from: "Assertiveness", to: "Self-Efficacy", description: "When assertiveness runs ahead of self-efficacy, you lead with confidence you don't feel. When it lags, you know the answer and don't say it." },
   { from: "Assertiveness", to: "Modesty", description: "High assertiveness with high modesty is rare and valuable: someone who takes charge without needing the credit." },
-  { from: "Activity Level", to: "Patience", description: "High-tempo people often find patience hard. Together, they make someone energetic who can still wait for things to pay off." },
   { from: "Activity Level", to: "Cautiousness", description: "Speed plus caution is rare. More often, high activity means fast and occasionally sloppy." },
   { from: "Activity Level", to: "Vulnerability", description: "A busy life with low stress tolerance is fragile: it works until one more thing lands, then everything tips over." },
   { from: "Excitement-Seeking", to: "Immoderation", description: "The thrill-seeker who can't resist urges is at serious risk of addiction and debt. This is the combination to watch most closely." },
-  { from: "Excitement-Seeking", to: "Boldness", description: "Excitement-seekers enjoy risk. Bold people act despite it. Together, risk stops feeling like a reason to stop." },
-  { from: "Excitement-Seeking", to: "Patience", description: "Craving intensity makes slow, steady progress feel unbearable, so long-term goals suffer." },
-  { from: "Cheerfulness", to: "Optimism", description: "Cheerful optimists are a joy to be around, and the most likely to underestimate a real problem." },
   { from: "Cheerfulness", to: "Depression", description: "These aren't simple opposites. Some people are cheerful in company and low in private, and the cheerfulness hides it." },
-  { from: "Cheerfulness", to: "Playfulness", description: "Together they make a natural mood-lifter, as long as they can read when the room needs something else." },
 
   // ---- agreeableness ----
   { from: "Trust", to: "Anxiety", description: "Low trust plus high anxiety can become suspicion that feels like insight: you're certain people are against you." },
   { from: "Trust", to: "Altruism", description: "Trusting and generous makes you a gift to good people and a target for bad ones." },
   { from: "Trust", to: "Cautiousness", description: "Caution is what keeps high trust from being exploited: you give the benefit of the doubt, but you still check." },
   { from: "Morality", to: "Assertiveness", description: "Honesty plus assertiveness says the hard thing out loud. Honesty without it says nothing, which isn't quite the same as being honest." },
-  { from: "Morality", to: "Fairness", description: "Straightforward and fair is the person everyone trusts to hold the money and settle disputes." },
-  { from: "Morality", to: "Competitiveness", description: "Competitiveness tempts people to bend the rules. High morality is what stops them." },
   { from: "Altruism", to: "Self-Efficacy", description: "Generous people who believe they can fix things take on everyone's problems, and can't understand why they're exhausted." },
-  { from: "Altruism", to: "Resilience", description: "Resilience lets givers keep giving through hard times. Without it, altruism burns out fast." },
   { from: "Altruism", to: "Modesty", description: "High in both, you give without asking for thanks, and can be badly taken for granted." },
-  { from: "Cooperation", to: "Stubbornness", description: "Cooperative people who are also stubborn give way on small things and won't move on big ones, which is often exactly right." },
   { from: "Cooperation", to: "Anger", description: "Avoiding conflict while getting angry easily is a pressure cooker: the anger builds up instead of being dealt with." },
   { from: "Cooperation", to: "Assertiveness", description: "High cooperation with low assertiveness means you'll be agreeable to a fault and nobody will know what you actually wanted." },
   { from: "Modesty", to: "Achievement-Striving", description: "Ambitious and modest people do great work and let others take the credit, which they often then resent." },
   { from: "Modesty", to: "Self-Consciousness", description: "Sometimes modesty is humility, and sometimes it's fear of being noticed. Self-consciousness is often the difference." },
-  { from: "Modesty", to: "Competitiveness", description: "Low modesty with high competitiveness can make every interaction about who's better." },
   { from: "Sympathy", to: "Vulnerability", description: "Feeling others' pain while being easily overwhelmed means other people's crises become yours." },
-  { from: "Sympathy", to: "Fairness", description: "Sympathy wants to help the person in front of you. Fairness wants the same rules for everyone. They often disagree." },
   { from: "Sympathy", to: "Altruism", description: "Sympathy feels the pain, altruism does something about it. You can have one without the other." },
 
   // ---- neuroticism ----
-  { from: "Anxiety", to: "Perfectionism", description: "Anxious perfectionists are driven by fear of failing rather than desire to excel, and it shows in procrastination and exhaustion." },
-  { from: "Anxiety", to: "Optimism", description: "Anxiety and low optimism feed each other: you expect the worst, then worry about it." },
-  { from: "Anxiety", to: "Boldness", description: "Boldness is how anxious people still live full lives. It doesn't remove the fear, it just stops it from deciding." },
   { from: "Anger", to: "Cooperation", description: "Anger with low cooperation leads to open conflict. With high cooperation, it gets swallowed and turns into resentment." },
-  { from: "Anger", to: "Fairness", description: "People with a strong sense of fairness get angry at injustice. That can drive change, or make you exhausting to be around." },
-  { from: "Anger", to: "Patience", description: "Patience is what gives anger time to cool before it does damage." },
-  { from: "Depression", to: "Resilience", description: "Resilience is how quickly you climb out. Low mood plus low resilience means you can stay down for a long time." },
   { from: "Depression", to: "Gregariousness", description: "Low mood makes company feel like effort, but withdrawing usually makes it worse." },
   { from: "Self-Consciousness", to: "Assertiveness", description: "Self-consciousness is one of the main things that holds back people who'd otherwise speak up." },
-  { from: "Self-Consciousness", to: "Perfectionism", description: "Worrying how you look plus high standards means everything you show people has to be flawless, so you show them less." },
-  { from: "Self-Consciousness", to: "Playfulness", description: "Playfulness needs a willingness to look silly. Self-conscious people often have the humour but not the freedom to use it." },
   { from: "Immoderation", to: "Excitement-Seeking", description: "Together they're the strongest predictor of risky habits in this model. If you're high in both, build guardrails." },
   { from: "Immoderation", to: "Anxiety", description: "Many cravings are attempts to calm worry. Fixing the urge often means dealing with the anxiety underneath it." },
   { from: "Immoderation", to: "Depression", description: "Low mood makes urges harder to resist, and giving in often makes the low mood worse." },
-  { from: "Vulnerability", to: "Resilience", description: "Vulnerability is how hard stress hits. Resilience is how fast you recover. You can be high in both: you fall apart, then pull yourself back together." },
-  { from: "Vulnerability", to: "Orderliness", description: "Structure protects people who are easily overwhelmed. When the routine breaks, they can struggle more than most." },
-  { from: "Vulnerability", to: "Independence", description: "Highly independent people who are easily overwhelmed often hit crisis alone, because they never built a support network." },
-
-  // ---- beyond the big five ----
-  { from: "Patience", to: "Achievement-Striving", description: "Patience is what lets ambition survive the long boring middle of any big goal." },
-  { from: "Patience", to: "Assertiveness", description: "Patient people with low assertiveness can wait forever for something they never asked for." },
-  { from: "Patience", to: "Cooperation", description: "Patience plus cooperation makes a great teammate, and someone who'll tolerate a bad situation far too long." },
-  { from: "Resilience", to: "Optimism", description: "Optimism helps you get back up, because you expect the next try to go better." },
-  { from: "Resilience", to: "Stubbornness", description: "Resilience plus stubbornness can endure anything, including things that should have been abandoned." },
-  { from: "Resilience", to: "Emotionality", description: "Resilient people who are also aware of their feelings recover without pretending it didn't hurt." },
-  { from: "Optimism", to: "Cautiousness", description: "Caution is the counterweight to optimism's blind spots: expect it to work, and plan for when it doesn't." },
-  { from: "Optimism", to: "Self-Efficacy", description: "Optimism is about the world, self-efficacy is about you. Together they make someone who'll try almost anything." },
-  { from: "Optimism", to: "Trust", description: "Optimistic and trusting people expect the best from situations and people alike, and are let down more often than they expect." },
-  { from: "Perfectionism", to: "Decisiveness", description: "Perfectionism slows decisions, because every option has flaws. Decisive perfectionists commit and then fret." },
-  { from: "Perfectionism", to: "Self-Discipline", description: "Disciplined perfectionists produce excellent work. Undisciplined ones produce excellent plans and no work." },
-  { from: "Perfectionism", to: "Depression", description: "When standards are unreachable, every result feels like failing, and over time that wears mood down." },
-  { from: "Competitiveness", to: "Friendliness", description: "Warm competitors can be rivals and friends. Without warmth, competition crowds friendship out." },
-  { from: "Competitiveness", to: "Fairness", description: "Competitive and fair people want to win, but only properly. Without fairness, winning is all that counts." },
-  { from: "Competitiveness", to: "Anger", description: "Competitive people with short fuses take losses personally, and make others pay for them." },
-  { from: "Stubbornness", to: "Self-Discipline", description: "Stubbornness plus discipline is determination: the person who finishes a marathon on a broken toe." },
-  { from: "Stubbornness", to: "Cooperation", description: "Low cooperation and high stubbornness makes someone almost impossible to work with in a disagreement." },
-  { from: "Stubbornness", to: "Intellect", description: "Smart, stubborn people are the hardest to change your mind, because they argue well for what they already think." },
-  { from: "Independence", to: "Trust", description: "Independence is sometimes just low trust in disguise: you do it yourself because you don't believe others will." },
-  { from: "Independence", to: "Liberalism", description: "Independent people who question authority are hard to manage, and often happiest working for themselves." },
-  { from: "Independence", to: "Gregariousness", description: "Independent people can love company, they just don't want it making their decisions." },
-  { from: "Boldness", to: "Self-Consciousness", description: "Boldness is acting anyway. For self-conscious people, that's what turns fear of judgement into something they can push through." },
-  { from: "Boldness", to: "Assertiveness", description: "Bold and assertive people are the ones who ask, push and lead, and are sometimes wrong in front of everyone." },
-  { from: "Boldness", to: "Cautiousness", description: "Bold without caution is reckless. Bold with it is brave." },
-  { from: "Playfulness", to: "Sympathy", description: "Playfulness with sympathy knows when to stop joking. Without it, humour can hurt people at their lowest." },
-  { from: "Playfulness", to: "Imagination", description: "Playful, imaginative people invent games and stories and see fun ideas others don't." },
-  { from: "Playfulness", to: "Dutifulness", description: "Playful and dutiful people get the work done and make it fun, which is rarer than it should be." },
-  { from: "Sensory Sensitivity", to: "Gregariousness", description: "Wanting company but being overwhelmed by crowds means you'll seek people out, then need to escape." },
-  { from: "Sensory Sensitivity", to: "Vulnerability", description: "Sensitive people who are easily overwhelmed can hit their limit quickly in loud, busy places." },
-  { from: "Sensory Sensitivity", to: "Sympathy", description: "Sensitivity to subtle cues helps you notice others' feelings, which is often where sympathy starts." },
-  { from: "Decisiveness", to: "Stubbornness", description: "Decisive and stubborn is fast to decide and slow to admit it was wrong." },
-  { from: "Decisiveness", to: "Anxiety", description: "Anxiety slows decisions because every option has a downside to worry about." },
-  { from: "Decisiveness", to: "Assertiveness", description: "Together they make someone who naturally takes charge, and who others follow quickly." },
-  { from: "Adaptability", to: "Stubbornness", description: "Adaptable people can still be stubborn about what matters. That's the healthy version: flexible on how, firm on why." },
-  { from: "Adaptability", to: "Resilience", description: "Adaptability lets you adjust to change, resilience lets you recover from it. Together they're the best protection against a world that keeps changing." },
-  { from: "Adaptability", to: "Cooperation", description: "Highly adaptable, cooperative people can bend so much they lose track of what they wanted." },
-  { from: "Fairness", to: "Trust", description: "Fair people often assume others are fair too, and are shocked when they're not." },
-  { from: "Fairness", to: "Altruism", description: "Fairness says everyone gets the same. Altruism says give more than you have to. They can make you either rigid or generous." },
-  { from: "Fairness", to: "Morality", description: "Fair and straightforward people are trusted, and often outmanoeuvred by those who are neither." }
+  { from: "Vulnerability", to: "Orderliness", description: "Structure protects people who are easily overwhelmed. When the routine breaks, they can struggle more than most." }
 
 ] AS i
 MATCH (a:PersonalityTrait {name: i.from}), (b:PersonalityTrait {name: i.to})

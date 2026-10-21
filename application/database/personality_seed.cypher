@@ -8,12 +8,9 @@
 // so a low value is its opposite (low Gregariousness = prefers solitude) and
 // opposites are not separate nodes.
 //
-// Traits:
-//   1. Big Five facets (IPIP-NEO, 6 per domain), under their standard names.
-//      The domain lives in the description prefix, e.g.
-//      "conscientiousness facet: ...".
-//   2. Additional traits that are part of the human experience but not
-//      contained in the Big Five.
+// The traits are the 30 facets of the Big Five (IPIP-NEO, 6 per domain), under
+// their standard names. The domain lives in the description prefix, e.g.
+// "conscientiousness facet: ...".
 //
 // Idempotent: safe to re-run. MERGE on name, description overwritten from this
 // file on every run.
@@ -108,40 +105,3 @@ UNWIND [
 MERGE (n:PersonalityTrait {name: t.name})
 SET n.description = t.description;
 
-
-// -----------------------------------------------------------------------------
-// 2. Additional traits
-// -----------------------------------------------------------------------------
-
-UNWIND [
-
-  { name: "Patience",
-    description: "Tolerating delay, difficulty or slowness without frustration." },
-  { name: "Resilience",
-    description: "Recovering from setbacks and persisting through hardship." },
-  { name: "Optimism",
-    description: "Expecting good outcomes. low is pessimistic." },
-  { name: "Perfectionism",
-    description: "Holding oneself or one's work to exacting, sometimes unforgiving standards." },
-  { name: "Competitiveness",
-    description: "Wanting to win and measuring oneself against others." },
-  { name: "Stubbornness",
-    description: "Holding to one's position or course despite pressure and good reasons to change." },
-  { name: "Independence",
-    description: "Preferring to decide and do things for oneself rather than rely on others." },
-  { name: "Boldness",
-    description: "Taking social or physical risks despite fear, for something one wants." },
-  { name: "Playfulness",
-    description: "Bringing humor, lightness and fun to situations." },
-  { name: "Sensory Sensitivity",
-    description: "Being strongly affected by noise, light, crowds and other sensations." },
-  { name: "Decisiveness",
-    description: "Making up one's mind quickly and sticking with it, without long deliberation or second-guessing. low is indecisive." },
-  { name: "Adaptability",
-    description: "Adjusting comfortably to change, new circumstances and the unexpected." },
-  { name: "Fairness",
-    description: "Refusing to cheat, exploit or take advantage of others, even when it would pay off." }
-
-] AS t
-MERGE (n:PersonalityTrait {name: t.name})
-SET n.description = t.description;

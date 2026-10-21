@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getExplore, type Breakdown, type Explore as ExploreData, type ExploreTrait } from './api';
+import { getModel, type Breakdown, type DomainTrait, type PersonalityModel } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -22,12 +22,12 @@ const shortDescription = (description: string | null) => {
 
 //the Explore view: what the Big Five is, then every domain and trait in depth, all read from the database
 export default function Explore() {
-  const [explore, setExplore] = useState<ExploreData>();
+  const [model, setModel] = useState<PersonalityModel>();
   const [error, setError] = useState<string>();
   const [open, setOpen] = useState<Set<string>>(new Set()); //names of the expanded traits
 
   useEffect(() => {
-    getExplore().then(setExplore, (e) => setError(e instanceof Error ? e.message : String(e)));
+    getModel().then(setModel, (e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   const toggle = (name: string) =>
@@ -44,9 +44,9 @@ export default function Explore() {
   };
 
   if (error) return <AtlasError message={`I couldn't load the guide. ${error}`} style={styles.status} />;
-  if (!explore) return <p style={styles.status}>Dusting off the field guide...</p>;
+  if (!model) return <p style={styles.status}>Dusting off the field guide...</p>;
 
-  const { model, domains } = explore;
+  const { domains } = model;
   const intro = [
     { title: 'What it is', body: model.overview },
     { title: 'Where it came from', body: model.history },
@@ -88,7 +88,7 @@ export default function Explore() {
 }
 
 interface TraitEntryProps {
-  trait: ExploreTrait;
+  trait: DomainTrait;
   open: boolean;
   onToggle: () => void;
   onJump: (name: string) => void; //open and scroll to another trait
@@ -137,17 +137,15 @@ const SIDES = [
   { key: 'low_watch', title: 'Low: watch out for', fill: paleRed, ink: brownRed },
 ] as const;
 
-//the four lists side by side, stacking on narrow screens. Missing lists are left out
+//the four lists side by side, stacking on narrow screens
 function BreakdownGrid({ breakdown }: { breakdown: Breakdown }) {
-  const sides = SIDES.filter((side) => breakdown[side.key]?.length);
-  if (!sides.length) return null;
   return (
     <div style={styles.grid}>
-      {sides.map((side) => (
+      {SIDES.map((side) => (
         <div key={side.key} style={{ ...styles.side, background: side.fill }}>
           <h3 style={{ ...styles.subheading, color: side.ink }}>{side.title}</h3>
           <ul style={styles.bullets}>
-            {breakdown[side.key]!.map((point) => (
+            {breakdown[side.key].map((point) => (
               <li key={point}>{point}</li>
             ))}
           </ul>

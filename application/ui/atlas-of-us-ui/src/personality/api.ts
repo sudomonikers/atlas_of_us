@@ -7,7 +7,7 @@ export interface ScenarioQuestion {
 }
 
 export interface SavedAnswer {
-  scenario: string; //scenario name, e.g. 'landfall'
+  scenario: string; //scenario name, e.g. 'the_feud'
   question_id: string;
   question_key: string;
   answer: string;
@@ -61,7 +61,7 @@ export const getTraits = () => request<TraitInfo[]>('GET', '/personality/traits'
 export interface Shift {
   trait: string; //the trait's name
   evidence: string; //the llm's reason
-  level: number; //where the answer puts them, -1 (the low end) to 1 (the high end), 0 is typical
+  level: number; //where the answer puts them, 0 (the low end) to 1 (the high end), 0.5 is typical
   weight: number; //how strongly the answer shows it, 0 to 1
 }
 
@@ -77,35 +77,39 @@ export interface AnswerEvidence {
 export const getPersonEvidence = (personId: string) =>
   request<AnswerEvidence[]>('GET', `/personality/people/${encodeURIComponent(personId)}/evidence`);
 
-//where being high or low on a domain or trait helps, and what to watch out for at each end. Lists can be missing
+//where being high or low on a domain or trait helps, and what to watch out for at each end
 export interface Breakdown {
   overview: string | null;
-  high_good: string[] | null;
-  low_good: string[] | null;
-  high_watch: string[] | null;
-  low_watch: string[] | null;
+  high_good: string[];
+  low_good: string[];
+  high_watch: string[];
+  low_watch: string[];
 }
 
-export interface ExploreTrait extends Breakdown {
+export interface DomainTrait extends Breakdown {
   id: string;
   name: string;
   description: string | null;
   interactions: { name: string; description: string }[]; //name is the other trait's
 }
 
-export interface ExploreDomain extends Breakdown {
+export interface Domain extends Breakdown {
   key: string;
   name: string;
-  traits: ExploreTrait[];
+  traits: DomainTrait[];
 }
 
-export interface Explore {
-  model: { name: string; overview: string | null; history: string | null; limits: string | null; our_take: string | null };
-  domains: ExploreDomain[];
+export interface PersonalityModel {
+  name: string | null;
+  overview: string | null;
+  history: string | null;
+  limits: string | null;
+  our_take: string | null;
+  domains: Domain[];
 }
 
-//the Big Five, its domains and every trait, for the Explore tab
-export const getExplore = () => request<Explore>('GET', '/personality/explore');
+//the personality model, its domains and every trait
+export const getModel = () => request<PersonalityModel>('GET', '/personality/model');
 
 /* ---------------------------------------------------------------------------------------------
  * the My Personality view's traits
@@ -127,19 +131,18 @@ export interface Contribution {
   question: string;
   answer: string;
   reasoning?: string;
-  level: number; //where the answer puts them, -1 (the low end) to 1 (the high end), 0 is typical
+  level: number; //where the answer puts them, 0 (the low end) to 1 (the high end), 0.5 is typical
   weight: number; //how strongly the answer shows it, 0 to 1
   evidence: string; //the llm's reason
 }
 
-//the Big Five domains, then everything else. Keys match the api's PersonalityDomain keys
+//the Big Five domains. Keys match the api's PersonalityDomain keys
 export const DOMAINS = [
   { key: 'openness', title: 'Openness', blurb: 'How you take in ideas, art, feelings and new experiences.' },
   { key: 'conscientiousness', title: 'Conscientiousness', blurb: 'How you organize yourself and follow through.' },
   { key: 'extraversion', title: 'Extraversion', blurb: 'Where you get your energy, and how much of it you show.' },
   { key: 'agreeableness', title: 'Agreeableness', blurb: 'How you treat other people and handle conflict.' },
   { key: 'neuroticism', title: 'Neuroticism', blurb: 'How strongly you react to stress and bad feelings.' },
-  { key: 'other', title: 'Beyond the Big Five', blurb: 'Parts of being human the Big Five leave out.' },
 ];
 
 export interface Profile {

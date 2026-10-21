@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # re-encodes scene sounds in place so they stream quickly. needs ffmpeg built with AudioToolbox (macOS homebrew is)
-#   scripts/encode-audio.sh bed src/personality/landfall/sounds/surf.m4a ...   looping ambience: HE-AAC 64kbps
-#   scripts/encode-audio.sh shot src/personality/landfall/sounds/bell.m4a ...  one-shots: AAC-LC 96kbps
+#   scripts/encode-audio.sh bed src/personality/the_big_party/sounds/crowd.m4a ...   looping ambience: HE-AAC 64kbps
+#   scripts/encode-audio.sh shot src/personality/the_big_party/sounds/cheer.m4a ...  one-shots: AAC-LC 96kbps
 # profile 4 is HE-AAC and 1 is AAC-LC. files already at or below the target are left alone, so it's safe to run on a whole folder
 set -euo pipefail
 

@@ -62,7 +62,7 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
   const percent = toPercent(trait.value);
   const average = compare ? toPercent(trait.average) : undefined;
   const explained = trait.contributions.length > 0;
-  const early = percent !== undefined && (trait.confidence ?? 0) < 0.5; //based on little evidence, so shown faded
+  const early = percent !== undefined && trait.contributions.length < 3; //based on fewer than 3 answers, so shown faded
 
   return (
     <li style={styles.traitItem}>
@@ -126,7 +126,7 @@ function TraitRow({ trait, compare }: { trait: Trait; compare: boolean }) {
 const strength = (weight: number) => (weight >= 0.6 ? 'strongly' : weight >= 0.3 ? '' : 'slightly');
 
 function ContributionCard({ contribution: c }: { contribution: Contribution }) {
-  const up = c.level >= 0;
+  const up = c.level >= 0.5;
   return (
     <li style={styles.contribution}>
       <div style={styles.contributionHead}>

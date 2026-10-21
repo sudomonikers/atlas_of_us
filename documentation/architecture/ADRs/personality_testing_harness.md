@@ -1,6 +1,7 @@
 # ADR: A persona regression harness for personality scoring
 
 **Status:** Accepted, 15 Oct 2026
+**Updated by:** `personality_ipip_scenes.md`, 21 Oct 2026. Personas now play the 18 IPIP-NEO scenes and target the 30 facets, and there are 13 of them.
 **Where it lives:** `application/ui/atlas-of-us-ui/src/personality/testing/`
 
 ## Context

@@ -1,0 +1,978 @@
+{
+ "chris": {
+  "Achievement-Striving": {
+   "value": 0.5565266362666579,
+   "confidence": 0.6149595109658192
+  },
+  "Activity Level": {
+   "value": 0.6880697799456793,
+   "confidence": 0.6358276976363314
+  },
+  "Adventurousness": {
+   "value": 0.3547664281427307,
+   "confidence": 0.6496829251023839
+  },
+  "Altruism": {
+   "value": 0.8230405277632957,
+   "confidence": 0.7864344595303658
+  },
+  "Anger": {
+   "value": 0.6044538373835858,
+   "confidence": 0.7907168489116858
+  },
+  "Anxiety": {
+   "value": 0.6541284371417238,
+   "confidence": 0.6910196102256968
+  },
+  "Artistic Interests": {
+   "value": 0.22209061670585784,
+   "confidence": 0.6680829765378353
+  },
+  "Assertiveness": {
+   "value": 0.3938724627163039,
+   "confidence": 0.6769284145870164
+  },
+  "Cautiousness": {
+   "value": 0.87454006688451,
+   "confidence": 0.7447020350262903
+  },
+  "Cheerfulness": {
+   "value": 0.6156853884040016,
+   "confidence": 0.7100518669419466
+  },
+  "Cooperation": {
+   "value": 0.8608673889393081,
+   "confidence": 0.8207141250534011
+  },
+  "Depression": {
+   "value": 0.35134897549749233,
+   "confidence": 0.5988634713953584
+  },
+  "Dutifulness": {
+   "value": 0.5560017874801747,
+   "confidence": 0.5853272214277698
+  },
+  "Emotionality": {
+   "value": 0.5779179152642294,
+   "confidence": 0.6480533059078304
+  },
+  "Excitement-Seeking": {
+   "value": 0.2392657143179167,
+   "confidence": 0.6060352497118636
+  },
+  "Friendliness": {
+   "value": 0.6637709125545369,
+   "confidence": 0.6510861523951222
+  },
+  "Gregariousness": {
+   "value": 0.5381143877034689,
+   "confidence": 0.7467043055835015
+  },
+  "Imagination": {
+   "value": 0.29957416843410106,
+   "confidence": 0.6148439123972661
+  },
+  "Immoderation": {
+   "value": 0.6327115079174191,
+   "confidence": 0.583607051072374
+  },
+  "Intellect": {
+   "value": 0.6737279216895894,
+   "confidence": 0.6301335127937724
+  },
+  "Liberalism": {
+   "value": 0.6793352492629491,
+   "confidence": 0.5976979845107498
+  },
+  "Modesty": {
+   "value": 0.8004032381276232,
+   "confidence": 0.6499793983541823
+  },
+  "Morality": {
+   "value": 0.6263708944267448,
+   "confidence": 0.5171396258630374
+  },
+  "Orderliness": {
+   "value": 0.45234933180734943,
+   "confidence": 0.583026291330241
+  },
+  "Self-Consciousness": {
+   "value": 0.6594690620288127,
+   "confidence": 0.7241050053436353
+  },
+  "Self-Discipline": {
+   "value": 0.5147622435439433,
+   "confidence": 0.7008674327883311
+  },
+  "Self-Efficacy": {
+   "value": 0.7302725340889759,
+   "confidence": 0.6647835724212506
+  },
+  "Sympathy": {
+   "value": 0.7099858344522832,
+   "confidence": 0.664285675662863
+  },
+  "Trust": {
+   "value": 0.44438338560570667,
+   "confidence": 0.6769190813764622
+  },
+  "Vulnerability": {
+   "value": 0.5091959759279138,
+   "confidence": 0.6860338784348534
+  }
+ },
+ "kai": {
+  "Achievement-Striving": {
+   "value": 0.16097489351950925,
+   "confidence": 0.4679046684026897
+  },
+  "Activity Level": {
+   "value": 0.9856896862413599,
+   "confidence": 0.7439323522644108
+  },
+  "Adventurousness": {
+   "value": 0.9914173731612523,
+   "confidence": 0.8048565397392253
+  },
+  "Altruism": {
+   "value": 0.9957602547508856,
+   "confidence": 0.8323223940695067
+  },
+  "Anger": {
+   "value": 0.016897748722916505,
+   "confidence": 0.8408644627288909
+  },
+  "Anxiety": {
+   "value": 0.0038836800646128125,
+   "confidence": 0.838499599118368
+  },
+  "Artistic Interests": {
+   "value": 0.5203912568636314,
+   "confidence": 0.4484167966993984
+  },
+  "Assertiveness": {
+   "value": 0.839452024584846,
+   "confidence": 0.5402130153393603
+  },
+  "Cautiousness": {
+   "value": 0.005884801344716608,
+   "confidence": 0.7924609910103945
+  },
+  "Cheerfulness": {
+   "value": 0.9950045378222583,
+   "confidence": 0.8383707343037187
+  },
+  "Cooperation": {
+   "value": 0.9546363867978352,
+   "confidence": 0.831660793318748
+  },
+  "Depression": {
+   "value": 0.01945876825599262,
+   "confidence": 0.7142322016597303
+  },
+  "Dutifulness": {
+   "value": 0.28686580015574326,
+   "confidence": 0.4725749898165525
+  },
+  "Emotionality": {
+   "value": 0.15065900269737398,
+   "confidence": 0.5559594518880724
+  },
+  "Excitement-Seeking": {
+   "value": 0.9945779734775743,
+   "confidence": 0.7665866117583863
+  },
+  "Friendliness": {
+   "value": 0.9942300049790262,
+   "confidence": 0.8525883442708475
+  },
+  "Gregariousness": {
+   "value": 0.9943107558661708,
+   "confidence": 0.8172808467863629
+  },
+  "Imagination": {
+   "value": 0.758389182292558,
+   "confidence": 0.6040503219210029
+  },
+  "Immoderation": {
+   "value": 0.9453053340764379,
+   "confidence": 0.5978193412131478
+  },
+  "Intellect": {
+   "value": 0.05865940104522061,
+   "confidence": 0.7227072995063348
+  },
+  "Liberalism": {
+   "value": 0.8907499211938503,
+   "confidence": 0.5964384072072013
+  },
+  "Modesty": {
+   "value": 0.7101935105643494,
+   "confidence": 0.4694415557793146
+  },
+  "Morality": {
+   "value": 0.8886680770647774,
+   "confidence": 0.4653036769641173
+  },
+  "Orderliness": {
+   "value": 0.013382330122956644,
+   "confidence": 0.6788489808398774
+  },
+  "Self-Consciousness": {
+   "value": 0.007181436926858751,
+   "confidence": 0.7628324422798202
+  },
+  "Self-Discipline": {
+   "value": 0.029967026693739653,
+   "confidence": 0.7581810575098572
+  },
+  "Self-Efficacy": {
+   "value": 0.9521778133540071,
+   "confidence": 0.5656978063383539
+  },
+  "Sympathy": {
+   "value": 0.9722631510605274,
+   "confidence": 0.749509209827986
+  },
+  "Trust": {
+   "value": 0.9930380533806084,
+   "confidence": 0.7774140371017507
+  },
+  "Vulnerability": {
+   "value": 0.002515690185382326,
+   "confidence": 0.8367169251720024
+  }
+ },
+ "ruth": {
+  "Achievement-Striving": {
+   "value": 0.715897186446952,
+   "confidence": 0.6474944394883447
+  },
+  "Activity Level": {
+   "value": 0.35621283052336733,
+   "confidence": 0.6037305711482966
+  },
+  "Adventurousness": {
+   "value": 0.013499108759672732,
+   "confidence": 0.7338491978423236
+  },
+  "Altruism": {
+   "value": 0.9915020923427629,
+   "confidence": 0.8284883674494263
+  },
+  "Anger": {
+   "value": 0.024025834288880568,
+   "confidence": 0.7729806497915563
+  },
+  "Anxiety": {
+   "value": 0.9990758678596556,
+   "confidence": 0.7984733012727487
+  },
+  "Artistic Interests": {
+   "value": 0.2472025158940998,
+   "confidence": 0.49999780211998723
+  },
+  "Assertiveness": {
+   "value": 0.009202787495347165,
+   "confidence": 0.7983503406999114
+  },
+  "Cautiousness": {
+   "value": 0.9740479056214665,
+   "confidence": 0.720270245903093
+  },
+  "Cheerfulness": {
+   "value": 0.04819041902634908,
+   "confidence": 0.724499839967142
+  },
+  "Cooperation": {
+   "value": 0.979123723637435,
+   "confidence": 0.8008184327194425
+  },
+  "Depression": {
+   "value": 0.9326510353460779,
+   "confidence": 0.6523368061951003
+  },
+  "Dutifulness": {
+   "value": 0.9897242140585382,
+   "confidence": 0.825388679069627
+  },
+  "Emotionality": {
+   "value": 0.960265981430963,
+   "confidence": 0.7488814241733145
+  },
+  "Excitement-Seeking": {
+   "value": 0.005214404182753879,
+   "confidence": 0.6966408255948822
+  },
+  "Friendliness": {
+   "value": 0.36976709783548506,
+   "confidence": 0.5190260234993821
+  },
+  "Gregariousness": {
+   "value": 0.007957050760010178,
+   "confidence": 0.840706187818166
+  },
+  "Imagination": {
+   "value": 0.11323415228967672,
+   "confidence": 0.5389033792582524
+  },
+  "Immoderation": {
+   "value": 0.10231972954689257,
+   "confidence": 0.45979055996141627
+  },
+  "Intellect": {
+   "value": 0.33906226741534473,
+   "confidence": 0.5426900380486893
+  },
+  "Liberalism": {
+   "value": 0.1753772523002052,
+   "confidence": 0.4888225776987707
+  },
+  "Modesty": {
+   "value": 0.9359065062283498,
+   "confidence": 0.6849852246119129
+  },
+  "Morality": {
+   "value": 0.991841024369111,
+   "confidence": 0.7442672124627229
+  },
+  "Orderliness": {
+   "value": 0.9875200169783712,
+   "confidence": 0.71035641279872
+  },
+  "Self-Consciousness": {
+   "value": 0.990336789772387,
+   "confidence": 0.8660275129374765
+  },
+  "Self-Discipline": {
+   "value": 0.9225543420582579,
+   "confidence": 0.7682342205371306
+  },
+  "Self-Efficacy": {
+   "value": 0.07998111614229991,
+   "confidence": 0.6384724200813601
+  },
+  "Sympathy": {
+   "value": 0.9869883821386704,
+   "confidence": 0.7906380641616882
+  },
+  "Trust": {
+   "value": 0.6324847045826201,
+   "confidence": 0.5152339524845526
+  },
+  "Vulnerability": {
+   "value": 0.9867632204763145,
+   "confidence": 0.8257137210077243
+  }
+ },
+ "grace": {
+  "Achievement-Striving": {
+   "value": 0.8031749481004545,
+   "confidence": 0.604384842704161
+  },
+  "Activity Level": {
+   "value": 0.972973711728617,
+   "confidence": 0.7886670679542651
+  },
+  "Adventurousness": {
+   "value": 0.18694470395439858,
+   "confidence": 0.6702637317860203
+  },
+  "Altruism": {
+   "value": 0.9995167834459058,
+   "confidence": 0.8815809422267862
+  },
+  "Anger": {
+   "value": 0.020284915939666977,
+   "confidence": 0.8249678489264096
+  },
+  "Anxiety": {
+   "value": 0.07782991457184954,
+   "confidence": 0.7217764877385365
+  },
+  "Artistic Interests": {
+   "value": 0.9452951346635299,
+   "confidence": 0.7440213302609949
+  },
+  "Assertiveness": {
+   "value": 0.9517370176700037,
+   "confidence": 0.6854907278684391
+  },
+  "Cautiousness": {
+   "value": 0.9098290608727981,
+   "confidence": 0.6725590293326855
+  },
+  "Cheerfulness": {
+   "value": 0.9741526717417289,
+   "confidence": 0.7789685893702502
+  },
+  "Cooperation": {
+   "value": 0.9564352215784567,
+   "confidence": 0.843884292267172
+  },
+  "Depression": {
+   "value": 0.06368080344967511,
+   "confidence": 0.7047698252059086
+  },
+  "Dutifulness": {
+   "value": 0.9922261660892397,
+   "confidence": 0.7224787920562677
+  },
+  "Emotionality": {
+   "value": 0.9530871135258588,
+   "confidence": 0.7184831252576247
+  },
+  "Excitement-Seeking": {
+   "value": 0.03373025392360997,
+   "confidence": 0.6433661158242664
+  },
+  "Friendliness": {
+   "value": 0.9863472626827978,
+   "confidence": 0.8178526436206427
+  },
+  "Gregariousness": {
+   "value": 0.972868789437425,
+   "confidence": 0.7066728891506207
+  },
+  "Imagination": {
+   "value": 0.28964679732106857,
+   "confidence": 0.557123103299414
+  },
+  "Immoderation": {
+   "value": 0.13021062342876616,
+   "confidence": 0.5600303584382167
+  },
+  "Intellect": {
+   "value": 0.06283349736225172,
+   "confidence": 0.6898923874141468
+  },
+  "Liberalism": {
+   "value": 0.21239312625469117,
+   "confidence": 0.450170228233965
+  },
+  "Modesty": {
+   "value": 0.9149519066358516,
+   "confidence": 0.7391196224370795
+  },
+  "Morality": {
+   "value": 0.9898325723220776,
+   "confidence": 0.6560301024085565
+  },
+  "Orderliness": {
+   "value": 0.9850899992189627,
+   "confidence": 0.6962842484605514
+  },
+  "Self-Consciousness": {
+   "value": 0.14655212383981484,
+   "confidence": 0.6140303462924029
+  },
+  "Self-Discipline": {
+   "value": 0.9724331370024741,
+   "confidence": 0.7816540872426626
+  },
+  "Self-Efficacy": {
+   "value": 0.986425230809479,
+   "confidence": 0.8158197009526669
+  },
+  "Sympathy": {
+   "value": 0.9961709174445428,
+   "confidence": 0.7790323869185768
+  },
+  "Trust": {
+   "value": 0.9294100286739143,
+   "confidence": 0.5468308119469806
+  },
+  "Vulnerability": {
+   "value": 0.028535047072850518,
+   "confidence": 0.776814268312563
+  }
+ },
+ "holly": {
+  "Achievement-Striving": {
+   "value": 0.1363189334311993,
+   "confidence": 0.6492450155824548
+  },
+  "Activity Level": {
+   "value": 0.22141260436142005,
+   "confidence": 0.634849505701918
+  },
+  "Adventurousness": {
+   "value": 0.7721660788974566,
+   "confidence": 0.6247747329655978
+  },
+  "Altruism": {
+   "value": 0.9829270135320504,
+   "confidence": 0.870346972692653
+  },
+  "Anger": {
+   "value": 0.09626292729023078,
+   "confidence": 0.7464719166659989
+  },
+  "Anxiety": {
+   "value": 0.2781976592967828,
+   "confidence": 0.6690929251938065
+  },
+  "Artistic Interests": {
+   "value": 0.981691598641627,
+   "confidence": 0.8477740345963656
+  },
+  "Assertiveness": {
+   "value": 0.04894819705784756,
+   "confidence": 0.8406355570271243
+  },
+  "Cautiousness": {
+   "value": 0.65269759444877,
+   "confidence": 0.6007337154719731
+  },
+  "Cheerfulness": {
+   "value": 0.8005360236170177,
+   "confidence": 0.6577373473476114
+  },
+  "Cooperation": {
+   "value": 0.9573605823475373,
+   "confidence": 0.8538736260339742
+  },
+  "Depression": {
+   "value": 0.42612436334926146,
+   "confidence": 0.49636028083132316
+  },
+  "Dutifulness": {
+   "value": 0.7235080784657051,
+   "confidence": 0.5056559791721991
+  },
+  "Emotionality": {
+   "value": 0.8969471108179727,
+   "confidence": 0.7063921516462208
+  },
+  "Excitement-Seeking": {
+   "value": 0.12811278785843994,
+   "confidence": 0.6546580240891267
+  },
+  "Friendliness": {
+   "value": 0.7291640894095802,
+   "confidence": 0.568586414279422
+  },
+  "Gregariousness": {
+   "value": 0.016141915059922993,
+   "confidence": 0.84128371640512
+  },
+  "Imagination": {
+   "value": 0.9985953438021733,
+   "confidence": 0.7273516126513175
+  },
+  "Immoderation": {
+   "value": 0.6298908436201647,
+   "confidence": 0.6333659900677177
+  },
+  "Intellect": {
+   "value": 0.6354137592901459,
+   "confidence": 0.6011391144544637
+  },
+  "Liberalism": {
+   "value": 0.9024087463828216,
+   "confidence": 0.6193697794329633
+  },
+  "Modesty": {
+   "value": 0.8882530990319373,
+   "confidence": 0.694256190869414
+  },
+  "Morality": {
+   "value": 0.9736074620186467,
+   "confidence": 0.6755716008539207
+  },
+  "Orderliness": {
+   "value": 0.06389790854855813,
+   "confidence": 0.7325755034291981
+  },
+  "Self-Consciousness": {
+   "value": 0.57755406817631,
+   "confidence": 0.51086221279874
+  },
+  "Self-Discipline": {
+   "value": 0.033000123564091974,
+   "confidence": 0.8700142026496626
+  },
+  "Self-Efficacy": {
+   "value": 0.4212906496512508,
+   "confidence": 0.6824568732459462
+  },
+  "Sympathy": {
+   "value": 0.9789019542046291,
+   "confidence": 0.8098062020238633
+  },
+  "Trust": {
+   "value": 0.9541632458470106,
+   "confidence": 0.6492034665413582
+  },
+  "Vulnerability": {
+   "value": 0.2904037205092969,
+   "confidence": 0.6083660484641021
+  }
+ },
+ "marcus": {
+  "Achievement-Striving": {
+   "value": 0.6182591853285131,
+   "confidence": 0.519043332864082
+  },
+  "Activity Level": {
+   "value": 0.8843813589488694,
+   "confidence": 0.6136757064321875
+  },
+  "Adventurousness": {
+   "value": 0.6798765701926432,
+   "confidence": 0.5193166770440106
+  },
+  "Altruism": {
+   "value": 0.745070632397587,
+   "confidence": 0.6538695849061859
+  },
+  "Anger": {
+   "value": 0.5168303758156939,
+   "confidence": 0.6632214525523216
+  },
+  "Anxiety": {
+   "value": 0.1525960382905866,
+   "confidence": 0.6547273930469772
+  },
+  "Artistic Interests": {
+   "value": 0.03309937284586069,
+   "confidence": 0.6836143512946856
+  },
+  "Assertiveness": {
+   "value": 0.9864563780103498,
+   "confidence": 0.848655836654333
+  },
+  "Cautiousness": {
+   "value": 0.36567857735592124,
+   "confidence": 0.5408321598295026
+  },
+  "Cheerfulness": {
+   "value": 0.8092729952416939,
+   "confidence": 0.7154640561419878
+  },
+  "Cooperation": {
+   "value": 0.5119253295652592,
+   "confidence": 0.7109566795485819
+  },
+  "Depression": {
+   "value": 0.13757137900183494,
+   "confidence": 0.6917565222836736
+  },
+  "Dutifulness": {
+   "value": 0.10667060588409977,
+   "confidence": 0.5907304180523396
+  },
+  "Emotionality": {
+   "value": 0.1504076031991914,
+   "confidence": 0.7018183805662116
+  },
+  "Excitement-Seeking": {
+   "value": 0.8733125183975473,
+   "confidence": 0.7023946752264717
+  },
+  "Friendliness": {
+   "value": 0.9010666636132589,
+   "confidence": 0.6972391896143887
+  },
+  "Gregariousness": {
+   "value": 0.9394855264358931,
+   "confidence": 0.7711874026242389
+  },
+  "Imagination": {
+   "value": 0.2791748777234408,
+   "confidence": 0.49392652617914984
+  },
+  "Immoderation": {
+   "value": 0.9076462256886438,
+   "confidence": 0.6479994920886081
+  },
+  "Intellect": {
+   "value": 0.20116832197447324,
+   "confidence": 0.590393217592191
+  },
+  "Liberalism": {
+   "value": 0.7710303408117123,
+   "confidence": 0.643454945644362
+  },
+  "Modesty": {
+   "value": 0.09793061771940925,
+   "confidence": 0.6213184480178975
+  },
+  "Morality": {
+   "value": 0.15732756854181737,
+   "confidence": 0.5125521480601951
+  },
+  "Orderliness": {
+   "value": 0.026950262660165772,
+   "confidence": 0.6929020487128685
+  },
+  "Self-Consciousness": {
+   "value": 0.05130074412339102,
+   "confidence": 0.7197888920759409
+  },
+  "Self-Discipline": {
+   "value": 0.12913985875636913,
+   "confidence": 0.6911820540074296
+  },
+  "Self-Efficacy": {
+   "value": 0.976498939223003,
+   "confidence": 0.777962142086812
+  },
+  "Sympathy": {
+   "value": 0.29699972074212416,
+   "confidence": 0.5786167801370004
+  },
+  "Trust": {
+   "value": 0.2480114644349969,
+   "confidence": 0.6162328576438213
+  },
+  "Vulnerability": {
+   "value": 0.02169127670022379,
+   "confidence": 0.7834392166209395
+  }
+ },
+ "morgan": {
+  "Achievement-Striving": {
+   "value": 0.9956415302274131,
+   "confidence": 0.7946081422206962
+  },
+  "Activity Level": {
+   "value": 0.9896449671202994,
+   "confidence": 0.8017086687105535
+  },
+  "Adventurousness": {
+   "value": 0.023698392600527262,
+   "confidence": 0.7324520854873641
+  },
+  "Altruism": {
+   "value": 0.021582496161514347,
+   "confidence": 0.6704182301602075
+  },
+  "Anger": {
+   "value": 0.8483891799880496,
+   "confidence": 0.5582926106882068
+  },
+  "Anxiety": {
+   "value": 0.026257715932726328,
+   "confidence": 0.7789564285669973
+  },
+  "Artistic Interests": {
+   "value": 0.00633293182112697,
+   "confidence": 0.7511766490103702
+  },
+  "Assertiveness": {
+   "value": 0.9965193078805652,
+   "confidence": 0.8718347955231912
+  },
+  "Cautiousness": {
+   "value": 0.992196557258863,
+   "confidence": 0.8004023578748787
+  },
+  "Cheerfulness": {
+   "value": 0.2557933854435527,
+   "confidence": 0.5511343135791053
+  },
+  "Cooperation": {
+   "value": 0.039834374230343236,
+   "confidence": 0.8279368215242318
+  },
+  "Depression": {
+   "value": 0.10330109410022675,
+   "confidence": 0.5965353815319938
+  },
+  "Dutifulness": {
+   "value": 0.9794696770750789,
+   "confidence": 0.690008382141683
+  },
+  "Emotionality": {
+   "value": 0.011578137983729994,
+   "confidence": 0.7537802963019583
+  },
+  "Excitement-Seeking": {
+   "value": 0.006369163588426899,
+   "confidence": 0.6431463420483393
+  },
+  "Friendliness": {
+   "value": 0.017740682425966724,
+   "confidence": 0.8074886803190822
+  },
+  "Gregariousness": {
+   "value": 0.009164578868557066,
+   "confidence": 0.8610526032855942
+  },
+  "Imagination": {
+   "value": 0.005912056232648182,
+   "confidence": 0.7521546530750718
+  },
+  "Immoderation": {
+   "value": 0.04804764548283346,
+   "confidence": 0.5144895883262411
+  },
+  "Intellect": {
+   "value": 0.785128518232593,
+   "confidence": 0.5321715845194921
+  },
+  "Liberalism": {
+   "value": 0.02246839476528345,
+   "confidence": 0.7086865089179648
+  },
+  "Modesty": {
+   "value": 0.022548159519166472,
+   "confidence": 0.717874687967073
+  },
+  "Morality": {
+   "value": 0.5272915297984885,
+   "confidence": 0.444546604555376
+  },
+  "Orderliness": {
+   "value": 0.9966034328769863,
+   "confidence": 0.7310145684476977
+  },
+  "Self-Consciousness": {
+   "value": 0.060366544479755965,
+   "confidence": 0.6739249467418267
+  },
+  "Self-Discipline": {
+   "value": 0.9971476596222707,
+   "confidence": 0.8290465690278037
+  },
+  "Self-Efficacy": {
+   "value": 0.9955899999063061,
+   "confidence": 0.8418120694589157
+  },
+  "Sympathy": {
+   "value": 0.002834855152900686,
+   "confidence": 0.8210645881650964
+  },
+  "Trust": {
+   "value": 0.0143646676939112,
+   "confidence": 0.7571033008645651
+  },
+  "Vulnerability": {
+   "value": 0.004760024318786385,
+   "confidence": 0.8174027745356695
+  }
+ },
+ "tanya": {
+  "Achievement-Striving": {
+   "value": 0.7890587257984848,
+   "confidence": 0.5943485214148093
+  },
+  "Activity Level": {
+   "value": 0.6413415853937143,
+   "confidence": 0.630397710978975
+  },
+  "Adventurousness": {
+   "value": 0.19424703649646002,
+   "confidence": 0.6360178767440746
+  },
+  "Altruism": {
+   "value": 0.9295838456971499,
+   "confidence": 0.8346036373243587
+  },
+  "Anger": {
+   "value": 0.39267817236589164,
+   "confidence": 0.6096288046203502
+  },
+  "Anxiety": {
+   "value": 0.9822754855015218,
+   "confidence": 0.8435337807757718
+  },
+  "Artistic Interests": {
+   "value": 0.3448485609373899,
+   "confidence": 0.6293388749850698
+  },
+  "Assertiveness": {
+   "value": 0.18961483944453864,
+   "confidence": 0.7316981077925858
+  },
+  "Cautiousness": {
+   "value": 0.947196671632058,
+   "confidence": 0.7841256473142115
+  },
+  "Cheerfulness": {
+   "value": 0.4621087894863376,
+   "confidence": 0.6760029665066091
+  },
+  "Cooperation": {
+   "value": 0.8821049753356259,
+   "confidence": 0.7688265883567657
+  },
+  "Depression": {
+   "value": 0.5463117429824772,
+   "confidence": 0.6206339769873446
+  },
+  "Dutifulness": {
+   "value": 0.9136199830444807,
+   "confidence": 0.6699380902927613
+  },
+  "Emotionality": {
+   "value": 0.9112904571890679,
+   "confidence": 0.8272964658013188
+  },
+  "Excitement-Seeking": {
+   "value": 0.022113501887036452,
+   "confidence": 0.6520925154069004
+  },
+  "Friendliness": {
+   "value": 0.6544808886805518,
+   "confidence": 0.7165269846793821
+  },
+  "Gregariousness": {
+   "value": 0.23906747039573176,
+   "confidence": 0.7255559745389598
+  },
+  "Imagination": {
+   "value": 0.3751347747007285,
+   "confidence": 0.5370587075526397
+  },
+  "Immoderation": {
+   "value": 0.30326919099157407,
+   "confidence": 0.5695329375175696
+  },
+  "Intellect": {
+   "value": 0.5992992325542972,
+   "confidence": 0.5896167311808119
+  },
+  "Liberalism": {
+   "value": 0.6813932600803978,
+   "confidence": 0.5730654306263759
+  },
+  "Modesty": {
+   "value": 0.7783742346095849,
+   "confidence": 0.6576560032382927
+  },
+  "Morality": {
+   "value": 0.8524121000707924,
+   "confidence": 0.5502317330545196
+  },
+  "Orderliness": {
+   "value": 0.9749768490448852,
+   "confidence": 0.6980800215401105
+  },
+  "Self-Consciousness": {
+   "value": 0.9123604466640376,
+   "confidence": 0.8070653136798964
+  },
+  "Self-Discipline": {
+   "value": 0.9182587564935566,
+   "confidence": 0.7777764285360538
+  },
+  "Self-Efficacy": {
+   "value": 0.6505704565449426,
+   "confidence": 0.6930949798997961
+  },
+  "Sympathy": {
+   "value": 0.9143106803249524,
+   "confidence": 0.8028837763807372
+  },
+  "Trust": {
+   "value": 0.3732108927917876,
+   "confidence": 0.6406704898393176
+  },
+  "Vulnerability": {
+   "value": 0.8031365776879583,
+   "confidence": 0.8204684880642491
+  }
+ }
+}

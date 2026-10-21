@@ -1,22 +1,15 @@
 // =============================================================================
 // Atlas of Us — Personality scenarios seed
 //
-// One PersonalityScenario node per scenario, and one PersonalityScenarioQuestion
-// node per prompt the user answers in it:
-//   (:PersonalityScenario {name, title})-[:HAS_QUESTION]->(:PersonalityScenarioQuestion {key, prompt, order, real_life})
+// The personality scenarios, each written to a set of IPIP-NEO items (see
+// ui/src/personality/scene_grouping.md):
+//   (:PersonalityScenario {name, title, order})-[:HAS_QUESTION]->(:PersonalityScenarioQuestion {key, prompt, order, real_life})
 //
-// real_life marks questions about the user's own life rather than the story. The scoring job counts them for more.
+// name matches the scenario id in ui/src/personality/personality.tsx, and key matches
+// the prompt id in that scenario's script.
 //
-// name matches the scenario id the UI uses, and key matches the prompt id in that
-// scenario's script (e.g. ui/src/personality/landfall/script.ts). Users' answers are
-// (:Person)-[:ANSWERED {answer, reasoning, context, answeredDate, scoring}]->(:PersonalityScenarioQuestion),
-// written by the api.
-//
-// Every answer, multiple choice or free text, is scored by the api's llm job from the
-// answer and the user's reasoning. There are no fixed scores per choice.
-//
-// Idempotent: safe to re-run. MERGE on name / key, everything else overwritten
-// from this file on every run.
+// Idempotent: safe to re-run. MERGE on name / key, everything else overwritten from
+// this file on every run.
 // =============================================================================
 
 
@@ -33,256 +26,389 @@ FOR (n:PersonalityScenario) REQUIRE n.name IS UNIQUE;
 // -----------------------------------------------------------------------------
 
 UNWIND [
-  {name: 'stolen_idea',          title: 'The Stolen Idea'},
-  {name: 'let_down',             title: 'Let Down'},
-  {name: 'landfall',             title: 'Expedition I: Landfall'},
-  {name: 'the_thief',            title: 'Expedition II: The Thief'},
-  {name: 'party_of_strangers',   title: 'The Party of Strangers'},
-  {name: 'empty_weekend',        title: 'The Empty Weekend'},
-  {name: 'reading_people',       title: 'Reading People'},
-  {name: 'the_offer',            title: 'The Offer'},
-  {name: 'the_archive',          title: 'The Archive'},
-  {name: 'rule_that_doesnt_fit', title: "The Rule That Doesn't Fit"},
-  {name: 'proven_wrong',         title: 'Proven Wrong'},
-  {name: 'the_water',            title: 'The Water'},
-  {name: 'black_clay',           title: 'The Black Clay'},
-  {name: 'owambe',               title: 'The Owambe'},
-  {name: 'soap_house',           title: 'The Soap House'}
+  {name: 'the_story_game',   title: 'The Story Game',     order: 0},
+  {name: 'the_night_class',  title: 'The Night Class',    order: 1},
+  {name: 'the_big_party',    title: 'The Big Party',      order: 2},
+  {name: 'the_time_study',   title: 'The Time Study',     order: 3},
+  {name: 'the_night_market', title: 'The Night Market',   order: 4},
+  {name: 'the_bad_day',      title: 'The Bad Day',        order: 5},
+  {name: 'the_dare',         title: 'The Dare',           order: 6},
+  {name: 'the_shoplifter',   title: 'The Shoplifter',     order: 7},
+  {name: 'the_committee',    title: 'The Committee',      order: 8},
+  {name: 'the_houseguest',   title: 'The Houseguest',     order: 9},
+  {name: 'the_promotion',    title: 'The Promotion',      order: 10},
+  {name: 'the_festival',     title: 'The Festival',       order: 11},
+  {name: 'the_free_weekend', title: 'The Free Weekend',   order: 12},
+  {name: 'the_stranger',     title: 'The Stranger',       order: 13},
+  {name: 'the_emergency',    title: 'The Emergency',      order: 14},
+  {name: 'the_feud',         title: 'The Feud',           order: 15},
+  {name: 'the_cabin',        title: 'The Cabin',          order: 16},
+  {name: 'the_portrait',     title: 'The Portrait',       order: 17}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
-SET s.title = scenario.title;
+SET s.title = scenario.title, s.order = scenario.order;
 
 
 // -----------------------------------------------------------------------------
 // 2. Questions
 // -----------------------------------------------------------------------------
 
-// Expedition I: Landfall
-MATCH (s:PersonalityScenario {name: 'landfall'})
+// Added scene by scene as each script is written. order decides which question is last, and real_life marks the
+// questions about the player's own life rather than the story. Each block also deletes the scene's questions that
+// aren't in it anymore, and any answers to them, so a reworked scene doesn't keep its old questions around
+
+// The Story Game. poem_thoughts is only asked after listening to the poem
+MATCH (s:PersonalityScenario {name: 'the_story_game'})
 UNWIND [
-  {order: 0, key: 'first_action',      prompt: 'You have just washed up on an unknown shore. What is the very first thing you do, and what is going through your head?'},
-  {order: 1, key: 'who_leads',         prompt: 'The group is waiting to hear where you stand. What do you say?'},
-  {order: 2, key: 'explore_or_camp',   prompt: "There's light for one good push today. What should the group do with it?"},
-  {order: 3, key: 'organize_supplies', prompt: 'How would you organize and ration what the group has? Be as specific or as loose as you like, and tell us why.'},
-  {order: 4, key: 'rum_and_fruit',     prompt: 'A cup and a piece of fruit are held out to you. What do you do?'},
-  {order: 5, key: 'the_logbook',       prompt: "Write tonight's entry in the log, any way you like: what happened today, and what that light and the bell might be."},
-  {order: 6, key: 'go_to_light',       prompt: 'Ines is already reaching for a torch. What do you do?'},
-  {order: 7, key: 'night_reflection',  prompt: "Lying there, be honest with yourself: do you think you'll get off this island? And what do you want to do tomorrow?"},
-  {order: 8, real_life: true, key: 'your_mind',         prompt: "Away from the island now. When you're on your own with nothing to do, where does your mind go? Tell us about the last time."}
+  {order: 0, key: 'invent_a_place', prompt: 'Where have they landed? Describe it for me: what the traveler sees, hears and smells as they step off the boat, and who, or what, lives there.'},
+  {order: 1, key: 'the_goat', prompt: 'What does the ferryman say? And what does the traveler say back?'},
+  {order: 2, key: 'how_strange', prompt: 'How strange should this place get? Pick one, then tell me the strangest thing about it.'},
+  {order: 3, key: 'the_riddle', prompt: 'What does the traveler do? If you try the riddle, give your answer and how you got there.'},
+  {order: 4, key: 'the_poem', prompt: "She's about to recite a poem in the traveler's honor. What do you do?"},
+  {order: 5, key: 'poem_thoughts', prompt: "What did you make of it? Be honest. She's very old, but she can take it."},
+  {order: 6, key: 'how_it_ends', prompt: 'What happens to the traveler? Do they stay, sail home, or something else entirely? Tell me how the story ends.'},
+  {order: 7, real_life: true, key: 'wandering_mind', prompt: "In the last week, how many times did your mind wander off somewhere that doesn't exist: a daydream, a what-if, a world of your own? Where did it go the last time?"},
+  {order: 8, real_life: true, key: 'just_for_fun', prompt: "And in the last month, not counting the riddle just now, which of these did you do just because you wanted to: work at a puzzle or a hard problem, read or write a poem, make someone laugh on purpose? Tell me about the last time for each one. If it was none of them, that's an answer too."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// Expedition II: The Thief
-MATCH (s:PersonalityScenario {name: 'the_thief'})
+
+// The Festival. the_mural branches: what_you_see is only asked after stopping to take it in
+MATCH (s:PersonalityScenario {name: 'the_festival'})
 UNWIND [
-  {order: 0, key: 'first_suspicion', prompt: 'Everyone is watching everyone else. What do you make of all this? Who do you think took the food, if anyone, and why?'},
-  {order: 1, key: 'search_bags',     prompt: "Voss wants to search everyone's things. What do you say?"},
-  {order: 2, key: 'why_tob',         prompt: 'Tob is shaking. Why do you think he really did it? And how do you feel about him right now?'},
-  {order: 3, key: 'tob_punishment',  prompt: 'What should happen to Tob?'},
-  {order: 4, key: 'maren_knew',      prompt: 'Maren knew, and said nothing. How do you deal with that?'},
-  {order: 5, key: 'share_portion',   prompt: 'Your own portion is in your hands. What do you do with it?'},
-  {order: 6, key: 'camp_rules',      prompt: 'What rules, if any, should the camp live by from now on? And who gets to decide them?'},
-  {order: 7, real_life: true, key: 'your_trust',      prompt: 'Away from the island now. Think of someone in your own life who let you down, or took something that was yours. Did you trust them again, and how long did it take?'}
+  {order: 0, key: 'who_with', prompt: 'What do you do? Pick one, and tell me why.'},
+  {order: 1, key: 'first_stop', prompt: 'Where do you go first? Tell me why there.'},
+  {order: 2, key: 'the_mural', prompt: 'Most people walk past the mural with their heads down. What do you do?'},
+  {order: 3, key: 'what_you_see', prompt: "People are walking straight past all of this. What do you make of it? Tell me which part, if any, you'd stop for, and whether any of it gets to you."},
+  {order: 4, key: 'save_the_mural', prompt: 'Do you sign the petition to keep the mural? Tell me why, either way.'},
+  {order: 5, key: 'last_stop', prompt: 'Where do you end the day? Tell me why.'},
+  {order: 6, key: 'how_it_felt', prompt: 'So, how was it? Give the day a score out of ten, and tell me the best part and the worst.'},
+  {order: 7, real_life: true, key: 'going_alone', prompt: "When there's something on you'd like to go to, but nobody can come with you, do you go anyway? When did you last go somewhere like that on your own, and how was it?"},
+  {order: 8, real_life: true, key: 'been_anywhere', prompt: "And in the last six months, how many times have you been to a gallery, museum, show or gig? How many times have you gone somewhere you'd never been before? Tell me about the last one of each. If it was none, that's an answer too."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// Reading People
-MATCH (s:PersonalityScenario {name: 'reading_people'})
+
+// The Big Party. walk_in and work_the_room are on a clock, so either can be skipped when it runs out. the_corner
+// branches: cheer_up is only asked after sitting with Mei. the_stage branches: up_there is only asked on stage
+MATCH (s:PersonalityScenario {name: 'the_big_party'})
 UNWIND [
-  {order: 0, key: 'festival_laugh',   prompt: 'What do you think they were laughing at? How did it feel to walk into that?'},
-  {order: 1, key: 'your_turn',        prompt: "They're all looking at you, grinning. What do you show them, or what do you say?"},
-  {order: 2, key: 'ren_credit',       prompt: 'Ms. Kuroda is waiting. What do you say, and why?'},
-  {order: 3, key: 'ren_after',        prompt: "It's just the two of you on the roof now. Do you say anything to Ren about how he told it? If so, what?"},
-  {order: 4, key: 'old_man_feeling',  prompt: 'How did watching him leave you feeling? Take a moment with it before you answer.'},
-  {order: 5, key: 'aoi_next',         prompt: 'The note is still folded in your hand. Do you read the rest, give it back, bring it up, or let it be? Why?'},
-  {order: 6, real_life: true, key: 'your_reading',     prompt: 'Away from these four moments now. Think of the last time you thought someone was annoyed with you, or laughing at you. What did you do with it, and how long did it stay with you?'}
+  {order: 0, key: 'walk_in', prompt: 'What do you do first? Pick one, and tell me why.'},
+  {order: 1, key: 'work_the_room', prompt: "The band's on any minute. Who do you talk to before then? Pick one, and tell me how you'd start."},
+  {order: 2, key: 'the_corner', prompt: 'What do you do? Pick one, and tell me why.'},
+  {order: 3, key: 'cheer_up', prompt: 'What do you say to her? Tell me what you would actually say.'},
+  {order: 4, key: 'the_stage', prompt: "The light's coming your way. What do you do? Pick one, and tell me why."},
+  {order: 5, key: 'up_there', prompt: "Thirty seconds of chorus, and they're all yours. What do you do with them?"},
+  {order: 6, key: 'new_faces', prompt: "Over a whole night like this, roughly how many people do you think you'd end up having a proper conversation with? Is it likely you'd have met someone you'd love to see again, and would you actually do anything about it?"},
+  {order: 7, key: 'how_was_it', prompt: 'And the night itself, out of ten? Would you have stayed later if you could, or were you ready to go an hour ago?'},
+  {order: 8, real_life: true, key: 'big_dos', prompt: "In the last twelve months, how many parties or big get-togethers have you been to where you didn't know most of the people there? How many did you say no to? And how did you feel walking into the last one?"},
+  {order: 9, real_life: true, key: 'new_friend', prompt: "When did you last make a new friend: someone you now see or message on your own, not just through someone else? How did it start? If it's been years, that's an answer too."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Archive. Questions 0 to 4 are on a real clock and can go unanswered if it runs out.
-// the_night is asked at dawn either way, with different choices depending on whether the player finished in time
-MATCH (s:PersonalityScenario {name: 'the_archive'})
+
+// The Dare. No branches add or skip questions: every path asks all eight
+MATCH (s:PersonalityScenario {name: 'the_dare'})
 UNWIND [
-  {order: 0, key: 'plan',         prompt: 'Where do you start?'},
-  {order: 1, key: 'the_letter',   prompt: "The sky hasn't changed yet, but it will. What do you do with the letter?"},
-  {order: 2, key: 'the_sketches', prompt: 'Her sketchbook is full of stars she made up. How long do you give it?'},
-  {order: 3, key: 'the_orrery',   prompt: 'Why would she set it to a date so far away?'},
-  {order: 4, key: 'last_crate',   prompt: 'What do you do with the last crate?'},
-  {order: 5, key: 'the_night',    prompt: 'Dawn came. How do you feel about the way you spent the night?'},
-  {order: 6, key: 'take_one',      prompt: 'You can take one thing home from the observatory. What do you take, and why?'},
-  {order: 7, real_life: true, key: 'your_deadline', prompt: 'Away from the observatory now. Think of a real time a deadline ran into something more interesting. Which one won, and do you regret it?'}
+  {order: 0, key: 'packing', prompt: "It's the night before. How ready are you? Pick one, and tell me what's in the bag."},
+  {order: 1, key: 'lost', prompt: 'What do you do? And how are you feeling, standing there? Tell me honestly.'},
+  {order: 2, key: 'the_days', prompt: "You've got ten days. What goes on your side of the napkin? Pick one, and tell me how you'd spend the days."},
+  {order: 3, key: 'the_bridge', prompt: 'Do you jump? Pick one, and tell me what goes through your head.'},
+  {order: 4, key: 'the_ride', prompt: 'What do you tell Kit? Pick one, and tell me why.'},
+  {order: 5, key: 'the_trip', prompt: "Looking back on the two weeks: what was the best part, and was there anything you'd never do again? Would you go away with Kit again?"},
+  {order: 6, real_life: true, key: 'last_rush', prompt: "In the last twelve months, what's the most physically risky thing you've done just for the thrill of it: a ride, a sport, a jump, a dare, driving too fast? When was it, and did you think it through first? If nothing comes to mind, that's an answer too."},
+  {order: 7, real_life: true, key: 'last_trip', prompt: "Think about the last time you went away, even for a night. How far ahead did you pack, and did you plan what you'd do? What went wrong, if anything, and how did you take it?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
 
-// The Rule That Doesn't Fit. the_count is only asked of players who let Nessa on, so it can go unanswered
-MATCH (s:PersonalityScenario {name: 'rule_that_doesnt_fit'})
+// The Committee. No branches add or skip questions: every path asks all nine
+MATCH (s:PersonalityScenario {name: 'the_committee'})
 UNWIND [
-  {order: 0, key: 'first_response',  prompt: "She's out of breath and shivering. What do you say first?"},
-  {order: 1, key: 'believe',         prompt: 'Do you believe her? What makes you think so, or not?'},
-  {order: 2, key: 'the_rule',        prompt: "It's 9:37. What do you do?"},
-  {order: 3, key: 'the_count',       prompt: 'The captain is waiting. What do you tell him?'},
-  {order: 4, key: 'the_rule_itself', prompt: 'The rule says 120, no exceptions. Is it a good rule? Would you change it?'},
-  {order: 5, key: 'if_she_lied',     prompt: "Suppose you found out her story wasn't true. Would that change how you feel about what you did?"},
-  {order: 6, real_life: true, key: 'your_rule',       prompt: "Away from the ferry now. Think of a rule at work or school that you broke, or kept even though you didn't want to. What was it, and why did you go the way you did?"}
+  {order: 0, key: 'the_meeting', prompt: 'What do you do? Pick one, and tell me what you say to the room, if anything.'},
+  {order: 1, key: 'the_group', prompt: 'How do you feel about being part of all this: the chat, the bar, fourteen new people in your life? Pick one, and tell me honestly.'},
+  {order: 2, key: 'the_programmes', prompt: 'What do you do? Pick one, and tell me why.'},
+  {order: 3, key: 'ten_things', prompt: "Ten things need doing, and you've got three hours. What do you do? Pick one, then walk me through the next hour."},
+  {order: 4, key: 'the_banner', prompt: 'What do you do about it? Pick one, and tell me why.'},
+  {order: 5, key: 'the_cakes', prompt: 'What do you do? Pick one, and tell me why.'},
+  {order: 6, key: 'the_day', prompt: "It's over. How did it go, for you? What are you proudest of? Would you do it again next year, and would you want to run it?"},
+  {order: 7, real_life: true, key: 'last_lead', prompt: "Think of the groups you're part of: work, friends, family, a club or a team. The last time one of them needed someone to take charge, did you? What happened? And how much do you enjoy being part of a group like that?"},
+  {order: 8, real_life: true, key: 'last_busy', prompt: 'Think back to your busiest day in the last month. How many things were you juggling, and how did you get through them? Did anyone need your help along the way, and what did you do?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Offer. Every path shares what_decided and gone_wrong
-MATCH (s:PersonalityScenario {name: 'the_offer'})
+// The Night Class. No branches add or skip questions: every path asks all eight
+MATCH (s:PersonalityScenario {name: 'the_night_class'})
 UNWIND [
-  {order: 0, key: 'first_reaction', prompt: 'She waits for your answer. What do you say?'},
-  {order: 1, key: 'the_tour',       prompt: 'Okafor has an hour before the next fuel transfer. What do you want to see?'},
-  {order: 2, key: 'what_worries',   prompt: 'What worries you most about going?'},
-  {order: 3, key: 'can_you',        prompt: 'Could you handle it?'},
-  {order: 4, key: 'the_decision',   prompt: 'What do you tell her?'},
-  {order: 5, key: 'what_decided',   prompt: 'What decided it for you?'},
-  {order: 6, key: 'gone_wrong',     prompt: "Imagine it's a year later, and the choice you made has gone badly. What went wrong, and what do you do about it?"},
-  {order: 7, real_life: true, key: 'your_leap',      prompt: "Away from Halden now. What's the biggest leap you've actually taken in your own life? How long did you go back and forth before you jumped?"}
+  {order: 0, key: 'the_ship', prompt: 'Which is the real one? Pick one, and tell me why.'},
+  {order: 1, key: 'the_self', prompt: 'What do you think? Say as much or as little as you like.'},
+  {order: 2, key: 'the_clive', prompt: 'What do you do? Pick one, and tell me what you say, if anything.'},
+  {order: 3, key: 'the_pair', prompt: 'What do you do? Pick one, and tell me honestly what you make of Bea.'},
+  {order: 4, key: 'right_answer', prompt: 'Is there a right answer? Pick one, and tell me why.'},
+  {order: 5, key: 'the_class', prompt: "How was that, for you? Did anything from tonight stay with you? If it weren't required, would you go back next Wednesday?"},
+  {order: 6, real_life: true, key: 'last_talk', prompt: "In the last month, how many times did you end up in a real conversation about a big question: what's right, what's real, what any of it means? Who was it with, and did you enjoy it, or try to change the subject?"},
+  {order: 7, real_life: true, key: 'last_room', prompt: 'The last time someone at work, with friends or in a group chat said something you thought was wrong, did you say so? And the last time someone struggled to understand something you got right away, what went through your head?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Party of Strangers. Every path shares drive_home
-MATCH (s:PersonalityScenario {name: 'party_of_strangers'})
+// The Night Market. No branches add or skip questions: every path asks all nine
+MATCH (s:PersonalityScenario {name: 'the_night_market'})
 UNWIND [
-  {order: 0, key: 'on_the_porch', prompt: "Juno isn't coming, and the door is open. What do you do?"},
-  {order: 1, key: 'first_hello',  prompt: "He's still looking your way. What do you do?"},
-  {order: 2, key: 'who_to_talk',  prompt: 'Where do you go?'},
-  {order: 3, key: 'delphine',     prompt: 'Everyone near you is waiting. A real answer, a joke, or an argument: what do you say?'},
-  {order: 4, key: 'karaoke',      prompt: "He's holding out the microphone. What do you do?"},
-  {order: 5, key: 'the_toast',    prompt: 'He tips the bottle toward your glass. What do you do?'},
-  {order: 6, key: 'the_new_year', prompt: "Midnight on a mountain, with twenty people you didn't know this morning. What's that minute like for you?"},
-  {order: 7, key: 'after_party',  prompt: '"You coming?"'},
-  {order: 8, key: 'drive_home',   prompt: 'On the drive down, do you feel more drained or more awake than when you arrived? Would you go back next year, even without Juno?'},
-  {order: 9, real_life: true, key: 'your_friday',  prompt: 'Away from the mountain now. Think of your last free Friday night. What did you choose to do with it, and with how many people?'}
+  {order: 0, key: 'the_stall', prompt: "What is it? Describe it for me: the thing you've never been able to walk past. Then pick what you do, and tell me why."},
+  {order: 1, key: 'the_game', prompt: "He's only just started on the rules. What do you do? Pick one, and tell me why. And what could go wrong?"},
+  {order: 2, key: 'the_fountain', prompt: 'Honestly, what goes through your head when you see him? Pick what you do, and tell me how you feel.'},
+  {order: 3, key: 'the_line', prompt: "He has no way to check, and you'll never see any of these people again. Nobody would ever know. What do you do? Pick one, and tell me why."},
+  {order: 4, key: 'line_if', prompt: "Thinking back to the line: would anything have changed your answer? Say the next coach wasn't for three days, or someone was waiting for you at home. Is there any situation where you would lie your way onto that coach, or any where you wouldn't?"},
+  {order: 5, key: 'way_home', prompt: 'How do you feel about your night at the market? Would you do anything differently?'},
+  {order: 6, real_life: true, key: 'last_gave_in', prompt: "Think of the last time you gave in to something you'd meant to resist: a snack, a show, a purchase, one more of anything. What was it, how hard did you try, and how did you feel about it afterward?"},
+  {order: 7, real_life: true, key: 'last_decision', prompt: 'Think of the last real decision you made, big or small. How long did you take over it, and how did it turn out? And the last time you rushed into something, what happened?'},
+  {order: 8, real_life: true, key: 'last_worse_off', prompt: 'The last time you saw someone worse off than you, what went through your head? And when did you last bend a rule because nobody would know?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Stolen Idea. Every path shares face_to_face, credit and hard_feelings
-MATCH (s:PersonalityScenario {name: 'stolen_idea'})
+// The Bad Day. the_lights, the_printer and the_gary are on a clock, so the last two can be skipped when it runs out.
+// No other branches add or skip questions
+MATCH (s:PersonalityScenario {name: 'the_bad_day'})
 UNWIND [
-  {order: 0, key: 'in_the_wings',  prompt: "Standing in the wings while they cheer, what's going through you?"},
-  {order: 1, key: 'the_bow',       prompt: 'The light is on you. What do you do?'},
-  {order: 2, key: 'tell_fitch',    prompt: 'Mr. Fitch is right there, lighting a cigar. What do you do?'},
-  {order: 3, key: 'face_to_face',  prompt: "He's waiting, still grinning. What do you say to him?"},
-  {order: 4, key: 'the_favor',     prompt: "He's standing in your doorway with his hat in his hands. What do you tell him?"},
-  {order: 5, key: 'credit',        prompt: 'Be honest: how much does it matter to you that people know the Mirror Walk was yours? Is it the money, the applause, or something else?'},
-  {order: 6, key: 'hard_feelings', prompt: 'No hard feelings, he says. Are there? What would it take for you to let this go, or have you already?'},
-  {order: 7, real_life: true, key: 'your_rival',    prompt: 'Away from the stage now. Think of a real time you were up against someone for something you both wanted. How much did beating them matter to you, and how did you feel about them afterwards?'}
+  {order: 0, key: 'the_lights', prompt: 'What do you do? Pick one, and tell me what goes through your head.'},
+  {order: 1, key: 'the_printer', prompt: 'What do you do? Pick one, and tell me how you feel right now.'},
+  {order: 2, key: 'the_gary', prompt: 'What do you do? Pick one, and tell me exactly what you say.'},
+  {order: 3, key: 'the_call', prompt: "What do you say to Leanne? Pick one, and tell me the actual words, as you'd say them."},
+  {order: 4, key: 'the_waitress', prompt: 'What do you do? Pick one. And what do you make of Jo?'},
+  {order: 5, key: 'the_day', prompt: "Looking back, out of ten, how wound up did you get today? Which part got to you most, and is there anything you'd take back?"},
+  {order: 6, real_life: true, key: 'last_snap', prompt: "Think of the last time you lost your temper: raised your voice, slammed something, or said something you didn't mean. When was it, who was it at, and how long did it take you to calm down?"},
+  {order: 7, real_life: true, key: 'last_niggle', prompt: "In the last seven days, how many times did something small get under your skin: a line, a noise, someone's driving? And the last time someone serving you got it wrong, what did you do?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Empty Weekend. Saturday morning and Saturday night branch; every path shares the rest
-MATCH (s:PersonalityScenario {name: 'empty_weekend'})
+// The Time Study. An interview, with no branches that add or skip questions: every path asks all nine
+MATCH (s:PersonalityScenario {name: 'the_time_study'})
 UNWIND [
-  {order: 0, key: 'phone_gone',   prompt: "Nobody can reach you, and you can't reach anybody, until Monday. Lying on the bed that first night, how does that sit with you?"},
-  {order: 1, key: 'the_morning',  prompt: 'A whole Saturday morning and nothing you have to do. Where do you go?'},
-  {order: 2, key: 'the_shelf',    prompt: "You've got all afternoon, a chair, and every shelf in the shop. What do you take down, and why that one?"},
-  {order: 3, key: 'the_invite',   prompt: 'Agnes is saving you a seat at the Anchor. What do you do with your Saturday night?'},
-  {order: 4, key: 'the_list',     prompt: 'One day left. Do you write a list of your own? What goes on it, and how much of it do you actually do?'},
-  {order: 5, key: 'the_pier',     prompt: 'Standing in the middle of all of it, what do you notice first? How long before you have had enough, or could you stay all night?'},
-  {order: 6, key: 'how_you_feel', prompt: "It's Sunday night and the weekend is nearly gone. How do you feel right now: rested, restless, a bit low, something else? Where do you think that comes from?"},
-  {order: 7, real_life: true, key: 'your_weekend', prompt: 'Away from Gullhaven now. Think of your last free weekend at home. What did you actually do with it, roughly hour by hour, and how did it feel by Sunday night?'}
+  {order: 0, real_life: true, key: 'diary_morning', prompt: "Yesterday morning, from when you woke up until about lunchtime: what did you actually do? Rough is fine."},
+  {order: 1, real_life: true, key: 'diary_afternoon', prompt: "And the afternoon, from lunch until about dinner?"},
+  {order: 2, real_life: true, key: 'diary_evening', prompt: "And the evening, until you went to sleep? Roughly what time was that?"},
+  {order: 3, real_life: true, key: 'wasted', prompt: "Looking at the whole day, how much of it would you call wasted: time that went on things you didn't really choose, and didn't really enjoy? Pick the closest, and circle the parts."},
+  {order: 4, real_life: true, key: 'putting_off', prompt: "Think of the last thing you had to do but didn't want to: a call, a form, a chore, anything. How long was it between knowing about it and actually starting? Pick the closest, and tell me what it was."},
+  {order: 5, real_life: true, key: 'last_week', prompt: "Think of everything you meant to get done in the last 7 days. Roughly what share of it did you actually finish? Pick the closest, and tell me about one thing that didn't get done."},
+  {order: 6, real_life: true, key: 'how_much', prompt: "The last real piece of work you did, for a job, for school, around the house, anything: did you do more than was needed, exactly what was needed, or just enough to get by? Pick the closest, and tell me what it was."},
+  {order: 7, real_life: true, key: 'stressed', prompt: "In the last 7 days, on how many days did you feel stressed out? Pick the closest, and tell me what set it off."},
+  {order: 8, real_life: true, key: 'without_looking', prompt: "Without looking, where are your keys right now? Your phone charger? And the last thing you borrowed from someone: where is that?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// Let Down
-MATCH (s:PersonalityScenario {name: 'let_down'})
+// The Stranger
+MATCH (s:PersonalityScenario {name: 'the_stranger'})
 UNWIND [
-  {order: 0, key: 'first_notice',      prompt: "Something's off, and you can see it. What do you notice about her tonight, and what do you do about it?"},
-  {order: 1, key: 'how_you_respond',   prompt: "Juno's looking at her bowl, not at you. What do you do?"},
-  {order: 2, real_life: true, key: 'ever_felt_this',    prompt: "Have you ever felt the way Juno does? Tell her about it: when it was, what it was like, and what got you through. If you never have, tell her what you imagine it's like."},
-  {order: 3, key: 'the_advice',        prompt: "She's really asking. What advice do you give her, if any? Or what do you say instead?"},
-  {order: 4, key: 'the_cancellations', prompt: 'Be honest. How did you feel each time she cancelled on you? And how do you feel about it now?'},
-  {order: 5, key: 'the_silence',       prompt: 'Juno has gone quiet again. What do you do now? And how does it feel, sitting on your side of the silence?'}
+  {order: 0, key: 'the_story', prompt: 'What do you do? Pick one. And do you believe him? Tell me why.'},
+  {order: 1, key: 'the_rough', prompt: 'How do you feel, standing there? Pick the closest, and tell me what you say to him.'},
+  {order: 2, key: 'the_doubt', prompt: 'What do you make of what Leah said? Pick one, and tell me why.'},
+  {order: 3, key: 'the_again', prompt: "He hasn't seen you yet. What do you do? Pick one, and tell me why."},
+  {order: 4, key: 'looking_back', prompt: 'Do you think he was telling you the truth, that first night? Does it matter? And how do you feel about what you did?'},
+  {order: 5, real_life: true, key: 'last_asked', prompt: 'Think of the last time a stranger asked you for something: money, directions, a lighter, help. What did they want, what did you do, and what did you make of them?'},
+  {order: 6, real_life: true, key: 'last_passed', prompt: "When did you last walk past someone sleeping on the street? What went through your head, and what did you do? And when did you last check in on someone you know who's having a hard time?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// Proven Wrong. what_now branches; every path shares the rest
-MATCH (s:PersonalityScenario {name: 'proven_wrong'})
+
+// The Feud
+MATCH (s:PersonalityScenario {name: 'the_feud'})
 UNWIND [
-  {order: 0, key: 'the_letter',       prompt: 'You read it twice. What goes through your head, and what do you make of the result?'},
-  {order: 1, key: 'what_now',         prompt: 'What do you do with the letter?'},
-  {order: 2, key: 'pru_pushes',       prompt: 'Pru has half a point, or thinks she does. What do you say to her?'},
-  {order: 3, key: 'the_motion',       prompt: 'Fifty faces turn round to look at you. What do you stand up and say?'},
-  {order: 4, key: 'walt',             prompt: "Walt's waiting, and he isn't going to make it easy. What do you say to him?"},
-  {order: 5, key: 'how_you_got_sure', prompt: 'Looking back over the last six months, what, if anything, would you have done differently?'},
-  {order: 6, real_life: true, key: 'changed_mind',     prompt: 'Away from the allotment now. Think of something in your own life you were certain about and turned out to be wrong. How long did it take you to change your mind, and what finally did it?'}
+  {order: 0, key: 'the_fence', prompt: "He's standing very close, waiting. What do you do? Pick one, tell me what you say, and how it feels standing there."},
+  {order: 1, key: 'the_why', prompt: 'Why do you think Graham moved the fence? Pick the closest, and tell me why.'},
+  {order: 2, key: 'the_war', prompt: 'What do you do now? Pick one, and tell me why. And be honest: is any part of you enjoying this?'},
+  {order: 3, key: 'the_favour', prompt: "He's holding out his spare key. What do you do? Pick one, and tell me why."},
+  {order: 4, key: 'looking_back', prompt: 'Looking back over the year: who was in the right? Was any of it worth it? And if this happened to you for real, what would you do differently?'},
+  {order: 5, real_life: true, key: 'last_pushed', prompt: "Think of the last time someone pushed you, face to face: a neighbor, a coworker, a stranger, family. What happened, what did you say, and how did you feel, during it and after? If you can't think of one, tell me what you usually do."},
+  {order: 6, real_life: true, key: 'last_wronged', prompt: 'And the last time someone did you wrong: did you get even, have it out, or let it go? In the last month, how many times did you wonder what someone was really after when they did something nice for you?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Water
-MATCH (s:PersonalityScenario {name: 'the_water'})
+
+// The Free Weekend
+MATCH (s:PersonalityScenario {name: 'the_free_weekend'})
 UNWIND [
-  {order: 0, key: 'the_knock',   prompt: "The water's still rising, and the three of them are dripping on your landing. What do you do, and what's going through your head?"},
-  {order: 1, key: 'the_night',   prompt: 'Five people, one gas stove, two cans of water, one torch, and no idea how long this will last. How do you get everyone through the night?'},
-  {order: 2, key: 'the_noise',   prompt: "Five of you in one room, and the noise doesn't stop. Can you sleep through it? What gets to you most?"},
-  {order: 3, key: 'who_goes',    prompt: 'Somebody needs to wade out for drinking water. What do you do?'},
-  {order: 4, key: 'rajan',       prompt: "The water's still coming up, and Rajan sir won't leave. What do you do?"},
-  {order: 5, key: 'the_boat',    prompt: "Four places for six of you, and the light's going. Paati won't go without you, and the boat might not come back tonight. Who goes, and do you?"},
-  {order: 6, key: 'three_days',  prompt: 'Three days with nothing to do but wait for the water to go down. How do you spend them, and how do you take the waiting?'},
-  {order: 7, key: 'the_mud',     prompt: "Selvi has lost nearly everything in her flat. Honestly, how do you think the next few months go, for her and for the street?"},
-  {order: 8, real_life: true, key: 'your_storm',  prompt: 'Away from Chennai now. Think of a time when something went badly wrong around you: a real emergency, or a sudden mess. What did you actually do in the first hour, and how did you feel afterwards?'}
+  {order: 0, key: 'the_promise', prompt: 'What do you do about tomorrow? Pick one, then write the text you send Becca, word for word.'},
+  {order: 1, key: 'the_sunday', prompt: 'How do you spend the day? Pick the closest, and tell me what happens to the list.'},
+  {order: 2, key: 'the_hour', prompt: 'Where does the hour go? Pick the closest, and tell me what you noticed, read or thought about.'},
+  {order: 3, key: 'looking_back', prompt: 'What do you tell her? Was it a good weekend? And if you had it again, what would you do differently?'},
+  {order: 4, real_life: true, key: 'last_weekend', prompt: 'Think about your last free weekend. What did you actually do, and who with? Roughly how many hours were you around other people, and did you get done what you meant to?'},
+  {order: 5, real_life: true, key: 'last_promise', prompt: "When did you last back out of something you'd said you'd do, even something small? What did you tell them, and was it the whole truth?"},
+  {order: 6, real_life: true, key: 'last_wander', prompt: 'And in the last month, how many times did you stop just to look at something beautiful outdoors, read something that really made you think, or lose an hour in your own head? Tell me about the last one.'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-// The Black Clay
-MATCH (s:PersonalityScenario {name: 'black_clay'})
+
+// The Houseguest
+MATCH (s:PersonalityScenario {name: 'the_houseguest'})
 UNWIND [
-  {order: 0, key: 'the_order',   prompt: 'Mariana is waiting on the line. What do you tell her?'},
-  {order: 1, key: 'the_ripple',  prompt: "It's two in the morning, and it's a flaw almost nobody else would notice. What do you do with the jar?"},
-  {order: 2, key: 'beto',        prompt: 'Beto wants to help, his way. What do you say to him?'},
-  {order: 3, key: 'the_wait',    prompt: 'Three weeks of work is in the ground, and the night is long. When do you open the kiln?'},
-  {order: 4, key: 'the_shards',  prompt: 'Seventeen pieces broken, four days to go. What goes through your head, and what do you do this morning?'},
-  {order: 5, key: 'the_call',    prompt: 'Fifteen pieces, and she wants forty. What do you do?'},
-  {order: 6, real_life: true, key: 'your_firing', prompt: 'Away from Oaxaca now. Think of something you worked hard on that went wrong right at the end. What did you do the next day, and how long did it take you to get going again?'}
+  {order: 0, key: 'the_mess', prompt: 'What do you do about the mess? Pick one, and be honest: what does your own room look like right now?'},
+  {order: 1, key: 'the_evenings', prompt: 'What do you do, most evenings that week? Pick the closest, and tell me why.'},
+  {order: 2, key: 'the_night', prompt: 'What do you do? Pick the closest. Tell me what you said, and what it was like for you while they were talking.'},
+  {order: 3, key: 'looking_back', prompt: 'Holding the note, how do you feel about the week? Would you have Rory back? And if you had the week again, what would you do differently?'},
+  {order: 4, real_life: true, key: 'last_space', prompt: 'Look around your room right now, or picture it. Where are your things: put away, or wherever you dropped them? When did you last have a really good clean, and did you enjoy it?'},
+  {order: 5, real_life: true, key: 'last_company', prompt: 'Think of the last time someone wanted more of your company than you wanted to give. Who was it, and what did you do? And last week, how many evenings did you spend with someone, by choice?'},
+  {order: 6, real_life: true, key: 'last_trouble', prompt: 'And the last time someone told you about something hard they were going through: what did you feel while they talked, and what did you do afterward? Did it stay with you?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-MATCH (s:PersonalityScenario {name: 'owambe'})
+
+// The Shoplifter
+MATCH (s:PersonalityScenario {name: 'the_shoplifter'})
 UNWIND [
-  {order: 0, key: 'the_aso_ebi',    prompt: 'The lace is on the table and her tape measure is round her neck. What do you ask her to make, and how should it look?'},
-  {order: 1, key: 'the_entrance',   prompt: 'They both turn to you. What do you say?'},
-  {order: 2, key: 'the_mic',        prompt: 'The microphone is in your hand and the hall is waiting. What do you say?'},
-  {order: 3, key: 'the_dance',      prompt: 'Grandma wants you on the floor. What do you do?'},
-  {order: 4, key: 'the_blackout',   prompt: "Four hundred guests in the dark, and the generator won't start. How do you think the rest of the night goes?"},
-  {order: 5, key: 'in_the_dark',    prompt: 'What do you do?'},
-  {order: 6, key: 'the_note',       prompt: 'Write your note to Tolu and Emeka, to open ten years from now.'},
-  {order: 7, real_life: true, key: 'your_tradition', prompt: 'Away from Lagos now. Think of a tradition in your own family or culture. Do you keep it, change it, or let it go, and why?'}
+  {order: 0, key: 'the_moment', prompt: 'What do you do? Pick one, and tell me why. Do you believe him?'},
+  {order: 1, key: 'the_policy', prompt: 'What do you say to Frank? Pick the closest, and tell me what you think should really happen to kids like him.'},
+  {order: 2, key: 'the_taunt', prompt: 'What do you do? Pick the closest. Tell me how you felt, and what you think they deserve.'},
+  {order: 3, key: 'looking_back', prompt: 'Looking back on that week, are you happy with what you did? If it happened tomorrow, would you do anything differently? And what do you think happens to him now?'},
+  {order: 4, real_life: true, key: 'last_rule', prompt: 'When did you last break a rule, at work, on the road or anywhere else? What was it, and why? And when did you last stick to a rule you thought was wrong?'},
+  {order: 5, real_life: true, key: 'last_story', prompt: "When someone gives you a hard-luck story, a stranger, a customer or someone at work, what's your first thought: that they're telling the truth, or that they're after something? Tell me about the last time."},
+  {order: 6, real_life: true, key: 'last_wrong', prompt: 'Think of the last time someone really wronged you. Did you want them to pay for it, and did you do anything? And when you hear about a crime on the news, what do you think should happen to whoever did it?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
 
-MATCH (s:PersonalityScenario {name: 'soap_house'})
+
+// The Emergency
+MATCH (s:PersonalityScenario {name: 'the_emergency'})
 UNWIND [
-  {order: 0, key: 'the_praise', prompt: 'Everyone near you heard. What do you say?'},
-  {order: 1, key: 'the_will',   prompt: 'They both look at you. What do you think is fair here, and what do you say?'},
-  {order: 2, key: 'the_sale',   prompt: 'Mr. Haddad is waiting for an answer. What do you do?'},
-  {order: 3, key: 'abu_samir',  prompt: 'Do you give Abu Samir anything from your own share? What, if anything, and why?'},
-  {order: 4, key: 'the_seal',   prompt: 'There is one seal. Who should have it?'},
-  {order: 5, key: 'the_rift',   prompt: 'They each want you on their side. What do you do?'},
-  {order: 6, real_life: true, key: 'your_share', prompt: "Away from Aleppo now. Think of a time you had to share something that couldn't be split evenly: money, work, credit, or someone's time and care. How did you split it, and did everyone think it was fair?"}
+  {order: 0, key: 'the_fire', prompt: 'What do you do, right now? Pick one, and tell me what goes through your head.'},
+  {order: 1, key: 'the_chaos', prompt: "What do you do? Pick the closest, and tell me how you're feeling, right this second."},
+  {order: 2, key: 'the_panic', prompt: "What do you do? Pick the closest, and tell me what you'd say to her."},
+  {order: 3, key: 'how_it_went', prompt: 'How do you think you did? Pick one, and tell me how your body feels now.'},
+  {order: 4, key: 'looking_back', prompt: 'Looking back at those few minutes, what did you do well, and what would you do differently? And who was really in charge in that kitchen: you, or someone else?'},
+  {order: 5, real_life: true, key: 'last_crisis', prompt: 'Think of the last time something went suddenly wrong in front of you: a fall, a flood, a car, a crisis at work. What did you do in the first minute? Did you take charge, or wait for someone else to?'},
+  {order: 6, real_life: true, key: 'last_pile', prompt: 'In the last 30 days, on how many days did it feel like more was happening than you could cope with? What was going on, and how did you get through it?'},
+  {order: 7, real_life: true, key: 'last_help', prompt: 'And the last time you went out of your way to help someone who was struggling: who was it, and what did you do? Were you glad to do it, or was it a chore?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
-SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false);
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
+
+
+// The Promotion
+MATCH (s:PersonalityScenario {name: 'the_promotion'})
+UNWIND [
+  {order: 0, key: 'the_credit', prompt: 'What do you say to Joan? Pick the closest, and tell me why.'},
+  {order: 1, key: 'the_file', prompt: 'What do you do? Pick the closest, and tell me what goes through your head.'},
+  {order: 2, key: 'the_prep', prompt: 'How do you spend the weekend? Pick the closest, and tell me why.'},
+  {order: 3, key: 'the_pitch', prompt: "What do you tell them? Pick the closest, then tell me what you'd actually say."},
+  {order: 4, key: 'the_news', prompt: 'What goes through your head, and what do you do? Pick the closest, and be honest.'},
+  {order: 5, key: 'the_mirror', prompt: "How do you feel about yourself, right now? Pick the closest, and tell me what you'd text her back."},
+  {order: 6, key: 'looking_back', prompt: 'Looking back on those two weeks, are you happy with how you went after it? What would you do differently? And how long did losing it stay with you?'},
+  {order: 7, real_life: true, key: 'last_edge', prompt: "When did you last have the chance to get ahead at someone else's expense: take credit that wasn't yours, bend the truth, or let a rival trip up? What did you do?"},
+  {order: 8, real_life: true, key: 'last_praise', prompt: "When someone asks what you're good at, at work, a party or a family get-together, what do you tell them? And when did you last do far more than anyone asked of you?"},
+  {order: 9, real_life: true, key: 'last_setback', prompt: 'Think of your last real setback: a job, a relationship, a plan that fell through. How long did it take you to get over it? And these days, how do you feel about yourself, on the whole?'}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
+
+// The Cabin. the_wait and the_feeling are on a clock, so the_feeling can be skipped when it runs out. the_tears is
+// asked either way, while waiting or when Cal turns up
+MATCH (s:PersonalityScenario {name: 'the_cabin'})
+UNWIND [
+  {order: 0, key: 'the_snacks', prompt: "How does the snack counter go for you, over a whole weekend like this? Pick the closest, and tell me why."},
+  {order: 1, key: 'next_year', prompt: "What do you think of Jun's idea? Pick the closest, and say it how you'd say it at the table."},
+  {order: 2, key: 'the_wait', prompt: "Cal is three hours late, his phone is off, and the road is icy. What goes through your head? Pick the closest, and tell me what you're picturing."},
+  {order: 3, key: 'the_feeling', prompt: "While you wait, what's going on inside you? Pick the closest, and tell me where in your body you feel it."},
+  {order: 4, key: 'the_tears', prompt: "Rosa is crying. What do you do, and what do you make of it? Pick the closest."},
+  {order: 5, key: 'the_faith', prompt: "What do you really think? Pick the closest, and tell me why."},
+  {order: 6, key: 'the_night', prompt: "Lying awake in the dark, what else do you find yourself afraid of? Big or small, tell me what comes up, and how often those fears keep you awake."},
+  {order: 7, key: 'looking_back', prompt: "Looking back on the weekend, which part stays with you most: the snacks, Jun's idea, the wait for Cal, or the talk by the fire? Why that one, and would you do anything differently?"},
+  {order: 8, real_life: true, key: 'last_binge', prompt: "In the last 30 days, how many times did you go on a binge: eating, drinking, shopping or watching far more than you meant to, all in one go? Give me a number, and tell me about the last one."},
+  {order: 9, real_life: true, key: 'last_worry', prompt: "And in the last 30 days, on how many days did you worry about something that never ended up happening? What was it, and how strongly did you feel it?"},
+  {order: 10, real_life: true, key: 'last_change', prompt: "Last one. When did you last give up a habit or a tradition, or try something completely new, because someone suggested it? How did it go?"}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
+
+
+// The Portrait. An interview, so every question is about the player's own life. All of them are asked on every path
+MATCH (s:PersonalityScenario {name: 'the_portrait'})
+UNWIND [
+  {order: 0, real_life: true, key: 'how_youve_been', prompt: 'In the last 30 days, on how many days did you feel blue, or down in the dumps? Pick the closest, and tell me what those days were like.'},
+  {order: 1, real_life: true, key: 'good_mood', prompt: "In the last 7 days, on how many days were you in the kind of good mood that shows: laughing, humming, joking with whoever's around? Pick the closest, and tell me about one of them."},
+  {order: 2, real_life: true, key: 'mornings', prompt: 'And when you wake up on an ordinary day, how do you feel about the day ahead? Pick the closest, and tell me why.'},
+  {order: 3, real_life: true, key: 'own_company', prompt: 'Think about how yours has talked to you this last week. If a friend talked to you that way, would you keep them? Pick the closest, and tell me what it says.'},
+  {order: 4, real_life: true, key: 'free_day', prompt: 'Think of the last day, or half a day, you had with nothing booked. What did you do with it? Pick the closest, and walk me through it.'},
+  {order: 5, real_life: true, key: 'opinion', prompt: 'Be honest with me: how high is your opinion of yourself, next to the people around you? Pick the closest, and tell me why.'},
+  {order: 6, real_life: true, key: 'praise', prompt: 'The last time someone praised you, for anything at all, what went through your head? Pick the closest, and tell me what it was for.'},
+  {order: 7, real_life: true, key: 'spur_of_the_moment', prompt: "In the last 30 days, how many times did you do something on the spur of the moment that you wished you hadn't: something said, bought, sent, eaten? Pick the closest, and tell me about one."},
+  {order: 8, real_life: true, key: 'looking_in', prompt: "Two hours with nothing to do but think about your life. In your real life, how much do you enjoy that: turning over who you are and how it's going? Pick the closest, and tell me when you last did it."}
+] AS question
+MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
+WITH s, collect(q.key) AS keys
+MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
+DETACH DELETE old;
+
 
 // -----------------------------------------------------------------------------
-// 3. Cleanup
+// 3. Check
 // -----------------------------------------------------------------------------
 
-// Choices used to carry base scores. Scoring is now the llm's read alone, so remove any left over
-MATCH (c:PersonalityScenarioChoice)
-DETACH DELETE c;
+// Traits only show once personality_explore_seed.cypher has linked them to their
+// domain. This should return 30; if not, run that seed
+MATCH (:PersonalityDomain)-[:HAS_FACET]->(t:PersonalityTrait)
+RETURN count(t) AS facets;
