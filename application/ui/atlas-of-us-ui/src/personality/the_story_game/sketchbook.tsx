@@ -11,6 +11,8 @@ const W = 1600;
 const H = 900;
 const PAPER = '#f3ead6';
 const INK = '#2a2119';
+//the paper's grain and blotches, rendered once from turbulence filters: drawing them live cost the GPU every frame
+const PAPER_IMAGE = new URL('./paper.jpg', import.meta.url).href;
 type Pt = [number, number];
 
 // ---------------------------------------------------------------------------
@@ -641,19 +643,7 @@ function Sketchbook({ animation }: { animation: string }) {
     <div style={styles.scene}>
       <style>{keyframes}</style>
       <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <defs>
-          <filter id="sg-grain" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="2" />
-            <feColorMatrix values="0 0 0 0 0.4  0 0 0 0 0.3  0 0 0 0 0.15  0 0 0 0.09 0" />
-          </filter>
-          <filter id="sg-blotches" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.004" numOctaves="2" seed="9" />
-            <feColorMatrix values="0 0 0 0 0.55  0 0 0 0 0.4  0 0 0 0 0.2  0 0 0 0.22 -0.06" />
-          </filter>
-        </defs>
-        <rect width={W} height={H} fill={PAPER} />
-        <rect width={W} height={H} filter="url(#sg-blotches)" />
-        <rect width={W} height={H} filter="url(#sg-grain)" />
+        <image href={PAPER_IMAGE} width={W} height={H} preserveAspectRatio="none" />
         <path d={`${circle(1460, 90, 54)} ${circle(1466, 94, 50)}`} fill="none" stroke="#b08850" strokeOpacity={0.18} strokeWidth={5} />
       </svg>
 
@@ -765,6 +755,11 @@ const keyframes = `
   0%, 100% { opacity: 1; }
   40% { opacity: 0.8; }
   70% { opacity: 0.92; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-bob, .sg-bob-slow, .sg-twinkle, .sg-flicker, .sg-steam, .sg-stove {
+    animation: none;
+  }
 }
 `;
 

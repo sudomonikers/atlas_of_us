@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type PersonPersonality, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { theStoryGame } from './the_story_game/script';
 import { theFestival } from './the_festival/script';
@@ -867,6 +867,9 @@ interface Answer {
 }
 
 const TYPE_SPEED_MS = 28; //delay between each character as the text writes out
+//how many times a second a scene's animations move. Each redraw re-runs the scene's SVG filters, so letting them run at
+//the display's rate (120 on newer Macs) kept the GPU flat out
+const SCENE_FPS = 24;
 
 const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 
@@ -1033,11 +1036,25 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
     return () => window.removeEventListener('keydown', onKeyDown);
   });
 
+  //every animation in the scene is paused and stepped forward together on one timer, so the whole scene redraws
+  //SCENE_FPS times a second however many things are moving
+  const stage = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      for (const animation of stage.current?.getAnimations({ subtree: true }) ?? []) {
+        if (animation.playState === 'running') animation.pause();
+        const at = Number(animation.currentTime ?? 0);
+        if (at < Number(animation.effect?.getComputedTiming().endTime ?? 0)) animation.currentTime = at + 1000 / SCENE_FPS;
+      }
+    }, 1000 / SCENE_FPS);
+    return () => clearInterval(timer);
+  }, []);
+
   const updateAnswer = (id: string, change: Partial<Answer>) =>
     setAnswers((a) => ({ ...a, [id]: { ...(a[id] ?? { text: '' }), ...change } }));
 
   return (
-    <div style={styles.stage}>
+    <div ref={stage} style={styles.stage}>
       <Suspense fallback={null}>{renderScene(step.animation, left === undefined ? undefined : left / clock!.seconds)}</Suspense>
 
       {left !== undefined && (

@@ -7,6 +7,8 @@ Every scene is written to a set of IPIP-NEO items (see `README.md`). When creati
    - Make both ends look reasonable, so there's no right answer to give
    - One prompt can test several items. Its `facets` are the facets of the items it tests. Don't add fixed trait scores for choices: every answer is scored by the llm from the choice and the user's reasoning
    - End with a real-life question about the player's own life, with any frequency pinned down ("on how many of the last 7 days", not "often")
+   - Scene animations are stepped at 24fps by the player (`SCENE_FPS`), so plain CSS animations are fine. Never animate the scene with `requestAnimationFrame` or timers, which would skip the cap
+   - Every redraw re-runs SVG filters, so keep `feTurbulence` off big static areas: render a background like that once to an image (as the Story Game's `paper.jpg` is)
 4. Search for any relevant sounds that would work well for the scene. Sounds can be found in the Downloads foler
    - Play them through `createSoundscape` in `soundscape.ts` (looping beds plus one-shots), like the other scenes do
    - Encode them before committing: `scripts/encode-audio.sh bed <files>` for looping beds, `scripts/encode-audio.sh shot <files>` for one-shots
