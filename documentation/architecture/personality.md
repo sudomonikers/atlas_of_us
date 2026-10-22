@@ -80,6 +80,8 @@ When the player moves past a prompt, the UI calls `PUT /api/personality/answers`
 The API stores all of it on an `ANSWERED` relationship from the person to the question. Answering the same question again
 overwrites it.
 
+**Resuming:** opening an unfinished scene replays the player's saved answers along the path they took and picks up at the first unanswered question, with everything before it reachable with the back arrow. A clock can't be resumed part way, so a run that reached one picks up just before the clock starts and plays it again. A finished scene starts again from the top.
+
 **Replays:**
 - Answering a scene's first question clears that person's other answers to the scene before saving.
 - This matters because a replay can go down a different branch, and the old branch's answers would otherwise still be scored.

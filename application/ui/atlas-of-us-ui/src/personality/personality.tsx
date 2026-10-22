@@ -466,6 +466,9 @@ function Personality() {
       setPlaying(undefined);
       load(); //pick up what was answered
     };
+    //an unfinished run picks up where it was left, a finished one is played again from the top
+    const mine = answers?.filter((a) => a.scenario === playing) ?? [];
+    const finished = toProgress(mine, questions)[playing]?.status === 'complete';
     return (
       <ScriptPlayer
         script={open.script}
@@ -473,6 +476,7 @@ function Personality() {
         onAnswer={answer(playing)}
         onExit={exit}
         onFinish={exit}
+        saved={finished ? [] : mine}
       />
     );
   }
@@ -839,7 +843,7 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
 
         <span style={dash.cardFooter}>
           {when && <span>{`${status === 'complete' ? 'Finished' : 'Started'} ${formatDate(when)}`}</span>}
-          {playable && <span style={dash.go}>{locked ? 'Recalculating...' : status === 'complete' ? 'Play again ▶' : 'Play ▶'}</span>}
+          {playable && <span style={dash.go}>{locked ? 'Recalculating...' : status === 'complete' ? 'Play again ▶' : status === 'in_progress' ? 'Resume ▶' : 'Play ▶'}</span>}
         </span>
       </button>
     </li>
@@ -866,19 +870,52 @@ const TYPE_SPEED_MS = 28; //delay between each character as the text writes out
 
 const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 
+//where the script goes after a step, following the answer's choice when it's a prompt with choices
+const following = (script: Script, position: Position, answer?: Answer): Position | undefined => {
+  const section = script.sections[position.section];
+  const step = section.steps[position.index];
+  if (isPrompt(step) && step.choices && answer?.choice !== undefined) return { section: step.choices[answer.choice].next, index: 0 };
+  if (position.index + 1 < section.steps.length) return { ...position, index: position.index + 1 };
+  if (section.next) return { section: section.next, index: 0 };
+  return undefined;
+};
+
+//walks an unfinished run's path through the script from its saved answers, stopping at the first prompt not yet
+//answered. A clock can't pick up part way, so a run that reached one resumes just before it starts
+function resume(script: Script, saved: SavedAnswer[]) {
+  const history: Position[] = [{ section: script.start, index: 0 }];
+  const answers: Record<string, Answer> = {};
+  for (;;) {
+    const position = history[history.length - 1];
+    const step = script.sections[position.section].steps[position.index];
+    if (isPrompt(step)) {
+      const given = saved.find((a) => a.question_key === step.id);
+      const choice = step.choices?.findIndex((c) => c.label === given?.answer);
+      if (!given || choice === -1) break; //not answered yet, or the script has changed since
+      answers[step.id] = choice === undefined ? { text: given.answer } : { choice, text: given.reasoning ?? '' };
+    }
+    const next = following(script, position, answers[isPrompt(step) ? step.id : '']);
+    if (!next || next.section === script.clock?.from) break;
+    history.push(next);
+  }
+  return { history, answers };
+}
+
 interface ScriptPlayerProps {
   script: Script;
   renderScene: (animation: string, clock?: number) => ReactNode; //the scenario's background, driven by the current step's animation and how much of the clock is left, 1 to 0
   onAnswer: (step: PromptFrame, answer: Answer, context: string, clock?: AnswerClock) => Promise<void>; //saves an answer, with what the user saw before it and where the clock stood if it has started; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
   onFinish: () => void; //called when the user moves past the final step
+  saved: SavedAnswer[]; //the answers of an unfinished run to pick up from, empty to start fresh
 }
 
-function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish }: ScriptPlayerProps) {
+function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }: ScriptPlayerProps) {
+  const [resumed] = useState(() => resume(script, saved));
   //every position the user has visited, so the left arrow can walk back through branches
-  const [history, setHistory] = useState<Position[]>([{ section: script.start, index: 0 }]);
+  const [history, setHistory] = useState<Position[]>(resumed.history);
   const [shown, setShown] = useState(0); //how many characters of the current text have been written out
-  const [answers, setAnswers] = useState<Record<string, Answer>>({});
+  const [answers, setAnswers] = useState<Record<string, Answer>>(resumed.answers);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const { clock } = script;
@@ -936,14 +973,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish }: Scrip
     return lines.join('\n');
   };
 
-  const nextPosition = (): Position | undefined => {
-    if (isPrompt(step) && step.choices && answer?.choice !== undefined) {
-      return { section: step.choices[answer.choice].next, index: 0 };
-    }
-    if (position.index + 1 < section.steps.length) return { ...position, index: position.index + 1 };
-    if (section.next) return { section: section.next, index: 0 };
-    return undefined;
-  };
+  const nextPosition = () => following(script, position, answer);
 
   const forward = async () => {
     //first press finishes writing the text out, the next one moves on
