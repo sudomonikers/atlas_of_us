@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
 import { PersonalityReport } from './report';
+import { polesOf } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
 import { ProgressMeter } from '../shared_components/progress-meter';
 
@@ -31,10 +32,7 @@ export default function MyPersonality({ traits, report, onContested }: { traits:
       ) : (
         <p style={styles.traitsIntro}>Finish every scenario and I'll write up your full report.</p>
       )}
-      <p style={styles.traitsIntro}>
-        Each bar shows where you sit between low and high on a trait. Low isn't bad and high isn't good, they're just
-        different.
-      </p>
+      <p style={styles.traitsIntro}>Neither end of a bar is the good one. They're just different.</p>
       <div style={styles.compare}>
         <button className="comic-chip comic-lift" style={styles.compareButton} aria-pressed={compare} onClick={() => setCompare((c) => !c)}>
           {compare ? '✓ ' : ''}Compare with everyone
@@ -73,12 +71,14 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
   const average = compare ? toPercent(trait.average) : undefined;
   const explained = trait.contributions.length > 0;
   const early = percent !== undefined && trait.contributions.filter((c) => c.weight > 0).length < 3; //based on fewer than 3 answers, so shown faded
+  const poles = polesOf(trait.name);
 
   return (
     <li style={styles.traitItem}>
-      {/* name and description on the left, the scale on the right. They stack on narrow screens.
-          Clicking it opens the answers behind the score */}
+      {/* name on the left, the scale on the right with a word for each end. They stack on narrow screens. The
+          description is on hover and with the answers behind the score, which clicking it opens */}
       <button
+        title={trait.description}
         style={{ ...styles.trait, ...(explained ? styles.traitButton : {}) }}
         disabled={!explained}
         aria-expanded={explained ? open : undefined}
@@ -99,10 +99,11 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
               </span>
             )}
           </div>
-          {trait.description && <p style={styles.traitDescription}>{trait.description}</p>}
         </div>
         {percent === undefined ? (
-          <div style={{ ...styles.traitScale, ...styles.gathering }}>Still sizing you up on this one...</div>
+          <div style={{ ...styles.traitScale, ...styles.gathering }}>
+            {poles ? `${poles.low} or ${poles.high}? ` : ''}Still sizing you up...
+          </div>
         ) : (
           //read only: looks like a slider, but there's nothing to drag
           <div style={{ ...styles.traitScale, ...(early ? styles.tentative : {}) }} role="meter" aria-label={trait.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
@@ -114,13 +115,14 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
               <span className="comic-pop" style={{ ...styles.barThumb, left: `${percent}%` }} />
             </div>
             <div style={styles.barEnds} aria-hidden>
-              <span>Low</span>
+              <span>{poles?.low ?? 'Low'}</span>
               {explained && <span>{open ? 'Hide why ▲' : 'Why? ▼'}</span>}
-              <span>High</span>
+              <span>{poles?.high ?? 'High'}</span>
             </div>
           </div>
         )}
       </button>
+      {open && trait.description && <p style={styles.traitDescription}>{trait.description}</p>}
       {open && (
         <ol style={styles.contributions}>
           {trait.contributions.map((c) => (
@@ -533,8 +535,10 @@ const styles: Record<string, CSSProperties> = {
     color: blue,
   },
   traitDescription: {
+    margin: '0 0 10px',
     fontSize: 17,
     lineHeight: 1.2,
+    fontStyle: 'italic',
     opacity: 0.8,
   },
   //margins leave room for the thumb's overhang at 0 and 100
@@ -583,8 +587,8 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     margin: '2px 4px 0',
-    fontSize: 14,
-    opacity: 0.6,
+    fontSize: 15,
+    opacity: 0.75,
   },
   gathering: {
     marginTop: 4,

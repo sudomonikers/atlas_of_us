@@ -36,7 +36,6 @@ export default function Home() {
           See where we're headed ▶
         </button>
       </footer>
-      <Footer />
     </div>
   );
 }

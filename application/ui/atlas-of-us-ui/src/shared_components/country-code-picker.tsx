@@ -140,10 +140,17 @@ const FLAG_URLS = Object.fromEntries(
 //ascension and tristan da cunha are filed under st. helena in flag-icons
 const FLAG_FILES: Record<string, string> = { AC: 'sh-ac', TA: 'sh-ta' };
 
-//a flag from flag-icons. 🌐 for a code the user typed in themselves, or one flag-icons doesn't have
+//a flag from flag-icons. A drawn globe for a code the user typed in themselves, or one flag-icons doesn't have
 function Flag({ iso }: { iso: string }) {
   const url = iso && FLAG_URLS[FLAG_FILES[iso] ?? iso.toLowerCase()];
-  if (!url) return <span style={styles.flag} aria-hidden>🌐</span>;
+  if (!url)
+    return (
+      <svg style={styles.flagImage} viewBox="0 0 29 22" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+        <circle cx="14.5" cy="11" r="9" />
+        <ellipse cx="14.5" cy="11" rx="4" ry="9" />
+        <path d="M5.5 11h18" />
+      </svg>
+    );
   return <img src={url} alt="" loading="lazy" style={styles.flagImage} />;
 }
 
@@ -582,10 +589,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 20,
     fontFamily: 'inherit',
     cursor: 'pointer',
-  },
-  flag: {
-    fontSize: 22,
-    lineHeight: 1,
   },
   flagImage: {
     width: 29, //flag-icons' 4:3 at the old 22px font size

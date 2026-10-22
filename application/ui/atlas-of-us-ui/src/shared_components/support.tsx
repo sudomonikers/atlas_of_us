@@ -22,7 +22,7 @@ export function Plea() {
         </p>
       </div>
       <a className="comic-lift" style={styles.button} href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-        Chip in $1 ☕
+        Chip in $1
       </a>
     </>
   );

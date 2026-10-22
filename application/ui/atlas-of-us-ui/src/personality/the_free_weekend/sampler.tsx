@@ -247,8 +247,8 @@ const ART: Record<Page, Record<string, Item[]>> = {
     glow: [back('yellow', 'M 228 290 l -18 14 M 312 290 l 18 14 M 270 298 v 26 M 240 302 l -10 24 M 300 302 l 10 24', 3)],
     you_sofa: person(420, FLOOR, FIG, YOU, { pose: 'sit' }),
     phone: [fill('ink', rect(460, FLOOR - 92, 14, 22)), back('sky', rect(462, FLOOR - 90, 10, 16), 2)],
-    bubble_hannah: [words('green', 'BECCA', 486, 124, 18, 'start'), ...bubble(476, 132, 290, 60, [470, FLOOR - 96], ['Still OK for 9am tomorrow? 🙏'])],
-    bubble_leo: [words('gold', 'LEO', 486, 222, 18, 'start'), ...bubble(476, 230, 290, 90, [472, FLOOR - 92], ['Boat on the lake tomorrow!', 'One seat left ☀️🚤'], 'yellow')],
+    bubble_hannah: [words('green', 'BECCA', 486, 124, 18, 'start'), ...bubble(476, 132, 290, 60, [470, FLOOR - 96], ['Still OK for 9am tomorrow?'])],
+    bubble_leo: [words('gold', 'LEO', 486, 222, 18, 'start'), ...bubble(476, 230, 290, 90, [472, FLOOR - 92], ['Boat on the lake tomorrow!', 'One seat left!'], 'yellow')],
     calendar: [
       fill('white', rect(1060, 140, 120, 150)),
       fill('blue', rect(1060, 140, 120, 34)),
@@ -269,7 +269,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
     ticks: [back('red', 'M 1242 318 l 5 6 l 10 -12 M 1242 338 l 5 6 l 10 -12 M 1242 358 l 5 6 l 10 -12 M 1242 378 l 5 6 l 10 -12', 3)],
     you_stand: person(640, FLOOR, FIG, YOU, { pose: 'phone' }),
     chat: [
-      ...bubble(470, 110, 230, 52, [652, 302], ["pub lunch? 1pm 🍺"]),
+      ...bubble(470, 110, 230, 52, [652, 302], ["pub lunch? 1pm"]),
       ...bubble(500, 176, 230, 52, [652, 302], ["who's about??"]),
     ],
     you_gym: [...person(640, FLOOR, FIG, YOU, { pose: 'walk' }), fill('blue', `${rect(590, FLOOR - 100, 60, 34)}`), back('navy', `M 600 ${FLOOR - 100} q 20 -26 40 0`, 3)],

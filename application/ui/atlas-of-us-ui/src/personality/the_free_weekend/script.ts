@@ -24,7 +24,7 @@ export const theFreeWeekend: Script = {
         { text: 'The Free Weekend', animation: 'title_card' },
         { text: "It's six thirty on a Friday in June. The week is finally over, and for once there's nothing on your calendar.", animation: 'friday' },
         { text: "Well, almost nothing. Weeks ago, you promised your friend Becca that you'd help her move apartments on Saturday. It's three floors up, with no elevator.", animation: 'calendar' },
-        { speaker: BECCA, text: "Still OK for tomorrow? The truck is booked for 9. Honestly couldn't do it without you 🙏", animation: 'text_hannah' },
+        { speaker: BECCA, text: "Still OK for tomorrow? The truck is booked for 9. Honestly couldn't do it without you!", animation: 'text_hannah' },
         { speaker: LEO, text: "Last-minute thing! My uncle is letting me borrow his boat for the day tomorrow. The lake, a cooler full of drinks, sun all day. There's one seat left, and I want it to be you.", animation: 'text_leo' },
         { text: "It's going to be the first sunny Saturday in months. Becca's brother might be free to help her move. Then again, he might not.", animation: 'text_leo' },
         {

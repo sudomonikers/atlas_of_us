@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type PersonPersonality, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { DOMAINS, fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type PersonPersonality, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { theStoryGame } from './the_story_game/script';
 import { theFestival } from './the_festival/script';
 import { theBigParty } from './the_big_party/script';
@@ -20,6 +20,8 @@ import { theCabin } from './the_cabin/script';
 import { thePortrait } from './the_portrait/script';
 import Explore from './explore';
 import MyPersonality from './my_personality';
+import { DOMAIN_LOOK, DOMAIN_TRAITS } from './poles';
+import { Disclosure } from '../shared_components/disclosure';
 import { ProgressMeter } from '../shared_components/progress-meter';
 import { Checkbox } from '../shared_components/checkbox';
 import { useSession } from '../auth/api';
@@ -182,13 +184,28 @@ function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQu
  * scenarios
  * ------------------------------------------------------------------------------------------- */
 
+type Kind = 'story' | 'interview' | 'live';
+
 export interface ScenarioInfo {
   id: string;
   title: string;
-  kind: string; //the situation type
+  kinds: Kind[]; //the situation type. Whether it's timed comes from its script's clock
   blurb: string;
   facets: PersonalityTrait[];
 }
+
+//the tags on a scenario card, with what each means on hover
+const KIND_LOOK: Record<Kind | 'timed', { label: string; meaning: string }> = {
+  story: { label: 'Story', meaning: 'A story you play through, choosing as it goes' },
+  interview: { label: 'Interview', meaning: 'Someone asks you about yourself' },
+  live: { label: 'Live', meaning: 'Things happen in the moment and you react' },
+  timed: { label: 'Timed', meaning: 'Part of it runs against a real clock' },
+};
+
+//a still of each scene's opening, keyed by scenario id
+const THUMBS = Object.fromEntries(
+  Object.entries(import.meta.glob<string>('./*/thumb.jpg', { eager: true, import: 'default' })).map(([path, url]) => [path.split('/')[1], url]),
+);
 
 export interface Playable {
   script: Script;
@@ -201,126 +218,126 @@ const SCENARIOS: ScenarioInfo[] = [
   {
     id: 'the_story_game',
     title: 'The Story Game',
-    kind: 'Live',
+    kinds: ['live'],
     blurb: 'A narrator invites you to build a world together, one question at a time.',
     facets: theStoryGame.facets,
   },
   {
     id: 'the_night_class',
     title: 'The Night Class',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'An evening class on big questions, a thought experiment, and a lively room.',
     facets: theNightClass.facets,
   },
   {
     id: 'the_big_party',
     title: 'The Big Party',
-    kind: 'Story, timed beats',
+    kinds: ['story'],
     blurb: "A friend's 40th: two hundred people, a loud band, and you know about four of them.",
     facets: theBigParty.facets,
   },
   {
     id: 'the_time_study',
     title: 'The Time Study',
-    kind: 'Interview',
+    kinds: ['interview'],
     blurb: 'A researcher who studies how people spend their days asks about yours.',
     facets: theTimeStudy.facets,
   },
   {
     id: 'the_night_market',
     title: 'The Night Market',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'A fable: ten silver coins, a market town at night, and a coach home at dawn.',
     facets: theNightMarket.facets,
   },
   {
     id: 'the_bad_day',
     title: 'The Bad Day',
-    kind: 'Story, timed',
+    kinds: ['story'],
     blurb: 'Traffic, a broken printer, a receptionist who keeps talking. A comedy of small disasters.',
     facets: theBadDay.facets,
   },
   {
     id: 'the_dare',
     title: 'The Dare',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'A trip abroad with a friend who chases adrenaline.',
     facets: theDare.facets,
   },
   {
     id: 'the_shoplifter',
     title: 'The Shoplifter',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'Your shop says always call the police. Then you catch a teenager stealing.',
     facets: theShoplifter.facets,
   },
   {
     id: 'the_committee',
     title: 'The Committee',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'A neighborhood committee is putting on a street festival, and nobody is in charge.',
     facets: theCommittee.facets,
   },
   {
     id: 'the_houseguest',
     title: 'The Houseguest',
-    kind: 'Story',
-    blurb: "A friend of a friend stays with you for a week. They're messy, closed off, and going through something.",
+    kinds: ['story'],
+    blurb: 'A friend of a friend stays for a week: messy, closed off, and going through something.',
     facets: theHouseguest.facets,
   },
   {
     id: 'the_promotion',
     title: 'The Promotion',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: "You and a peer are up for the same promotion, and there are easy ways to tip it.",
     facets: thePromotion.facets,
   },
   {
     id: 'the_festival',
     title: 'The Festival',
-    kind: 'Live',
+    kinds: ['live'],
     blurb: 'A free afternoon at a city arts festival, and a map of everything on.',
     facets: theFestival.facets,
   },
   {
     id: 'the_free_weekend',
     title: 'The Free Weekend',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: "Nothing booked but a promise to help a friend move. Then a much better invitation arrives.",
     facets: theFreeWeekend.facets,
   },
   {
     id: 'the_stranger',
     title: 'The Stranger',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'A man stops you in the street. His wallet was stolen, and he needs bus fare home.',
     facets: theStranger.facets,
   },
   {
     id: 'the_emergency',
     title: 'The Emergency',
-    kind: 'Live, timed',
+    kinds: ['live'],
     blurb: "A grease fire breaks out in the kitchen during a dinner you're hosting.",
     facets: theEmergency.facets,
   },
   {
     id: 'the_feud',
     title: 'The Feud',
-    kind: 'Story',
+    kinds: ['story'],
     blurb: 'Your neighbor builds a fence three feet onto your land.',
     facets: theFeud.facets,
   },
   {
     id: 'the_cabin',
     title: 'The Cabin',
-    kind: 'Story + Interview, real clock',
-    blurb: "A winter weekend with old friends, a tradition someone wants to break, and a friend who still isn't here.",
+    kinds: ['story', 'interview'],
+    blurb: "A winter weekend with old friends, a tradition under threat, and a friend who isn't here.",
     facets: theCabin.facets,
   },
   {
     id: 'the_portrait',
     title: 'The Portrait',
-    kind: 'Interview',
+    kinds: ['interview'],
     blurb: 'A painter does your portrait, and talks while they work.',
     facets: thePortrait.facets,
   },
@@ -490,11 +507,11 @@ function Personality() {
 
   const bubble =
     view === 'explore'
-      ? "Here's how personality works, trait by trait. Every end of every scale has its downsides, so nobody gets to feel too smug. Or too bad."
+      ? 'Every end of every scale has its downsides, so nobody gets to feel too smug.'
       : outOfBudget
-        ? "Bad news: I've burned through this month's AI budget, so I can't score anything right now. Your answers are saved, and I'll be back once I'm topped up. Chipping in at the bottom of the page helps."
+        ? "I've burned through this month's AI budget, so scoring is paused. Your answers are saved. Chipping in below helps."
       : recalculating
-        ? "Hold on, I'm recalculating your results from everything you've told me so far. It takes a few minutes, and your next scenario unlocks as soon as I'm done."
+        ? 'Recalculating your results. Your next scenario unlocks in a few minutes.'
         : view === 'scenarios'
           ? ready
             ? greeting(firstName, completed)
@@ -597,6 +614,10 @@ const SCORING_POLL_MS = 5000;
 
 const LIKERT = ['Strongly disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly agree'];
 
+//how a scenario goes, drawn as a strip
+const STEPS = ['Step into a scene', 'Make your call', 'Tell us why'];
+
+//the longer case, behind "Why we think that"
 const APPROACH = [
   {
     title: 'Put you in actual situations',
@@ -613,26 +634,11 @@ const APPROACH = [
 ];
 
 const TIPS = [
-  {
-    title: 'Be honest, not impressive',
-    body: "Answer the way you'd actually act, not the way you'd like to come across. Flattering answers are the hardest to read, and you're the one who loses out.",
-  },
-  {
-    title: 'Tell us why',
-    body: 'Your reasoning matters more than the option you pick. Two people can make the same choice for completely different reasons.',
-  },
-  {
-    title: 'Be specific',
-    body: 'Details beat adjectives. "I froze, then rang my mum" says more than "I\'m bad in a crisis."',
-  },
-  {
-    title: 'Keep playing',
-    body: `We read everything you've told us after every ${SCORE_EVERY} scenarios, and each read gets surer. Faded bars on My Personality are early reads.`,
-  },
-  {
-    title: 'Be yourself, jokes included',
-    body: 'Short answers and jokes are fine. How you answer says something too.',
-  },
+  { title: 'Be honest, not impressive', note: "Answer how you'd actually act." },
+  { title: 'Tell us why', note: 'Your reasoning matters more than your pick.' },
+  { title: 'Be specific', example: { vague: "I'm bad in a crisis.", specific: 'I froze, then rang my mum.' } },
+  { title: 'Keep playing', note: `I re-read everything every ${SCORE_EVERY} scenarios.` },
+  { title: 'Jokes are fine', note: 'How you answer says something too.' },
 ];
 
 //whether the user has asked not to see the start note again. Kept in this browser only; if storage is blocked the note
@@ -679,8 +685,15 @@ function GettingTheMost({ onBack, onStart }: { onBack: () => void; onStart: () =
           {TIPS.map((tip, i) => (
             <li key={tip.title} style={dash.approachItem}>
               <span style={dash.approachNumber}>{i + 1}</span>
-              <span>
-                <strong style={dash.approachItemTitle}>{tip.title}.</strong> {tip.body}
+              <span style={dash.tipText}>
+                <strong style={dash.approachItemTitle}>{tip.title}.</strong>
+                {tip.note && <span>{tip.note}</span>}
+                {tip.example && (
+                  <span style={dash.examples}>
+                    <span style={{ ...dash.example, background: paleRed }}>✕ “{tip.example.vague}”</span>
+                    <span style={{ ...dash.example, background: paleBlue }}>✓ “{tip.example.specific}”</span>
+                  </span>
+                )}
               </span>
             </li>
           ))}
@@ -702,16 +715,16 @@ function GettingTheMost({ onBack, onStart }: { onBack: () => void; onStart: () =
   );
 }
 
-//why we measure personality through scenes, pulled from the README
+//why we measure personality through scenes, pulled from the README. Drawn as an old way / our way strip, with the
+//argument itself behind a toggle
 function OurApproach() {
   return (
     <section style={dash.approach} className="comic-panel comic-pop">
       <div style={dash.approachColumn}>
+        <span className="comic-stamp" style={{ ...dash.approachStamp, color: brownRed }}>
+          The old way
+        </span>
         <h2 style={dash.approachHeading}>Personality tests are utter bullshit.</h2>
-        <p style={dash.approachText}>
-          If you've ever taken one, you're probably familiar with the idea. They do a terrible job of modeling people. The
-          underlying model isn't the problem. The way they gather information about you is.
-        </p>
 
         <figure style={dash.likert}>
           <blockquote style={dash.likertQuestion}>
@@ -735,32 +748,54 @@ function OurApproach() {
               />
             </svg>
           </div>
+          <figcaption style={dash.likertCaption}>
+            Vague, no nuance, and never asks <em>why</em>.
+          </figcaption>
         </figure>
-
-        <p style={dash.approachText}>
-          Questions like this are vague, leave no room for nuance, and never ask <em>why</em>. The answer depends entirely
-          on where you apply it. If you're an Aztec peasant picked for sacrifice, following the rules gets you killed,
-          which we'd call a bad outcome. If the IRS is auditing you and you've done nothing wrong, following them to the
-          letter is probably smart. And you aren't the same person at work as you are at home or out with friends. Modern
-          tests do a terrible job of capturing any of that.
-        </p>
       </div>
 
       <div style={dash.approachColumn}>
-        <h2 style={dash.approachHeading}>So here's what we do instead.</h2>
-        <ol style={dash.approachList}>
-          {APPROACH.map((item, i) => (
-            <li key={item.title} style={dash.approachItem}>
-              <span style={dash.approachNumber}>{i + 1}</span>
-              <span>
-                <strong style={dash.approachItemTitle}>{item.title}.</strong> {item.body}
+        <span className="comic-stamp" style={{ ...dash.approachStamp, color: blue }}>
+          Our way
+        </span>
+        <h2 style={dash.approachHeading}>So we do this instead.</h2>
+        <ol style={dash.steps}>
+          {STEPS.map((step, i) => (
+            <li key={step} style={dash.stepSlot}>
+              {i > 0 && (
+                <span style={dash.stepArrow} aria-hidden>
+                  →
+                </span>
+              )}
+              <span style={dash.step}>
+                <span style={dash.approachNumber}>{i + 1}</span>
+                <span style={dash.stepTitle}>{step}</span>
               </span>
             </li>
           ))}
         </ol>
-        <p style={dash.approachClosing}>
-          Step into each scenario, make your choices, and tell us why. There are no right answers, only yours.
-        </p>
+        <p style={dash.approachClosing}>There are no right answers, only yours.</p>
+      </div>
+
+      <div style={dash.approachMore}>
+        <Disclosure label="Why we think that">
+          <div style={dash.approachWhy}>
+            <p style={dash.approachText}>
+              Tests like this do a terrible job of modeling people. The underlying model isn't the problem. The way they
+              gather information about you is. The answer to that question depends entirely on where you apply it. If
+              you're an Aztec peasant picked for sacrifice, following the rules gets you killed, which we'd call a bad
+              outcome. If the IRS is auditing you and you've done nothing wrong, following them to the letter is probably
+              smart. And you aren't the same person at work as you are at home or out with friends.
+            </p>
+            <ul style={dash.approachWhyList}>
+              {APPROACH.map((item) => (
+                <li key={item.title}>
+                  <strong style={dash.approachItemTitle}>{item.title}.</strong> {item.body}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Disclosure>
       </div>
     </section>
   );
@@ -770,20 +805,17 @@ function OurApproach() {
 const greeting = (name: string | undefined, completed: number) => {
   const left = SCENARIOS.length - completed;
   const toNext = SCORE_EVERY - (completed % SCORE_EVERY);
-  if (completed === 0) return `Hey ${name ?? 'there'}. Zero scenarios played. Bold strategy for someone who wants to know who they are. Finish ${SCORE_EVERY} and I'll tell you what I make of you.`;
-  if (left === 0) return `Every scenario done${name ? `, ${name}` : ''}. Either you're very self-aware or you really needed a hobby. Either way, I'm proud of you.`;
-  const next =
-    completed < SCORE_EVERY
-      ? `${toNext} more and I'll read everything you've told me and tell you who you are.`
-      : `${toNext} more and I'll read it all again and update your results.`;
-  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}. Nice work! ${toNext > left ? (left === 1 ? "The last one isn't going to play itself." : `The other ${left} aren't going to play themselves.`) : next}`;
+  if (completed === 0) return `Hey ${name ?? 'there'}. Finish ${SCORE_EVERY} scenarios and I'll tell you who you are.`;
+  if (left === 0) return `Every scenario done${name ? `, ${name}` : ''}. You really need a hobby. I'm proud of you.`;
+  const next = toNext > left ? `${left} to go.` : completed < SCORE_EVERY ? `${toNext} more and I'll tell you who you are.` : `${toNext} more and I'll update your results.`;
+  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}! ${next}`;
 };
 
 const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   const measured = traits.filter((t) => t.value !== undefined).length;
-  if (measured === 0) return `I've got nothing on you yet${name ? `, ${name}` : ''}. I read everything at once, after every ${SCORE_EVERY} scenarios you finish. I can't read minds. Yet. Go give me something to work with!`;
-  if (measured === traits.length) return `Every trait measured${name ? `, ${name}` : ''}. I officially know you better than your group chat does. Look at you go.`;
-  return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots are where you've been dodging scenarios. Go fill them in, I'm curious.`;
+  if (measured === 0) return `Nothing on you yet${name ? `, ${name}` : ''}. I read everything after every ${SCORE_EVERY} scenarios.`;
+  if (measured === traits.length) return `Every trait measured${name ? `, ${name}` : ''}. I know you better than your group chat does.`;
+  return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots need more scenarios.`;
 };
 
 const badges: Record<ScenarioStatus, { label: string; fill: string; ink: string }> = {
@@ -807,6 +839,9 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
   const status = progress?.status ?? 'not_started';
   const look = badges[status];
   const when = progress?.completedAt ?? progress?.startedAt;
+  const thumb = THUMBS[scenario.id];
+  const kinds: (Kind | 'timed')[] = PLAYABLE[scenario.id]?.script.clock ? [...scenario.kinds, 'timed'] : scenario.kinds;
+  const domains = DOMAINS.map((d) => ({ ...d, facets: scenario.facets.filter((f) => DOMAIN_TRAITS[d.key].includes(f)) })).filter((d) => d.facets.length);
 
   return (
     <li
@@ -829,14 +864,23 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
           </span>
         </span>
 
+        {thumb && <img src={thumb} alt="" style={dash.thumb} loading="lazy" />}
+
         <span style={dash.cardTitle}>{scenario.title}</span>
-        <span style={dash.kind}>{scenario.kind}</span>
+        <span style={dash.kinds}>
+          {kinds.map((kind) => (
+            <span key={kind} className="comic-chip" style={dash.kind} title={KIND_LOOK[kind].meaning}>
+              {KIND_LOOK[kind].label}
+            </span>
+          ))}
+        </span>
         <span style={dash.blurb}>{scenario.blurb}</span>
 
+        {/* the domains it measures as their OCEAN letters; the facets themselves are in the tooltip */}
         <span style={dash.facets}>
-          {scenario.facets.map((facet) => (
-            <span key={facet} className="comic-chip">
-              {facet}
+          {domains.map((d) => (
+            <span key={d.key} style={dash.domainDot} title={`${d.title}: ${d.facets.join(', ')}`} aria-label={`${d.title}: ${d.facets.join(', ')}`}>
+              {DOMAIN_LOOK[d.key].letter}
             </span>
           ))}
         </span>
@@ -1485,6 +1529,90 @@ const dash: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 20,
   },
+  tipText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  examples: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  example: {
+    padding: '2px 10px',
+    border: `2px solid ${gunmetal}`,
+    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
+    fontSize: 17,
+  },
+  approachStamp: {
+    alignSelf: 'flex-start',
+    fontSize: 16,
+  },
+  likertCaption: {
+    marginTop: 10,
+    fontSize: 18,
+  },
+  //the three steps in a row, wrapping under each other on narrow screens
+  steps: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: 8,
+  },
+  stepSlot: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepArrow: {
+    fontSize: 22,
+    color: brownRed,
+  },
+  step: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'stretch',
+    width: 112,
+    padding: '10px 6px 8px',
+    background: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
+    boxShadow: `3px 3px 0 ${paleBlue}`,
+    textAlign: 'center',
+  },
+  stepTitle: {
+    fontFamily: comic,
+    fontSize: 18,
+    letterSpacing: 0.5,
+    lineHeight: 1.05,
+  },
+  approachMore: {
+    gridColumn: '1 / -1',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  approachWhy: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  approachWhyList: {
+    margin: 0,
+    paddingLeft: 22,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    fontSize: 18,
+    lineHeight: 1.3,
+  },
   approachItemTitle: {
     fontFamily: comic,
     fontWeight: 400,
@@ -1544,10 +1672,37 @@ const dash: Record<string, CSSProperties> = {
     letterSpacing: 1,
     lineHeight: 1.05,
   },
+  thumb: {
+    width: '100%',
+    aspectRatio: '16 / 10',
+    objectFit: 'cover',
+    marginTop: 8,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
+    background: gunmetal,
+  },
+  kinds: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
   kind: {
-    fontSize: 16,
-    fontStyle: 'italic',
     color: cinnamon,
+    borderColor: cinnamon,
+    cursor: 'help',
+  },
+  domainDot: {
+    display: 'grid',
+    placeItems: 'center',
+    width: 32,
+    height: 32,
+    background: blue,
+    color: ivory,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: '50% 46% 52% 48%',
+    fontFamily: comic,
+    fontSize: 18,
+    cursor: 'help',
   },
   blurb: {
     fontSize: 19,
