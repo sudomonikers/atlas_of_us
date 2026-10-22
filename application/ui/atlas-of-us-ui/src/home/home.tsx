@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
 import { navigate } from '../router';
 import { Nav } from '../shared_components/nav';
-import { Footer } from '../shared_components/footer';
 import { Scenes } from './scenes';
 import { Strip } from './strip';
 
