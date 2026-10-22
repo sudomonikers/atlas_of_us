@@ -392,9 +392,17 @@ async fn save_evidence(graph: &Graph, answers: &[ScoredAnswer], traits: Vec<LlmT
     Ok(())
 }
 
+//a trait whose evidence all leans the same way, with at least half of it this strong, has its value pushed further from
+//typical the more of that evidence there is, since that much consistent evidence says more than its average
+const FORCE_STRONG_WEIGHT: f64 = 0.6; //a story choice at its cap, or anything above: live actions and details from their own life
+//how many pieces of evidence it takes, and the force they get, largest first. The force multiplies the log-odds: at
+//1.5, 0.8 becomes 0.89 and 0.18 becomes 0.09
+const FORCES: [(usize, f64); 3] = [(10, 1.75), (8, 1.5), (6, 1.25)];
+
 //scores every trait from all the evidence on the person's answers, replacing the old scores outright. The value is the
 //weighted average of the levels in log-odds, so levels near 0 or 1 count for more than they would in a plain average,
-//and answers that disagree cancel out. Answers that agree land where they agree (nine at 0.18 make 0.18). Confidence is how much evidence there is (0.63 at a total weight of 3, 0.86 at 6) times how well
+//and answers that disagree cancel out. Answers that agree land where they agree (nine at 0.18 make 0.18), unless
+//there's enough strong evidence to apply one of the FORCES. Confidence is how much evidence there is (0.63 at a total weight of 3, 0.86 at 6) times how well
 //it agrees: 1 when every level is the same, falling to 0 as their spread reaches the widest possible. A trait with no
 //evidence is left unmeasured
 pub async fn save_traits(graph: &Graph, person_id: &str) -> Result<(), BoxError> {
@@ -419,7 +427,15 @@ pub async fn save_traits(graph: &Graph, person_id: &str) -> Result<(), BoxError>
             return None;
         }
         let log_odds = weighted(|s| { let l = s.level.clamp(0.01, 0.99); (l / (1.0 - l)).ln() }); //0 and 1 have infinite log-odds
-        let value = 1.0 / (1.0 + (-log_odds / weight).exp());
+        //evidence a contest removed has no weight, so it doesn't count. A level of exactly 0.5 leans neither way, so it breaks agreement
+        let counted = shifts.iter().filter(|s| s.weight > 0.0).collect::<Vec<_>>();
+        let agree = counted.iter().all(|s| s.level > 0.5) || counted.iter().all(|s| s.level < 0.5);
+        let strong = counted.iter().filter(|s| s.weight >= FORCE_STRONG_WEIGHT).count();
+        let force = match agree && strong * 2 >= counted.len() {
+            true => FORCES.iter().find(|(pieces, _)| counted.len() >= *pieces).map_or(1.0, |(_, force)| *force),
+            false => 1.0,
+        };
+        let value = 1.0 / (1.0 + (-log_odds * force / weight).exp());
         let mean = weighted(|s| s.level) / weight;
         let spread = (shifts.iter().map(|s| s.weight * (s.level - mean).powi(2)).sum::<f64>() / weight).sqrt(); //at most 0.5
         let confidence = (1.0 - (-weight / 3.0).exp()) * (1.0 - spread * 2.0);

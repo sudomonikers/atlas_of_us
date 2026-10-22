@@ -134,11 +134,13 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
   );
 }
 
-//how an answer moved the trait, in words
+//how an answer moved the trait, in words. A level of exactly 0.5 leans neither way, as the scorer counts it
 const push = ({ level, weight }: Shift) =>
   weight === 0
     ? 'no longer counts'
-    : `${weight >= 0.6 ? 'strongly ' : weight >= 0.3 ? '' : 'slightly '}${level >= 0.5 ? 'raised' : 'lowered'}`;
+    : level === 0.5
+      ? 'neither raised nor lowered'
+      : `${weight >= 0.6 ? 'strongly ' : weight >= 0.3 ? '' : 'slightly '}${level > 0.5 ? 'raised' : 'lowered'}`;
 
 //how a contest changed the evidence. A change too small to alter the words says which way it went
 const pull = ({ level, weight }: Shift) => Math.abs(level - 0.5) * weight;
@@ -151,16 +153,17 @@ const change = (before: Shift, after: Shift) =>
 
 function ContributionCard({ contribution: c, onContested }: { contribution: Contribution; onContested: () => void }) {
   const [contesting, setContesting] = useState(false);
-  const up = c.level >= 0.5;
+  const up = c.level > 0.5;
   const removed = c.weight === 0;
+  const neither = c.level === 0.5;
   const pending = c.contests.some((contest) => contest.status === 'pending');
   const contestable = !pending && !c.dropped && c.contests.length < MAX_CONTESTS_PER_EVIDENCE;
   return (
     <li style={styles.contribution}>
       <div style={styles.contributionHead}>
         <span className="comic-chip">{c.scenario}</span>
-        <span style={{ ...styles.push, color: removed ? gunmetal : up ? blue : brownRed }}>
-          {removed ? '✕' : up ? '▲' : '▼'} {push(c)}
+        <span style={{ ...styles.push, color: removed || neither ? gunmetal : up ? blue : brownRed }}>
+          {removed ? '✕' : neither ? '–' : up ? '▲' : '▼'} {push(c)}
         </span>
         {contestable && !contesting && (
           <button className="comic-lift" style={styles.contestButton} title="Contest this" aria-label="Contest this" onClick={() => setContesting(true)}>
