@@ -945,6 +945,8 @@ function resume(script: Script, saved: SavedAnswer[]) {
     if (!next || next.section === script.clock?.from) break;
     history.push(next);
   }
+  //nothing to pick up, from a fresh run or answers the script no longer has, starts on the first step, not the first prompt
+  if (!Object.keys(answers).length) return { history: history.slice(0, 1), answers };
   return { history, answers };
 }
 
