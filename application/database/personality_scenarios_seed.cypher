@@ -238,10 +238,10 @@ DETACH DELETE old;
 // The Time Study. An interview, with no branches that add or skip questions: every path asks all nine
 MATCH (s:PersonalityScenario {name: 'the_time_study'})
 UNWIND [
-  {order: 0, real_life: true, key: 'diary_morning', prompt: "Yesterday morning, from when you woke up until about lunchtime: what did you actually do? Rough is fine."},
-  {order: 1, real_life: true, key: 'diary_afternoon', prompt: "And the afternoon, from lunch until about dinner?"},
-  {order: 2, real_life: true, key: 'diary_evening', prompt: "And the evening, until you went to sleep? Roughly what time was that?"},
-  {order: 3, real_life: true, key: 'wasted', prompt: "Looking at the whole day, how much of it would you call wasted: time that went on things you didn't really choose, and didn't really enjoy? Pick the closest, and circle the parts."},
+  {order: 0, real_life: true, key: 'diary_days', prompt: "Over the last seven days, what took up most of your daytimes: work, school, looking after someone, something else? Rough is fine."},
+  {order: 1, real_life: true, key: 'diary_evenings', prompt: "And your evenings, once the day was done? What did most of them go on, and roughly what time did you usually get to sleep?"},
+  {order: 2, real_life: true, key: 'diary_weekend', prompt: "And the weekend: what did you actually do with it, and was it what you meant to do?"},
+  {order: 3, real_life: true, key: 'wasted', prompt: "Looking at the whole week, how much of it would you call wasted: time that went on things you didn't really choose, and didn't really enjoy? Pick the closest, and circle the parts."},
   {order: 4, real_life: true, key: 'putting_off', prompt: "Think of the last thing you had to do but didn't want to: a call, a form, a chore, anything. How long was it between knowing about it and actually starting? Pick the closest, and tell me what it was."},
   {order: 5, real_life: true, key: 'last_week', prompt: "Think of everything you meant to get done in the last 7 days. Roughly what share of it did you actually finish? Pick the closest, and tell me about one thing that didn't get done."},
   {order: 6, real_life: true, key: 'how_much', prompt: "The last real piece of work you did, for a job, for school, around the house, anything: did you do more than was needed, exactly what was needed, or just enough to get by? Pick the closest, and tell me what it was."},

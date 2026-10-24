@@ -42,9 +42,9 @@ const cues: Record<string, Cue> = {
   door: { page: 'door', parts: ['door', 'sign'] },
   office: { page: 'office', parts: ['window', 'desk', 'osei', 'mugs', 'clock'] },
   diary: { page: 'diary', parts: DIARY },
-  diary_morning: { page: 'diary', parts: [...DIARY, 'hl0'] },
-  diary_afternoon: { page: 'diary', parts: [...DIARY, 'write0', 'hl1'] },
-  diary_evening: { page: 'diary', parts: [...DIARY, 'write0', 'write1', 'hl2'] },
+  diary_days: { page: 'diary', parts: [...DIARY, 'hl0'] },
+  diary_evenings: { page: 'diary', parts: [...DIARY, 'write0', 'hl1'] },
+  diary_weekend: { page: 'diary', parts: [...DIARY, 'write0', 'write1', 'hl2'] },
   red_pen: { page: 'diary', parts: WRITTEN },
   circled_few: { page: 'diary', parts: [...WRITTEN, 'few'] },
   circled_some: { page: 'diary', parts: [...WRITTEN, 'some'] },
@@ -123,9 +123,9 @@ const clockFace = (x: number, y: number, r: number): Item[] => [
 // the pages
 // ---------------------------------------------------------------------------
 
-//the diary page: three bands down it, morning, afternoon and evening, the tops at BANDS
+//the diary page: the last seven days, three bands down it, daytime, evenings and weekend, the tops at BANDS
 const BANDS = [140, 280, 420];
-const BAND_NAMES = ['MORNING', 'AFTERNOON', 'EVENING'];
+const BAND_NAMES = ['DAYTIME', 'EVENINGS', 'WEEKEND'];
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 const ART: Record<Page, Record<string, Item[]>> = {
@@ -148,7 +148,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
   },
 
   diary: {
-    sheet: [...pen(round(360, 80, 880, 520, 10), 'ink', 4), words('ink', 'YESTERDAY', 800, 124, 30)],
+    sheet: [...pen(round(360, 80, 880, 520, 10), 'ink', 4), words('ink', 'LAST 7 DAYS', 800, 124, 30)],
     bands: BANDS.flatMap((y, i): Item[] => [{ line: 'ink', d: line([380, y], [1220, y]), w: 2 }, { ...words('ink', BAND_NAMES[i], 400, y + 34, 20, 'start'), ls: 3 }]),
     hl0: [highlight(394, BANDS[0] + 12, 156, 30)],
     hl1: [highlight(394, BANDS[1] + 12, 190, 30)],

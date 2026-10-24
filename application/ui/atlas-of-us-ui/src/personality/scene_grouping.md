@@ -143,9 +143,9 @@ A friend's 40th: two hundred people, a loud band, and you know about four of the
 ### 4. The Time Study
 *Interview*
 
-A researcher who studies how people spend their days asks about yours. These are habits, which one made-up moment can't show, so every question is about the player's real life with a fixed window. It opens with a light activity: a diary page for yesterday, with the wasted parts circled in red.
+A researcher who studies how people spend their days asks about yours. These are habits, which one made-up moment can't show, so every question is about the player's real life with a fixed window. It opens with a light activity: a diary page for the last seven days, with the wasted parts circled in red.
 
-- **Yesterday's diary, and how much of it was wasted**
+- **The last seven days' diary, and how much of it was wasted**
   - `C5.7` − Waste my time. ★
 - **The last thing you put off: how long before you started**
   - `C5.3` + Start tasks right away.

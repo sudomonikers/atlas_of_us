@@ -2,8 +2,8 @@ import type { Script } from '../personality';
 
 // The Time Study: a researcher who studies how people spend their days asks about yours
 // Habits can't be shown in one made-up moment, so this is an interview: every question is about the player's real life,
-// and every "how often" has a fixed window. It opens with a light activity: filling in a diary page for yesterday,
-// morning, afternoon and evening, then marking which parts were wasted.
+// and every "how often" has a fixed window. It opens with a light activity: filling in a diary page for the last
+// seven days, the daytimes, the evenings and the weekend, then marking which parts were wasted.
 // Written to the IPIP-NEO items in ../scene_grouping.md: wasting my time (C5.7), starting tasks right away (C5.3),
 // having difficulty starting tasks (C5.9), completing tasks successfully (C1.1), working hard (C4.2), doing just
 // enough work to get by (C4.9), getting stressed out easily (N1.4) and forgetting to put things back in their proper
@@ -26,49 +26,49 @@ export const theTimeStudy: Script = {
         { text: 'The psychology building smells of floor polish and burnt coffee. A sign on the third door down says: TIME STUDY. PARTICIPANTS, PLEASE KNOCK.', animation: 'door' },
         { text: 'Dr. Osei opens it with a mug in each hand. She has spent twenty years studying how people spend their days, and she still sounds delighted by it.', animation: 'office' },
         { speaker: OSEI, text: "Thank you for coming in. There are no right answers here, and nothing gets graded. I want to know how your days really go, not how they're supposed to go.", animation: 'office' },
-        { speaker: OSEI, text: "We'll start with a little homework. Here's a diary page for yesterday. Fill it in as roughly as you like.", animation: 'diary' },
+        { speaker: OSEI, text: "We'll start with a little homework. Here's a diary page for your last seven days. One day is a fluke, but a week is a pattern. Fill it in as roughly as you like.", animation: 'diary' },
         {
-          id: 'diary_morning',
-          prompt: 'Yesterday morning, from when you woke up until about lunchtime: what did you actually do? Rough is fine.',
-          animation: 'diary_morning',
+          id: 'diary_days',
+          prompt: 'Over the last seven days, what took up most of your daytimes: work, school, looking after someone, something else? Rough is fine.',
+          animation: 'diary_days',
           facets: ['Self-Discipline'],
         },
         {
-          id: 'diary_afternoon',
-          prompt: 'And the afternoon, from lunch until about dinner?',
-          animation: 'diary_afternoon',
+          id: 'diary_evenings',
+          prompt: 'And your evenings, once the day was done? What did most of them go on, and roughly what time did you usually get to sleep?',
+          animation: 'diary_evenings',
           facets: ['Self-Discipline'],
         },
         {
-          id: 'diary_evening',
-          prompt: 'And the evening, until you went to sleep? Roughly what time was that?',
-          animation: 'diary_evening',
+          id: 'diary_weekend',
+          prompt: 'And the weekend: what did you actually do with it, and was it what you meant to do?',
+          animation: 'diary_weekend',
           facets: ['Self-Discipline'],
         },
         { speaker: OSEI, text: 'Lovely. Now take this red pen, and be honest with it.', animation: 'red_pen' },
         {
           id: 'wasted',
           speaker: OSEI,
-          prompt: "Looking at the whole day, how much of it would you call wasted: time that went on things you didn't really choose, and didn't really enjoy? Pick the closest, and circle the parts.",
+          prompt: "Looking at the whole week, how much of it would you call wasted: time that went on things you didn't really choose, and didn't really enjoy? Pick the closest, and circle the parts.",
           animation: 'red_pen',
           facets: ['Self-Discipline'],
           choices: [
             { label: 'Hardly any of it.', next: 'wasted_little' },
-            { label: 'An hour or so.', next: 'wasted_some' },
-            { label: 'A few hours.', next: 'wasted_lot' },
-            { label: 'Most of it, honestly.', next: 'wasted_lot' },
+            { label: 'A few hours, here and there.', next: 'wasted_some' },
+            { label: 'A day or so, all added up.', next: 'wasted_lot' },
+            { label: 'More than that, honestly.', next: 'wasted_lot' },
           ],
         },
       ],
     },
 
     wasted_little: {
-      steps: [{ speaker: OSEI, text: "Hardly a red mark on it. You're rarer than you'd think.", animation: 'circled_few' }],
+      steps: [{ speaker: OSEI, text: "A whole week, and hardly a red mark on it. You're rarer than you'd think.", animation: 'circled_few' }],
       next: 'putting_off',
     },
 
     wasted_some: {
-      steps: [{ speaker: OSEI, text: "An hour or so. That's about the average, if it helps. Most of it goes in ten-minute pieces.", animation: 'circled_some' }],
+      steps: [{ speaker: OSEI, text: "A few hours, that's not too bad.", animation: 'circled_some' }],
       next: 'putting_off',
     },
 
@@ -198,7 +198,7 @@ export const theTimeStudy: Script = {
           facets: ['Orderliness'],
         },
         { speaker: OSEI, text: "You'd be amazed how many people pat their pockets at this point.", animation: 'pockets' },
-        { text: 'Dr. Osei clips your diary page into a thick folder, along with hundreds of others, and walks you back to the stairs.', animation: 'folder' },
+        { text: 'Dr. Osei clips your week into a thick folder, along with hundreds of others, and walks you back to the stairs.', animation: 'folder' },
         { text: 'At the top of the stairs, she hands you a card: "Thank you for your time. We know it\'s precious."', animation: 'goodbye' },
       ],
     },
