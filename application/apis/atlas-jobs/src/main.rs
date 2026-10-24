@@ -5,6 +5,7 @@ mod jobs;
 mod personality_contest;
 mod personality_report;
 mod personality_scoring;
+mod skill_fill;
 
 use std::{env, io::IsTerminal};
 

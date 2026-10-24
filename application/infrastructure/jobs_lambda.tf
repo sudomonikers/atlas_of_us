@@ -113,12 +113,6 @@ resource "aws_iam_role_policy" "jobs" {
         ]
       },
       {
-        # anthropic models are sold through the marketplace, and the first call subscribes the account to them
-        Effect   = "Allow"
-        Action   = ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe"]
-        Resource = "*"
-      },
-      {
         Effect   = "Allow"
         Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
         Resource = [aws_sqs_queue.jobs.arn, aws_sqs_queue.skills_events.arn]

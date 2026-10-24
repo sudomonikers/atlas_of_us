@@ -2,7 +2,7 @@
 //for and filled is described in documentation/architecture/skills.md
 mod resolver;
 
-use std::{collections::HashMap, env};
+use std::collections::HashMap;
 
 use axum::{
     Json, Router,
@@ -11,7 +11,6 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use neo4rs::query;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -26,7 +25,6 @@ pub fn router() -> Router<AppState> {
         .route("/search", get(search))
         .route("/{id}", get(get_skill))
         .route("/{id}/fill", post(request_fill))
-        .route("/{id}/aliases", post(add_alias))
 }
 
 /// Healthcheck for the skills router.
@@ -163,9 +161,8 @@ pub enum AskOutcome {
     NotASkill { kind: String, name: String },
     //nonsense, or a slur
     Rejected { reason: String },
-    //it's a skill we already have. alias_token adds the user's wording to it if they confirm, and is missing when we
-    //already know it by that name
-    Existing { skill: SkillSummary, name: String, alias_token: Option<String> },
+    //it's a skill we already have
+    Existing { skill: SkillSummary },
     //a new stub, ready to be opened
     Created { skill: SkillSummary },
 }
@@ -188,12 +185,9 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
     let (resolution, vector) = resolver::resolve(&state, &screening.name, &screening.description).await.map_err(internal)?;
     let id = match resolution {
         resolver::Resolution::Same { skill_id } => {
-            let skill = summaries(&state, std::slice::from_ref(&skill_id)).await.map_err(internal)?.pop().ok_or_else(not_found)?;
-            let known = known_names(&state, &skill_id).await.map_err(internal)?;
-            let alias_token = (!known.contains(&screening.name.to_lowercase()))
-                .then(|| alias_token(&skill_id, &screening.name)).transpose().map_err(internal)?;
             tracing::info!(skill_id, "skill request means an existing skill");
-            return Ok(Json(AskOutcome::Existing { skill, name: screening.name, alias_token }));
+            let skill = summaries(&state, &[skill_id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
+            return Ok(Json(AskOutcome::Existing { skill }));
         }
         resolver::Resolution::SpecializationOf { parent_id } => {
             resolver::create_stub(&state, &screening.name, &screening.description, vector, Some(&parent_id)).await.map_err(internal)?
@@ -203,94 +197,6 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
     tracing::info!(skill_id = id, "created a skill stub");
     let skill = summaries(&state, &[id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
     Ok(Json(AskOutcome::Created { skill }))
-}
-
-//the skill's name and aliases, lowercased
-async fn known_names(state: &AppState, skill_id: &str) -> Result<Vec<String>, BoxError> {
-    let mut rows = state.graph.execute(query("
-        MATCH (s:Skill {id: $id}) RETURN [name IN [s.name] + s.aliases | toLower(name)] AS names
-    ").param("id", skill_id)).await?;
-    Ok(match rows.next().await? {
-        Some(row) => row.get("names")?,
-        None => Vec::new(),
-    })
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Aliases
-// ---------------------------------------------------------------------------------------------------------------------
-
-//an alias the gates offered for a skill, signed so only names that went through the gates can be added
-#[derive(Serialize, Deserialize)]
-struct AliasClaims {
-    skill_id: String,
-    alias: String,
-    exp: i64,
-}
-
-//how long a user has to confirm "did you mean...?"
-const ALIAS_TOKEN_MINUTES: i64 = 60;
-
-fn jwt_secret() -> Result<String, BoxError> {
-    Ok(env::var("JWT_SECRET").map_err(|_| "JWT_SECRET is not set")?)
-}
-
-fn alias_token(skill_id: &str, alias: &str) -> Result<String, BoxError> {
-    let claims = AliasClaims {
-        skill_id: skill_id.to_string(),
-        alias: alias.to_string(),
-        exp: (chrono::Utc::now() + chrono::Duration::minutes(ALIAS_TOKEN_MINUTES)).timestamp(),
-    };
-    Ok(encode(&Header::new(Algorithm::HS256), &claims, &EncodingKey::from_secret(jwt_secret()?.as_bytes()))?)
-}
-
-#[derive(Deserialize)]
-pub struct AliasRequest {
-    alias_token: String,
-}
-
-//the user confirmed that what they asked for is this skill, so their wording becomes one of its aliases
-pub async fn add_alias(
-    State(state): State<AppState>,
-    _user: AuthUser,
-    Path(id): Path<String>,
-    Json(req): Json<AliasRequest>,
-) -> Result<Json<SkillSummary>, (StatusCode, String)> {
-    let expired = || (StatusCode::BAD_REQUEST, "That suggestion has expired. Please search again.".to_string());
-    let secret = jwt_secret().map_err(internal)?;
-    let claims = decode::<AliasClaims>(&req.alias_token, &DecodingKey::from_secret(secret.as_bytes()), &Validation::new(Algorithm::HS256))
-        .map_err(|_| expired())?.claims;
-    if claims.skill_id != id {
-        return Err(expired());
-    }
-
-    let mut rows = state.graph.execute(query("
-        MATCH (s:Skill {id: $id})
-        WITH s, NOT toLower($alias) IN [name IN [s.name] + s.aliases | toLower(name)] AS added
-        SET s.aliases = CASE WHEN added THEN s.aliases + $alias ELSE s.aliases END
-        RETURN s.name AS name, s.description AS description, s.aliases AS aliases, added
-    ").param("id", id.as_str()).param("alias", claims.alias.as_str())).await.map_err(internal)?;
-    let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
-
-    if row.get::<bool>("added").map_err(internal)? {
-        tracing::info!(skill_id = id, "added an alias");
-        let name: String = row.get("name").map_err(internal)?;
-        let description: Option<String> = row.get("description").map_err(internal)?;
-        let aliases: Vec<String> = row.get("aliases").map_err(internal)?;
-        //the vector covers the aliases too. The alias is saved either way, and a stale vector only makes search a little worse
-        match bedrock::embed(&state.bedrock, &resolver::embedding_text(&name, description.as_deref().unwrap_or_default(), &aliases)).await {
-            Ok(vector) => {
-                state.graph.run(query("MATCH (s:Skill {id: $id}) SET s.vector = $vector").param("id", id.as_str()).param("vector", vector))
-                    .await.map_err(internal)?;
-            }
-            Err(e) => tracing::error!(skill_id = id, "couldn't re-embed the skill: {e}"),
-        }
-        if let Err(e) = events::publish(&state.bus, "atlas.skills", "SkillAliasAdded", 1, json!({"skillId": id})).await {
-            tracing::error!(skill_id = id, "{e}");
-        }
-    }
-    let skill = summaries(&state, &[id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
-    Ok(Json(skill))
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

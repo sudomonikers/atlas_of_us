@@ -22,8 +22,9 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 |---|---|---|
 | UI | `application/ui/atlas-of-us-ui/src/skills/` | Search, the skill page, claiming a level, reviewing content and proposals |
 | API | `application/apis/atlas-api/src/domains/skills/mod.rs` | Search, the creation gates, claiming levels, endorsements and proposals, publishing events |
-| Gates and resolver | `application/apis/atlas-api/src/domains/skills/resolver.rs`, the resolver shared with the fill job | The gates normalize and classify what a user asks for, and screen out nonsense. The resolver decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs |
-| Fill job | `application/apis/atlas-jobs/src/skill_fill.rs` | Generates a stub's Dreyfus levels and prerequisites with Bedrock |
+| Gates and resolver | `application/apis/atlas-api/src/domains/skills/resolver.rs` | The gates normalize and classify what a user asks for, and screen out nonsense. The resolver decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs |
+| Fill job | `application/apis/atlas-jobs/src/skill_fill.rs` | Generates a stub's Dreyfus levels with Bedrock |
+| Prerequisites job | `application/apis/atlas-jobs/src/skill_prerequisites.rs` | Links a filled skill's levels to the levels of the skills they need, with the resolver |
 | Proposal job | `application/apis/atlas-jobs/src/skill_proposal.rs` | Screens a proposed change before it is opened to the community |
 | Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and one rule and queue per consumer |
 | Taxonomy import | `application/database/skills_import/` | Loads ESCO skills, aliases and hierarchy as stubs |
@@ -31,6 +32,8 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 ### Models
 - **The gates and the resolver's judge** use a fast model on Bedrock, set by `SMALL_MODEL` in `bedrock.rs` (Claude Haiku
   4.5). Each is one forced tool call whose input is the answer.
+- **The fill job** uses the atlas-jobs model, set by `BEDROCK_MODEL_ID` in `jobs_lambda.tf` (Claude Sonnet 4.6), in one
+  forced tool call that writes all five levels.
 - **Embeddings** come from Amazon Titan Text Embeddings V2 on Bedrock, at 1024 dimensions. A skill's vector is an
   embedding of `"<name>. <description>. Also known as <alias>, <alias>."`, and a search is an embedding of what was
   typed. Why Titan is in `ADRs/skills_embeddings.md`.
@@ -41,8 +44,7 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 | Route | What it does |
 |---|---|
 | `GET /search?q=` | The closest skills, each with its broader skill |
-| `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means, and an `alias_token` for the user's wording) or `created` (the new stub) |
-| `POST /{id}/aliases` `{alias_token}` | The user confirmed "did you mean...?", so their wording becomes an alias |
+| `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
 | `GET /{id}` | A skill with its levels, its broader skill and its specializations |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
 
@@ -52,7 +54,7 @@ duplicate:
 
 1. **The taxonomy import.** Our starting backbone.
 2. **A user searching for something we don't have.** Goes through the gates first.
-3. **The fill job naming a prerequisite we don't have.** Created as a stub, never filled until someone needs it.
+3. **The prerequisites job naming a prerequisite we don't have.** Created as a stub, never filled until someone needs it.
 
 ### The taxonomy: ESCO
 ESCO is the European Commission's classification of skills and occupations. It's free to use with attribution, and it
@@ -79,8 +81,7 @@ How we import it:
 On top of what `../data_model/skills/skills.md` describes:
 
 - `status`: where it is in its life (see below).
-- `aliases`: every other name we know it by. When a user's search turns out to mean an existing skill, their wording
-  is added here instead of becoming a new node.
+- `aliases`: every other name we know it by, from ESCO's alternative names.
 - `vector`: an embedding of the name, description and aliases, used by the resolver.
 
 ### How skills relate to each other
@@ -89,7 +90,7 @@ There are three different relationships between skills, and keeping them apart m
 - **Specialization:** `(Sourdough Baking)-[:SPECIALIZATION_OF]->(Baking)`. A narrower version of a broader skill. Comes
   mostly from ESCO, and from the resolver when a user names something more specific than what we have.
 - **Prerequisite:** lives on the **levels**, not the skills, matching the data model. `(Cooking Competent)-[:REQUIRES
-  {strength}]->(Knife Skills Advanced Beginner)`. Comes from the fill job.
+  {strength}]->(Knife Skills Advanced Beginner)`. Comes from the prerequisites job.
 - **Same skill:** one node, with the other name in its aliases.
 
 ### Statuses
@@ -107,14 +108,14 @@ graph instead of in a message waiting to be delivered.
 
 ## The resolver
 The resolver answers one question: given a name (and maybe a description), is it the **same as** an existing skill,
-**more specific than** one, or **new**? It's used by the API's gates and by the fill job, with the same logic in both.
+**more specific than** one, or **new**? It's used by the API's gates and by the prerequisites job, with the same logic in both.
 
 1. **Find candidates:** an exact match on name or alias, ignoring case, is `same` straight away. Otherwise the eight
    nearest skills by vector similarity are the candidates, and with none at all the name is `new`.
 2. **Judge:** a small, fast model looks at the name, its description and the candidates (with their aliases and broader
    skills) and returns `same`, `specialization_of` or `new`, with the candidate it means.
 3. **Act:**
-   - `same`: use the existing node, and record the new wording as an alias.
+   - `same`: use the existing node.
    - `specialization_of`: create a stub under that parent.
    - `new`: create a stub with no parent.
 
@@ -149,10 +150,8 @@ one structured call to a fast model, and the fourth is the resolver:
    message and links to that module. Something can be both (Python is a skill and a topic), and that's fine: it's a
    skill here.
 3. **Screen:** reject nonsense and slurs. Real skills pass whatever they're about, including violent and sexual ones.
-4. **Resolve:** run the resolver on the normalized name. If it says `same`, we show the user "did you mean...?" and, if
-   they say yes, add their wording (the normalized name) as an alias, re-embed the skill and publish `SkillAliasAdded`.
-   The wording travels in an `alias_token` signed by the API and valid for an hour, so only names that passed the gates
-   become aliases. If it says `specialization_of` or `new`, we create the stub.
+4. **Resolve:** run the resolver on the normalized name. If it says `same`, we show the user the skill they meant. If
+   it says `specialization_of` or `new`, we create the stub.
 
 If the stub is created, the user goes straight into the opening flow above.
 
@@ -161,14 +160,15 @@ A stub is filled the first time someone needs it: they open it, try to claim a l
 filled just because it exists, so the cost of a skill follows how much people actually use it.
 
 1. The API sets the skill to `filling` and publishes `SkillFillRequested`.
-2. The fill job picks it up and, in one Bedrock call with a fixed output schema, writes:
-   - **Each of the five levels,** with a description, **observable signs** ("can do X without Y"), **example
-     evidence** that would show it, and what it takes to reach the next level. Observable signs are what make evidence
-     checkable later.
-   - **Prerequisites per level,** as names. Each one goes through the resolver. Existing skills are linked to; new ones
-     become stubs (and publish `SkillCreated`), but are **not** filled. Before writing a `REQUIRES` link, the job checks
-     it wouldn't create a cycle.
+2. The fill job picks it up and, in one Bedrock call with a fixed output schema, writes **each of the five levels,**
+   with a description, **observable signs** ("can do X without Y"), **example evidence** that would show it, and what
+   it takes to reach the next level. Observable signs are what make evidence checkable later.
 3. It sets the skill to `ready`, marks the content `provisional`, and publishes `SkillFilled`.
+
+### Prerequisites
+The prerequisites job reacts to `SkillFilled`. It reads the filled levels and names the skills each one needs. Each
+name goes through the resolver: existing skills are linked to, and new ones become stubs (and publish `SkillCreated`),
+but are **not** filled. Before writing a `REQUIRES` link, the job checks it wouldn't create a cycle.
 
 Requirements on Topics, Physical Attributes, Personality Traits and anything else are written by the modules that own
 those sub-graphs. They react to `SkillFilled` and add their own requirements to the levels (see below).
@@ -232,7 +232,6 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 | `SkillFillRequested` | Someone needs a stub filled | The Skills fill job |
 | `SkillFilled` | A skill's levels are filled for the first time | Topics and Physical Attributes (to add their requirements), Jobs, recommendations |
 | `SkillFillFailed` | The fill job gave up | Admin metrics, the UI (through polling) |
-| `SkillAliasAdded` | A new name was recorded for a skill | Search indexing |
 | `SkillProposalSubmitted` | A user proposed a change | The Skills proposal job |
 | `SkillLevelRevised` | A proposal was promoted | Anything that read the old level, such as requirement links and people's claims |
 | `SkillLevelClaimed` | A person claimed a level | Profile, recommendations, evidence verification |
@@ -264,7 +263,7 @@ Events name a skill by its `id`, and a level by its skill's `id` and its `rank`.
 - **The graph is the source of truth, and events are published after the write.** If a write succeeds but the publish
   fails, the skill is left in a state such as `filling` with nothing working on it. When the API's `SkillFillRequested`
   publish fails, it puts the skill back to the status it had, so the next person to open it asks again. `SkillCreated`
-  and `SkillAliasAdded` failures are logged, since the skill is usable without them.
+  and `SkillFilled` failures are logged, since the skill is usable without them.
 - **Every consumer is idempotent.** SQS can deliver the same message more than once, so Consumers `MERGE` rather than `CREATE`, and check 
   status before doing work (a fill job that finds the skill already `ready` does nothing).
 - **Events carry a `schemaVersion`,** so we can change an event's shape later without breaking older consumers.
@@ -273,6 +272,7 @@ Events name a skill by its `id`, and a level by its skill's `id` and its `rank`.
 1. **The event bus,** its archive, and the Skills consumer rule and queue.
 2. **The ESCO import,** with embeddings and the uniqueness constraint.
 3. **Search and the gates** in the API, with the resolver.
-4. **The fill job,** with the resolver for prerequisites, and the cycle check.
+4. **The fill job.**
 5. **Claiming levels,** with evidence and content versions.
 6. **Endorsements and proposals,** with the proposal job.
+7. **The prerequisites job,** with the resolver and the cycle check.

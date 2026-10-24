@@ -15,8 +15,8 @@ Each Skill node carries:
 - `id`: a uuid, which events refer to.
 - `name`: its preferred name. It's unique, so two requests for the same new skill at the same moment `MERGE` onto one node, and re-running the taxonomy import updates nodes instead of duplicating them.
 - `description`
-- `aliases`: a list of every other name it goes by. ESCO's alternative names land here on import, and so does a user's wording when their search turns out to mean an existing skill.
-- `vector`: an embedding of the name, description and aliases joined together, used by search and to find similar skills before a new one is created. It's made by Amazon Titan Text Embeddings V2 (1024 dimensions) from `"<name>. <description>. Also known as <alias>, <alias>."`, and remade when an alias is added.
+- `aliases`: a list of every other name it goes by. ESCO's alternative names land here on import.
+- `vector`: an embedding of the name, description and aliases joined together, used by search and to find similar skills before a new one is created. It's made by Amazon Titan Text Embeddings V2 (1024 dimensions) from `"<name>. <description>. Also known as <alias>, <alias>."`.
 - `status`: where the skill is in its life:
   - `stub`: exists and can be found and linked to, but its levels are empty
   - `filling`: the fill job is generating its levels
@@ -105,12 +105,12 @@ There are three different ways two skills can be related, and they are kept apar
 (:Skill {name: "Sourdough Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Cooking"})
 ```
 
-**Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps). Prerequisites are written by the fill job, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away:
+**Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps). Prerequisites are written by the prerequisites job once a skill is filled, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away:
 ```cypher
 (:DreyfusLevel {name: "Cooking Competent"})-[:REQUIRES {strength: 0.8}]->(:DreyfusLevel {name: "Knife Skills Advanced Beginner"})
 ```
 
-Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The fill job checks this before writing each one.
+Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The prerequisites job checks this before writing each one.
 
 **Same skill.** One node, with the other name in its aliases.
 

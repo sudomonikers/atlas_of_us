@@ -8,7 +8,7 @@ use neo4rs::Graph;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
-use crate::personality_scoring::BoxError;
+use crate::{personality_scoring::BoxError, skill_fill};
 
 //an event as it arrives on a queue: the bus's envelope, with what the publisher sent in `detail`
 #[derive(Deserialize)]
@@ -21,12 +21,13 @@ pub struct Event {
 
 //handlers are picked by detail-type. Events can arrive more than once, so every handler is safe to run twice. Handlers
 //handle their own failures, so a bad event is logged and never retried
-pub async fn handle(_graph: &Graph, body: &str) {
+pub async fn handle(graph: &Graph, body: &str) {
     let event = match serde_json::from_str::<Event>(body) {
         Ok(event) => event,
         Err(e) => return tracing::error!("unreadable event: {e}"),
     };
     match event.detail_type.as_str() {
+        "SkillFillRequested" => skill_fill::run(graph, event.detail).await,
         other => tracing::warn!(source = event.source, detail_type = other, detail = %event.detail, "no handler for event"),
     }
 }

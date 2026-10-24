@@ -7,6 +7,10 @@ It also works through each module's events queue (`infrastructure/events.tf`). E
 the `atlas-events` bus, and its `detail-type` picks the handler in `events.rs`. Handlers publish to the bus named by
 `EVENT_BUS_NAME`.
 
+| detail-type | what it does |
+|---|---|
+| `SkillFillRequested` | Fills a `filling` skill (`skill_fill.rs`). One Bedrock call writes its five Dreyfus levels, then the skill is `ready` and `SkillFilled` is published. A fill that fails sets the skill to `failed` and publishes `SkillFillFailed`. A skill that isn't `filling` is left as it is. |
+
 | kind | what it does |
 |---|---|
 | `personality_scoring` | Scores one person's answers in batches of 6 scenarios, one Bedrock call per batch. It records the evidence for each trait on the answers it came from, then scores every trait from all of the person's evidence and rewrites their report (`personality_report.rs`) once they're fully scored. The api queues it when the person finishes every scenario in a batch, or replays one in a finished batch. Then it removes the `JobRunning` node the api put on them, so the ui unlocks the scenarios again. |
