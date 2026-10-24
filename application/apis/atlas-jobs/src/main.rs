@@ -1,4 +1,7 @@
-//the Atlas of Us job worker. The api queues slow work on SQS, and Lambda invokes this with one record at a time
+//the Atlas of Us job worker. The api queues slow work on SQS, each module that reacts to events has a queue of them, and
+//Lambda invokes this with one record at a time from any of those queues
+mod events;
+mod jobs;
 mod personality_contest;
 mod personality_report;
 mod personality_scoring;
@@ -6,24 +9,18 @@ mod personality_scoring;
 use std::{env, io::IsTerminal};
 
 use neo4rs::Graph;
-use serde::Deserialize;
 
-//every kind of job, as the api sends it: {"kind": "personality_scoring", "job": {...}}
-#[derive(Deserialize)]
-#[serde(tag = "kind", content = "job", rename_all = "snake_case")]
-enum Job {
-    PersonalityScoring(personality_scoring::ScoringJob),
-    PersonalityContest(personality_contest::ContestJob),
-    PersonalityReport(personality_report::ReportJob),
-}
+//the queue the api puts jobs on (infrastructure/jobs_lambda.tf). Every other queue carries events from the bus
+const JOBS_QUEUE: &str = "atlas-jobs";
 
-//jobs handle their own failures, so a bad one is logged and never retried
-async fn run(graph: &Graph, body: &str) {
-    match serde_json::from_str::<Job>(body) {
-        Ok(Job::PersonalityScoring(job)) => personality_scoring::run(graph, job).await,
-        Ok(Job::PersonalityContest(job)) => personality_contest::run(graph, job).await,
-        Ok(Job::PersonalityReport(job)) => personality_report::run(graph, job).await,
-        Err(e) => tracing::error!("unreadable job: {e}"),
+//a record is a job or an event depending on the queue it came from, the last part of its eventSourceARN
+async fn run(graph: &Graph, record: &serde_json::Value) {
+    let queue = record["eventSourceARN"].as_str().and_then(|arn| arn.rsplit(':').next()).unwrap_or_default();
+    let body = record["body"].as_str().unwrap_or_default();
+    if queue == JOBS_QUEUE {
+        jobs::handle(graph, body).await;
+    } else {
+        events::handle(graph, body).await;
     }
 }
 
@@ -45,12 +42,12 @@ async fn main() {
         env::var("NEO4J_PASSWORD").unwrap_or_else(|_| "neo".to_string())
     ).unwrap();
 
-    //each record's body is one job
+    //each record's body is one job or event
     lambda_runtime::run(lambda_runtime::service_fn(|event: lambda_runtime::LambdaEvent<serde_json::Value>| {
         let graph = graph.clone();
         async move {
             for record in event.payload["Records"].as_array().into_iter().flatten() {
-                run(&graph, record["body"].as_str().unwrap_or_default()).await;
+                run(&graph, record).await;
             }
             Ok::<(), lambda_runtime::Error>(())
         }

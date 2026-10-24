@@ -241,7 +241,7 @@ Events name a skill by its `id`, and a level by its skill's `id` and its `rank`.
 - **Events carry a `schemaVersion`,** so we can change an event's shape later without breaking older consumers.
 
 ## Build order
-1. **The event bus,** its archive, the Skills consumer rule and queue, and the sweeper schedule.
+1. **The event bus,** its archive, and the Skills consumer rule and queue.
 2. **The ESCO import,** with embeddings and the uniqueness constraint.
 3. **Search and the gates** in the API, with the resolver.
 4. **The fill job,** with the resolver for prerequisites, and the cycle check.

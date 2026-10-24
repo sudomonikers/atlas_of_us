@@ -1,6 +1,7 @@
 ### JOBS LAMBDA
 # Slow work, like rescoring someone's personality with long bedrock calls, doesn't fit the api's 60 seconds behind
-# cloudfront. The api queues it here and apis/atlas-jobs works through the queue, one job at a time.
+# cloudfront. The api queues it here and apis/atlas-jobs works through the queue, one job at a time. The same function
+# works through each events queue too (events.tf).
 # Terraform creates the function from a placeholder and then ignores its code.
 # Real code ships with apis/atlas-jobs/deploy.sh.
 locals {
@@ -37,7 +38,7 @@ resource "aws_lambda_function" "jobs" {
   environment {
     variables = merge(
       { for name, param in data.aws_ssm_parameter.api : name => param.value if name != "JWT_SECRET" },
-      { BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6" },
+      { BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6", EVENT_BUS_NAME = aws_cloudwatch_event_bus.atlas.name },
     )
   }
 
@@ -120,7 +121,13 @@ resource "aws_iam_role_policy" "jobs" {
       {
         Effect   = "Allow"
         Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
-        Resource = [aws_sqs_queue.jobs.arn]
+        Resource = [aws_sqs_queue.jobs.arn, aws_sqs_queue.skills_events.arn]
+      },
+      {
+        # handlers publish what they did, such as a skill being filled (events.tf)
+        Effect   = "Allow"
+        Action   = ["events:PutEvents"]
+        Resource = [aws_cloudwatch_event_bus.atlas.arn]
       }
     ]
   })
