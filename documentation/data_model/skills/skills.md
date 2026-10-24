@@ -16,7 +16,7 @@ Each Skill node carries:
 - `name`: its preferred name. It's unique, so two requests for the same new skill at the same moment `MERGE` onto one node, and re-running the taxonomy import updates nodes instead of duplicating them.
 - `description`
 - `aliases`: a list of every other name it goes by. ESCO's alternative names land here on import, and so does a user's wording when their search turns out to mean an existing skill.
-- `vector`: an embedding of the name, description and aliases joined together, used to find similar skills before a new one is created.
+- `vector`: an embedding of the name, description and aliases joined together, used by search and to find similar skills before a new one is created. It's made by Amazon Titan Text Embeddings V2 (1024 dimensions) from `"<name>. <description>. Also known as <alias>, <alias>."`, and remade when an alias is added.
 - `status`: where the skill is in its life:
   - `stub`: exists and can be found and linked to, but its levels are empty
   - `filling`: the fill job is generating its levels
@@ -27,8 +27,11 @@ Each Skill node carries:
 Most skills start out imported from ESCO. Only ESCO's "skill/competence" entries become Skills. Its "knowledge" entries belong to the Topics sub-graph, and its grouping categories (such as "communication, collaboration and creativity") are not imported at all, since nobody would claim them.
 
 ```cypher
+// application/database/migrations/002_skills_indexes.cypher
 CREATE CONSTRAINT skill_id IF NOT EXISTS FOR (s:Skill) REQUIRE s.id IS UNIQUE;
-CREATE CONSTRAINT skill_normalized_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE;
+CREATE CONSTRAINT skill_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE;
+// search by name and alias
+CREATE FULLTEXT INDEX skill_names IF NOT EXISTS FOR (s:Skill) ON EACH [s.name, s.aliases];
 // dimensions must match the embedding model
 CREATE VECTOR INDEX skill_vector IF NOT EXISTS FOR (s:Skill) ON s.vector
   OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};

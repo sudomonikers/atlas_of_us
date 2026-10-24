@@ -27,9 +27,11 @@ serde_json = "1.0"
 jsonwebtoken = "9"
 argon2 = { version = "0.5", features = ["std"] }
 
-# AWS: the atlas-jobs queue
+# AWS: the atlas-jobs queue, the atlas-events bus, and bedrock for the skills gates and embeddings
 aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
 aws-sdk-sqs = { version = "1.114.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
+aws-sdk-eventbridge = { version = "1.125.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
+aws-sdk-bedrockruntime = { version = "1.148.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
 
 # Email
 aws-sdk-s3 = { version = "1.152.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
@@ -42,3 +44,4 @@ lambda_http = { version = "1.3.1", default-features = false, features = ["apigw_
 
 # Misc
 futures = "0.3.34"
+uuid = { version = "1.29.0", features = ["v4"] }

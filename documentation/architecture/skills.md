@@ -22,11 +22,29 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 |---|---|---|
 | UI | `application/ui/atlas-of-us-ui/src/skills/` | Search, the skill page, claiming a level, reviewing content and proposals |
 | API | `application/apis/atlas-api/src/domains/skills/mod.rs` | Search, the creation gates, claiming levels, endorsements and proposals, publishing events |
-| Resolver | shared by the API and the jobs | Decides whether a skill name is the same as, more specific than, or different from existing skills |
+| Gates and resolver | `application/apis/atlas-api/src/domains/skills/resolver.rs`, the resolver shared with the fill job | The gates normalize and classify what a user asks for, and screen out nonsense. The resolver decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs |
 | Fill job | `application/apis/atlas-jobs/src/skill_fill.rs` | Generates a stub's Dreyfus levels and prerequisites with Bedrock |
 | Proposal job | `application/apis/atlas-jobs/src/skill_proposal.rs` | Screens a proposed change before it is opened to the community |
 | Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and one rule and queue per consumer |
 | Taxonomy import | `application/database/skills_import/` | Loads ESCO skills, aliases and hierarchy as stubs |
+
+### Models
+- **The gates and the resolver's judge** use a fast model on Bedrock, set by `SMALL_MODEL` in `bedrock.rs` (Claude Haiku
+  4.5). Each is one forced tool call whose input is the answer.
+- **Embeddings** come from Amazon Titan Text Embeddings V2 on Bedrock, at 1024 dimensions. A skill's vector is an
+  embedding of `"<name>. <description>. Also known as <alias>, <alias>."`, and a search is an embedding of what was
+  typed. Why Titan is in `ADRs/skills_embeddings.md`.
+
+### The API
+All routes are under `/api/skills`. Asking, confirming and filling need a logged in user.
+
+| Route | What it does |
+|---|---|
+| `GET /search?q=` | The closest skills, each with its broader skill |
+| `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means, and an `alias_token` for the user's wording) or `created` (the new stub) |
+| `POST /{id}/aliases` `{alias_token}` | The user confirmed "did you mean...?", so their wording becomes an alias |
+| `GET /{id}` | A skill with its levels, its broader skill and its specializations |
+| `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
 
 ## Where skills come from
 A Skill node is created in exactly three ways, and every one of them goes through the resolver so it can't create a
@@ -91,41 +109,50 @@ graph instead of in a message waiting to be delivered.
 The resolver answers one question: given a name (and maybe a description), is it the **same as** an existing skill,
 **more specific than** one, or **new**? It's used by the API's gates and by the fill job, with the same logic in both.
 
-1. **Find candidates:** an exact match on name or alias, then the nearest skills by vector similarity.
-2. **Judge:** a small, fast model looks at the name and the candidates and returns `same`, `specialization_of` or `new`,
-   with the skill it means.
+1. **Find candidates:** an exact match on name or alias, ignoring case, is `same` straight away. Otherwise the eight
+   nearest skills by vector similarity are the candidates, and with none at all the name is `new`.
+2. **Judge:** a small, fast model looks at the name, its description and the candidates (with their aliases and broader
+   skills) and returns `same`, `specialization_of` or `new`, with the candidate it means.
 3. **Act:**
    - `same`: use the existing node, and record the new wording as an alias.
    - `specialization_of`: create a stub under that parent.
    - `new`: create a stub with no parent.
 
-A uniqueness constraint on the normalized name means that if two people ask for the same new skill at the same moment,
-the second `MERGE` finds the first one's node instead of creating another.
+A stub is created with its five levels in one transaction. A uniqueness constraint on the name means that if two people
+ask for the same new skill at the same moment, the second `MERGE` finds the first one's node instead of creating
+another, and only the first publishes `SkillCreated`.
 
 ## What the user sees
 
 ### Searching
 The user lands on the skills module, sees a short explanation of how skills and Dreyfus levels work, and searches. The
-search matches names and aliases and does a vector search, and shows the closest skills along with their broader
-parents, so someone searching "pastry lamination" can see "Baking" too.
+search matches names and aliases through a full-text index (each word as a prefix, or with one typo once it's four
+letters long) and does a vector search, and combines the two lists by reciprocal rank fusion, so a skill near the top of
+either ranks high and one in both ranks higher. It shows the ten closest skills along with their broader parents, so
+someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
+alone.
 
 ### Opening a skill
 - **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
   review the content.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
-  (see below). The UI polls until it's `ready`.
+  (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
+  it's safe to call on every open. The UI polls `GET /{id}` until it's `ready`.
 
 ### Asking for a skill we don't have
-If nothing matches, the user can ask for it. The API runs **the gates** in one structured call to a fast model before
-anything is written:
+If nothing matches, the user can ask for it. The API runs **the gates** before anything is written. The first three are
+one structured call to a fast model, and the fourth is the resolver:
 
 1. **Normalize:** fix typos and turn phrasing into a skill name ("being good at excel" becomes "Microsoft Excel").
 2. **Classify:** is it actually a skill? "Patience" is a personality facet, "French history" is a topic, "Height" is a
-   physical attribute. Those are sent to the right module instead. Something can be both (Python is a skill and a
-   topic), and that's fine: it's a skill here.
-3. **Moderate:** reject nonsense and offensive entries.
-4. **Resolve:** run the resolver. If it says `same`, we show the user "did you mean...?" and, if they say yes, add their
-   wording as an alias. If it says `specialization_of` or `new`, we create the stub.
+   physical attribute. Those are sent to the right module instead: the API returns the `kind`, and the UI words the
+   message and links to that module. Something can be both (Python is a skill and a topic), and that's fine: it's a
+   skill here.
+3. **Screen:** reject nonsense and slurs. Real skills pass whatever they're about, including violent and sexual ones.
+4. **Resolve:** run the resolver on the normalized name. If it says `same`, we show the user "did you mean...?" and, if
+   they say yes, add their wording (the normalized name) as an alias, re-embed the skill and publish `SkillAliasAdded`.
+   The wording travels in an `alias_token` signed by the API and valid for an hour, so only names that passed the gates
+   become aliases. If it says `specialization_of` or `new`, we create the stub.
 
 If the stub is created, the user goes straight into the opening flow above.
 
@@ -235,7 +262,9 @@ Events name a skill by its `id`, and a level by its skill's `id` and its `rank`.
 
 ### Reliability
 - **The graph is the source of truth, and events are published after the write.** If a write succeeds but the publish
-  fails, the skill is left in a state such as `filling` with nothing working on it.
+  fails, the skill is left in a state such as `filling` with nothing working on it. When the API's `SkillFillRequested`
+  publish fails, it puts the skill back to the status it had, so the next person to open it asks again. `SkillCreated`
+  and `SkillAliasAdded` failures are logged, since the skill is usable without them.
 - **Every consumer is idempotent.** SQS can deliver the same message more than once, so Consumers `MERGE` rather than `CREATE`, and check 
   status before doing work (a fill job that finds the skill already `ready` does nothing).
 - **Events carry a `schemaVersion`,** so we can change an event's shape later without breaking older consumers.

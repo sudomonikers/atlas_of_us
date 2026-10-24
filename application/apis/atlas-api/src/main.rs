@@ -1,4 +1,7 @@
 mod state;
+mod bedrock;
+mod events;
+mod helpers;
 
 mod domains;
 mod auth;
@@ -49,11 +52,10 @@ async fn main() {
         .load()
         .await;
 
+    let aws = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+
     //slow work like personality scoring is queued for atlas-jobs
-    let jobs_queue = match env::var("JOBS_QUEUE_URL") {
-        Ok(url) => Some((aws_sdk_sqs::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await), url)),
-        Err(_) => None,
-    };
+    let jobs_queue = env::var("JOBS_QUEUE_URL").ok().map(|url| (aws_sdk_sqs::Client::new(&aws), url));
 
     //create state every route can grab from
     let state = AppState {
@@ -61,6 +63,8 @@ async fn main() {
         s3: aws_sdk_s3::Client::new(&mail_config),
         ses: aws_sdk_sesv2::Client::new(&mail_config),
         jobs_queue,
+        bus: env::var("EVENT_BUS_NAME").ok().map(|name| events::Bus::new(&aws, name)),
+        bedrock: aws_sdk_bedrockruntime::Client::new(&aws),
     };
 
     // build our application 

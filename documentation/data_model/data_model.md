@@ -245,9 +245,12 @@ Each Skill node carries:
 Most skills start out imported from ESCO. Only ESCO's "skill/competence" entries become Skills. Its "knowledge" entries belong to the Topics sub-graph, and its grouping categories (such as "communication, collaboration and creativity") are not imported at all, since nobody would claim them.
 
 ```cypher
+// application/database/migrations/002_skills_indexes.cypher
 CREATE CONSTRAINT skill_id IF NOT EXISTS FOR (s:Skill) REQUIRE s.id IS UNIQUE;
-CREATE CONSTRAINT skill_normalized_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE;
-// dimensions must match the embedding model
+CREATE CONSTRAINT skill_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE;
+// search by name and alias
+CREATE FULLTEXT INDEX skill_names IF NOT EXISTS FOR (s:Skill) ON EACH [s.name, s.aliases];
+// dimensions must match the embedding model (amazon.titan-embed-text-v2:0)
 CREATE VECTOR INDEX skill_vector IF NOT EXISTS FOR (s:Skill) ON s.vector
   OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
 

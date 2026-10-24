@@ -28,7 +28,10 @@ resource "aws_lambda_function" "api" {
   environment {
     variables = merge(
       { for name, param in data.aws_ssm_parameter.api : name => param.value },
-      { JOBS_QUEUE_URL = aws_sqs_queue.jobs.url },
+      {
+        JOBS_QUEUE_URL = aws_sqs_queue.jobs.url
+        EVENT_BUS_NAME = aws_cloudwatch_event_bus.atlas.name
+      },
     )
   }
 
@@ -113,11 +116,23 @@ resource "aws_iam_role_policy" "api" {
     Version = "2012-10-17"
     Statement = [
       {
-        # the api queues slow work for atlas-jobs, which is the one that talks to bedrock
         Effect   = "Allow"
         Action   = ["sqs:SendMessage"]
         Resource = [aws_sqs_queue.jobs.arn]
-      }
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["events:PutEvents"]
+        Resource = [aws_cloudwatch_event_bus.atlas.arn]
+      },
+      {
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel"]
+        Resource = [
+          "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/*",
+          "arn:aws:bedrock:*::foundation-model/*",
+        ]
+      },
     ]
   })
 }
