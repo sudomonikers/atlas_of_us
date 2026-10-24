@@ -30,11 +30,15 @@ async function sha256(text: string) {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-//calls the api with the stored token, if any. Failures throw with the api's message
+const RETRY_MS = 500;
+
+//calls the api with the stored token, if any. Failures throw with the api's message.
+//A GET or PUT that gets no response at all is sent once more: a browser waking from sleep, or back from another app, can
+//send the first request down a connection that died while it was away. Both are safe to repeat, and POSTs never are
 export async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
   const token = localStorage.getItem(TOKEN_KEY);
   const payload = body === undefined ? '' : JSON.stringify(body);
-  const res = await fetch(`/api${path}`, {
+  const init: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -42,9 +46,16 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, b
       ...(token && { [TOKEN_HEADER]: token }),
     },
     body: body === undefined ? undefined : payload,
-  }).catch(() => {
-    throw new Error("I can't reach my server. Give it a moment and try again.");
-  });
+  };
+  const send = () => fetch(`/api${path}`, init);
+  const res = await send()
+    .catch((e) => {
+      if (method === 'POST') throw e;
+      return new Promise((resolve) => setTimeout(resolve, RETRY_MS)).then(send);
+    })
+    .catch(() => {
+      throw new Error("I can't reach my server. Give it a moment and try again.");
+    });
   //the api's 4xx messages are written for users. Anything else could be a raw error, so it's never shown
   if (res.status >= 500) throw new Error("Something broke on my end, not yours. Try again?");
   if (!res.ok) throw new Error((await res.text()) || 'Something went sideways. Try again?');
