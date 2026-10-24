@@ -9,7 +9,7 @@
 // the prompt id in that scenario's script.
 //
 // Idempotent: safe to re-run. MERGE on name / key, everything else overwritten from
-// this file on every run.
+// this file on every run, except id, which is set once when the node is first created.
 // =============================================================================
 
 
@@ -19,6 +19,19 @@
 
 CREATE CONSTRAINT personalityscenario_name_unique IF NOT EXISTS
 FOR (n:PersonalityScenario) REQUIRE n.name IS UNIQUE;
+
+CREATE CONSTRAINT personalityscenario_id_unique IF NOT EXISTS
+FOR (n:PersonalityScenario) REQUIRE n.id IS UNIQUE;
+
+CREATE CONSTRAINT personalityscenarioquestion_id_unique IF NOT EXISTS
+FOR (n:PersonalityScenarioQuestion) REQUIRE n.id IS UNIQUE;
+
+// answers and scoring jobs are made by atlas-api, not this file, but their ids go to the UI and the jobs queue
+CREATE CONSTRAINT answered_id_unique IF NOT EXISTS
+FOR ()-[a:ANSWERED]-() REQUIRE a.id IS UNIQUE;
+
+CREATE CONSTRAINT jobrunning_id_unique IF NOT EXISTS
+FOR (n:JobRunning) REQUIRE n.id IS UNIQUE;
 
 
 // -----------------------------------------------------------------------------
@@ -46,6 +59,7 @@ UNWIND [
   {name: 'the_portrait',     title: 'The Portrait',       order: 17}
 ] AS scenario
 MERGE (s:PersonalityScenario {name: scenario.name})
+ON CREATE SET s.id = randomUUID()
 SET s.title = scenario.title, s.order = scenario.order;
 
 
@@ -71,6 +85,7 @@ UNWIND [
   {order: 8, real_life: true, key: 'just_for_fun', prompt: "And in the last month, not counting the riddle just now, which of these did you do just because you wanted to: work at a puzzle or a hard problem, read or write a poem, make someone laugh on purpose? Tell me about the last time for each one. If it was none of them, that's an answer too."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -91,6 +106,7 @@ UNWIND [
   {order: 8, real_life: true, key: 'been_anywhere', prompt: "And in the last six months, how many times have you been to a gallery, museum, show or gig? How many times have you gone somewhere you'd never been before? Tell me about the last one of each. If it was none, that's an answer too."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -113,6 +129,7 @@ UNWIND [
   {order: 9, real_life: true, key: 'new_friend', prompt: "When did you last make a new friend: someone you now see or message on your own, not just through someone else? How did it start? If it's been years, that's an answer too."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -132,6 +149,7 @@ UNWIND [
   {order: 7, real_life: true, key: 'last_trip', prompt: "Think about the last time you went away, even for a night. How far ahead did you pack, and did you plan what you'd do? What went wrong, if anything, and how did you take it?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -152,6 +170,7 @@ UNWIND [
   {order: 8, real_life: true, key: 'last_busy', prompt: 'Think back to your busiest day in the last month. How many things were you juggling, and how did you get through them? Did anyone need your help along the way, and what did you do?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -170,6 +189,7 @@ UNWIND [
   {order: 7, real_life: true, key: 'last_room', prompt: 'The last time someone at work, with friends or in a group chat said something you thought was wrong, did you say so? And the last time someone struggled to understand something you got right away, what went through your head?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -189,6 +209,7 @@ UNWIND [
   {order: 8, real_life: true, key: 'last_worse_off', prompt: 'The last time you saw someone worse off than you, what went through your head? And when did you last bend a rule because nobody would know?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -208,6 +229,7 @@ UNWIND [
   {order: 7, real_life: true, key: 'last_niggle', prompt: "In the last seven days, how many times did something small get under your skin: a line, a noise, someone's driving? And the last time someone serving you got it wrong, what did you do?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -227,6 +249,7 @@ UNWIND [
   {order: 8, real_life: true, key: 'without_looking', prompt: "Without looking, where are your keys right now? Your phone charger? And the last thing you borrowed from someone: where is that?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -244,6 +267,7 @@ UNWIND [
   {order: 6, real_life: true, key: 'last_passed', prompt: "When did you last walk past someone sleeping on the street? What went through your head, and what did you do? And when did you last check in on someone you know who's having a hard time?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -262,6 +286,7 @@ UNWIND [
   {order: 6, real_life: true, key: 'last_wronged', prompt: 'And the last time someone did you wrong: did you get even, have it out, or let it go? In the last month, how many times did you wonder what someone was really after when they did something nice for you?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -280,6 +305,7 @@ UNWIND [
   {order: 6, real_life: true, key: 'last_wander', prompt: 'And in the last month, how many times did you stop just to look at something beautiful outdoors, read something that really made you think, or lose an hour in your own head? Tell me about the last one.'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -298,6 +324,7 @@ UNWIND [
   {order: 6, real_life: true, key: 'last_trouble', prompt: 'And the last time someone told you about something hard they were going through: what did you feel while they talked, and what did you do afterward? Did it stay with you?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -316,6 +343,7 @@ UNWIND [
   {order: 6, real_life: true, key: 'last_wrong', prompt: 'Think of the last time someone really wronged you. Did you want them to pay for it, and did you do anything? And when you hear about a crime on the news, what do you think should happen to whoever did it?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -335,6 +363,7 @@ UNWIND [
   {order: 7, real_life: true, key: 'last_help', prompt: 'And the last time you went out of your way to help someone who was struggling: who was it, and what did you do? Were you glad to do it, or was it a chore?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -356,6 +385,7 @@ UNWIND [
   {order: 9, real_life: true, key: 'last_setback', prompt: 'Think of your last real setback: a job, a relationship, a plan that fell through. How long did it take you to get over it? And these days, how do you feel about yourself, on the whole?'}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -378,6 +408,7 @@ UNWIND [
   {order: 10, real_life: true, key: 'last_change', prompt: "Last one. When did you last give up a habit or a tradition, or try something completely new, because someone suggested it? How did it go?"}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
@@ -398,6 +429,7 @@ UNWIND [
   {order: 8, real_life: true, key: 'looking_in', prompt: "Two hours with nothing to do but think about your life. In your real life, how much do you enjoy that: turning over who you are and how it's going? Pick the closest, and tell me when you last did it."}
 ] AS question
 MERGE (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion {key: question.key})
+ON CREATE SET q.id = randomUUID()
 SET q.prompt = question.prompt, q.order = question.order, q.real_life = coalesce(question.real_life, false)
 WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys

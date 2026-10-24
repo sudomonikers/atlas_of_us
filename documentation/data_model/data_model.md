@@ -1,11 +1,19 @@
 # Data Specification For The Atlas Of Us
 This is the big one. Most of the app is inside the data. The core idea is that this is a graph database with a huge monstrous-level graph database containing many sub graphs. All that a human can be in contained within this data, as well as all that many many different people are. Because all the data is so interwoven, this is a monolithic database. The rest of this document is broken up into explanations of the various sub graphs and their individual business rules. After each sub graph explanation will be a section on how the various subgraphs interact.
 
+## Ids
+Every node or relationship whose id is used outside the database (in a login token, by the UI, in a URL, on the jobs queue or in an event) has an `id` property: a uuid set with `randomUUID()` when it's created, with a uniqueness constraint on its label. Code always matches on that `id`, with the label, so the constraint's index is used:
+```cypher
+MATCH (p:Person {id: $personId})
+```
+
+Seeded nodes, such as PersonalityTraits and scenarios, are MERGEd on their natural key (a trait's `name`, a question's `key`), and get their `id` with `ON CREATE SET n.id = randomUUID()`, so re-running a seed never changes them. Today Person, PersonalityTrait, PersonalityScenario, PersonalityScenarioQuestion, JobRunning and the ANSWERED relationship carry ids, and every new label that's referred to from outside the database gets one from the start.
+
 ## Individual Possibilities Graphs
 The following sections are the core graphs related to all a human can be individually. In each of the graphs we will follow several People to see how they interact with the graph. Here is each person's node, which we will reference for the rest of this document:
 ```cypher
-CREATE (andrew:Person {name: "Andrew Link", username: "sudomoniker"});
-CREATE (lulu:Person {name: "Lulu Li", username: "lzy7717"});
+CREATE (andrew:Person {id: "0b6f3c1e-2d4a-4c8e-9f1a-7e5d2b8c4a10", name: "Andrew Link", username: "sudomoniker"});
+CREATE (lulu:Person {id: "9c2e7a4b-5f1d-4e3a-8b6c-1d0f9e8a7b23", name: "Lulu Li", username: "lzy7717"});
 ```
 
 ### Personality Graph
@@ -52,6 +60,7 @@ People don't set their traits directly. They play scenarios, and their answers a
 ```
 
 Each answer is an ANSWERED relationship from the Person to the question, holding everything the scorer needs to read it:
+- `id`: set when the answer is first saved. Answering the same question again keeps it, but starting a scene over deletes the rest of that scene's answers, so their new answers get new ids
 - `answer`: their text, or the label of the choice they picked
 - `reasoning`: why they picked it, for choices
 - `context`: the story they saw since the last question, on the path they took, and the choices offered
@@ -69,7 +78,7 @@ MERGE (a)-[:ANSWERED {answer: "Knock on his door and suggest a mediator. Neutral
 
 While a person is being scored, they have a JobRunning node, which the UI watches to lock the scenarios until scoring finishes. The scoring job deletes it when it's done:
 ```cypher
-(:Person)-[:HAS_JOB]->(:JobRunning {kind: "personality_scoring", startedAt: datetime()})
+(:Person)-[:HAS_JOB]->(:JobRunning {id: randomUUID(), kind: "personality_scoring", startedAt: datetime()})
 ```
 
 While the monthly Bedrock budget cutoff is on (see infrastructure/budget.tf), atlas-jobs keeps one BedrockCutoff node, which the UI reads to say nothing can be scored. The next Bedrock call that gets through deletes it:
@@ -222,8 +231,7 @@ There are infinite possible Skills in this world and a whole host of different w
 
 Each Skill node carries:
 - `id`: a uuid, which events refer to.
-- `name`: its preferred name.
-- `normalizedName`: the name lowercased, trimmed and with whitespace collapsed. It's unique, so two requests for the same new skill at the same moment `MERGE` onto one node, and re-running the taxonomy import updates nodes instead of duplicating them.
+- `name`: its preferred name. It's unique, so two requests for the same new skill at the same moment `MERGE` onto one node, and re-running the taxonomy import updates nodes instead of duplicating them.
 - `description`
 - `aliases`: a list of every other name it goes by. ESCO's alternative names land here on import, and so does a user's wording when their search turns out to mean an existing skill.
 - `vector`: an embedding of the name, description and aliases joined together, used to find similar skills before a new one is created.
@@ -238,13 +246,13 @@ Most skills start out imported from ESCO. Only ESCO's "skill/competence" entries
 
 ```cypher
 CREATE CONSTRAINT skill_id IF NOT EXISTS FOR (s:Skill) REQUIRE s.id IS UNIQUE;
-CREATE CONSTRAINT skill_normalized_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.normalizedName IS UNIQUE;
+CREATE CONSTRAINT skill_normalized_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE;
 // dimensions must match the embedding model
 CREATE VECTOR INDEX skill_vector IF NOT EXISTS FOR (s:Skill) ON s.vector
   OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
 
 CREATE (c:Skill {
-  id: "6f1c...", name: "Cooking", normalizedName: "cooking",
+  id: "6f1c...", name: "Cooking",
   description: "The art, science, and craft of preparing food for eating, usually by using heat",
   aliases: ["cookery", "food preparation"], vector: [1, 2, 3], status: "ready", createdDate: datetime()
 })
@@ -319,7 +327,7 @@ There are three different ways two skills can be related, and they are kept apar
 
 Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The fill job checks this before writing each one.
 
-**Same skill.** Not a relationship at all. It's an alias on the one node.
+**Same skill.** One node, with the other name in its aliases.
 
 #### People and skills
 A Person can have different sentimental relationships with the base node including:
@@ -345,7 +353,7 @@ When a person has a higher Dreyfus level, they may have relationships with all l
 `levelVersion` is the version of the level the claim was made against. When a level is revised, existing claims keep their old `levelVersion`, so a claim whose `levelVersion` is lower than the level's `version` is one whose criteria have changed since. The person is asked to re-confirm it, and re-confirming sets `levelVersion` to the current version. Only levels that have been filled can be claimed.
 
 #### Community review
-Level content is shared by everyone who claims it, so it's changed by the community, not by any one person. That shows up in the graph as endorsements, proposals and revisions.
+Level content is shared by everyone who claims it, so it's changed by the community. That shows up in the graph as endorsements, proposals and revisions.
 
 ##### Endorsements
 A Person ENDORSES a level's current content when they read it and think it's right. The relationship records the `version` they endorsed, so endorsements of an old version don't count toward a new one. Endorsing a whole skill is just endorsing each of its levels:
@@ -400,7 +408,7 @@ When a proposal is promoted, each level it changes keeps a copy of its old conte
 `nextLevel` is the old description from the level's NEXT_LEVEL relationship, which is revised along with the level.
 
 #### Requirements on other sub-graphs
-Furthermore, Skill levels will have requirements on different personality traits, physical attributes, knowledge/understanding of different Topics, and possibly more. These are written by the modules that own those sub-graphs, in reaction to a skill being filled (see the Events section of `documentation/architecture/skills.md`), not by the Skills module.
+Furthermore, Skill levels will have requirements on different personality traits, physical attributes, knowledge/understanding of different Topics, and possibly more. These are written by the modules that own those sub-graphs, in reaction to a skill being filled (see the Events section of `documentation/architecture/skills.md`).
 
 These relationships will exist on each Dreyfus level since different levels will have higher requirements. It is assumed that requirements build on each other. A novice level of Cooking may have dozens of requirements on other nodes and maybe advanced beginner will only have a couple, but the novice relationships are implied as prerequisites on the advanced beginner level as well. It is unnecessary to have a duplicated relationship unless the nature of the relationship changes. For example if novice level of cooking requires a 0.5 level of the Steady Hands Physical Attribute and advanced beginner has the same requirement, then that relationship would exist only between the Novice Dreyfus level and the Steady Hands Physical Attribute. However later if to be an Expert cook a Person needs a 0.95 level of Steady Hands, then there would be another relationship extending from the Expert node to the Steady Hands node. The same rule applies to prerequisites on other skills. Some examples of how this looks using examples from each of PersonalityTraits, Topic knowledge, and PhysicalAttributes are as follows:
 ```cypher

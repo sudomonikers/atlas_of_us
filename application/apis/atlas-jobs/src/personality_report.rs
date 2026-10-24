@@ -95,7 +95,7 @@ pub async fn run(graph: &Graph, job: ReportJob) {
 //answer has been scored
 async fn write(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &str, person_id: &str) -> Result<bool, BoxError> {
     let mut rows = graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)
         WITH p, s, max(q.order) AS last
         OPTIONAL MATCH (s)-[:HAS_QUESTION]->(:PersonalityScenarioQuestion {order: last})<-[a:ANSWERED]-(p)
@@ -162,7 +162,7 @@ async fn write(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &s
     let report: Report = serde_json::from_value(input)?;
 
     graph.run(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         SET p.personalityReport = $report, p.personalityReportAt = toString(datetime())
     ")
         .param("personId", person_id)

@@ -109,7 +109,7 @@ There are three different ways two skills can be related, and they are kept apar
 
 Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The fill job checks this before writing each one.
 
-**Same skill.** Not a relationship at all. It's an alias on the one node.
+**Same skill.** One node, with the other name in its aliases.
 
 ## People and skills
 A Person can have different sentimental relationships with the base node including:
@@ -135,7 +135,7 @@ When a person has a higher Dreyfus level, they may have relationships with all l
 `levelVersion` is the version of the level the claim was made against. When a level is revised, existing claims keep their old `levelVersion`, so a claim whose `levelVersion` is lower than the level's `version` is one whose criteria have changed since. The person is asked to re-confirm it, and re-confirming sets `levelVersion` to the current version. Only levels that have been filled can be claimed.
 
 ## Community review
-Level content is shared by everyone who claims it, so it's changed by the community, not by any one person. That shows up in the graph as endorsements, proposals and revisions.
+Level content is shared by everyone who claims it, so it's changed by the community. That shows up in the graph as endorsements, proposals and revisions.
 
 ### Endorsements
 A Person ENDORSES a level's current content when they read it and think it's right. The relationship records the `version` they endorsed, so endorsements of an old version don't count toward a new one. Endorsing a whole skill is just endorsing each of its levels:
@@ -190,7 +190,7 @@ When a proposal is promoted, each level it changes keeps a copy of its old conte
 `nextLevel` is the old description from the level's NEXT_LEVEL relationship, which is revised along with the level.
 
 ## Requirements on other sub-graphs
-Furthermore, Skill levels will have requirements on different personality traits, physical attributes, knowledge/understanding of different Topics, and possibly more. These are written by the modules that own those sub-graphs, in reaction to a skill being filled (see the Events section of `documentation/architecture/skills.md`), not by the Skills module.
+Furthermore, Skill levels will have requirements on different personality traits, physical attributes, knowledge/understanding of different Topics, and possibly more. These are written by the modules that own those sub-graphs, in reaction to a skill being filled (see the Events section of `documentation/architecture/skills.md`).
 
 These relationships will exist on each Dreyfus level since different levels will have higher requirements. It is assumed that requirements build on each other. A novice level of Cooking may have dozens of requirements on other nodes and maybe advanced beginner will only have a couple, but the novice relationships are implied as prerequisites on the advanced beginner level as well. It is unnecessary to have a duplicated relationship unless the nature of the relationship changes. For example if novice level of cooking requires a 0.5 level of the Steady Hands Physical Attribute and advanced beginner has the same requirement, then that relationship would exist only between the Novice Dreyfus level and the Steady Hands Physical Attribute. However later if to be an Expert cook a Person needs a 0.95 level of Steady Hands, then there would be another relationship extending from the Expert node to the Steady Hands node. The same rule applies to prerequisites on other skills. Some examples of how this looks using examples from each of PersonalityTraits, Topic knowledge, and PhysicalAttributes are as follows:
 ```cypher

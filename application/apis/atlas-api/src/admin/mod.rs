@@ -308,7 +308,7 @@ pub async fn reply_to_email(
         .map_err(|e| internal(aws_sdk_sesv2::error::DisplayErrorContext(e)))?;
 
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         CREATE (r:EmailReply {
             emailId: $emailId, sesMessageId: $sesMessageId, from: $from, to: $to, subject: $subject, body: $body,
             sentDate: datetime()

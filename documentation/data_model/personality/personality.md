@@ -48,6 +48,7 @@ People don't set their traits directly. They play scenarios, and their answers a
 ```
 
 Each answer is an ANSWERED relationship from the Person to the question, holding everything the scorer needs to read it:
+- `id`: set when the answer is first saved. Answering the same question again keeps it, but starting a scene over deletes the rest of that scene's answers, so their new answers get new ids
 - `answer`: their text, or the label of the choice they picked
 - `reasoning`: why they picked it, for choices
 - `context`: the story they saw since the last question, on the path they took, and the choices offered
@@ -65,5 +66,5 @@ MERGE (a)-[:ANSWERED {answer: "Knock on his door and suggest a mediator. Neutral
 
 While a person is being scored, they have a JobRunning node, which the UI watches to lock the scenarios until scoring finishes. The scoring job deletes it when it's done:
 ```cypher
-(:Person)-[:HAS_JOB]->(:JobRunning {kind: "personality_scoring", startedAt: datetime()})
+(:Person)-[:HAS_JOB]->(:JobRunning {id: randomUUID(), kind: "personality_scoring", startedAt: datetime()})
 ```

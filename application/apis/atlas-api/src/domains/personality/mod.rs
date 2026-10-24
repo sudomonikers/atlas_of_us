@@ -39,7 +39,7 @@ pub async fn list_all_personality_traits(State(state): State<AppState>) -> Resul
     let mut rows = state.graph.execute(query("
             MATCH (d:PersonalityDomain)-[:HAS_FACET]->(p:PersonalityTrait)
             OPTIONAL MATCH (:Person)-[r:HAS_PERSONALITY_TRAIT]->(p)
-            RETURN p.name AS name, p.description AS description, elementId(p) AS id, d.key AS domain,
+            RETURN p.name AS name, p.description AS description, p.id AS id, d.key AS domain,
                    avg(toFloat(r.value)) AS average
             ORDER BY name"
         )).await.map_err(internal)?;
@@ -104,7 +104,7 @@ pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (St
         WITH d, t, collect(CASE WHEN o IS NULL THEN null ELSE {name: o.name, description: r.description} END) AS interactions
         ORDER BY t.name
         WITH d, collect(CASE WHEN t IS NULL THEN null ELSE {
-            id: elementId(t), name: t.name, description: t.description, overview: t.overview,
+            id: t.id, name: t.name, description: t.description, overview: t.overview,
             high_good: t.highGood, low_good: t.lowGood, high_watch: t.highWatch, low_watch: t.lowWatch,
             interactions: interactions
         } END) AS traits
@@ -152,11 +152,11 @@ impl PersonPersonality {
 //a person's measured traits and report. Says nothing about who may see them: the caller checks that
 pub async fn person_personality(graph: &Graph, person_id: &str) -> Result<PersonPersonality, (StatusCode, String)> {
     let mut rows = graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         OPTIONAL MATCH (p)-[r:HAS_PERSONALITY_TRAIT]->(t:PersonalityTrait)<-[:HAS_FACET]-(d:PersonalityDomain)
         WITH p, r, t, d ORDER BY t.name
         RETURN collect(CASE WHEN t IS NULL THEN null ELSE {
-                id: elementId(t), name: t.name, description: t.description, domain: d.key, value: toFloat(r.value),
+                id: t.id, name: t.name, description: t.description, domain: d.key, value: toFloat(r.value),
                 confidence: toFloat(coalesce(r.confidence, 0))
             } END) AS traits, [(p)-[a:ANSWERED]->() WHERE a.scoring IS NOT NULL | a.scoring] AS scorings,
             p.personalityReport AS report, p.personalityReportAt AS report_at
@@ -214,12 +214,12 @@ pub async fn list_person_evidence(
 
     //grouped by the person, so there's one row if they exist (with nothing scored, an empty list) and none if they don't
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         OPTIONAL MATCH (p)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
         WHERE a.scoring IS NOT NULL
         WITH p, s, q, a ORDER BY s.name, q.order
-        RETURN elementId(p) AS person_id, collect(CASE WHEN a IS NULL THEN null ELSE {
-            id: elementId(a), scenario: s.title, question: q.prompt, answer: a.answer, reasoning: a.reasoning,
+        RETURN p.id AS person_id, collect(CASE WHEN a IS NULL THEN null ELSE {
+            id: a.id, scenario: s.title, question: q.prompt, answer: a.answer, reasoning: a.reasoning,
             scoring: a.scoring, contests: a.contests
         } END) AS answers
     ")
@@ -314,8 +314,8 @@ pub async fn answer_question(
     //others when many people started the same scene at once
     tracing::debug!("answer {}: clearing an old run", user.person_id);
     state.graph.run(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
-        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
+        MATCH (p:Person {id: $personId})
+        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE q.id = $questionId
           AND NOT EXISTS { (s)-[:HAS_QUESTION]->(earlier:PersonalityScenarioQuestion) WHERE earlier.order < q.order }
         MATCH (p)-[old:ANSWERED]->(other:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s) WHERE other <> q
         CALL (old) { DELETE old } IN TRANSACTIONS OF 1 ROW
@@ -326,15 +326,16 @@ pub async fn answer_question(
 
     tracing::debug!("answer {}: saving", user.person_id);
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
-        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE elementId(q) = $questionId
+        MATCH (p:Person {id: $personId})
+        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion) WHERE q.id = $questionId
         MERGE (p)-[a:ANSWERED]->(q)
+        ON CREATE SET a.id = randomUUID()
         SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(), a.scoring = null, a.contests = null,
             a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut, a.facets = $facets
         WITH s, q, a
         MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
         WITH s, q, a, max(each.order) AS last
-        RETURN s.name AS scenario, elementId(s) AS scenario_id, elementId(q) AS question_id, q.key AS question_key,
+        RETURN s.name AS scenario, s.id AS scenario_id, q.id AS question_id, q.key AS question_key,
                a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date,
                q.order = last AS last_question
     ")
@@ -373,7 +374,7 @@ pub async fn answer_question(
 
 pub async fn clear_answers(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
     state.graph.run(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         OPTIONAL MATCH (p)-[a:ANSWERED|HAS_PERSONALITY_TRAIT]->()
         DELETE a
         WITH DISTINCT p
@@ -393,8 +394,8 @@ pub struct Progress {
 pub async fn get_user_scenario_progress(State(state): State<AppState>, user: AuthUser) -> Result<Json<Progress>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-        WHERE elementId(p) = $personId
-        RETURN s.name AS scenario, elementId(q) AS question_id, q.key AS question_key,
+        WHERE p.id = $personId
+        RETURN s.name AS scenario, q.id AS question_id, q.key AS question_key,
                a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date
         ORDER BY s.name, q.order
     ")
@@ -409,7 +410,7 @@ pub async fn get_user_scenario_progress(State(state): State<AppState>, user: Aut
     let mut rows = state.graph.execute(query("
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)
         WITH s, q ORDER BY q.order
-        RETURN s.name AS name, collect({id: elementId(q), key: q.key, prompt: q.prompt}) AS questions
+        RETURN s.name AS name, collect({id: q.id, key: q.key, prompt: q.prompt}) AS questions
     ")).await.map_err(internal)?;
     let mut questions = HashMap::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
@@ -437,7 +438,7 @@ pub struct ScoringStatus {
 pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Result<Json<ScoringStatus>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         OPTIONAL MATCH (p:Person)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring'})
-        WHERE elementId(p) = $personId AND j.startedAt > datetime() - duration({minutes: $staleMinutes})
+        WHERE p.id = $personId AND j.startedAt > datetime() - duration({minutes: $staleMinutes})
         RETURN count(j) > 0 AS running, exists { MATCH (:BedrockCutoff) } AS out_of_budget
     ")
         .param("personId", user.person_id)
@@ -498,7 +499,7 @@ pub async fn contest_evidence(
     //the answer's evidence and contests, and every answer in its scene in the order they were asked
     let mut rows = state.graph.execute(query("
         MATCH (p:Person)-[a:ANSWERED]->(:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-        WHERE elementId(p) = $personId AND elementId(a) = $answerId AND a.scoring IS NOT NULL
+        WHERE p.id = $personId AND a.id = $answerId AND a.scoring IS NOT NULL
         MATCH (s)-[:HAS_QUESTION]->(q:PersonalityScenarioQuestion)<-[each:ANSWERED]-(p)
         WITH s, a, q, each, EXISTS {
             MATCH (p)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring'})
@@ -506,7 +507,7 @@ pub async fn contest_evidence(
         } AS scoring_running, [(p)-[other:ANSWERED]->() WHERE other.contests CONTAINS $pendingMark | other.contests] AS pending
         ORDER BY q.order
         RETURN a.scoring AS scoring, a.contests AS contests, toString(datetime()) AS now, scoring_running, pending, collect({
-            id: elementId(each), scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
+            id: each.id, scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
             context: each.context, answer: each.answer, reasoning: each.reasoning,
             clock_seconds: each.clockSeconds, clock_left: each.clockLeft, clock_ran_out: each.clockRanOut, facets: each.facets,
             scoring: each.scoring, contests: each.contests
@@ -552,7 +553,7 @@ pub async fn contest_evidence(
 
     //only if the contests haven't changed since they were read, so a double click can't open two
     let mut rows = state.graph.execute(query("
-        MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = $answerId AND coalesce(a.contests, '') = coalesce($old, '')
+        MATCH ()-[a:ANSWERED]->() WHERE a.id = $answerId AND coalesce(a.contests, '') = coalesce($old, '')
         SET a.contests = $contests
         RETURN count(a) AS saved
     ")
@@ -577,7 +578,7 @@ pub async fn contest_evidence(
     };
     if let Err(e) = queue(&state, "personality_contest", &job).await {
         //nothing will review it, so don't leave it pending
-        state.graph.run(query("MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = $answerId AND a.contests = $contests SET a.contests = $old")
+        state.graph.run(query("MATCH ()-[a:ANSWERED]->() WHERE a.id = $answerId AND a.contests = $contests SET a.contests = $old")
             .param("answerId", job.answer_id)
             .param("contests", contests)
             .param("old", old)
@@ -620,8 +621,8 @@ const BATCH_SIZE: i64 = 6;
 //the scenario's batch, and whether the person has finished every scenario in it, meaning answered its last question
 async fn batch_finished(state: &AppState, person_id: &str, scenario_id: &str) -> Result<(i64, bool), BoxError> {
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
-        MATCH (finished:PersonalityScenario) WHERE elementId(finished) = $scenarioId
+        MATCH (p:Person {id: $personId})
+        MATCH (finished:PersonalityScenario {id: $scenarioId})
         WITH p, finished.order / $batchSize AS batch
         MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion) WHERE s.order / $batchSize = batch
         WITH p, batch, s, max(each.order) AS last
@@ -657,10 +658,10 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
     let batches = {
         let mut rows = graph.execute(query("
             MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-            WHERE elementId(p) = $personId AND ($batch IS NULL OR s.order / $batchSize = $batch)
+            WHERE p.id = $personId AND ($batch IS NULL OR s.order / $batchSize = $batch)
             WITH s, q, a ORDER BY s.order, q.order
             RETURN s.order / $batchSize AS batch, collect({
-                id: elementId(a), scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
+                id: a.id, scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
                 context: a.context, answer: a.answer, reasoning: a.reasoning,
                 clock_seconds: a.clockSeconds, clock_left: a.clockLeft, clock_ran_out: a.clockRanOut, facets: a.facets,
                 contests: a.contests
@@ -681,13 +682,13 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
     tracing::debug!("scoring {person_id}: marking the job running");
     let id = {
         let mut rows = graph.execute(query("
-            MATCH (p:Person) WHERE elementId(p) = $personId
+            MATCH (p:Person {id: $personId})
             OPTIONAL MATCH (p)-[:HAS_JOB]->(stale:JobRunning)
             WHERE stale.startedAt < datetime() - duration({minutes: $staleMinutes})
             DETACH DELETE stale
             WITH DISTINCT p
-            CREATE (p)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring', startedAt: datetime()})
-            RETURN elementId(j) AS id
+            CREATE (p)-[:HAS_JOB]->(j:JobRunning {id: randomUUID(), kind: 'personality_scoring', startedAt: datetime()})
+            RETURN j.id AS id
         ")
             .param("personId", person_id)
             .param("staleMinutes", STALE_JOB_MINUTES)
@@ -700,7 +701,7 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
     tracing::debug!("scoring {person_id}: queueing");
     if let Err(e) = queue(state, "personality_scoring", &job).await {
         //nothing will pick the job up, so don't leave the person locked out waiting for it
-        graph.run(query("MATCH (j:JobRunning) WHERE elementId(j) = $id DETACH DELETE j").param("id", job.id)).await?;
+        graph.run(query("MATCH (j:JobRunning) WHERE j.id = $id DETACH DELETE j").param("id", job.id)).await?;
         return Err(e);
     }
     Ok(())

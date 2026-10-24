@@ -72,7 +72,7 @@ There are three different relationships between skills, and keeping them apart m
   mostly from ESCO, and from the resolver when a user names something more specific than what we have.
 - **Prerequisite:** lives on the **levels**, not the skills, matching the data model. `(Cooking Competent)-[:REQUIRES
   {strength}]->(Knife Skills Advanced Beginner)`. Comes from the fill job.
-- **Same skill:** not a relationship at all. It's an alias on the one node.
+- **Same skill:** one node, with the other name in its aliases.
 
 ### Statuses
 
@@ -143,8 +143,8 @@ filled just because it exists, so the cost of a skill follows how much people ac
      it wouldn't create a cycle.
 3. It sets the skill to `ready`, marks the content `provisional`, and publishes `SkillFilled`.
 
-Requirements on Topics, Physical Attributes, Personality Traits, and anything else are **not** written by this job. Those modules own their
-own sub-graphs, so they react to `SkillFilled` and add their own requirements to the levels (see below).
+Requirements on Topics, Physical Attributes, Personality Traits and anything else are written by the modules that own
+those sub-graphs. They react to `SkillFilled` and add their own requirements to the levels (see below).
 
 ## Community review
 Level content is shared by everyone who claims that skill. If one user could rewrite "Competent", every other user's
@@ -216,6 +216,8 @@ where it came from. Consumers must therefore be cheap to run for a stub.
 ### What an event looks like
 Events are thin. They say what happened and which nodes it happened to, and consumers read the graph for the details.
 That keeps events small, and means a consumer always sees the current state rather than a stale copy.
+
+Events name a skill by its `id`, and a level by its skill's `id` and its `rank`.
 
 ```json
 {

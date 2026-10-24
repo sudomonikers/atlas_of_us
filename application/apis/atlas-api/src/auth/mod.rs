@@ -87,8 +87,8 @@ impl FromRequestParts<AppState> for AdminUser {
         };
         let user = <AuthUser as FromRequestParts<AppState>>::from_request_parts(parts, state).await?;
         let mut rows = state.graph.execute(query("
-            MATCH (p:Person) WHERE elementId(p) = $id AND p.admin = true
-            RETURN elementId(p) AS id
+            MATCH (p:Person) WHERE p.id = $id AND p.admin = true
+            RETURN p.id AS id
         ")
             .param("id", user.person_id.clone())
         ).await.map_err(|e| internal(&e))?;
@@ -220,10 +220,10 @@ pub async fn create_user(
 
     let mut created = state.graph.execute(query("
         CREATE (p:Person {
-            phone: $phone, firstName: $firstName, lastName: $lastName, email: $email, birthday: $birthday,
+            id: randomUUID(), phone: $phone, firstName: $firstName, lastName: $lastName, email: $email, birthday: $birthday,
             username: $username, passwordHash: $passwordHash, createdDate: datetime()
         })
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+        RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
                p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("phone", phone)
@@ -257,7 +257,7 @@ pub async fn login(
 
     let mut rows = state.graph.execute(query("
         MATCH (p:Person {phone: $phone})
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+        RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
                p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, p.passwordHash AS password_hash
     ")
         .param("phone", phone)
@@ -291,8 +291,8 @@ pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Pe
     };
 
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $id
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+        MATCH (p:Person {id: $id})
+        RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
                p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("id", user.person_id)
@@ -320,9 +320,9 @@ pub async fn set_public(
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
     };
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $id
+        MATCH (p:Person {id: $id})
         SET p.public = $public
-        RETURN elementId(p) AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+        RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
                p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("id", user.person_id)

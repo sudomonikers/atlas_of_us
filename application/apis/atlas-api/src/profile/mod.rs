@@ -27,8 +27,8 @@ struct Person {
 async fn find_person(graph: &Graph, username: &str, viewer_id: &str) -> Result<Option<Person>, (StatusCode, String)> {
     let mut rows = graph.execute(query("
         MATCH (p:Person {username: toLower($username)})
-        WHERE coalesce(p.public, false) OR elementId(p) = $viewerId
-        RETURN elementId(p) AS id, p.username AS username, p.firstName AS first_name, coalesce(p.public, false) AS public
+        WHERE coalesce(p.public, false) OR p.id = $viewerId
+        RETURN p.id AS id, p.username AS username, p.firstName AS first_name, coalesce(p.public, false) AS public
     ")
         .param("username", username)
         .param("viewerId", viewer_id)

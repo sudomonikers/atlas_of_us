@@ -31,9 +31,9 @@ pub async fn submit_feedback(
     }
 
     let mut rows = state.graph.execute(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         CREATE (p)-[:SUBMITTED_BY]->(:Feedback {description: $description, url: $url, submittedDate: datetime()})
-        RETURN elementId(p) AS person_id
+        RETURN p.id AS person_id
     ")
         .param("personId", user.person_id)
         .param("description", description)

@@ -193,7 +193,7 @@ async fn settle(
     change: impl FnOnce(&mut Vec<Shift>, &mut Contest) -> Result<(), BoxError>,
 ) -> Result<(), BoxError> {
     let mut rows = graph.execute(query("
-        MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = $id
+        MATCH ()-[a:ANSWERED]->() WHERE a.id = $id
         RETURN a.scoring AS scoring, a.contests AS contests
     ")
         .param("id", job.answer_id.as_str())
@@ -211,7 +211,7 @@ async fn settle(
     change(&mut shifts, contest)?;
 
     let mut rows = graph.execute(query("
-        MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = $id AND a.scoring = $oldScoring AND a.contests = $oldContests
+        MATCH ()-[a:ANSWERED]->() WHERE a.id = $id AND a.scoring = $oldScoring AND a.contests = $oldContests
         SET a.scoring = $scoring, a.contests = $contests
         RETURN count(a) AS saved
     ")

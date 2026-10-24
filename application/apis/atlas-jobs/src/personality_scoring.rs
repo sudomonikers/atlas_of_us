@@ -261,7 +261,7 @@ pub async fn run(graph: &Graph, job: ScoringJob) {
         if let Err(e) = &scored {
             tracing::error!("personality scoring failed: {e}");
         }
-        let finish = query("MATCH (j:JobRunning) WHERE elementId(j) = $id DETACH DELETE j").param("id", job.id.as_str());
+        let finish = query("MATCH (j:JobRunning) WHERE j.id = $id DETACH DELETE j").param("id", job.id.as_str());
         if let Err(e) = graph.run(finish).await {
             tracing::error!("couldn't clear the scoring job: {e}");
         }
@@ -384,7 +384,7 @@ async fn save_evidence(graph: &Graph, answers: &[ScoredAnswer], traits: Vec<LlmT
         .collect::<Result<Vec<HashMap<&str, BoltType>>, serde_json::Error>>()?;
     graph.run(query("
         UNWIND $answers AS answer
-        MATCH ()-[a:ANSWERED]->() WHERE elementId(a) = answer.id
+        MATCH ()-[a:ANSWERED]->() WHERE a.id = answer.id
         SET a.scoring = answer.scoring
     ")
         .param("answers", scorings)
@@ -407,7 +407,7 @@ const FORCES: [(usize, f64); 3] = [(10, 1.75), (8, 1.5), (6, 1.25)];
 //evidence is left unmeasured
 pub async fn save_traits(graph: &Graph, person_id: &str) -> Result<(), BoxError> {
     let mut rows = graph.execute(query("
-        MATCH (p:Person)-[a:ANSWERED]->() WHERE elementId(p) = $personId AND a.scoring IS NOT NULL
+        MATCH (p:Person)-[a:ANSWERED]->() WHERE p.id = $personId AND a.scoring IS NOT NULL
         RETURN a.scoring AS scoring
     ")
         .param("personId", person_id)
@@ -443,7 +443,7 @@ pub async fn save_traits(graph: &Graph, person_id: &str) -> Result<(), BoxError>
     }).collect();
 
     graph.run(query("
-        MATCH (p:Person) WHERE elementId(p) = $personId
+        MATCH (p:Person {id: $personId})
         OPTIONAL MATCH (p)-[old:HAS_PERSONALITY_TRAIT]->()
         DELETE old
         WITH DISTINCT p

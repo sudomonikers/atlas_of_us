@@ -13,7 +13,8 @@
 // "conscientiousness facet: ...".
 //
 // Idempotent: safe to re-run. MERGE on name, description overwritten from this
-// file on every run.
+// file on every run. id is set once, when the trait is first created, so it never
+// changes on a re-run.
 // =============================================================================
 
 
@@ -23,6 +24,9 @@
 
 CREATE CONSTRAINT personalitytrait_name_unique IF NOT EXISTS
 FOR (n:PersonalityTrait) REQUIRE n.name IS UNIQUE;
+
+CREATE CONSTRAINT personalitytrait_id_unique IF NOT EXISTS
+FOR (n:PersonalityTrait) REQUIRE n.id IS UNIQUE;
 
 
 // -----------------------------------------------------------------------------
@@ -103,5 +107,6 @@ UNWIND [
 
 ] AS t
 MERGE (n:PersonalityTrait {name: t.name})
+ON CREATE SET n.id = randomUUID()
 SET n.description = t.description;
 

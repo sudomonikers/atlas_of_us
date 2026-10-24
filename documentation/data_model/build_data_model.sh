@@ -47,14 +47,22 @@ subgraph() {
 text <<'EOF'
 # Data Specification For The Atlas Of Us
 This is the big one. Most of the app is inside the data. The core idea is that this is a graph database with a huge monstrous-level graph database containing many sub graphs. All that a human can be in contained within this data, as well as all that many many different people are. Because all the data is so interwoven, this is a monolithic database. The rest of this document is broken up into explanations of the various sub graphs and their individual business rules. After each sub graph explanation will be a section on how the various subgraphs interact.
+
+## Ids
+Every node or relationship whose id is used outside the database (in a login token, by the UI, in a URL, on the jobs queue or in an event) has an `id` property: a uuid set with `randomUUID()` when it's created, with a uniqueness constraint on its label. Code always matches on that `id`, with the label, so the constraint's index is used:
+```cypher
+MATCH (p:Person {id: $personId})
+```
+
+Seeded nodes, such as PersonalityTraits and scenarios, are MERGEd on their natural key (a trait's `name`, a question's `key`), and get their `id` with `ON CREATE SET n.id = randomUUID()`, so re-running a seed never changes them. Today Person, PersonalityTrait, PersonalityScenario, PersonalityScenarioQuestion, JobRunning and the ANSWERED relationship carry ids, and every new label that's referred to from outside the database gets one from the start.
 EOF
 
 text <<'EOF'
 ## Individual Possibilities Graphs
 The following sections are the core graphs related to all a human can be individually. In each of the graphs we will follow several People to see how they interact with the graph. Here is each person's node, which we will reference for the rest of this document:
 ```cypher
-CREATE (andrew:Person {name: "Andrew Link", username: "sudomoniker"});
-CREATE (lulu:Person {name: "Lulu Li", username: "lzy7717"});
+CREATE (andrew:Person {id: "0b6f3c1e-2d4a-4c8e-9f1a-7e5d2b8c4a10", name: "Andrew Link", username: "sudomoniker"});
+CREATE (lulu:Person {id: "9c2e7a4b-5f1d-4e3a-8b6c-1d0f9e8a7b23", name: "Lulu Li", username: "lzy7717"});
 ```
 EOF
 
