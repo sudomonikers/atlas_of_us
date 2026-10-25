@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Emergency is told on a fire safety card, the kind tucked in a seat pocket: a laminated card with a red header,
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 type V = [number, number, number];
 
@@ -692,24 +694,24 @@ function draw(item: Item, i: number) {
   );
 }
 
+//each part is a layer, and the ones with something moving in them get svgs of their own
 function Panel({ shown }: { shown: Shown }) {
   const { cue, starts } = shown;
   const art = ART[cue.room];
-  return (
-    <g className="ec-in">
-      {Object.entries(art)
-        .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
-        .map(([part, items]) =>
-          part.startsWith('_') ? (
-            <g key={part}>{items.map(draw)}</g>
-          ) : (
-            <g key={part} className="ec-pop" style={{ animationDelay: `${starts[part] ?? 0}s` }}>
-              {items.map(draw)}
-            </g>
-          ),
-        )}
-    </g>
-  );
+  const layers: Layer[] = Object.entries(art)
+    .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
+    .map(([part, items]) => ({
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: part.startsWith('_') ? (
+        <g>{items.map(draw)}</g>
+      ) : (
+        <g className="ec-pop" style={{ animationDelay: `${starts[part] ?? 0}s` }}>
+          {items.map(draw)}
+        </g>
+      ),
+    }));
+  return <Layers viewBox={VIEW} layers={layers} className="ec-in" />;
 }
 
 //the laminated card: a red header, and the panel's frame
@@ -792,12 +794,17 @@ function SafetyCard({ animation, clock }: { animation: string; clock?: number })
   return (
     <div style={styles.scene}>
       <style>{keyframes}</style>
-      <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
+      <Sheet viewBox={VIEW}>
         <Card />
-        <Panel key={`${panelOf(shown.cue)}-${shown.visit}`} shown={shown} />
-        <path d={round(66, 114, 1468, 756, 14)} fill={SMOKE} style={{ opacity: haze, transition: 'opacity 1s linear' }} />
+      </Sheet>
+      <Panel key={`${panelOf(shown.cue)}-${shown.visit}`} shown={shown} />
+      {/* faded as a whole svg, which the browser can do without redrawing it */}
+      <Sheet viewBox={VIEW} style={{ opacity: haze, transition: 'opacity 1s linear' }}>
+        <path d={round(66, 114, 1468, 756, 14)} fill={SMOKE} />
+      </Sheet>
+      <Sheet viewBox={VIEW}>
         <Caption cue={shown.cue} />
-      </svg>
+      </Sheet>
     </div>
   );
 }
@@ -881,12 +888,6 @@ const styles: Record<string, CSSProperties> = {
     inset: 0,
     background: SEAT,
     overflow: 'hidden',
-  },
-  layer: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
   },
 };
 

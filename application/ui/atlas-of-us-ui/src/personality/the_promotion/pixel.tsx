@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Promotion is played as an old 16-bit office game: chunky pixel rooms seen side-on, like a point-and-click
@@ -11,6 +12,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 const C = 8; //screen pixels to an art pixel
 type Dir = 1 | -1;
 
@@ -830,24 +832,27 @@ function turn(prev: Shown | undefined, cue: Cue): Shown {
 
 const draw = ({ d, c, cls, op }: Run, i: number) => <path key={i} d={d} fill={c} className={cls} opacity={op} />;
 
+//pixels stay hard edged
+const crisp = (content: ReactNode) => <g shapeRendering="crispEdges">{content}</g>;
+
+//each part is a layer, and the ones with something moving in them get svgs of their own
 function Panel({ shown }: { shown: Shown }) {
   const { cue, starts } = shown;
-  return (
-    <g className="pp-in">
-      {DRAWN[cue.room]
-        .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
-        .map(([part, shapes]) =>
-          part.startsWith('_') ? (
-            <g key={part}>{shapes.map(draw)}</g>
-          ) : (
-            <g key={part} className="pp-pop" style={{ animationDelay: `${starts[part] ?? 0}s` }}>
-              {shapes.map(draw)}
-            </g>
-          ),
-        )}
-      <Clock cue={cue} />
-    </g>
-  );
+  const layers: Layer[] = DRAWN[cue.room]
+    .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
+    .map(([part, shapes]) => ({
+      key: part,
+      moving: shapes.some((shape) => shape.cls) ? part : undefined,
+      node: part.startsWith('_') ? (
+        <g>{shapes.map(draw)}</g>
+      ) : (
+        <g className="pp-pop" style={{ animationDelay: `${starts[part] ?? 0}s` }}>
+          {shapes.map(draw)}
+        </g>
+      ),
+    }));
+  layers.push({ key: 'clock', node: <Clock cue={cue} /> });
+  return <Layers viewBox={VIEW} layers={layers} wrap={crisp} className="pp-in" />;
 }
 
 //a wall clock showing the cue's time, or the time in the corner of the screen
@@ -921,11 +926,8 @@ function PixelOffice({ animation }: { animation: string }) {
   return (
     <div style={styles.scene}>
       <style>{keyframes}</style>
-      <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" shapeRendering="crispEdges" aria-hidden>
-        <rect width={W} height={H} fill={INK} />
-        <Panel key={`${shown.cue.room}-${shown.visit}`} shown={shown} />
-        <Hud cue={shown.cue} />
-      </svg>
+      <Panel key={`${shown.cue.room}-${shown.visit}`} shown={shown} />
+      <Sheet viewBox={VIEW}>{crisp(<Hud cue={shown.cue} />)}</Sheet>
     </div>
   );
 }
@@ -1017,12 +1019,6 @@ const styles: Record<string, CSSProperties> = {
     inset: 0,
     background: INK,
     overflow: 'hidden',
-  },
-  layer: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
   },
 };
 

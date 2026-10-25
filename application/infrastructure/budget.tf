@@ -87,7 +87,7 @@ resource "aws_budgets_budget_action" "bedrock_cutoff" {
 
   action_threshold {
     action_threshold_type  = "PERCENTAGE"
-    action_threshold_value = 100
+    action_threshold_value = 150
   }
 
   definition {

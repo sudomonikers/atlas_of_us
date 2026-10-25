@@ -27,7 +27,7 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 | Prerequisites job | `application/apis/atlas-jobs/src/skill_prerequisites.rs` | Links a filled skill's levels to the levels of the skills they need, with the resolver |
 | Proposal job | `application/apis/atlas-jobs/src/skill_proposal.rs` | Screens a proposed change before it is opened to the community |
 | Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and one rule and queue per consumer |
-| Taxonomy import | `application/database/skills_import/` | Loads ESCO skills, aliases and hierarchy as stubs |
+| Taxonomy import | `application/database/skills_import/` | Asks the API for each ESCO skill, broader skills first |
 
 ### Models
 - **The gates and the resolver's judge** use a fast model on Bedrock, set by `SMALL_MODEL` in `bedrock.rs` (Claude Haiku
@@ -52,27 +52,33 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 A Skill node is created in exactly three ways, and every one of them goes through the resolver so it can't create a
 duplicate:
 
-1. **The taxonomy import.** Our starting backbone.
+1. **The taxonomy import.** Our starting backbone. It asks the API for each skill, the same way a user does.
 2. **A user searching for something we don't have.** Goes through the gates first.
-3. **The prerequisites job naming a prerequisite we don't have.** Created as a stub, never filled until someone needs it.
+3. **The prerequisites job naming a prerequisite we don't have.** Goes through the resolver, and is created as a stub,
+   never filled until someone needs it.
 
 ### The taxonomy: ESCO
 ESCO is the European Commission's classification of skills and occupations. It's free to use with attribution, and it
 gives us what we would otherwise have to build ourselves:
 
-- **About 14,000 skills,** each with a stable URI, a preferred name, a description and **alternative names** (in English
-  and many other languages). The alternative names become aliases, which makes search and de-duplication work from the
-  first day.
-- **A hierarchy** of broader and narrower skills, which becomes our `SPECIALIZATION_OF` relationships.
+- **About 14,000 skills,** each with a preferred name, a description and alternative names, in English and many other
+  languages.
+- **A hierarchy** of broader and narrower skills, which sets the order the import asks for them in.
 - **Links between occupations and the skills they need,** which the Jobs module will want later.
 
-How we import it:
+How we import it (`application/database/skills_import/`):
 
 - **Only the "skill/competence" entries become Skills.** ESCO also has "knowledge" entries (such as "French history").
   Those belong to the Topics sub-graph, and are left for it.
-- **Each one is imported as a stub:** name, description, aliases, an embedding, its place in the hierarchy,
-  and five empty Dreyfus levels. No LLM calls happen at import time.
-- **Imports are re-runnable.** Nodes are matched on their name
+- **Each one is asked for through the API** (`POST /api/skills`), with its ESCO label as what the user typed. The gates
+  name it ("use spreadsheets software" becomes "Spreadsheets") and screen it, the resolver decides whether we already
+  have it, and the API creates the stub and publishes `SkillCreated`. The import itself only reads the files, so a run
+  exercises the API and the events end to end.
+- **Broader skills are asked for first,** so the resolver can place a narrower one under the skill it specializes.
+- **ESCO is only a source.** The graph keeps nothing that ties a skill to ESCO, and an imported skill looks like any
+  other.
+- **Imports are re-runnable.** The import records the API's answer for every label, and skips labels it has already
+  asked for.
 - **ESCO is weak on hobbies and everyday skills** (surfing, juggling, sourdough). Those come in through users
 
 ## Skill identity
@@ -81,14 +87,14 @@ How we import it:
 On top of what `../data_model/skills/skills.md` describes:
 
 - `status`: where it is in its life (see below).
-- `aliases`: every other name we know it by, from ESCO's alternative names.
+- `aliases`: every other name we know it by.
 - `vector`: an embedding of the name, description and aliases, used by the resolver.
 
 ### How skills relate to each other
 There are three different relationships between skills, and keeping them apart matters:
 
 - **Specialization:** `(Sourdough Baking)-[:SPECIALIZATION_OF]->(Baking)`. A narrower version of a broader skill. Comes
-  mostly from ESCO, and from the resolver when a user names something more specific than what we have.
+  from the resolver, when the import or a user names something more specific than what we have.
 - **Prerequisite:** lives on the **levels**, not the skills, matching the data model. `(Cooking Competent)-[:REQUIRES
   {strength}]->(Knife Skills Advanced Beginner)`. Comes from the prerequisites job.
 - **Same skill:** one node, with the other name in its aliases.
@@ -111,13 +117,15 @@ The resolver answers one question: given a name (and maybe a description), is it
 **more specific than** one, or **new**? It's used by the API's gates and by the prerequisites job, with the same logic in both.
 
 1. **Find candidates:** an exact match on name or alias, ignoring case, is `same` straight away. Otherwise the eight
-   nearest skills by vector similarity are the candidates, and with none at all the name is `new`.
+   nearest skills by vector similarity, scoring at least 0.69 (`MIN_SCORE`), are the candidates, and with none at all
+   the name is `new`.
 2. **Judge:** a small, fast model looks at the name, its description and the candidates (with their aliases and broader
-   skills) and returns `same`, `specialization_of` or `new`, with the candidate it means.
+   skills) and gives a short reason, then `same`, `specialization_of`, `broader_than` or `new`, with the candidate it
+   means.
 3. **Act:**
    - `same`: use the existing node.
    - `specialization_of`: create a stub under that parent.
-   - `new`: create a stub with no parent.
+   - `broader_than` or `new`: create a stub with no parent.
 
 A stub is created with its five levels in one transaction. A uniqueness constraint on the name means that if two people
 ask for the same new skill at the same moment, the second `MERGE` finds the first one's node instead of creating
@@ -144,12 +152,14 @@ alone.
 If nothing matches, the user can ask for it. The API runs **the gates** before anything is written. The first three are
 one structured call to a fast model, and the fourth is the resolver:
 
-1. **Normalize:** fix typos and turn phrasing into a skill name ("being good at excel" becomes "Microsoft Excel").
+1. **Normalize:** fix typos and turn phrasing into a skill name, a noun phrase for the ability ("being good at excel"
+   becomes "Microsoft Excel", "monitor drilling fluid" becomes "Drilling Fluid Monitoring").
 2. **Classify:** is it actually a skill? "Patience" is a personality facet, "French history" is a topic, "Height" is a
-   physical attribute. Those are sent to the right module instead: the API returns the `kind`, and the UI words the
+   physical attribute. Doing something with a subject is a skill ("perform toxicological studies"). Those are sent to the right module instead: the API returns the `kind`, and the UI words the
    message and links to that module. Something can be both (Python is a skill and a topic), and that's fine: it's a
    skill here.
-3. **Screen:** reject nonsense and slurs. Real skills pass whatever they're about, including violent and sexual ones.
+3. **Screen:** reject gibberish, jokes and slurs. Every real skill passes, however narrow, broad or niche, and whatever
+   it's about, including violent and sexual ones.
 4. **Resolve:** run the resolver on the normalized name. If it says `same`, we show the user the skill they meant. If
    it says `specialization_of` or `new`, we create the stub.
 
@@ -236,8 +246,8 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 | `SkillLevelRevised` | A proposal was promoted | Anything that read the old level, such as requirement links and people's claims |
 | `SkillLevelClaimed` | A person claimed a level | Profile, recommendations, evidence verification |
 
-The taxonomy import publishes `SkillCreated` too, in batches, so consumers see every skill the same way regardless of
-where it came from. Consumers must therefore be cheap to run for a stub.
+The taxonomy import goes through the API, so the API publishes `SkillCreated` for every skill it creates, and consumers
+see every skill the same way regardless of where it came from. Consumers must therefore be cheap to run for a stub.
 
 ### What an event looks like
 Events are thin. They say what happened and which nodes it happened to, and consumers read the graph for the details.
@@ -270,7 +280,7 @@ Events name a skill by its `id`, and a level by its skill's `id` and its `rank`.
 
 ## Build order
 1. **The event bus,** its archive, and the Skills consumer rule and queue.
-2. **The ESCO import,** with embeddings and the uniqueness constraint.
+2. **The ESCO import,** through the API.
 3. **Search and the gates** in the API, with the resolver.
 4. **The fill job.**
 5. **Claiming levels,** with evidence and content versions.

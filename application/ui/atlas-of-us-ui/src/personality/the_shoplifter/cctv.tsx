@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Sheet } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Shoplifter is seen through the shop's own security cameras: four grainy black-and-white feeds, one over the
@@ -13,6 +14,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 type V3 = [number, number, number];
 
@@ -738,14 +740,34 @@ function Cctv({ animation }: { animation: string }) {
           </g>
         )}
 
+      </svg>
+
+      {/* the screen's overlays are svgs of their own, so the noise in them is worked out once and the feed's blur isn't
+          redone every frame. The grain and the static jump about as whole svgs, which the browser can do without
+          redrawing them */}
+      <Sheet viewBox={VIEW}>
         {cue.dark && <rect width={W} height={H} fill="#000" opacity={0.6} />}
         <rect width={W} height={H} fill="url(#sl-lines)" />
-        <rect className="sl-grain" x={-60} y={-60} width={W + 120} height={H + 120} filter="url(#sl-grain)" opacity={0.13} />
+      </Sheet>
+      <Sheet viewBox={VIEW} className="sl-grain" style={styles.spill}>
+        <rect x={-60} y={-60} width={W + 120} height={H + 120} filter="url(#sl-grain)" opacity={0.13} />
+      </Sheet>
+      <Sheet viewBox={VIEW} style={styles.moving}>
         <rect className="sl-roll" width={W} height={160} fill="url(#sl-roll)" />
-        {cue.play && <rect className="sl-track" y={560} width={W} height={26} filter="url(#sl-grain)" opacity={0.5} />}
+      </Sheet>
+      {cue.play && (
+        <Sheet viewBox={VIEW} style={styles.moving}>
+          <rect className="sl-track" y={560} width={W} height={26} filter="url(#sl-grain)" opacity={0.5} />
+        </Sheet>
+      )}
+      <Sheet viewBox={VIEW}>
         <rect width={W} height={H} fill="url(#sl-vignette)" />
-        <rect key={now.cut} className="sl-cut" x={-60} y={-60} width={W + 120} height={H + 120} filter="url(#sl-grain)" />
+      </Sheet>
+      <Sheet key={now.cut} viewBox={VIEW} className="sl-cut" style={styles.spill}>
+        <rect x={-60} y={-60} width={W + 120} height={H + 120} filter="url(#sl-grain)" />
+      </Sheet>
 
+      <Sheet viewBox={VIEW}>
         {cue.export && EXPORT.map((item, i) => <Mark key={i} item={item} />)}
         <g fill={OSD} style={styles.osd}>
           {cue.cam === 'quad' ? (
@@ -776,7 +798,7 @@ function Cctv({ animation }: { animation: string }) {
             </text>
           )}
         </g>
-      </svg>
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: cue.card ? 1 : 0 }}>
         {cue.card && (
@@ -866,6 +888,14 @@ const styles: Record<string, CSSProperties> = {
     inset: 0,
     width: '100%',
     height: '100%',
+  },
+  //an overlay that's bigger than the screen, so it can jump about without its edges showing
+  spill: {
+    overflow: 'visible',
+  },
+  //its own compositing layer, so its frames don't redraw what's under it
+  moving: {
+    willChange: 'transform',
   },
   osd: {
     fontFamily: MONO,

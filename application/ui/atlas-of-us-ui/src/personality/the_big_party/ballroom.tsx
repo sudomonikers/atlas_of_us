@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Big Party is a dark ballroom under a mirror ball. Everyone is a flat silhouette cut from coloured card, lit by
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -520,44 +522,46 @@ const ART: Record<Page, Record<string, Item[]>> = {
 // a page, and its parts
 // ---------------------------------------------------------------------------
 
-function Part({ items, start }: { items: Item[]; start: number }) {
-  return (
-    <g>
-      {items.map((item, i) => {
-        let mark;
-        if ('pool' in item) {
-          mark = <ellipse cx={item.x} cy={item.y} rx={item.rx} ry={item.ry} fill={`url(#bp-pool-${item.pool})`} opacity={item.o ?? 0.7} style={styles.screen} className={item.cls} />;
-        } else if ('text' in item) {
-          mark = (
-            <text x={item.x} y={item.y} textAnchor="middle" fill={C[item.c]} filter={item.glow ? 'url(#bp-glow)' : undefined} style={{ ...styles.type, fontSize: item.size }}>
-              {item.text}
-            </text>
-          );
-        } else if ('line' in item) {
-          mark = (
-            <path
-              d={item.d}
-              fill="none"
-              stroke={C[item.line]}
-              strokeWidth={item.w ?? 6}
-              strokeOpacity={item.o ?? 1}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              filter={item.glow ? 'url(#bp-glow)' : undefined}
-              className={item.cls}
-            />
-          );
-        } else {
-          mark = <path d={item.d} fill={C[item.fill]} fillOpacity={item.o ?? 0.95} filter={item.glow ? 'url(#bp-glow)' : undefined} className={item.cls} />;
-        }
-        return (
-          <g key={i} className="bp-in" style={{ animationDelay: `${start + i * GAP}s` }}>
-            {mark}
-          </g>
-        );
-      })}
-    </g>
-  );
+//each item is a layer of its own: what moves, and the pools of light that screen onto the room, need their own svgs
+function partLayers(part: string, items: Item[], start: number): Layer[] {
+  return items.map((item, i) => {
+    let mark;
+    if ('pool' in item) {
+      mark = <ellipse cx={item.x} cy={item.y} rx={item.rx} ry={item.ry} fill={`url(#bp-pool-${item.pool})`} opacity={item.o ?? 0.7} style={styles.screen} className={item.cls} />;
+    } else if ('text' in item) {
+      mark = (
+        <text x={item.x} y={item.y} textAnchor="middle" fill={C[item.c]} filter={item.glow ? 'url(#bp-glow)' : undefined} style={{ ...styles.type, fontSize: item.size }}>
+          {item.text}
+        </text>
+      );
+    } else if ('line' in item) {
+      mark = (
+        <path
+          d={item.d}
+          fill="none"
+          stroke={C[item.line]}
+          strokeWidth={item.w ?? 6}
+          strokeOpacity={item.o ?? 1}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter={item.glow ? 'url(#bp-glow)' : undefined}
+          className={item.cls}
+        />
+      );
+    } else {
+      mark = <path d={item.d} fill={C[item.fill]} fillOpacity={item.o ?? 0.95} filter={item.glow ? 'url(#bp-glow)' : undefined} className={item.cls} />;
+    }
+    return {
+      key: `${part}-${i}`,
+      moving: 'cls' in item ? item.cls : undefined,
+      blend: 'pool' in item ? ('screen' as const) : undefined,
+      node: (
+        <g className="bp-in" style={{ animationDelay: `${start + i * GAP}s` }}>
+          {mark}
+        </g>
+      ),
+    };
+  });
 }
 
 interface Shown {
@@ -586,13 +590,8 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
 }
 
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'bp-leave' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers = shown.cue.parts.flatMap((part) => partLayers(part, ART[shown.cue.page][part], shown.starts[part] ?? 0));
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'bp-leave' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -695,9 +694,9 @@ function Ballroom({ animation }: { animation: string }) {
           ))}
         </defs>
         <rect width={W} height={H} fill={C.night} />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
       </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
 
       <div style={{ ...styles.lightsUp, opacity: light === 'up' ? 1 : 0 }} />
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>

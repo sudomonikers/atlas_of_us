@@ -9,6 +9,9 @@ Every scene is written to a set of IPIP-NEO items (see `README.md`). When creati
    - End with a real-life question about the player's own life, with any frequency pinned down ("on how many of the last 7 days", not "often")
    - Scene animations are stepped at 24fps by the player (`SCENE_FPS`), so plain CSS animations are fine. Never animate the scene with `requestAnimationFrame` or timers, which would skip the cap
    - Every redraw re-runs SVG filters, so keep `feTurbulence` off big static areas: render a background like that once to an image (as the Story Game's `paper.jpg` is)
+   - Draw each page through `Layers` in `layers.tsx`, one layer per part (or per item, when a part mixes still, moving and blended shapes). Safari redraws a whole svg on the cpu whenever anything inside it moves, so what moves gets an svg of its own and the still picture is drawn once
+   - A blend can't reach past its own svg: give blended shapes a layer with `blend` set. A filter that has to see a whole page at once goes in `wrap`, and an overlay the whole scene shares goes in a `Sheet` of its own
+   - A whole svg that fades or moves (a page turning, a twinkle, film grain) is animated by its own `className`, which the browser does without redrawing it
 4. Search for any relevant sounds that would work well for the scene. Sounds can be found in the Downloads foler
    - Play them through `createSoundscape` in `soundscape.ts` (looping beds plus one-shots), like the other scenes do
    - Encode them before committing: `scripts/encode-audio.sh bed <files>` for looping beds, `scripts/encode-audio.sh shot <files>` for one-shots

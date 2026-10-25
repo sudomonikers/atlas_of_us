@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Stranger is sprayed through stencils onto the concrete wall by the station, like street art: flat black for most
@@ -11,6 +12,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -430,14 +432,18 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.6) }, prev: shown };
 }
 
+//each part is a layer, and the ones with something moving in them get svgs of their own, so the spray filters on the
+//rest of the wall aren't worked out again every frame
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'st-fade' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers: Layer[] = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return {
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: <Part items={items} start={shown.starts[part] ?? 0} />,
+    };
+  });
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'st-fade' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -541,9 +547,9 @@ function Stencil({ animation }: { animation: string }) {
         <rect width={W} height={H} fill="url(#st-brick)" opacity={0.07} />
         <rect width={W} height={H} filter="url(#st-grain)" opacity={0.3} />
         <rect width={W} height={H} fill="url(#st-grime)" />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
       </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (

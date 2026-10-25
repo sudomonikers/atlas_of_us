@@ -165,7 +165,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   is_ipv6_enabled     = true
   comment             = "CloudFront distribution for my S3 bucket"
   default_root_object = "index.html"
-  http_version        = "http2and3"
+  http_version        = "http2" # safari reuses http/3 (quic) connections that went idle and its requests on them fail with no response
   aliases             = [local.website_name]
   web_acl_id          = aws_wafv2_web_acl.cdn.arn
 

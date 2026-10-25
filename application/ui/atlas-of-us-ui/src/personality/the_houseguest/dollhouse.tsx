@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Houseguest happens in one flat, drawn as an isometric dollhouse with the front walls taken away: an open-plan
@@ -11,6 +12,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 type P3 = [number, number, number];
 
@@ -621,21 +623,30 @@ function Dollhouse({ animation }: { animation: string }) {
   const { now, prev } = view;
   const { time, parts, card } = now.cue;
   const leaving = prev ? prev.parts.filter((p) => !parts.includes(p)) : [];
-  const layer = (top: boolean) =>
+  //each part is a layer: the ones with something moving get svgs of their own, and pools of light screen onto the house
+  const layer = (top: boolean): Layer[] =>
     ORDER.filter((p) => onTop(p) === top && (parts.includes(p) || leaving.includes(p))).map((p) => {
       const on = parts.includes(p);
-      return (
-        <g
-          key={p}
-          className={on ? (top ? 'hg-fade' : 'hg-drop') : 'hg-lift'}
-          style={{ animationDelay: on ? `${now.starts[p]}s` : '0s', mixBlendMode: p.startsWith('glow_') ? 'screen' : undefined }}
-        >
-          {ART[p].map((item, i) => (
-            <Mark key={i} item={item} />
-          ))}
-        </g>
-      );
+      const glow = p.startsWith('glow_');
+      return {
+        key: p,
+        moving: ART[p].some((item) => 'cls' in item && item.cls) ? p : undefined,
+        blend: glow ? 'screen' : undefined,
+        node: (
+          <g className={on ? (top ? 'hg-fade' : 'hg-drop') : 'hg-lift'} style={{ animationDelay: on ? `${now.starts[p]}s` : '0s', mixBlendMode: glow ? 'screen' : undefined }}>
+            {ART[p].map((item, i) => (
+              <Mark key={i} item={item} />
+            ))}
+          </g>
+        ),
+      };
     });
+  //the evening and night tint multiplies onto the house, between the rooms and what sits on top of them
+  const tint: Layer = {
+    key: 'tint',
+    blend: 'multiply',
+    node: <path d={SILHOUETTE} style={{ fill: TINT[time], transition: 'fill 1.5s ease' }} />,
+  };
   const night = time === 'night';
   return (
     <div style={styles.scene}>
@@ -672,11 +683,11 @@ function Dollhouse({ animation }: { animation: string }) {
         </g>
         <circle cx={1390} cy={110} r={38} style={{ fill: time === 'evening' ? '#f6a46a' : '#fff6dc', opacity: night ? 0 : 0.9, transition: 'fill 1.5s ease, opacity 1.5s ease' }} />
         <path d={FOOTPRINT} fill="#2b1d10" opacity={0.3} filter="url(#hg-blur)" />
-        {layer(false)}
-        <path d={SILHOUETTE} style={{ fill: TINT[time], mixBlendMode: 'multiply', transition: 'fill 1.5s ease' }} />
-        {layer(true)}
-        <rect width={W} height={H} fill="url(#hg-vignette)" />
       </svg>
+      <Layers viewBox={VIEW} layers={[...layer(false), tint, ...layer(true)]} />
+      <Sheet viewBox={VIEW}>
+        <rect width={W} height={H} fill="url(#hg-vignette)" />
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (

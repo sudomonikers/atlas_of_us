@@ -318,7 +318,7 @@ A stub looks the same, with `status: "stub"` on the Skill and only `name` and `r
 #### How skills relate to each other
 There are three different ways two skills can be related, and they are kept apart:
 
-**Specialization.** A narrower version of a broader skill points at it with SPECIALIZATION_OF. These come mostly from ESCO's hierarchy, and from the resolver when a user asks for something more specific than a skill we already have. A skill has at most one broader skill, so the specializations form a tree, and search can show a skill's parent alongside it:
+**Specialization.** A narrower version of a broader skill points at it with SPECIALIZATION_OF. These come from the resolver, when the taxonomy import or a user asks for something more specific than a skill we already have. A skill has at most one broader skill, so the specializations form a tree, and search can show a skill's parent alongside it:
 ```cypher
 (:Skill {name: "Sourdough Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Cooking"})
 ```

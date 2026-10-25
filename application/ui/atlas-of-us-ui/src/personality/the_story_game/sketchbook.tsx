@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Story Game is the narrator's sketchbook, lit by a wood stove. Each page is an ink drawing that draws itself on,
@@ -9,6 +10,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 const PAPER = '#f3ead6';
 const INK = '#2a2119';
 //the paper's grain and blotches, rendered once from turbulence filters: drawing them live cost the GPU every frame
@@ -551,14 +553,21 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.5) }, prev: shown };
 }
 
+//the hand-drawn wobble goes over each svg's lines as a whole
+const wobble = (content: ReactNode) => <g filter="url(#sg-wobble)">{content}</g>;
+
+//each part is a layer, and the ones with something moving in them get svgs of their own, so the wobble over the rest of
+//the page isn't worked out again every frame
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'sg-leave' : undefined} filter="url(#sg-wobble)">
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers: Layer[] = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return {
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: <Part items={items} start={shown.starts[part] ?? 0} />,
+    };
+  });
+  return <Layers viewBox={VIEW} layers={layers} wrap={wobble} className={leaving ? 'sg-leave' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -647,27 +656,30 @@ function Sketchbook({ animation }: { animation: string }) {
         <path d={`${circle(1460, 90, 54)} ${circle(1466, 94, 50)}`} fill="none" stroke="#b08850" strokeOpacity={0.18} strokeWidth={5} />
       </svg>
 
-      <svg style={{ ...styles.layer, ...styles.multiply }} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <defs>
-          <filter id="sg-wobble">
-            <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="4" />
-            <feDisplacementMap in="SourceGraphic" scale="4" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-          <filter id="sg-bleed">
-            <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" />
-            <feDisplacementMap in="SourceGraphic" scale="12" xChannelSelector="R" yChannelSelector="G" />
-            <feGaussianBlur stdDeviation="1.2" />
-          </filter>
-          {(Object.keys(LANTERNS) as Lantern[]).map((l) => (
-            <radialGradient key={l} id={`sg-glow-${l}`}>
-              <stop offset="0" stopColor={LANTERNS[l]} stopOpacity={0.55} />
-              <stop offset="1" stopColor={LANTERNS[l]} stopOpacity={0} />
-            </radialGradient>
-          ))}
-        </defs>
+      {/* everything drawn multiplies onto the paper as one sheet */}
+      <div style={{ ...styles.layer, ...styles.multiply }}>
+        <Sheet viewBox={VIEW}>
+          <defs>
+            <filter id="sg-wobble">
+              <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="4" />
+              <feDisplacementMap in="SourceGraphic" scale="4" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="sg-bleed">
+              <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" />
+              <feDisplacementMap in="SourceGraphic" scale="12" xChannelSelector="R" yChannelSelector="G" />
+              <feGaussianBlur stdDeviation="1.2" />
+            </filter>
+            {(Object.keys(LANTERNS) as Lantern[]).map((l) => (
+              <radialGradient key={l} id={`sg-glow-${l}`}>
+                <stop offset="0" stopColor={LANTERNS[l]} stopOpacity={0.55} />
+                <stop offset="1" stopColor={LANTERNS[l]} stopOpacity={0} />
+              </radialGradient>
+            ))}
+          </defs>
+        </Sheet>
         {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
         <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
-      </svg>
+      </div>
 
       <div style={styles.stove} className="sg-stove" />
       <div style={{ ...styles.dim, opacity: now.cue.dim ? 1 : 0 }} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Night Class is drawn in chalk on Room 14's blackboard. Lines are drawn stroke by stroke, with a faint halo of chalk
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -420,14 +422,17 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.6) }, prev: shown };
 }
 
+//each part is a layer, and the ones with something moving in them get svgs of their own
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'ch-wipe' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers: Layer[] = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return {
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: <Part items={items} start={shown.starts[part] ?? 0} />,
+    };
+  });
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'ch-wipe' : undefined} />;
 }
 
 //chalk that was wiped off long ago, never quite gone
@@ -532,11 +537,13 @@ function Chalkboard({ animation }: { animation: string }) {
         </defs>
         <rect width={W} height={H} fill={C.board} />
         <path d={GHOSTS} fill={C.white} fillOpacity={0.035} />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      <Sheet viewBox={VIEW}>
         <rect width={W} height={H} fill="url(#ch-grain)" opacity={0.6} pointerEvents="none" />
         <rect width={W} height={H} fill="url(#ch-grain2)" opacity={0.5} pointerEvents="none" />
-      </svg>
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (

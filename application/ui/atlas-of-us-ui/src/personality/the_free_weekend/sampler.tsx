@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Free Weekend is cross-stitched on cream aida cloth, stretched in an oval embroidery hoop, like a sampler. Filled
@@ -11,6 +12,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 const CELL = 10; //one stitch
 const HOOP = { cx: 800, cy: 318, rx: 650, ry: 285 };
 type Pt = [number, number];
@@ -434,28 +436,40 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, 0.6) }, prev: shown };
 }
 
-//cross stitch goes through the grid filter and the stitch mask; backstitch and lettering sit on top
+//cross stitch goes through the grid filter and the stitch mask; backstitch and lettering sit on top. Each part's cross
+//stitch and its backstitch are layers, and the parts with something moving get svgs of their own, so the grid filter
+//over the rest of the picture isn't worked out again every frame
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  const layer = (crosses: boolean) =>
-    shown.cue.parts.map((part) => (
-      <g key={part} className="fw-stitch" style={{ animationDelay: `${shown.starts[part] ?? 0}s` }}>
-        {ART[shown.cue.page][part]
-          .filter((item) => 'fill' in item === crosses)
-          .map((item, i) => (
-            <Mark key={i} item={item} />
-          ))}
-      </g>
-    ));
-  return (
-    <g className={leaving ? 'fw-fade' : undefined} clipPath="url(#fw-hoop)">
-      <g filter="url(#fw-raise)">
-        <g mask="url(#fw-x)">
-          <g filter="url(#fw-grid)">{layer(true)}</g>
+  const layers = (crosses: boolean): Layer[] =>
+    shown.cue.parts.map((part) => {
+      const items = ART[shown.cue.page][part].filter((item) => 'fill' in item === crosses);
+      return {
+        key: `${part}-${crosses ? 'cross' : 'back'}`,
+        kind: crosses ? 'cross' : 'back',
+        moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+        node: (
+          <g className="fw-stitch" style={{ animationDelay: `${shown.starts[part] ?? 0}s` }}>
+            {items.map((item, i) => (
+              <Mark key={i} item={item} />
+            ))}
+          </g>
+        ),
+      };
+    });
+  const wrap = (content: ReactNode, kind?: string) => (
+    <g clipPath="url(#fw-hoop)">
+      {kind === 'cross' ? (
+        <g filter="url(#fw-raise)">
+          <g mask="url(#fw-x)">
+            <g filter="url(#fw-grid)">{content}</g>
+          </g>
         </g>
-      </g>
-      <g filter="url(#fw-raise)">{layer(false)}</g>
+      ) : (
+        <g filter="url(#fw-raise)">{content}</g>
+      )}
     </g>
   );
+  return <Layers viewBox={VIEW} layers={[...layers(true), ...layers(false)]} wrap={wrap} className={leaving ? 'fw-fade' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -581,8 +595,10 @@ function Sampler({ animation }: { animation: string }) {
         <rect width={W} height={H} filter="url(#fw-grain)" opacity={0.25} />
         {/* the loose cloth outside the hoop sits in shadow */}
         <path d={`${rect(0, 0, W, H)} ${ellipse(cx, cy, rx, ry)}`} fillRule="evenodd" fill="url(#fw-slack)" />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      <Sheet viewBox={VIEW}>
         <g filter="url(#fw-shadow)">
           <ellipse cx={cx} cy={cy} rx={rx + 12} ry={ry + 12} fill="none" stroke="#b98a55" strokeWidth={22} />
           <ellipse cx={cx} cy={cy} rx={rx + 18} ry={ry + 18} fill="none" stroke="#e0bd8a" strokeWidth={3} strokeOpacity={0.7} />
@@ -594,7 +610,7 @@ function Sampler({ animation }: { animation: string }) {
         {/* the needle, still threaded with red, parked in the cloth */}
         <path d={`M 150 70 L 290 40`} stroke="#b8bcc2" strokeWidth={4} strokeLinecap="round" />
         <path d={`M 284 41 q 40 -10 30 30 t 60 60 q 20 40 -20 70`} stroke={C.red} strokeWidth={3} fill="none" strokeDasharray="12 5" />
-      </svg>
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (

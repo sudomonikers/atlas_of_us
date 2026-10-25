@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Dare is Kit's action-camera footage: flat, sun-bleached travel-poster pictures with the camera's REC light,
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -472,45 +474,32 @@ const ART: Record<Page, Record<string, Item[]>> = {
 // a page, and its parts
 // ---------------------------------------------------------------------------
 
-function Part({ items, start }: { items: Item[]; start: number }) {
-  return (
-    <g>
-      {items.map((item, i) => {
-        let mark;
-        if ('glow' in item) {
-          mark = <ellipse cx={item.x} cy={item.y} rx={item.rx} ry={item.ry} fill={`url(#dr-glow-${item.glow})`} opacity={item.o ?? 0.6} style={styles.screen} />;
-        } else if ('text' in item) {
-          mark = (
-            <text x={item.x} y={item.y} textAnchor="middle" fill={C[item.c]} style={{ ...styles.type, fontSize: item.size }}>
-              {item.text}
-            </text>
-          );
-        } else if ('line' in item) {
-          mark = (
-            <path
-              d={item.d}
-              fill="none"
-              stroke={C[item.line]}
-              strokeWidth={item.w ?? 6}
-              strokeOpacity={item.o ?? 1}
-              strokeDasharray={item.dash}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          );
-        } else {
-          mark = <path d={item.d} fill={C[item.fill]} fillOpacity={item.o ?? 0.95} />;
-        }
-        return (
-          <g key={i} className="dr-in" style={{ animationDelay: `${start + i * GAP}s` }}>
-            <g className={item.cls} style={item.origin ? { transformBox: 'view-box', transformOrigin: item.origin } : undefined}>
-              {mark}
-            </g>
-          </g>
-        );
-      })}
-    </g>
-  );
+function Mark({ item }: { item: Item }) {
+  if ('glow' in item) {
+    return <ellipse cx={item.x} cy={item.y} rx={item.rx} ry={item.ry} fill={`url(#dr-glow-${item.glow})`} opacity={item.o ?? 0.6} style={styles.screen} />;
+  }
+  if ('text' in item) {
+    return (
+      <text x={item.x} y={item.y} textAnchor="middle" fill={C[item.c]} style={{ ...styles.type, fontSize: item.size }}>
+        {item.text}
+      </text>
+    );
+  }
+  if ('line' in item) {
+    return (
+      <path
+        d={item.d}
+        fill="none"
+        stroke={C[item.line]}
+        strokeWidth={item.w ?? 6}
+        strokeOpacity={item.o ?? 1}
+        strokeDasharray={item.dash}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
+  }
+  return <path d={item.d} fill={C[item.fill]} fillOpacity={item.o ?? 0.95} />;
 }
 
 interface Shown {
@@ -538,14 +527,23 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.5) }, prev: shown };
 }
 
+//each item is a layer of its own: what moves, and the glows that screen onto the picture, need their own svgs
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'dr-leave' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
+  const layers: Layer[] = shown.cue.parts.flatMap((part) =>
+    ART[shown.cue.page][part].map((item, i) => ({
+      key: `${part}-${i}`,
+      moving: item.cls,
+      blend: 'glow' in item ? ('screen' as const) : undefined,
+      node: (
+        <g className="dr-in" style={{ animationDelay: `${(shown.starts[part] ?? 0) + i * GAP}s` }}>
+          <g className={item.cls} style={item.origin ? { transformBox: 'view-box', transformOrigin: item.origin } : undefined}>
+            <Mark item={item} />
+          </g>
+        </g>
+      ),
+    })),
   );
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'dr-leave' : undefined} />;
 }
 
 //the camera's overlay: REC, a running timecode, and corner marks
@@ -665,9 +663,9 @@ function KitCam({ animation }: { animation: string }) {
           ))}
         </defs>
         <rect width={W} height={H} fill={C.ink} />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
       </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
 
       {ON_CAMERA.includes(now.cue.page) && <Hud />}
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>

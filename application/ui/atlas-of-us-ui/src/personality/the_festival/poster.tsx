@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Festival is a riso-printed festival poster. Each page is flat shapes in three inks, pink, blue and yellow, that
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 const PAPER = '#f6f0e4';
 type Pt = [number, number];
 
@@ -579,14 +581,17 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.5) }, prev: shown };
 }
 
+//each part is a layer, and the ones with something moving in them get svgs of their own
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'fe-leave' : undefined} filter="url(#fe-riso)">
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers: Layer[] = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return {
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: <Part items={items} start={shown.starts[part] ?? 0} />,
+    };
+  });
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'fe-leave' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -686,23 +691,31 @@ function Poster({ animation }: { animation: string }) {
         <rect width={W} height={H} filter="url(#fe-grain)" />
       </svg>
 
-      <svg style={{ ...styles.layer, ...styles.multiply }} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <defs>
-          {/* riso ink never quite covers: knock tiny specks out of everything printed */}
-          <filter id="fe-riso" filterUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5" result="noise" />
-            <feColorMatrix in="noise" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4 3" result="specks" />
-            <feComposite in="SourceGraphic" in2="specks" operator="in" />
-          </filter>
-          {(Object.keys(INKS) as Ink[]).map((ink) => (
-            <pattern key={ink} id={`fe-dots-${ink}`} width={9} height={9} patternUnits="userSpaceOnUse" patternTransform={`rotate(${SCREEN[ink]})`}>
-              <circle cx={4.5} cy={4.5} r={2.6} fill={INKS[ink]} />
-            </pattern>
-          ))}
-        </defs>
+      {/* everything printed multiplies onto the paper as one sheet */}
+      <div style={{ ...styles.layer, ...styles.multiply }}>
+        <Sheet viewBox={VIEW}>
+          <defs>
+            {(Object.keys(INKS) as Ink[]).map((ink) => (
+              <pattern key={ink} id={`fe-dots-${ink}`} width={9} height={9} patternUnits="userSpaceOnUse" patternTransform={`rotate(${SCREEN[ink]})`}>
+                <circle cx={4.5} cy={4.5} r={2.6} fill={INKS[ink]} />
+              </pattern>
+            ))}
+          </defs>
+        </Sheet>
         {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
         <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
-      </svg>
+        {/* riso ink never quite covers: tiny white specks over everything printed, which multiply out to bare paper.
+            They're a still layer of their own, so the noise is worked out once rather than under every moving part */}
+        <Sheet viewBox={VIEW}>
+          <defs>
+            <filter id="fe-riso" filterUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5" />
+              <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 4 -2" />
+            </filter>
+          </defs>
+          <rect width={W} height={H} filter="url(#fe-riso)" />
+        </Sheet>
+      </div>
 
       <div style={{ ...styles.light, ...styles.dusk, opacity: light === 'dusk' ? 1 : 0 }} />
       <div style={{ ...styles.light, ...styles.night, opacity: light === 'night' ? 1 : 0 }} />

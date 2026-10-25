@@ -19,12 +19,14 @@ async fn invoke(client: &aws_sdk_bedrockruntime::Client, model: &str, body: Valu
 }
 
 //has the model answer by calling `tool`, whose input_schema is the shape of the answer, and returns that answer for the
-//caller to deserialize, which checks its shape. The tool isn't strict: strict mode garbles short strings on Haiku 4.5
+//caller to deserialize, which checks its shape. The tool isn't strict: strict mode garbles short strings on Haiku 4.5.
+//Temperature 0, so the same request gets the same answer
 pub async fn answer(client: &aws_sdk_bedrockruntime::Client, model: &str, system: &str, tool: Value, content: String) -> Result<Value, BoxError> {
     let name = tool["name"].clone();
     let response = invoke(client, model, json!({
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 1024,
+        "max_tokens": 2048,
+        "temperature": 0,
         "system": system,
         "tools": [tool],
         "tool_choice": {"type": "tool", "name": name},

@@ -15,7 +15,7 @@ Each Skill node carries:
 - `id`: a uuid, which events refer to.
 - `name`: its preferred name. It's unique, so two requests for the same new skill at the same moment `MERGE` onto one node, and re-running the taxonomy import updates nodes instead of duplicating them.
 - `description`
-- `aliases`: a list of every other name it goes by. ESCO's alternative names land here on import.
+- `aliases`: a list of every other name it goes by.
 - `vector`: an embedding of the name, description and aliases joined together, used by search and to find similar skills before a new one is created. It's made by Amazon Titan Text Embeddings V2 (1024 dimensions) from `"<name>. <description>. Also known as <alias>, <alias>."`.
 - `status`: where the skill is in its life:
   - `stub`: exists and can be found and linked to, but its levels are empty
@@ -100,7 +100,7 @@ A stub looks the same, with `status: "stub"` on the Skill and only `name` and `r
 ## How skills relate to each other
 There are three different ways two skills can be related, and they are kept apart:
 
-**Specialization.** A narrower version of a broader skill points at it with SPECIALIZATION_OF. These come mostly from ESCO's hierarchy, and from the resolver when a user asks for something more specific than a skill we already have. A skill has at most one broader skill, so the specializations form a tree, and search can show a skill's parent alongside it:
+**Specialization.** A narrower version of a broader skill points at it with SPECIALIZATION_OF. These come from the resolver, when the taxonomy import or a user asks for something more specific than a skill we already have. A skill has at most one broader skill, so the specializations form a tree, and search can show a skill's parent alongside it:
 ```cypher
 (:Skill {name: "Sourdough Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Cooking"})
 ```

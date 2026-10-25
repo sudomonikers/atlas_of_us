@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Night Market is a block print from an old storybook: cream ink on night-blue paper, shapes shaded with fine
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -379,14 +381,17 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.5) }, prev: shown };
 }
 
+//each part is a layer, and the ones with something moving in them get svgs of their own
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'nm-lift' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers: Layer[] = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return {
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: <Part items={items} start={shown.starts[part] ?? 0} />,
+    };
+  });
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'nm-lift' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -479,12 +484,17 @@ function Woodcut({ animation }: { animation: string }) {
           ))}
         </defs>
         <rect width={W} height={H} fill={C.paper} />
-        <path d={STARS} fill={C.ink} fillOpacity={0.55} className="nm-twinkle" />
+      </svg>
+      {/* the stars twinkle as a whole svg, which the browser can fade without redrawing it */}
+      <Sheet viewBox={VIEW} className="nm-twinkle">
+        <path d={STARS} fill={C.ink} fillOpacity={0.55} />
+      </Sheet>
+      <Sheet viewBox={VIEW}>
         <rect x={24} y={24} width={W - 48} height={H - 48} fill="none" stroke={C.ink} strokeWidth={2} strokeOpacity={0.6} />
         <rect x={36} y={36} width={W - 72} height={H - 72} fill="none" stroke={C.ink} strokeWidth={1} strokeOpacity={0.4} />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
-      </svg>
+      </Sheet>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (
@@ -529,7 +539,7 @@ const keyframes = `
   animation: nm-twinkle 4s ease-in-out infinite;
 }
 @keyframes nm-twinkle {
-  50% { fill-opacity: 0.3; }
+  50% { opacity: 0.55; }
 }
 `;
 

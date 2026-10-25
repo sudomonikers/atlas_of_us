@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Feud is drawn as a set of architect's blueprints for two semi-detached houses: white lines on cyanotype blue,
@@ -11,6 +12,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -460,17 +462,26 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
   return { now: { cue, visit: shown.visit + 1, starts: startTimes(cue.parts, cue.page, 0.6) }, prev: shown };
 }
 
+//each part is a layer, and the ones with something moving in them get svgs of their own, so the ink filter on the
+//rest of the sheet isn't worked out again every frame
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'fd-fade' : undefined}>
+  const title: Layer = {
+    key: 'title',
+    node: (
       <text className="fd-in" style={{ ...styles.type, fontSize: 18, animationDelay: '0.4s' }} x={48} y={50} fill={C.faint} letterSpacing={3}>
         {SHEET[shown.cue.page]}
       </text>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+    ),
+  };
+  const layers: Layer[] = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return {
+      key: part,
+      moving: items.some((item) => 'cls' in item && item.cls) ? part : undefined,
+      node: <Part items={items} start={shown.starts[part] ?? 0} />,
+    };
+  });
+  return <Layers viewBox={VIEW} layers={[title, ...layers]} className={leaving ? 'fd-fade' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -578,10 +589,12 @@ function Blueprint({ animation }: { animation: string }) {
         <rect width={W} height={H} fill="url(#fd-grid)" opacity={0.08} />
         <rect width={W} height={H} filter="url(#fd-grain)" opacity={0.12} />
         <rect x={24} y={20} width={W - 48} height={H - 40} fill="none" stroke={C.faint} strokeWidth={2} strokeOpacity={0.5} />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
-        <rect width={W} height={H} fill="url(#fd-vignette)" pointerEvents="none" />
       </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      <Sheet viewBox={VIEW}>
+        <rect width={W} height={H} fill="url(#fd-vignette)" pointerEvents="none" />
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (

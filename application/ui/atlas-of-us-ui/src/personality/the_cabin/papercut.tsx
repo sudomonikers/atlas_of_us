@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Cabin is cut from coloured paper and seen from straight above: the friends are paper shoulders and heads round a
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const INK = '#2a2226';
@@ -536,31 +538,36 @@ function WallClock({ at: [x, y], time }: { at: Pt; time: number }) {
   );
 }
 
+//whether anything in it animates for as long as it's on screen
+const moves = (item: Item): boolean => !!item.cls || ('items' in item && item.items.some(moves));
+
+//each part is a layer: the ones with something moving in them get svgs of their own, so the shadow filter under the
+//rest of the room isn't redrawn every frame
 function Scene({ shown, time }: { shown: Shown; time: number }) {
   const { cue, starts } = shown;
   const art = ART[cue.room];
   const clockAt = CLOCK_AT[cue.room];
-  return (
-    <g className="cb-in">
-      {Object.entries(art)
-        .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
-        .map(([part, items]) => {
-          const shadow = FLAT.has(part) ? undefined : 'url(#cb-shadow)';
-          return part.startsWith('_') ? (
-            <g key={part} filter={shadow}>
+  const layers: Layer[] = Object.entries(art)
+    .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
+    .map(([part, items]) => {
+      const shadow = FLAT.has(part) ? undefined : 'url(#cb-shadow)';
+      return {
+        key: part,
+        moving: items.some(moves) ? part : undefined,
+        node: part.startsWith('_') ? (
+          <g filter={shadow}>{items.map(draw)}</g>
+        ) : (
+          <g filter={shadow}>
+            <g className="cb-pop" style={{ animationDelay: `${starts[part] ?? 0}s` }}>
               {items.map(draw)}
             </g>
-          ) : (
-            <g key={part} filter={shadow}>
-              <g className="cb-pop" style={{ animationDelay: `${starts[part] ?? 0}s` }}>
-                {items.map(draw)}
-              </g>
-            </g>
-          );
-        })}
-      {clockAt && <WallClock at={clockAt} time={time} />}
-    </g>
-  );
+          </g>
+        ),
+      };
+    });
+  //the hands move every second while the real clock runs
+  if (clockAt) layers.push({ key: 'clock', moving: 'clock', node: <WallClock at={clockAt} time={time} /> });
+  return <Layers viewBox={VIEW} layers={layers} className="cb-in" />;
 }
 
 function PaperCabin({ animation, clock }: { animation: string; clock?: number }) {
@@ -602,14 +609,14 @@ function PaperCabin({ animation, clock }: { animation: string; clock?: number })
   return (
     <div style={styles.scene}>
       <style>{keyframes}</style>
-      <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
+      <svg style={styles.layer} viewBox={VIEW} aria-hidden>
         <defs>
           <filter id="cb-shadow" x="-10%" y="-10%" width="120%" height="130%">
             <feDropShadow dx="3" dy="6" stdDeviation="3" floodColor="#1a1014" floodOpacity="0.35" />
           </filter>
         </defs>
-        <Scene key={`${shown.cue.room}-${shown.visit}`} shown={shown} time={time} />
       </svg>
+      <Scene key={`${shown.cue.room}-${shown.visit}`} shown={shown} time={time} />
     </div>
   );
 }

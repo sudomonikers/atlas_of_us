@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Bad Day is drawn like the Sunday funnies: thick black ink, flat colour printed in Ben-Day dots and slightly out
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -463,13 +465,11 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
 }
 
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'bd-out' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers = shown.cue.parts.map((part) => {
+    const items = ART[shown.cue.page][part];
+    return { key: part, moving: items.some((item) => item.cls) ? part : undefined, node: <Part items={items} start={shown.starts[part] ?? 0} /> };
+  });
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'bd-out' : undefined} style={styles.page} />;
 }
 
 //the fictional time while the real clock runs: 9:26 when it starts, half past when it runs out
@@ -582,11 +582,13 @@ function Funnies({ animation, clock }: { animation: string; clock?: number }) {
         </defs>
         <rect width={W} height={H} fill={C.paper} />
         <rect width={W} height={H} fill="url(#bd-newsprint)" />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      <Sheet viewBox={VIEW}>
         {clock !== undefined && <Watch clock={clock} />}
         <rect x={30} y={30} width={W - 60} height={H - 60} rx={8} fill="none" stroke={C.black} strokeWidth={10} />
-      </svg>
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (
@@ -669,6 +671,10 @@ const styles: Record<string, CSSProperties> = {
     inset: 0,
     width: '100%',
     height: '100%',
+  },
+  //a page slides out from its top left corner, as it did when it was drawn inside the picture
+  page: {
+    transformOrigin: '0 0',
   },
   letters: {
     fontFamily: 'var(--font-comic)',

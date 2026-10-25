@@ -72,7 +72,7 @@ body {
     background: var(--panel-fill, #fff);
     border-radius: var(--wobbly);
     transform: translate(5px, 6px) rotate(0.6deg);
-    filter: blur(1.5px);
+    box-shadow: 0 0 3px 1px var(--panel-fill, #fff);
   }
 }
 

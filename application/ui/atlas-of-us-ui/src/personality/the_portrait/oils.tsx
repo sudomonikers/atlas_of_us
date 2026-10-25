@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Portrait is painted in loose oils: every wall, face and floorboard is laid down as short, thick brushstrokes in
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const INK = '#2b2420';
@@ -571,23 +573,26 @@ function draw(item: Item, i: number): ReactNode {
   return <path key={i} d={item.d} fill={item.fill} stroke={item.line} strokeWidth={item.w} strokeLinecap="round" strokeLinejoin="round" opacity={item.op} className={item.cls} />;
 }
 
+//whether anything in it animates for as long as it's on screen
+const moves = (item: Item): boolean => ('cls' in item && !!item.cls) || ('items' in item && item.items.some(moves));
+
+//each part is a layer, and the ones with something moving in them get svgs of their own
 function Scene({ shown }: { shown: Shown }) {
   const { cue, starts } = shown;
-  return (
-    <g className="pt-in">
-      {Object.entries(ART[cue.room])
-        .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
-        .map(([part, items]) =>
-          part.startsWith('_') ? (
-            <g key={part}>{items.map(draw)}</g>
-          ) : (
-            <g key={part} className={FLAT.has(part) ? 'pt-fade' : 'pt-pop'} style={{ animationDelay: `${starts[part] ?? 0}s` }}>
-              {items.map(draw)}
-            </g>
-          ),
-        )}
-    </g>
-  );
+  const layers: Layer[] = Object.entries(ART[cue.room])
+    .filter(([part]) => part.startsWith('_') || cue.parts.includes(part))
+    .map(([part, items]) => ({
+      key: part,
+      moving: items.some(moves) ? part : undefined,
+      node: part.startsWith('_') ? (
+        <g>{items.map(draw)}</g>
+      ) : (
+        <g className={FLAT.has(part) ? 'pt-fade' : 'pt-pop'} style={{ animationDelay: `${starts[part] ?? 0}s` }}>
+          {items.map(draw)}
+        </g>
+      ),
+    }));
+  return <Layers viewBox={VIEW} layers={layers} className="pt-in" />;
 }
 
 function Oils({ animation }: { animation: string }) {
@@ -627,9 +632,7 @@ function Oils({ animation }: { animation: string }) {
   return (
     <div style={styles.scene}>
       <style>{keyframes}</style>
-      <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <Scene key={`${shown.cue.room}-${shown.visit}`} shown={shown} />
-      </svg>
+      <Scene key={`${shown.cue.room}-${shown.visit}`} shown={shown} />
     </div>
   );
 }
@@ -744,12 +747,6 @@ const styles: Record<string, CSSProperties> = {
     inset: 0,
     background: WALL[0],
     overflow: 'hidden',
-  },
-  layer: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
   },
 };
 

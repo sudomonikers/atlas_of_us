@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Committee is printed like the festival's own flyer: a risograph, in a few bright inks on cream paper. Inks
@@ -10,6 +11,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 const W = 1600;
 const H = 900;
+const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 
 const C = {
@@ -547,49 +549,51 @@ const ART: Record<Page, Record<string, Item[]>> = {
 // ---------------------------------------------------------------------------
 
 //each mark multiplies onto what's under it, like ink on paper, and paper knocks back out. The blend sits on the group
-//that fades in, since that group is what composites onto the page
-function Part({ items, start }: { items: Item[]; start: number }) {
-  return (
-    <g>
-      {items.map((item, i) => {
-        let mark;
-        let ink: Colour;
-        if ('text' in item) {
-          ink = item.c;
-          mark = (
-            <text x={item.x} y={item.y} textAnchor="middle" fill={C[item.c]} style={{ ...styles.type, fontSize: item.size }}>
-              {item.text}
-            </text>
-          );
-        } else if ('line' in item) {
-          ink = item.line;
-          mark = (
-            <path
-              d={item.d}
-              fill="none"
-              stroke={C[item.line]}
-              strokeWidth={item.w ?? 6}
-              strokeOpacity={item.o ?? 1}
-              strokeDasharray={item.dash}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          );
-        } else {
-          ink = item.fill;
-          mark = <path d={item.d} fill={C[item.fill]} fillOpacity={item.o ?? 1} />;
-        }
-        const [dx, dy] = SHIFT[ink];
-        return (
-          <g key={i} className="rs-in" style={{ animationDelay: `${start + i * GAP}s`, mixBlendMode: ink === 'paper' ? 'normal' : 'multiply' }}>
-            <g className={item.cls} style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}>
-              <g transform={`translate(${dx} ${dy})`}>{mark}</g>
-            </g>
+//that fades in, since that group is what composites onto the page. Each mark is a layer: what moves gets an svg of its
+//own, and a run of inks shares one that multiplies onto the page as a whole, since a blend can't reach past its svg
+function partLayers(part: string, items: Item[], start: number): Layer[] {
+  return items.map((item, i) => {
+    let mark;
+    let ink: Colour;
+    if ('text' in item) {
+      ink = item.c;
+      mark = (
+        <text x={item.x} y={item.y} textAnchor="middle" fill={C[item.c]} style={{ ...styles.type, fontSize: item.size }}>
+          {item.text}
+        </text>
+      );
+    } else if ('line' in item) {
+      ink = item.line;
+      mark = (
+        <path
+          d={item.d}
+          fill="none"
+          stroke={C[item.line]}
+          strokeWidth={item.w ?? 6}
+          strokeOpacity={item.o ?? 1}
+          strokeDasharray={item.dash}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    } else {
+      ink = item.fill;
+      mark = <path d={item.d} fill={C[item.fill]} fillOpacity={item.o ?? 1} />;
+    }
+    const [dx, dy] = SHIFT[ink];
+    return {
+      key: `${part}-${i}`,
+      moving: item.cls,
+      blend: ink === 'paper' ? undefined : ('multiply' as const),
+      node: (
+        <g className="rs-in" style={{ animationDelay: `${start + i * GAP}s`, mixBlendMode: ink === 'paper' ? 'normal' : 'multiply' }}>
+          <g className={item.cls} style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}>
+            <g transform={`translate(${dx} ${dy})`}>{mark}</g>
           </g>
-        );
-      })}
-    </g>
-  );
+        </g>
+      ),
+    };
+  });
 }
 
 interface Shown {
@@ -618,13 +622,8 @@ function turn(shown: Shown, cue: Cue): { now: Shown; prev?: Shown } {
 }
 
 function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
-  return (
-    <g className={leaving ? 'rs-leave' : undefined}>
-      {shown.cue.parts.map((part) => (
-        <Part key={part} items={ART[shown.cue.page][part]} start={shown.starts[part] ?? 0} />
-      ))}
-    </g>
-  );
+  const layers = shown.cue.parts.flatMap((part) => partLayers(part, ART[shown.cue.page][part], shown.starts[part] ?? 0));
+  return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'rs-leave' : undefined} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -720,10 +719,12 @@ function Riso({ animation }: { animation: string }) {
           </pattern>
         </defs>
         <rect width={W} height={H} fill={C.paper} />
-        {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
-        <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
-        <rect width={W} height={H} fill="url(#rs-grain)" opacity={0.45} pointerEvents="none" />
       </svg>
+      {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
+      <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
+      <Sheet viewBox={VIEW}>
+        <rect width={W} height={H} fill="url(#rs-grain)" opacity={0.45} pointerEvents="none" />
+      </Sheet>
 
       <div style={{ ...styles.card, opacity: card ? 1 : 0 }}>
         {card && (
