@@ -115,7 +115,7 @@ resource "aws_iam_role_policy" "jobs" {
       {
         Effect   = "Allow"
         Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
-        Resource = [aws_sqs_queue.jobs.arn, aws_sqs_queue.skills_events.arn]
+        Resource = concat([aws_sqs_queue.jobs.arn], [for queue in aws_sqs_queue.events : queue.arn])
       },
       {
         # handlers publish what they did, such as a skill being filled (events.tf)

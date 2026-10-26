@@ -214,6 +214,16 @@ pub struct Level {
     version: Option<i64>,
     trust: Option<String>,
     next_level: Option<String>, //what it takes to reach the next level. Missing on Expert and on a stub's levels
+    traits: Vec<TraitRequirement>, //the personality it takes, written on this level itself. Lower levels' carry up to it
+}
+
+//a personality trait a level takes. `level` is where on the trait it pulls, above 0.5 for more of it and below for less
+#[derive(Serialize, Deserialize)]
+pub struct TraitRequirement {
+    name: String,
+    level: f64,
+    strength: f64, //how much it matters, 0 to 1
+    reason: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -236,7 +246,11 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
             WITH l, n ORDER BY l.rank
             RETURN collect({
                 rank: l.rank, name: l.name, description: l.description, observable_signs: l.observableSigns,
-                example_evidence: l.exampleEvidence, version: l.version, trust: l.trust, next_level: n.description
+                example_evidence: l.exampleEvidence, version: l.version, trust: l.trust, next_level: n.description,
+                traits: COLLECT {
+                    MATCH (l)-[r:REQUIRES_TRAIT]->(t:PersonalityTrait)
+                    RETURN {name: t.name, level: r.level, strength: r.strength, reason: r.reason} ORDER BY r.strength DESC
+                }
             }) AS levels
         }
         RETURN s.id AS id, s.name AS name, s.description AS description, s.aliases AS aliases, s.status AS status, levels

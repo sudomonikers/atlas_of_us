@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::Instrument;
 
-use crate::personality_scoring::{BoxError, Shift, invoke};
+use crate::bedrock::{BoxError, invoke};
+use crate::jobs::personality_scoring::Shift;
 
 //a measured trait, as the report's writer reads it
 #[derive(Serialize, Deserialize)]

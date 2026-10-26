@@ -1,11 +1,8 @@
 //the Atlas of Us job worker. The api queues slow work on SQS, each module that reacts to events has a queue of them, and
 //Lambda invokes this with one record at a time from any of those queues
+mod bedrock;
 mod events;
 mod jobs;
-mod personality_contest;
-mod personality_report;
-mod personality_scoring;
-mod skill_fill;
 
 use std::{env, io::IsTerminal};
 
@@ -21,7 +18,7 @@ async fn run(graph: &Graph, record: &serde_json::Value) {
     if queue == JOBS_QUEUE {
         jobs::handle(graph, body).await;
     } else {
-        events::handle(graph, body).await;
+        events::handle(graph, queue, body).await;
     }
 }
 

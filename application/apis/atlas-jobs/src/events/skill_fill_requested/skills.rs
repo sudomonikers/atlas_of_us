@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use tracing::Instrument;
 
-use crate::{events::Bus, personality_scoring::{BoxError, invoke}};
+use crate::{bedrock::{BoxError, invoke}, events::Bus};
 
 #[derive(Deserialize)]
 struct FillRequested {

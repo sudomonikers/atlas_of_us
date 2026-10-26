@@ -41,6 +41,12 @@ There are 30 traits we measure, the Big Five facets. Each has its own node conta
 MERGE (a:Person {name: "Andrew Link"})-[:HAS_PERSONALITY_TRAIT {value: 0.9, confidence: 0.85}]-(c:PersonalityTrait {name: "Cooperation"});
 ```
 
+Once every scenario is answered and scored, atlas-jobs writes a report on all of the person's traits onto the Person itself, as a JSON string, along with when it was written:
+```cypher
+SET p.personalityReport = '{"headline": "...", "overview": "...", "domains": [{"key": "openness", "text": "..."}], "strengths": ["..."], "watch_outs": ["..."]}',
+    p.personalityReportAt = toString(datetime())
+```
+
 #### Explaining the model
 The Explore tab teaches people what the Big Five is and what each trait means, and all of that reading material lives in the graph too (seeded by `personality_explore_seed.cypher`). A single PersonalityModel node holds the overview, history and limits of the Big Five. It links to the five PersonalityDomain nodes, and each domain links to its six facets:
 ```cypher
@@ -81,9 +87,13 @@ While a person is being scored, they have a JobRunning node, which the UI watche
 (:Person)-[:HAS_JOB]->(:JobRunning {id: randomUUID(), kind: "personality_scoring", startedAt: datetime()})
 ```
 
-While the monthly Bedrock budget cutoff is on (see infrastructure/budget.tf), atlas-jobs keeps one BedrockCutoff node, which the UI reads to say nothing can be scored. The next Bedrock call that gets through deletes it:
+#### Skills that take a trait
+Skill levels point at the traits they take with REQUIRES_TRAIT, which holds the `level` on the trait the skill pulls
+toward (above 0.5 for more of it, below for less), how much it matters as a `strength` from 0 to 1, and a short
+`reason`. A requirement on a lower level carries up to the levels above it. The shape and rules are in "Requirements on
+other sub-graphs" in `../skills/skills.md`:
 ```cypher
-(:BedrockCutoff)
+(:DreyfusLevel {name: "Cooking Expert"})-[:REQUIRES_TRAIT {level: 0.8, strength: 0.7, reason: "Invents new dishes rather than adapting known ones"}]->(:PersonalityTrait {name: "Imagination"})
 ```
 
 ### Topics Graph
@@ -233,8 +243,8 @@ Each Skill node carries:
 - `id`: a uuid, which events refer to.
 - `name`: its preferred name. It's unique, so two requests for the same new skill at the same moment `MERGE` onto one node, and re-running the taxonomy import updates nodes instead of duplicating them.
 - `description`
-- `aliases`: a list of every other name it goes by. ESCO's alternative names land here on import, and so does a user's wording when their search turns out to mean an existing skill.
-- `vector`: an embedding of the name, description and aliases joined together, used to find similar skills before a new one is created.
+- `aliases`: a list of every other name it goes by.
+- `vector`: an embedding of the name, description and aliases joined together, used by search and to find similar skills before a new one is created. It's made by Amazon Titan Text Embeddings V2 (1024 dimensions) from `"<name>. <description>. Also known as <alias>, <alias>."`.
 - `status`: where the skill is in its life:
   - `stub`: exists and can be found and linked to, but its levels are empty
   - `filling`: the fill job is generating its levels
@@ -250,7 +260,7 @@ CREATE CONSTRAINT skill_id IF NOT EXISTS FOR (s:Skill) REQUIRE s.id IS UNIQUE;
 CREATE CONSTRAINT skill_name IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE;
 // search by name and alias
 CREATE FULLTEXT INDEX skill_names IF NOT EXISTS FOR (s:Skill) ON EACH [s.name, s.aliases];
-// dimensions must match the embedding model (amazon.titan-embed-text-v2:0)
+// dimensions must match the embedding model
 CREATE VECTOR INDEX skill_vector IF NOT EXISTS FOR (s:Skill) ON s.vector
   OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
 
@@ -327,12 +337,12 @@ There are three different ways two skills can be related, and they are kept apar
 
 A skill points only at its most specific broader skills: Sourdough Baking points at Baking, and reaches Cooking through it. Following SPECIALIZATION_OF out from a skill always leads away from it, so specializations have no loops. These links come from the resolver, when the taxonomy import, a user or the prerequisites job names a skill that is a kind of one we have, or that existing skills are kinds of.
 
-**Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps). Prerequisites are written by the fill job, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away:
+**Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps). Prerequisites are written by the prerequisites job once a skill is filled, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away:
 ```cypher
 (:DreyfusLevel {name: "Cooking Competent"})-[:REQUIRES {strength: 0.8}]->(:DreyfusLevel {name: "Knife Skills Advanced Beginner"})
 ```
 
-Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The fill job checks this before writing each one.
+Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The prerequisites job checks this before writing each one.
 
 **Same skill.** One node, with the other name in its aliases.
 
@@ -418,9 +428,29 @@ When a proposal is promoted, each level it changes keeps a copy of its old conte
 Furthermore, Skill levels will have requirements on different personality traits, physical attributes, knowledge/understanding of different Topics, and possibly more. These are written by the modules that own those sub-graphs, in reaction to a skill being filled (see the Events section of `documentation/architecture/skills.md`).
 
 These relationships will exist on each Dreyfus level since different levels will have higher requirements. It is assumed that requirements build on each other. A novice level of Cooking may have dozens of requirements on other nodes and maybe advanced beginner will only have a couple, but the novice relationships are implied as prerequisites on the advanced beginner level as well. It is unnecessary to have a duplicated relationship unless the nature of the relationship changes. For example if novice level of cooking requires a 0.5 level of the Steady Hands Physical Attribute and advanced beginner has the same requirement, then that relationship would exist only between the Novice Dreyfus level and the Steady Hands Physical Attribute. However later if to be an Expert cook a Person needs a 0.95 level of Steady Hands, then there would be another relationship extending from the Expert node to the Steady Hands node. The same rule applies to prerequisites on other skills. Some examples of how this looks using examples from each of PersonalityTraits, Topic knowledge, and PhysicalAttributes are as follows:
+##### Personality traits
+A level REQUIRES_TRAIT a PersonalityTrait when the personality makes a real difference to doing the skill well at that
+level. It carries:
+- `level`: where on the trait the skill pulls, from 0 to 1. Above 0.5 takes more of the trait, below 0.5 takes less of
+  it, and the further from 0.5 the more extreme.
+- `strength`: how much it matters, from 0 to 1. 1 means it can hardly be done well without it, 0.3 means it helps.
+- `reason`: one short sentence on why, in terms of the skill.
+
+A requirement sits on the lowest level it applies to and carries up to every level above it. A higher level has its own
+REQUIRES_TRAIT to the same trait only when the `level` or `strength` it takes there is different. The Personality module
+writes these when a skill is filled (see "Skill requirements" in `documentation/architecture/personality.md`):
 ```cypher
-FILL THIS OUT ONCE THE OTHER TRAITS STRUCTURE IS DECIDED ON
+MATCH (s:Skill {name: "Cooking"})-[:HAS_LEVEL]->(cn:Novice), (s)-[:HAS_LEVEL]->(cc:Competent), (s)-[:HAS_LEVEL]->(ce:Expert)
+MATCH (o:PersonalityTrait {name: "Orderliness"}), (a:PersonalityTrait {name: "Anxiety"}), (i:PersonalityTrait {name: "Imagination"})
+// Novice to Proficient all take some Orderliness
+CREATE (cn)-[:REQUIRES_TRAIT {level: 0.6, strength: 0.4, reason: "Follows a recipe through in order without skipping steps"}]->(o)
+// from Competent, juggling several dishes at once takes staying calm when timing slips
+CREATE (cc)-[:REQUIRES_TRAIT {level: 0.3, strength: 0.5, reason: "Keeps several dishes on track when one falls behind"}]->(a)
+// an Expert invents dishes, which takes Imagination
+CREATE (ce)-[:REQUIRES_TRAIT {level: 0.8, strength: 0.7, reason: "Invents new dishes rather than adapting known ones"}]->(i)
 ```
+
+Topics and Physical Attributes will add their own requirements to the levels in the same way.
 
 ### Physical Attributes Graph
 A person's physical body is an important part about who they are. It affects their capabilities in terms of Skills they can have and Ideas they can understand, as well as influences their PersonalityTraits. The Physical Attributes graph is more than just skin, muscle, and bone. It is the entirety of you from your nervous system to your limbic sytem to more abstract things like 'reaction time' and other diseases you may have. This particular graph is interesting in that it is extremely large and complex, but also mostly known and seeded. While it does change it doesn't change much over time. The following are covered:

@@ -200,6 +200,26 @@ When a proposal is promoted, each level it changes keeps a copy of its old conte
 Furthermore, Skill levels will have requirements on different personality traits, physical attributes, knowledge/understanding of different Topics, and possibly more. These are written by the modules that own those sub-graphs, in reaction to a skill being filled (see the Events section of `documentation/architecture/skills.md`).
 
 These relationships will exist on each Dreyfus level since different levels will have higher requirements. It is assumed that requirements build on each other. A novice level of Cooking may have dozens of requirements on other nodes and maybe advanced beginner will only have a couple, but the novice relationships are implied as prerequisites on the advanced beginner level as well. It is unnecessary to have a duplicated relationship unless the nature of the relationship changes. For example if novice level of cooking requires a 0.5 level of the Steady Hands Physical Attribute and advanced beginner has the same requirement, then that relationship would exist only between the Novice Dreyfus level and the Steady Hands Physical Attribute. However later if to be an Expert cook a Person needs a 0.95 level of Steady Hands, then there would be another relationship extending from the Expert node to the Steady Hands node. The same rule applies to prerequisites on other skills. Some examples of how this looks using examples from each of PersonalityTraits, Topic knowledge, and PhysicalAttributes are as follows:
+### Personality traits
+A level REQUIRES_TRAIT a PersonalityTrait when the personality makes a real difference to doing the skill well at that
+level. It carries:
+- `level`: where on the trait the skill pulls, from 0 to 1. Above 0.5 takes more of the trait, below 0.5 takes less of
+  it, and the further from 0.5 the more extreme.
+- `strength`: how much it matters, from 0 to 1. 1 means it can hardly be done well without it, 0.3 means it helps.
+- `reason`: one short sentence on why, in terms of the skill.
+
+A requirement sits on the lowest level it applies to and carries up to every level above it. A higher level has its own
+REQUIRES_TRAIT to the same trait only when the `level` or `strength` it takes there is different. The Personality module
+writes these when a skill is filled (see "Skill requirements" in `documentation/architecture/personality.md`):
 ```cypher
-FILL THIS OUT ONCE THE OTHER TRAITS STRUCTURE IS DECIDED ON
+MATCH (s:Skill {name: "Cooking"})-[:HAS_LEVEL]->(cn:Novice), (s)-[:HAS_LEVEL]->(cc:Competent), (s)-[:HAS_LEVEL]->(ce:Expert)
+MATCH (o:PersonalityTrait {name: "Orderliness"}), (a:PersonalityTrait {name: "Anxiety"}), (i:PersonalityTrait {name: "Imagination"})
+// Novice to Proficient all take some Orderliness
+CREATE (cn)-[:REQUIRES_TRAIT {level: 0.6, strength: 0.4, reason: "Follows a recipe through in order without skipping steps"}]->(o)
+// from Competent, juggling several dishes at once takes staying calm when timing slips
+CREATE (cc)-[:REQUIRES_TRAIT {level: 0.3, strength: 0.5, reason: "Keeps several dishes on track when one falls behind"}]->(a)
+// an Expert invents dishes, which takes Imagination
+CREATE (ce)-[:REQUIRES_TRAIT {level: 0.8, strength: 0.7, reason: "Invents new dishes rather than adapting known ones"}]->(i)
 ```
+
+Topics and Physical Attributes will add their own requirements to the levels in the same way.

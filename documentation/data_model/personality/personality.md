@@ -68,3 +68,12 @@ While a person is being scored, they have a JobRunning node, which the UI watche
 ```cypher
 (:Person)-[:HAS_JOB]->(:JobRunning {id: randomUUID(), kind: "personality_scoring", startedAt: datetime()})
 ```
+
+## Skills that take a trait
+Skill levels point at the traits they take with REQUIRES_TRAIT, which holds the `level` on the trait the skill pulls
+toward (above 0.5 for more of it, below for less), how much it matters as a `strength` from 0 to 1, and a short
+`reason`. A requirement on a lower level carries up to the levels above it. The shape and rules are in "Requirements on
+other sub-graphs" in `../skills/skills.md`:
+```cypher
+(:DreyfusLevel {name: "Cooking Expert"})-[:REQUIRES_TRAIT {level: 0.8, strength: 0.7, reason: "Invents new dishes rather than adapting known ones"}]->(:PersonalityTrait {name: "Imagination"})
+```

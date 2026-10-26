@@ -36,4 +36,4 @@ their personality reports. Anything the site says to a person is said by him, so
 - All UI copy: greetings, notes, tooltips, placeholders, empty states and errors (`AtlasError` adds one of his openers
   before the message). Plain labels like "Send", "Cancel" and aria labels stay plain.
 - The personality report job has its own copy, tuned for writing reports
-  (`application/apis/atlas-jobs/src/atlas_personality.md`). Keep the two in step when his personality changes.
+  (`application/apis/atlas-jobs/src/jobs/atlas_personality.md`). Keep the two in step when his personality changes.

@@ -11,9 +11,10 @@ the graph itself, read `../data_model/personality/personality.md`.
 |---|---|---|
 | UI | `application/ui/atlas-of-us-ui/src/personality/` | The scenes, the scenario list, My Personality and the Explore tab |
 | API | `application/apis/atlas-api/src/domains/personality/mod.rs` | Saves answers, decides when to score, queues scoring and contest jobs, serves scores and evidence |
-| Scoring job | `application/apis/atlas-jobs/src/personality_scoring.rs` | A Lambda job that reads a person's answers with Bedrock and writes their traits |
-| Contest job | `application/apis/atlas-jobs/src/personality_contest.rs` | A Lambda job that reviews one piece of evidence the person contested |
-| Report | `application/apis/atlas-jobs/src/personality_report.rs` | Writes a fully scored person's report, called by both jobs |
+| Scoring job | `application/apis/atlas-jobs/src/jobs/personality_scoring.rs` | A Lambda job that reads a person's answers with Bedrock and writes their traits |
+| Contest job | `application/apis/atlas-jobs/src/jobs/personality_contest.rs` | A Lambda job that reviews one piece of evidence the person contested |
+| Report | `application/apis/atlas-jobs/src/jobs/personality_report.rs` | Writes a fully scored person's report, called by both jobs |
+| Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/personality.rs` | Links a filled skill's levels to the traits they take, on `SkillFilled` |
 | Queue and Lambda | `application/infrastructure/jobs_lambda.tf` | The SQS queue between the API and the job, and the job's Lambda, model and timeout |
 | Seeds | `application/database/personality_*.cypher` | The traits, the scenarios and their questions, and the Explore reading material |
 
@@ -174,7 +175,7 @@ It sits at the top of My Personality and on their profile.
   - an overview;
   - a paragraph per domain;
   - strengths and things to watch out for.
-- **Voice:** Atlas writes it. The prompt opens with atlas-jobs' own `src/atlas_personality.md`, a report-specific copy of `documentation/atlas_personality.md`. It's read in at build time, so editing it changes new reports after the next atlas-jobs deploy.
+- **Voice:** Atlas writes it. The prompt opens with atlas-jobs' own `src/jobs/atlas_personality.md`, a report-specific copy of `documentation/atlas_personality.md`. It's read in at build time, so editing it changes new reports after the next atlas-jobs deploy.
 - **Privacy:** the report is shown to anyone who can see the profile, so the prompt forbids quoting, retelling or naming scenes, answers or choices. It describes patterns only, with no clinical words.
 - **Storage:** JSON on `Person.personalityReport`, written at `Person.personalityReportAt`. Clearing answers removes it.
 - **Failures:** a report that fails is logged and the old one is kept. It never fails the scoring or contest job.
@@ -230,6 +231,23 @@ There's no `JobRunning` node, so scenarios stay unlocked while a contest is revi
   answer (`person_later_added`). A fair explanation carries into the new evidence, though the scorer can still reach a
   different result.
 - Replaying a scene clears its contests along with its answers.
+
+## Skill requirements
+Every skill level is linked to the personality traits it takes, so a person can see how their personality fits a skill.
+The shape is in "Requirements on other sub-graphs" in `../data_model/skills/skills.md`.
+
+- **When:** the Skills module publishes `SkillFilled` when a skill's levels are first filled. The job's own rule
+  and queue, `SkillFilled-Personality` in `infrastructure/events.tf`, feed it to atlas-jobs, at most 2 at once.
+- **The call:** one Bedrock call (the atlas-jobs model, `BEDROCK_MODEL_ID`) with the skill's name, description, aliases,
+  broader skills and its five levels, and the 30 traits with their descriptions in the cached system prompt. The model
+  replies through a `record_trait_requirements` tool with `{trait, rank, level, strength, reason}` for each trait that
+  makes a real difference, on the lowest level it applies to, and again on a higher level only where it changes.
+- **The job then:** drops unknown traits and ranks, clamps `level` and `strength` to 0 to 1, drops any that repeat what
+  a lower level already says, and `MERGE`s a `REQUIRES_TRAIT` from each level to its traits.
+- **Idempotent:** a skill that isn't `ready`, or already has trait requirements, is left as it is, so a repeated event
+  costs one read. A failure is logged, and the skill stays usable without them.
+- **Backfill:** replaying `SkillFilled` from the bus archive links every skill filled before this consumer existed.
+- **Shown:** `GET /api/skills/{id}` returns each level's `traits`, and the skill page lists them under the level.
 
 ## API reference
 All under `/api/personality`.

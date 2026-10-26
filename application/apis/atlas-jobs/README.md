@@ -3,17 +3,27 @@
 The Atlas of Us job worker. The api queues slow work on SQS, and this works through the queue one job at a time.
 Each message is `{"kind": "...", "job": {...}}` and carries everything the job needs.
 
-It also works through each module's events queue (`infrastructure/events.tf`). Each of those messages is an event from
-the `atlas-events` bus, and its `detail-type` picks the handler in `events.rs`. Handlers publish to the bus named by
-`EVENT_BUS_NAME`.
+It also works through the events queues (`infrastructure/events.tf`). Each of those messages is an event from the
+`atlas-events` bus. Every job that reacts to an event has its own queue, named `<event>-<module>`, and the queue picks
+the handler in `src/events/mod.rs`. Handlers publish to the bus named by `EVENT_BUS_NAME`.
 
-| detail-type | what it does |
+The code is laid out the same way:
+
+| Where | What's in it |
 |---|---|
-| `SkillFillRequested` | Fills a `filling` skill (`skill_fill.rs`). One Bedrock call writes its five Dreyfus levels, then the skill is `ready` and `SkillFilled` is published. A fill that fails sets the skill to `failed` and publishes `SkillFillFailed`. A skill that isn't `filling` is left as it is. |
+| `src/main.rs` | Takes each record and sends it to `jobs` or `events` by the queue it came from |
+| `src/bedrock.rs` | Calls to Claude on Bedrock, shared by everything |
+| `src/jobs/` | The jobs the api queues, one file each, picked by `kind` in `mod.rs` |
+| `src/events/` | One folder per event, such as `skill_filled/`, with one file per module that reacts to it, such as `personality.rs` for `SkillFilled-Personality`. `mod.rs` picks the handler by queue and publishes to the bus |
+
+| queue | what it does |
+|---|---|
+| `SkillFillRequested-Skills` | Fills a `filling` skill (`events/skill_fill_requested/skills.rs`). One Bedrock call writes its five Dreyfus levels, then the skill is `ready` and `SkillFilled` is published. A fill that fails sets the skill to `failed` and publishes `SkillFillFailed`. A skill that isn't `filling` is left as it is. |
+| `SkillFilled-Personality` | Links a filled skill's levels to the personality traits they take (`events/skill_filled/personality.rs`). One Bedrock call names each trait's `level`, `strength` and `reason` on the lowest level it applies to, and the job writes them as `REQUIRES_TRAIT`. A skill that isn't `ready`, or already has trait requirements, is left as it is. |
 
 | kind | what it does |
 |---|---|
-| `personality_scoring` | Scores one person's answers in batches of 6 scenarios, one Bedrock call per batch. It records the evidence for each trait on the answers it came from, then scores every trait from all of the person's evidence and rewrites their report (`personality_report.rs`) once they're fully scored. The api queues it when the person finishes every scenario in a batch, or replays one in a finished batch. Then it removes the `JobRunning` node the api put on them, so the ui unlocks the scenarios again. |
+| `personality_scoring` | Scores one person's answers in batches of 6 scenarios, one Bedrock call per batch. It records the evidence for each trait on the answers it came from, then scores every trait from all of the person's evidence and rewrites their report (`jobs/personality_report.rs`) once they're fully scored. The api queues it when the person finishes every scenario in a batch, or replays one in a finished batch. Then it removes the `JobRunning` node the api put on them, so the ui unlocks the scenarios again. |
 | `personality_contest` | Reviews one piece of evidence the person contested, by explaining their answer or saying the evidence misread it. One Bedrock call reads every answer in that scene, with its evidence and what the person said before, and either changes or removes just that evidence, or rejects the contest. Either way it writes a reply for the person. When the evidence changes, it rescores every trait and rewrites the report. A contest that can't be reviewed is rejected, so it never stays pending. |
 | `personality_report` | Rewrites one person's report (`{"person_id": "..."}`) without rescoring them, if they're fully scored. The api never queues it. Send it by hand to write reports for people scored before reports existed. |
 

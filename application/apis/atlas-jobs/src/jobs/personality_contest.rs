@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::Instrument;
 
-use crate::personality_report;
-use crate::personality_scoring::{BoxError, SCORING_PROMPT, ScoredAnswer, Shift, answer_json, invoke, save_traits};
+use crate::bedrock::{BoxError, invoke};
+use crate::jobs::personality_report;
+use crate::jobs::personality_scoring::{SCORING_PROMPT, ScoredAnswer, Shift, answer_json, save_traits};
 
 //the person contesting one piece of evidence: explaining their answer, or saying the scorer got it wrong
 #[derive(Serialize, Deserialize)]

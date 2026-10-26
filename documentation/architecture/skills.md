@@ -23,10 +23,10 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 | UI | `application/ui/atlas-of-us-ui/src/skills/` | Search, the skill page, claiming a level, reviewing content and proposals |
 | API | `application/apis/atlas-api/src/domains/skills/mod.rs` | Search, the creation gates, claiming levels, endorsements and proposals, publishing events |
 | Gates and resolver | `application/apis/atlas-api/src/domains/skills/resolver.rs` | The gates normalize and classify what a user asks for, and screen out nonsense. The resolver decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs |
-| Fill job | `application/apis/atlas-jobs/src/skill_fill.rs` | Generates a stub's Dreyfus levels with Bedrock |
-| Prerequisites job | `application/apis/atlas-jobs/src/skill_prerequisites.rs` | Links a filled skill's levels to the levels of the skills they need, with the resolver |
-| Proposal job | `application/apis/atlas-jobs/src/skill_proposal.rs` | Screens a proposed change before it is opened to the community |
-| Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and one rule and queue per consumer |
+| Fill job | `application/apis/atlas-jobs/src/events/skill_fill_requested/skills.rs` | Generates a stub's Dreyfus levels with Bedrock |
+| Prerequisites job | `application/apis/atlas-jobs/src/events/skill_filled/skills.rs` | Links a filled skill's levels to the levels of the skills they need, with the resolver |
+| Proposal job | `application/apis/atlas-jobs/src/events/skill_proposal_submitted/skills.rs` | Screens a proposed change before it is opened to the community |
+| Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and one rule and queue per job that reacts to an event |
 | Taxonomy import | `application/database/skills_import/` | Asks the API for each ESCO skill, broader skills first |
 
 ### Models
@@ -45,7 +45,7 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 |---|---|
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
-| `GET /{id}` | A skill with its levels |
+| `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) |
 | `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total` |
 | `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `needs` or `leads_to`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
@@ -158,7 +158,8 @@ of, the kinds of it, what it needs, what it leads to, and similar skills, twelve
 turn, and the skills hopped through stay as a trail above the page.
 
 - **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
-  review the content.
+  review the content. Each level shows the personality it takes: every trait from that level and the ones below it,
+  strongest first, with how much it matters and why, and the level a carried-up one comes from.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
   (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
   it's safe to call on every open. The UI polls `GET /{id}` until it's `ready`.
@@ -213,7 +214,8 @@ name goes through the resolver: existing skills are linked to, and new ones beco
 but are **not** filled. Before writing a `REQUIRES` link, the job checks it wouldn't create a cycle.
 
 Requirements on Topics, Physical Attributes, Personality Traits and anything else are written by the modules that own
-those sub-graphs. They react to `SkillFilled` and add their own requirements to the levels (see below).
+those sub-graphs. They react to `SkillFilled` and add their own requirements to the levels (see below). The Personality
+module links each level to the traits it takes (see "Skill requirements" in `personality.md`).
 
 ## Community review
 Level content is shared by everyone who claims that skill. If one user could rewrite "Competent", every other user's
@@ -260,9 +262,11 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 ### The bus
 - **One custom EventBridge bus for the whole Atlas** (`atlas-events`). Every module publishes to it, and Skills events
   have the source `atlas.skills`.
-- **Each consuming module has its own rule and its own SQS queue,** with a dead-letter queue. One module's backlog or
-  failures never hold up another's. The queues can all feed the existing `atlas-jobs` Lambda, which picks a handler by
-  the event's `detail-type`, the same way it picks a job type today.
+- **Each job that reacts to an event has its own rule and its own SQS queue,** with a dead-letter queue, named
+  `<event>-<module>`: `SkillFillRequested-Skills`, `SkillFilled-Personality`. One job's backlog, replay or failures
+  never hold up another's, even when several modules react to the same event. Each is one entry in `event_jobs` in
+  `events.tf`, with how many of its events run at once. The queues all feed the `atlas-jobs` Lambda, which picks the
+  handler by the queue.
 - **The bus has an archive.** When a new module comes along (Topics, say), it can replay every past `SkillFilled` to
   backfill its requirements, instead of us writing a one-off migration.
 
@@ -272,7 +276,7 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 |---|---|---|
 | `SkillCreated` | A Skill node is created, by any of the three routes | Search indexing, Topics (to link related topics), admin metrics |
 | `SkillFillRequested` | Someone needs a stub filled | The Skills fill job |
-| `SkillFilled` | A skill's levels are filled for the first time | Topics and Physical Attributes (to add their requirements), Jobs, recommendations |
+| `SkillFilled` | A skill's levels are filled for the first time | Personality, Topics and Physical Attributes (to add their requirements), Jobs, recommendations |
 | `SkillFillFailed` | The fill job gave up | Admin metrics, the UI (through polling) |
 | `SkillProposalSubmitted` | A user proposed a change | The Skills proposal job |
 | `SkillLevelRevised` | A proposal was promoted | Anything that read the old level, such as requirement links and people's claims |

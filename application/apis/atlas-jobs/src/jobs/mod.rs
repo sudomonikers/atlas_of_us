@@ -2,7 +2,9 @@
 use neo4rs::Graph;
 use serde::Deserialize;
 
-use crate::{personality_contest, personality_report, personality_scoring};
+pub mod personality_contest;
+pub mod personality_report;
+pub mod personality_scoring;
 
 //every kind of job, as the api sends it: {"kind": "personality_scoring", "job": {...}}
 #[derive(Deserialize)]

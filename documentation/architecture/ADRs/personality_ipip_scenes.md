@@ -1,7 +1,7 @@
 # ADR: Personality scenes built from IPIP-NEO items, measuring only the 30 Big Five facets
 
 **Status:** Accepted, 21 Oct 2026
-**Where it lives:** `application/ui/atlas-of-us-ui/src/personality/`, `application/apis/atlas-jobs/src/personality_scoring.rs`,
+**Where it lives:** `application/ui/atlas-of-us-ui/src/personality/`, `application/apis/atlas-jobs/src/jobs/personality_scoring.rs`,
 `application/database/personality_*.cypher`
 
 ## Context

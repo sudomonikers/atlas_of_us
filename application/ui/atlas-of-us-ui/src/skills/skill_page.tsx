@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef } from './api';
+import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type TraitRequirement } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 
@@ -173,6 +173,7 @@ function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRan
               </ul>
             </div>
           )}
+          <Traits levels={levels} rank={rank} />
           {level.next_level && next && (
             <div style={styles.next}>
               <h4 style={styles.subheading}>Getting to {next}</h4>
@@ -182,6 +183,44 @@ function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRan
         </div>
       )}
     </section>
+  );
+}
+
+//the personality the picked level takes: each trait's requirement from the highest level at or below it, since a
+//requirement carries up until a higher level changes it
+function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
+  const carried = new Map<string, { requirement: TraitRequirement; from: number }>();
+  for (const level of [...levels].sort((a, b) => a.rank - b.rank)) {
+    if (level.rank > rank) break;
+    for (const requirement of level.traits) carried.set(requirement.name, { requirement, from: level.rank });
+  }
+  const traits = [...carried.values()].sort((a, b) => b.requirement.strength - a.requirement.strength);
+  if (!traits.length) return null;
+  return (
+    <div>
+      <h4 style={styles.subheading}>Personality it takes</h4>
+      <ul style={styles.traits}>
+        {traits.map(({ requirement, from }) => (
+          <li key={requirement.name} style={styles.trait}>
+            <div style={styles.traitHead}>
+              <strong>{requirement.level >= 0.5 ? 'High' : 'Low'} {requirement.name}</strong>
+              <span
+                style={styles.strength}
+                role="meter"
+                aria-label="How much it matters"
+                aria-valuemin={0}
+                aria-valuemax={1}
+                aria-valuenow={requirement.strength}
+              >
+                <span style={{ ...styles.strengthFill, width: `${Math.round(requirement.strength * 100)}%` }} />
+              </span>
+              {from < rank && <span style={styles.from}>from {LEVEL_NAMES[from - 1]}</span>}
+            </div>
+            <span>{requirement.reason}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -416,6 +455,44 @@ const styles: Record<string, CSSProperties> = {
     gap: 6,
     fontSize: 17,
     lineHeight: 1.45,
+  },
+  traits: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    fontSize: 17,
+  },
+  trait: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  traitHead: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  strength: {
+    width: 80,
+    height: 10,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: corners,
+    background: ivory,
+    overflow: 'hidden',
+  },
+  strengthFill: {
+    display: 'block',
+    height: '100%',
+    background: cinnamon,
+  },
+  from: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: blue,
   },
   next: {
     paddingTop: 14,
