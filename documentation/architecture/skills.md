@@ -46,6 +46,7 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
 | `GET /{id}` | A skill with its levels, its `broader` skills (the ones it's a kind of) and its `narrower` skills (the ones that are kinds of it) |
+| `GET /{id}/related` | The skills around a skill: what its levels `needs` and what it `leads_to` through `REQUIRES` (each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
 
 ## Where skills come from
@@ -149,6 +150,10 @@ of, so someone searching "pastry lamination" can see "Baking" too. When the sear
 alone.
 
 ### Opening a skill
+A skill opens at `/skills/<id>`, with its five levels and, under them, every skill linked to it: the skills it's a kind
+of, the kinds of it, what it needs, what it leads to, and similar skills. Each one opens in turn, and the skills hopped
+through stay as a trail above the page.
+
 - **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
   review the content.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill

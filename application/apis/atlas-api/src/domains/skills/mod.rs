@@ -24,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .route("/", get(health_check).post(ask_for_skill))
         .route("/search", get(search))
         .route("/{id}", get(get_skill))
+        .route("/{id}/related", get(get_related))
         .route("/{id}/fill", post(request_fill))
 }
 
@@ -245,6 +246,65 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
     ").param("id", id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Skill>().map_err(internal)?))
+}
+
+//a skill linked by prerequisites, with how essential the strongest link between their levels is, 0 to 1
+#[derive(Serialize, Deserialize)]
+pub struct Prerequisite {
+    id: String,
+    name: String,
+    strength: f64,
+}
+
+#[derive(Serialize)]
+pub struct Related {
+    needs: Vec<Prerequisite>, //skills this one's levels require
+    leads_to: Vec<Prerequisite>, //skills whose levels require this one's
+    similar: Vec<SkillRef>, //the closest skills by meaning, other than its broader and narrower ones
+}
+
+//how many similar skills a skill shows
+const SIMILAR: i64 = 8;
+
+//the skills around a skill, for hopping from one to the next: what it needs, what it leads to, and what it's like
+pub async fn get_related(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Related>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (s:Skill {id: $id})
+        RETURN
+            COLLECT {
+                MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)
+                WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name
+                RETURN {id: o.id, name: o.name, strength: strength}
+            } AS needs,
+            COLLECT {
+                MATCH (o:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)
+                WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name
+                RETURN {id: o.id, name: o.name, strength: strength}
+            } AS leads_to,
+            s.vector AS vector
+    ").param("id", id.as_str())).await.map_err(internal)?;
+    let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
+    let needs: Vec<Prerequisite> = row.get("needs").map_err(internal)?;
+    let leads_to: Vec<Prerequisite> = row.get("leads_to").map_err(internal)?;
+    let vector: Option<Vec<f64>> = row.get("vector").map_err(internal)?;
+    drop(rows);
+
+    let mut similar = Vec::new();
+    if let Some(vector) = vector {
+        //one more than shown, since the skill itself is the closest
+        let mut rows = state.graph.execute(query("
+            MATCH (s:Skill {id: $id})
+            CALL db.index.vector.queryNodes('skill_vector', $k, $vector) YIELD node, score
+            WHERE node <> s AND score >= $min_score AND NOT (node)-[:SPECIALIZATION_OF]-(s)
+            RETURN node.id AS id, node.name AS name
+            ORDER BY score DESC
+        ").param("id", id.as_str()).param("k", SIMILAR + 1).param("vector", vector).param("min_score", resolver::MIN_SCORE))
+            .await.map_err(internal)?;
+        while let Some(row) = rows.next().await.map_err(internal)? {
+            similar.push(row.to::<SkillRef>().map_err(internal)?);
+        }
+    }
+    Ok(Json(Related { needs, leads_to, similar }))
 }
 
 #[derive(Serialize)]

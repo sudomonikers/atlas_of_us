@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { navigate, usePath } from '../router';
 import Explorer from './explorer';
 import MySkills from './my_skills';
 import Explained from './explained';
@@ -16,14 +17,22 @@ const comic = 'var(--font-comic)';
 type View = 'explorer' | 'mine' | 'explained';
 
 const VIEWS: { id: View; label: string; bubble: string }[] = [
-  { id: 'explorer', label: 'Skills Explorer', bubble: 'Every skill anyone can have, from juggling to brain surgery. Have a dig.' },
+  { id: 'explorer', label: 'Skills Explorer', bubble: 'Every skill anyone can have, from juggling to brain surgery. Search for one, then follow where it leads.' },
   { id: 'mine', label: 'My Skills', bubble: "What you can do now, and what you'd like to be able to do." },
   { id: 'explained', label: 'Skills Explained', bubble: 'Nobody starts out an expert. Here is how the levels work.' },
 ];
 
 function Skills() {
-  const [view, setView] = useState<View>('explorer');
+  const path = usePath();
+  //an open skill lives in the url, /skills/<id>, and always shows in the explorer
+  const skillId = path.startsWith('/skills/') ? decodeURIComponent(path.slice('/skills/'.length)) || undefined : undefined;
+  const [chosen, setView] = useState<View>('explorer');
+  const view = skillId ? 'explorer' : chosen;
   const current = VIEWS.find((v) => v.id === view)!;
+  const choose = (next: View) => {
+    setView(next);
+    if (skillId && next !== 'explorer') navigate('/skills');
+  };
 
   return (
     <RequireLogin reason="I can't tell what you can do until I know who you are. Make an account and let's find out.">
@@ -48,14 +57,14 @@ function Skills() {
               className="comic-lift"
               style={{ ...dash.viewButton, ...(view === v.id ? dash.viewButtonActive : {}) }}
               aria-pressed={view === v.id}
-              onClick={() => setView(v.id)}
+              onClick={() => choose(v.id)}
             >
               {v.label}
             </button>
           ))}
         </div>
 
-        {view === 'explorer' && <Explorer />}
+        {view === 'explorer' && <Explorer skillId={skillId} />}
         {view === 'mine' && <MySkills />}
         {view === 'explained' && <Explained />}
         <Footer />

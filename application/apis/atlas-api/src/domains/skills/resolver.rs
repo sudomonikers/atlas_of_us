@@ -93,7 +93,7 @@ const CANDIDATES: i64 = 8;
 //how close a skill has to be to be a candidate, as the vector index scores it ((1 + cosine) / 2). Picked from scored
 //pairs: real links (Python and Programming, Sourdough Baking and Baking) score from about 0.7, and skills that only
 //share a field (Guitar Component Production and Ingredient Manufacturing) score under it
-const MIN_SCORE: f64 = 0.69;
+pub const MIN_SCORE: f64 = 0.69;
 
 pub enum Resolution {
     Same { skill_id: String },

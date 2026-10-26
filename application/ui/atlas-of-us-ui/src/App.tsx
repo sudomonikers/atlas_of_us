@@ -22,7 +22,7 @@ function Page({ path }: { path: string }) {
   if (path === '/blog') return <Blog />
   if (path === '/admin' || path.startsWith('/admin/')) return <Admin />
   if (path === '/personality') return <Personality />
-  if (path === '/skills') return <Skills />
+  if (path === '/skills' || path.startsWith('/skills/')) return <Skills />
   return <Home />
 }
 

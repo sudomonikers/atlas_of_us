@@ -57,3 +57,17 @@ export const getSkill = (id: string) => request<Skill>('GET', `/skills/${encodeU
 //asks for a stub or failed skill to be filled. Anything else is left as it is, so it's safe to call on every open, then
 //poll getSkill until it's ready
 export const requestFill = (id: string) => request<{ status: SkillStatus }>('POST', `/skills/${encodeURIComponent(id)}/fill`);
+
+//a skill linked by prerequisites, with how essential the strongest link between their levels is, 0 to 1
+export interface Prerequisite extends SkillRef {
+  strength: number;
+}
+
+export interface Related {
+  needs: Prerequisite[]; //skills this one's levels require
+  leads_to: Prerequisite[]; //skills whose levels require this one's
+  similar: SkillRef[]; //the closest skills by meaning, other than its broader and narrower ones
+}
+
+//the skills around a skill, for hopping from one to the next
+export const getRelated = (id: string) => request<Related>('GET', `/skills/${encodeURIComponent(id)}/related`);
