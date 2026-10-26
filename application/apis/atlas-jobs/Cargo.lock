@@ -55,10 +55,9 @@ dependencies = [
 name = "atlas-jobs"
 version = "0.1.0"
 dependencies = [
+ "atlas-shared",
  "aws-config",
  "aws-sdk-bedrockruntime",
- "aws-sdk-eventbridge",
- "chrono",
  "lambda_runtime",
  "neo4rs",
  "serde",
@@ -66,6 +65,20 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "atlas-shared"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-bedrockruntime",
+ "aws-sdk-eventbridge",
+ "chrono",
+ "neo4rs",
+ "serde",
+ "serde_json",
+ "tracing",
  "uuid",
 ]
 

@@ -5,20 +5,23 @@ Each message is `{"kind": "...", "job": {...}}` and carries everything the job n
 
 It also works through the events queues (`infrastructure/events.tf`). Each of those messages is an event from the
 `atlas-events` bus. Every job that reacts to an event has its own queue, named `<event>-<module>`, and the queue picks
-the handler in `src/events/mod.rs`. Handlers publish to the bus named by `EVENT_BUS_NAME`.
+the handler in `src/events/mod.rs`. Handlers publish to the bus named by `EVENT_BUS_NAME`, and log the event when it
+isn't set.
 
 The code is laid out the same way:
 
 | Where | What's in it |
 |---|---|
 | `src/main.rs` | Takes each record and sends it to `jobs` or `events` by the queue it came from |
-| `src/bedrock.rs` | Calls to Claude on Bedrock, shared by everything |
+| `src/bedrock.rs` | Calls to Claude on Bedrock, shared by everything, with retries and the budget cutoff |
+| `../atlas-shared/` | Code shared with the api: the event bus, the skills resolver, and the fast model and embeddings it calls |
 | `src/jobs/` | The jobs the api queues, one file each, picked by `kind` in `mod.rs` |
-| `src/events/` | One folder per event, such as `skill_filled/`, with one file per module that reacts to it, such as `personality.rs` for `SkillFilled-Personality`. `mod.rs` picks the handler by queue and publishes to the bus |
+| `src/events/` | One folder per event, such as `skill_filled/`, with one file per module that reacts to it, such as `personality.rs` for `SkillFilled-Personality`. `mod.rs` picks the handler by queue and builds the bus |
 
 | queue | what it does |
 |---|---|
 | `SkillFillRequested-Skills` | Fills a `filling` skill (`events/skill_fill_requested/skills.rs`). One Bedrock call writes its five Dreyfus levels, then the skill is `ready` and `SkillFilled` is published. A fill that fails sets the skill to `failed` and publishes `SkillFillFailed`. A skill that isn't `filling` is left as it is. |
+| `SkillFilled-Skills` | Links a filled skill's levels to the levels of the skills they need (`events/skill_filled/skills.rs`). One Bedrock call names each prerequisite, the level of it needed, its `strength` and `reason`, on the lowest level it applies to. The resolver finds each one we have and creates a stub (never filled) for each one we don't, and the job writes them as `REQUIRES_SKILL`, checking after each write and taking it out again if it made a loop. A skill that isn't `ready`, or already has prerequisites, is left as it is. |
 | `SkillFilled-Personality` | Links a filled skill's levels to the personality traits they take (`events/skill_filled/personality.rs`). One Bedrock call names each trait's `level`, `strength` and `reason` on the lowest level it applies to, and the job writes them as `REQUIRES_TRAIT`. A skill that isn't `ready`, or already has trait requirements, is left as it is. |
 
 | kind | what it does |
@@ -29,4 +32,4 @@ The code is laid out the same way:
 
 ## Deploying
 
-On Lambda, each queue invokes the worker with one record at a time. `infrastructure/jobs_lambda.tf` creates the jobs queue and the function, and `infrastructure/events.tf` creates the bus and the events queues. To ship new code, run `./deploy.sh`.
+On Lambda, each queue invokes the worker with one record at a time. `infrastructure/jobs_lambda.tf` creates the jobs queue and the function, and `infrastructure/events.tf` creates the bus and the events queues. To ship new code, run `./deploy.sh`, which builds in docker with `apis/` mounted so it can see `atlas-shared`.

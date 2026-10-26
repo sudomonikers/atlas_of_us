@@ -1,6 +1,4 @@
 mod state;
-mod bedrock;
-mod events;
 mod helpers;
 
 mod domains;
@@ -24,6 +22,7 @@ use tower_http::{
 };
 use tracing::Span;
 
+use atlas_shared::{bedrock, events};
 use domains::{personality, physical, skills, topics};
 use state::AppState;
 

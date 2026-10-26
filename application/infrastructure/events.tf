@@ -7,9 +7,10 @@ locals {
   events_name = "atlas-events"
 
   # one entry per job. `module` is the module that reacts, and `concurrency` is how many of its events, and so its
-  # bedrock calls, run at once, on top of every other queue's
+  # bedrock calls, run at once, on top of every other queue's. Lambda runs at least 2 at once
   event_jobs = { for job in [
     { event = "SkillFillRequested", source = "atlas.skills", module = "Skills", concurrency = 5 },
+    { event = "SkillFilled", source = "atlas.skills", module = "Skills", concurrency = 2 },
     { event = "SkillFilled", source = "atlas.skills", module = "Personality", concurrency = 2 },
   ] : "${job.event}-${job.module}" => job }
 }

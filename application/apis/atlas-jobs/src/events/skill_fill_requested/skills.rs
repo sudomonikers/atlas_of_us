@@ -7,7 +7,9 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use tracing::Instrument;
 
-use crate::{bedrock::{BoxError, invoke}, events::Bus};
+use atlas_shared::events::{self, Bus};
+
+use crate::bedrock::{BoxError, invoke};
 
 #[derive(Deserialize)]
 struct FillRequested {
@@ -69,19 +71,19 @@ pub async fn run(graph: &Graph, detail: Value) {
     let span = tracing::info_span!("skill_fill", skill_id = request.skill_id);
     async {
         let started = Instant::now();
-        let bus = Bus::new().await;
+        let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+        let bus = crate::events::bus(&config);
         let filled: Result<bool, BoxError> = async {
-            let bus = bus.as_ref().map_err(|e| e.to_string())?;
-            let bedrock = aws_sdk_bedrockruntime::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await);
+            let bedrock = aws_sdk_bedrockruntime::Client::new(&config);
             let model = env::var("BEDROCK_MODEL_ID")?;
-            fill(graph, &bedrock, &model, bus, &request.skill_id).await
+            fill(graph, &bedrock, &model, &bus, &request.skill_id).await
         }.await;
         match &filled {
             Ok(true) => {}
             Ok(false) => tracing::info!("the skill isn't waiting to be filled, so it was left as it is"),
             Err(e) => {
                 tracing::error!("skill fill failed: {e}");
-                failed(graph, bus.as_ref().ok(), &request.skill_id).await;
+                failed(graph, &bus, &request.skill_id).await;
             }
         }
         tracing::info!(ok = filled.is_ok(), latency_ms = started.elapsed().as_millis() as u64, "finished");
@@ -90,7 +92,7 @@ pub async fn run(graph: &Graph, detail: Value) {
 
 //fills the skill if it's filling, and returns whether it did. Anything else (ready, or filled by an earlier delivery of
 //the same event) is left as it is
-async fn fill(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, model: &str, bus: &Bus, skill_id: &str) -> Result<bool, BoxError> {
+async fn fill(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, model: &str, bus: &Option<Bus>, skill_id: &str) -> Result<bool, BoxError> {
     let mut rows = graph.execute(query("
         MATCH (s:Skill {id: $id})
         RETURN s.status AS status, s.name AS name, s.description AS description, s.aliases AS aliases,
@@ -115,7 +117,7 @@ async fn fill(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, model: &s
     graph.run(query("MATCH (s:Skill {id: $id, status: 'filling'}) SET s.status = 'ready'").param("id", skill_id)).await?;
     tracing::info!("filled the skill");
     //the skill is ready without the event, so a failed publish is logged rather than failing the fill
-    if let Err(e) = bus.publish("atlas.skills", "SkillFilled", 1, json!({"skillId": skill_id, "contentVersion": 1})).await {
+    if let Err(e) = events::publish(bus, "atlas.skills", "SkillFilled", 1, json!({"skillId": skill_id, "contentVersion": 1})).await {
         tracing::error!("{e}");
     }
     Ok(true)
@@ -192,12 +194,11 @@ async fn save_levels(graph: &Graph, skill_id: &str, levels: &[LlmLevel]) -> Resu
 }
 
 //marks the skill failed, so the next person to open it can ask again, and publishes SkillFillFailed
-async fn failed(graph: &Graph, bus: Option<&Bus>, skill_id: &str) {
+async fn failed(graph: &Graph, bus: &Option<Bus>, skill_id: &str) {
     if let Err(e) = graph.run(query("MATCH (s:Skill {id: $id, status: 'filling'}) SET s.status = 'failed'").param("id", skill_id)).await {
         return tracing::error!("couldn't mark the skill failed: {e}");
     }
-    let Some(bus) = bus else { return };
-    if let Err(e) = bus.publish("atlas.skills", "SkillFillFailed", 1, json!({"skillId": skill_id})).await {
+    if let Err(e) = events::publish(bus, "atlas.skills", "SkillFillFailed", 1, json!({"skillId": skill_id})).await {
         tracing::error!("{e}");
     }
 }

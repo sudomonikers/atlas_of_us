@@ -1,10 +1,10 @@
-//the Atlas event bus (infrastructure/events.tf). The api publishes what happened to a sub-graph after writing it, and
-//each module that reacts has its own rule and queue into atlas-jobs. Events are thin: they name the nodes it happened
-//to, and consumers read the graph for the rest
+//the Atlas event bus (infrastructure/events.tf). The api and atlas-jobs publish what happened to a sub-graph after
+//writing it, and every job that reacts has its own rule and queue into atlas-jobs. Events are thin: they name the nodes
+//it happened to, and consumers read the graph for the rest
 use aws_sdk_eventbridge::{error::DisplayErrorContext, types::PutEventsRequestEntry};
 use serde_json::{Map, Value, json};
 
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
+use crate::BoxError;
 
 #[derive(Clone)]
 pub struct Bus {

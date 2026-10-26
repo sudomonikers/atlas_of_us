@@ -28,6 +28,7 @@ export interface Level {
   trust: 'provisional' | 'established' | null;
   next_level: string | null; //what it takes to reach the next level. Missing on Expert and on a stub's levels
   traits: TraitRequirement[]; //the personality it takes, written on this level itself. Lower levels' carry up to it
+  skills: SkillRequirement[]; //the other skills it needs, written on this level itself. Lower levels' carry up to it
 }
 
 //a personality trait a level takes. `level` is where on the trait it pulls, above 0.5 for more of it and below for less
@@ -35,6 +36,13 @@ export interface TraitRequirement {
   name: string;
   level: number;
   strength: number; //how much it matters, 0 to 1
+  reason: string;
+}
+
+//a level of another skill a level needs
+export interface SkillRequirement extends SkillRef {
+  rank: number; //the level of it that's needed
+  strength: number; //how essential it is, 0 to 1
   reason: string;
 }
 

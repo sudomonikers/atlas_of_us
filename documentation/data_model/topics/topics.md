@@ -33,21 +33,21 @@ CREATE (ksafe:Idea  {name:"King safety", type:"concept", description:"Protecting
 CREATE (tempo:Idea  {name:"Tempo", type:"concept", description:"A unit of time; a move's worth of initiative.", vector: [1, 2, 3]});
 CREATE (pawns:Idea  {name:"Pawn structure", type:"concept", description:"The configuration of pawns that shapes middlegame plans.", vector: [1, 2, 3]});
 
-CREATE (dev)-[:REQUIRES]->(rules);
-CREATE (center)-[:REQUIRES]->(rules);
-CREATE (ksafe)-[:REQUIRES]->(rules);
-CREATE (tempo)-[:REQUIRES]->(dev);
-CREATE (pawns)-[:REQUIRES]->(rules);
+CREATE (dev)-[:REQUIRES_KNOWLEDGE]->(rules);
+CREATE (center)-[:REQUIRES_KNOWLEDGE]->(rules);
+CREATE (ksafe)-[:REQUIRES_KNOWLEDGE]->(rules);
+CREATE (tempo)-[:REQUIRES_KNOWLEDGE]->(dev);
+CREATE (pawns)-[:REQUIRES_KNOWLEDGE]->(rules);
 
 CREATE (ruy:Idea {name:"Ruy Lopez", type:"concept", description:"1.e4 e5 2.Nf3 Nc6 3.Bb5; pressures Black's center via the c6-knight.", vector: [1, 2, 3]});
 CREATE (sic:Idea {name:"Sicilian Defense", type:"concept", description:"1.e4 c5; Black fights for the center asymmetrically.", vector: [1, 2, 3]});
 CREATE (naj:Idea {name:"Najdorf Variation", type:"concept", description:"Sicilian with 5...a6; flexible, sharp, deeply analyzed.", vector: [1, 2, 3]});
 
-CREATE (ruy)-[:REQUIRES]->(dev);
-CREATE (ruy)-[:REQUIRES]->(center);
-CREATE (sic)-[:REQUIRES]->(center);
-CREATE (sic)-[:REQUIRES]->(pawns);
-CREATE (naj)-[:SPECIALIZES]->(sic); // is-a-kind-of; pedagogical REQUIRES is implied
+CREATE (ruy)-[:REQUIRES_KNOWLEDGE]->(dev);
+CREATE (ruy)-[:REQUIRES_KNOWLEDGE]->(center);
+CREATE (sic)-[:REQUIRES_KNOWLEDGE]->(center);
+CREATE (sic)-[:REQUIRES_KNOWLEDGE]->(pawns);
+CREATE (naj)-[:SPECIALIZES]->(sic); // is-a-kind-of; pedagogical REQUIRES_KNOWLEDGE is implied
 
 // Membership: openings belong to their family subtopics
 CREATE (open)-[:INCLUDES]->(ruy);
@@ -57,8 +57,8 @@ CREATE (semi)-[:INCLUDES]->(naj);
 // Norms — the classic opening principles
 CREATE (castle:Idea {name:"Castle early", type:"norm", description:"Get the king to safety before launching operations.", vector: [1, 2, 3]});
 CREATE (noqueen:Idea {name:"Don't develop the queen too early", type:"norm", description:"An early queen becomes a target, losing tempo.", vector: [1, 2, 3]});
-CREATE (castle)-[:REQUIRES]->(ksafe);
-CREATE (noqueen)-[:REQUIRES]->(tempo);
+CREATE (castle)-[:REQUIRES_KNOWLEDGE]->(ksafe);
+CREATE (noqueen)-[:REQUIRES_KNOWLEDGE]->(tempo);
 
 // Claims — one uncontested, one genuinely disputed
 CREATE (kguns:Idea {name:"The King's Gambit is unsound at master level", type:"claim", description:"Thesis that 1.e4 e5 2.f4 is objectively dubious against best play.", vector: [1, 2, 3]});
@@ -72,8 +72,8 @@ FOREACH (n IN [castle, noqueen, kguns, sicbest, kgsound] | CREATE (cot)-[:INCLUD
 You will notice there are a ton of different relationships going on here. Within the Topics sub-graph itself, the following relationships are used:
 | Relationship | From → To | Directed? | Cyclic OK? | Meaning |
 | --- | --- | --- | --- | --- |
-| REQUIRES | Idea → Idea | yes | no — sacred DAG | Pedagogical prerequisite. The only edge the learning-path query reads. |
-| PRECEDES | Idea → Idea | yes | no (clean DAG) | Temporal order (events, historical facts). Kept separate from REQUIRES. |
+| REQUIRES_KNOWLEDGE | Idea → Idea | yes | no — sacred DAG | Pedagogical prerequisite. The only edge the learning-path query reads. |
+| PRECEDES | Idea → Idea | yes | no (clean DAG) | Temporal order (events, historical facts). Kept separate from REQUIRES_KNOWLEDGE. |
 | SPECIALIZES | Idea → Idea | yes | no | Narrower form of a broader Idea (Rawls's justice → Justice). |
 | CONTRADICTS | Idea — Idea | symmetric | n/a | Mutually exclusive Ideas. How you hold falsehoods without the graph taking sides. |
 | ANALOGOUS_TO | Idea — Idea | symmetric | yes | Same structure, different domain (thermodynamic ↔ information entropy). Not a merge. |

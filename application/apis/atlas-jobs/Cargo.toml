@@ -25,7 +25,5 @@ aws-sdk-bedrockruntime = { version = "1", default-features = false, features = [
 # Lambda (invoked with batches of SQS records)
 lambda_runtime = "1.4.0"
 
-# Events: publishing to the atlas-events bus, with an id and a timestamp on each
-aws-sdk-eventbridge = { version = "1.125.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
-uuid = { version = "1.29.0", features = ["v4"] }
-chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+# Shared with atlas-api: bedrock, the event bus and the skills resolver
+atlas-shared = { path = "../atlas-shared" }

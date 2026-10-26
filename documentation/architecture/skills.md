@@ -22,7 +22,8 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 |---|---|---|
 | UI | `application/ui/atlas-of-us-ui/src/skills/` | Search, the skill page, claiming a level, reviewing content and proposals |
 | API | `application/apis/atlas-api/src/domains/skills/mod.rs` | Search, the creation gates, claiming levels, endorsements and proposals, publishing events |
-| Gates and resolver | `application/apis/atlas-api/src/domains/skills/resolver.rs` | The gates normalize and classify what a user asks for, and screen out nonsense. The resolver decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs |
+| Gates | `application/apis/atlas-api/src/domains/skills/gates.rs` | Normalize and classify what a user asks for, and screen out nonsense |
+| Resolver | `application/apis/atlas-shared/src/skills/resolver.rs` | Decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs. It's in the crate the API and atlas-jobs share (see `ADRs/atlas_shared_crate.md`), so both run the same logic |
 | Fill job | `application/apis/atlas-jobs/src/events/skill_fill_requested/skills.rs` | Generates a stub's Dreyfus levels with Bedrock |
 | Prerequisites job | `application/apis/atlas-jobs/src/events/skill_filled/skills.rs` | Links a filled skill's levels to the levels of the skills they need, with the resolver |
 | Proposal job | `application/apis/atlas-jobs/src/events/skill_proposal_submitted/skills.rs` | Screens a proposed change before it is opened to the community |
@@ -30,10 +31,11 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 | Taxonomy import | `application/database/skills_import/` | Asks the API for each ESCO skill, broader skills first |
 
 ### Models
-- **The gates and the resolver's judge** use a fast model on Bedrock, set by `SMALL_MODEL` in `bedrock.rs` (Claude Haiku
+- **The gates and the resolver's judge** use a fast model on Bedrock, set by `SMALL_MODEL` in `atlas-shared/src/bedrock.rs` (Claude Haiku
   4.5). Each is one forced tool call whose input is the answer.
 - **The fill job** uses the atlas-jobs model, set by `BEDROCK_MODEL_ID` in `jobs_lambda.tf` (Claude Sonnet 4.6), in one
-  forced tool call that writes all five levels.
+  forced tool call that writes all five levels. **The prerequisites job** uses the same model to name what each level
+  needs.
 - **Embeddings** come from Amazon Titan Text Embeddings V2 on Bedrock, at 1024 dimensions. A skill's vector is an
   embedding of `"<name>. <description>. Also known as <alias>, <alias>."`, and a search is an embedding of what was
   typed. Why Titan is in `ADRs/skills_embeddings.md`.
@@ -45,8 +47,8 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 |---|---|
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
-| `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) |
-| `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total`. It also has every personality trait its levels take, as `traits`, strongest first with the strength of its strongest requirement |
+| `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) and the levels of other skills it needs (`skills`: the skill's `id`, `name` and `status`, the `rank` of it needed, `strength`, `reason`) |
+| `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES_SKILL` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total`. It also has every personality trait its levels take, as `traits`, strongest first with the strength of its strongest requirement |
 | `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `needs` or `leads_to`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
 
@@ -97,7 +99,7 @@ On top of what `../data_model/skills/skills.md` describes:
 ### How skills relate to each other
 There are three different relationships between skills, and keeping them apart matters:
 
-- **Prerequisite:** lives on the **levels**, not the skills, matching the data model. `(Cooking Competent)-[:REQUIRES
+- **Prerequisite:** lives on the **levels**, not the skills, matching the data model. `(Cooking Competent)-[:REQUIRES_SKILL
   {strength}]->(Knife Skills Advanced Beginner)`. Comes from the prerequisites job. This is the main web between
   skills: what each one needs and what it leads to.
 - **Specialization:** `(Sourdough Baking)-[:SPECIALIZATION_OF]->(Baking)`. A kind of another skill, only when everyone
@@ -158,8 +160,9 @@ of, the kinds of it, what it needs, what it leads to, and similar skills, twelve
 turn, and the skills hopped through stay as a trail above the page.
 
 - **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
-  review the content. Each level shows the personality it takes: every trait from that level and the ones below it,
-  strongest first, with how much it matters and why, and the level a carried-up one comes from.
+  review the content. Each level shows the skills it takes and the personality it takes: every requirement from that
+  level and the ones below it, strongest first, with how much it matters and why, and the level a carried-up one comes
+  from. Each skill it takes names the level of it needed, opens that skill, and is marked when it isn't filled in yet.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
   (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
   it's safe to call on every open. The UI polls `GET /{id}` until it's `ready`.
@@ -176,7 +179,7 @@ off also hides the skills and traits whose links are all of kinds that are off, 
 come back where they were when it's turned on again:
 
 - **A kind of:** a solid line with an arrow to the broader skill.
-- **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES` link.
+- **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES_SKILL` link.
 - **Similar:** a dotted line.
 - **Takes:** a solid red line with an arrow from a skill to a personality trait, thicker for a stronger `REQUIRES_TRAIT`.
 
@@ -214,9 +217,22 @@ filled just because it exists, so the cost of a skill follows how much people ac
 3. It sets the skill to `ready`, marks the content `provisional`, and publishes `SkillFilled`.
 
 ### Prerequisites
-The prerequisites job reacts to `SkillFilled`. It reads the filled levels and names the skills each one needs. Each
-name goes through the resolver: existing skills are linked to, and new ones become stubs (and publish `SkillCreated`),
-but are **not** filled. Before writing a `REQUIRES` link, the job checks it wouldn't create a cycle.
+The prerequisites job (`SkillFilled-Skills`) reacts to `SkillFilled`, for a `ready` skill whose levels have no
+prerequisites yet:
+
+1. **Name.** One Bedrock call reads the skill and its five levels and names the other skills each level needs: direct
+   prerequisites only, named the way a CV lists a skill, each with a one-sentence description. Each one carries the
+   level of this skill it starts at, the level of the other skill needed, a `strength` and a `reason`. It sits on the
+   lowest level it applies to, and is named again higher up only when the level needed or the strength changes.
+2. **Resolve.** Each name goes through the resolver. A skill we have, under that name, an alias or another phrasing,
+   is linked to. A new one becomes a stub, placed under the skills it's a kind of, and publishes `SkillCreated`, but
+   is **not** filled. A name that resolves to the skill itself, to a skill it's a kind of, or to a kind of it is
+   dropped, since those are specializations.
+3. **Write, then check.** Each prerequisite is written as
+   `(level)-[:REQUIRES_SKILL {strength, reason}]->(level of the other skill)`. Once that write is committed, the job checks
+   whether the other skill now leads back to this one through `REQUIRES_SKILL`, and if it does, takes the link out again.
+   Checking after the write means two jobs closing a loop at the same moment can't both miss it: whichever checks
+   second sees both links and takes its own out. A loop can exist for the moment between a write and its check.
 
 Requirements on Topics, Physical Attributes, Personality Traits and anything else are written by the modules that own
 those sub-graphs. They react to `SkillFilled` and add their own requirements to the levels (see below). The Personality
@@ -268,7 +284,7 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 - **One custom EventBridge bus for the whole Atlas** (`atlas-events`). Every module publishes to it, and Skills events
   have the source `atlas.skills`.
 - **Each job that reacts to an event has its own rule and its own SQS queue,** with a dead-letter queue, named
-  `<event>-<module>`: `SkillFillRequested-Skills`, `SkillFilled-Personality`. One job's backlog, replay or failures
+  `<event>-<module>`: `SkillFillRequested-Skills`, `SkillFilled-Skills`, `SkillFilled-Personality`. One job's backlog, replay or failures
   never hold up another's, even when several modules react to the same event. Each is one entry in `event_jobs` in
   `events.tf`, with how many of its events run at once. The queues all feed the `atlas-jobs` Lambda, which picks the
   handler by the queue.
@@ -281,7 +297,7 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 |---|---|---|
 | `SkillCreated` | A Skill node is created, by any of the three routes | Search indexing, Topics (to link related topics), admin metrics |
 | `SkillFillRequested` | Someone needs a stub filled | The Skills fill job |
-| `SkillFilled` | A skill's levels are filled for the first time | Personality, Topics and Physical Attributes (to add their requirements), Jobs, recommendations |
+| `SkillFilled` | A skill's levels are filled for the first time | The Skills prerequisites job, Personality, Topics and Physical Attributes (to add their requirements), Jobs, recommendations |
 | `SkillFillFailed` | The fill job gave up | Admin metrics, the UI (through polling) |
 | `SkillProposalSubmitted` | A user proposed a change | The Skills proposal job |
 | `SkillLevelRevised` | A proposal was promoted | Anything that read the old level, such as requirement links and people's claims |

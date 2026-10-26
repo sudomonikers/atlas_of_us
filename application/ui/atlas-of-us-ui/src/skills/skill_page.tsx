@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type TraitRequirement } from './api';
+import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TraitRequirement } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 
@@ -94,7 +94,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
         {skill.aliases.length > 0 && <p style={styles.aliases}>Also known as {skill.aliases.join(', ')}</p>}
       </header>
 
-      {skill.status === 'ready' && <Levels levels={skill.levels} rank={rank} onRank={setRank} />}
+      {skill.status === 'ready' && <Levels levels={skill.levels} rank={rank} onRank={setRank} onOpen={onOpen} />}
       {(skill.status === 'filling' || skill.status === 'stub') && (
         <div style={styles.waiting}>
           <Mascot />
@@ -121,7 +121,12 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
 }
 
 //the level picker, as a ladder, and what the picked level says
-function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRank: (rank: number) => void }) {
+function Levels({ levels, rank, onRank, onOpen }: {
+  levels: Level[];
+  rank: number;
+  onRank: (rank: number) => void;
+  onOpen: (skill: SkillRef) => void;
+}) {
   const level = levels.find((l) => l.rank === rank);
   const next = LEVEL_NAMES[rank]; //missing on Expert
   return (
@@ -173,6 +178,7 @@ function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRan
               </ul>
             </div>
           )}
+          <Prerequisites levels={levels} rank={rank} onOpen={onOpen} />
           <Traits levels={levels} rank={rank} />
           {level.next_level && next && (
             <div style={styles.next}>
@@ -186,15 +192,57 @@ function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRan
   );
 }
 
-//the personality the picked level takes: each trait's requirement from the highest level at or below it, since a
-//requirement carries up until a higher level changes it
-function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
-  const carried = new Map<string, { requirement: TraitRequirement; from: number }>();
+//the requirements the picked level has: each one from the highest level at or below it, since a requirement carries up
+//until a higher level changes it, strongest first
+function carriedUp<T extends { strength: number }>(levels: Level[], rank: number, written: (level: Level) => T[], key: (requirement: T) => string) {
+  const carried = new Map<string, { requirement: T; from: number }>();
   for (const level of [...levels].sort((a, b) => a.rank - b.rank)) {
     if (level.rank > rank) break;
-    for (const requirement of level.traits) carried.set(requirement.name, { requirement, from: level.rank });
+    for (const requirement of written(level)) carried.set(key(requirement), { requirement, from: level.rank });
   }
-  const traits = [...carried.values()].sort((a, b) => b.requirement.strength - a.requirement.strength);
+  return [...carried.values()].sort((a, b) => b.requirement.strength - a.requirement.strength);
+}
+
+//how much a requirement matters, as a drawn bar, and the level it carries up from
+function Strength({ strength, from, rank, label }: { strength: number; from: number; rank: number; label: string }) {
+  return (
+    <>
+      <span style={styles.strength} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={1} aria-valuenow={strength}>
+        <span style={{ ...styles.strengthFill, width: `${Math.round(strength * 100)}%` }} />
+      </span>
+      {from < rank && <span style={styles.from}>from {LEVEL_NAMES[from - 1]}</span>}
+    </>
+  );
+}
+
+//the other skills the picked level needs, and the level of each. Each opens that skill
+function Prerequisites({ levels, rank, onOpen }: { levels: Level[]; rank: number; onOpen: (skill: SkillRef) => void }) {
+  const skills = carriedUp<SkillRequirement>(levels, rank, (level) => level.skills, (requirement) => requirement.id);
+  if (!skills.length) return null;
+  return (
+    <div>
+      <h4 style={styles.subheading}>Skills it takes</h4>
+      <ul style={styles.traits}>
+        {skills.map(({ requirement, from }) => (
+          <li key={requirement.id} style={styles.trait}>
+            <div style={styles.traitHead}>
+              <button className="comic-lift" style={styles.link} onClick={() => onOpen(requirement)}>
+                {requirement.name} at {LEVEL_NAMES[requirement.rank - 1]}
+              </button>
+              <Strength strength={requirement.strength} from={from} rank={rank} label="How essential it is" />
+              {requirement.status !== 'ready' && <span style={styles.from}>not filled in yet</span>}
+            </div>
+            <span>{requirement.reason}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+//the personality the picked level takes
+function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
+  const traits = carriedUp<TraitRequirement>(levels, rank, (level) => level.traits, (requirement) => requirement.name);
   if (!traits.length) return null;
   return (
     <div>
@@ -204,17 +252,7 @@ function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
           <li key={requirement.name} style={styles.trait}>
             <div style={styles.traitHead}>
               <strong>{requirement.level >= 0.5 ? 'High' : 'Low'} {requirement.name}</strong>
-              <span
-                style={styles.strength}
-                role="meter"
-                aria-label="How much it matters"
-                aria-valuemin={0}
-                aria-valuemax={1}
-                aria-valuenow={requirement.strength}
-              >
-                <span style={{ ...styles.strengthFill, width: `${Math.round(requirement.strength * 100)}%` }} />
-              </span>
-              {from < rank && <span style={styles.from}>from {LEVEL_NAMES[from - 1]}</span>}
+              <Strength strength={requirement.strength} from={from} rank={rank} label="How much it matters" />
             </div>
             <span>{requirement.reason}</span>
           </li>

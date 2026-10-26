@@ -1,7 +1,7 @@
 # ADR: Amazon Titan Text Embeddings V2 for skill search and the resolver
 
 **Status:** Accepted, 24 Oct 2026
-**Where it lives:** `application/apis/atlas-api/src/bedrock.rs` (`embed`), and the `skill_vector` index in
+**Where it lives:** `application/apis/atlas-shared/src/bedrock.rs` (`embed`), and the `skill_vector` index in
 `application/database/migrations/002_skills_indexes.cypher`
 
 ## Context
@@ -21,7 +21,8 @@ We wanted to know whether an open source model, hosted by us, would be cheaper o
 all-MiniLM-L6-v2, which an earlier EC2 setup served, is good enough.
 
 ## Decision
-Skills are embedded with **Amazon Titan Text Embeddings V2** on Bedrock, at **1024 dimensions**, called from the API.
+Skills are embedded with **Amazon Titan Text Embeddings V2** on Bedrock, at **1024 dimensions**, called from the API and the
+prerequisites job through the resolver.
 
 - A skill's vector is an embedding of `"<name>. <description>. Also known as <alias>, <alias>."`, and a search is an
   embedding of what was typed. Titan takes no prompts, so both are embedded the same way.

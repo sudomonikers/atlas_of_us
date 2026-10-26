@@ -1,6 +1,6 @@
 //Skills Graph: Skill nodes with 5 Dreyfus levels linked by HAS_LEVEL / NEXT_LEVEL. How skills are searched for, asked
 //for and filled is described in documentation/architecture/skills.md
-mod resolver;
+mod gates;
 
 use std::collections::HashMap;
 
@@ -14,6 +14,8 @@ use axum::{
 use neo4rs::query;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+
+use atlas_shared::skills::resolver;
 
 use crate::{auth::AuthUser, bedrock, events, helpers::lucene, state::AppState};
 
@@ -175,7 +177,7 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
         return Err((StatusCode::BAD_REQUEST, "Describe the skill in 100 characters or fewer.".to_string()));
     }
 
-    let screening = resolver::screen(&state, typed).await.map_err(internal)?;
+    let screening = gates::screen(&state, typed).await.map_err(internal)?;
     tracing::info!(kind = screening.kind, acceptable = screening.acceptable, "screened a skill request");
     if !screening.acceptable {
         return Ok(Json(AskOutcome::Rejected { reason: screening.rejection_reason }));
@@ -184,7 +186,7 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
         return Ok(Json(AskOutcome::NotASkill { kind: screening.kind, name: screening.name }));
     }
 
-    let (resolution, vector) = resolver::resolve(&state, &screening.name, &screening.description).await.map_err(internal)?;
+    let (resolution, vector) = resolver::resolve(&state.graph, &state.bedrock, &screening.name, &screening.description).await.map_err(internal)?;
     let id = match resolution {
         resolver::Resolution::Same { skill_id } => {
             tracing::info!(skill_id, "skill request means an existing skill");
@@ -192,7 +194,7 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
             return Ok(Json(AskOutcome::Existing { skill }));
         }
         resolver::Resolution::New { broader, narrower } => {
-            resolver::create_stub(&state, &screening.name, &screening.description, vector, &broader, &narrower).await.map_err(internal)?
+            resolver::create_stub(&state.graph, &state.bus, &screening.name, &screening.description, vector, &broader, &narrower).await.map_err(internal)?
         }
     };
     tracing::info!(skill_id = id, "created a skill stub");
@@ -215,6 +217,7 @@ pub struct Level {
     trust: Option<String>,
     next_level: Option<String>, //what it takes to reach the next level. Missing on Expert and on a stub's levels
     traits: Vec<TraitRequirement>, //the personality it takes, written on this level itself. Lower levels' carry up to it
+    skills: Vec<SkillRequirement>, //the other skills it needs, written on this level itself. Lower levels' carry up to it
 }
 
 //a personality trait a level takes. `level` is where on the trait it pulls, above 0.5 for more of it and below for less
@@ -223,6 +226,17 @@ pub struct TraitRequirement {
     name: String,
     level: f64,
     strength: f64, //how much it matters, 0 to 1
+    reason: String,
+}
+
+//a level of another skill a level needs
+#[derive(Serialize, Deserialize)]
+pub struct SkillRequirement {
+    id: String,
+    name: String,
+    status: String,
+    rank: i64, //the level of it that's needed
+    strength: f64, //how essential it is, 0 to 1
     reason: String,
 }
 
@@ -250,6 +264,11 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
                 traits: COLLECT {
                     MATCH (l)-[r:REQUIRES_TRAIT]->(t:PersonalityTrait)
                     RETURN {name: t.name, level: r.level, strength: r.strength, reason: r.reason} ORDER BY r.strength DESC
+                },
+                skills: COLLECT {
+                    MATCH (l)-[r:REQUIRES_SKILL]->(ol:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)
+                    RETURN {id: o.id, name: o.name, status: o.status, rank: ol.rank, strength: r.strength, reason: r.reason}
+                    ORDER BY r.strength DESC
                 }
             }) AS levels
         }
@@ -314,12 +333,12 @@ const GROUPS: [(&str, &str, &str); 4] = [
     ("narrower", "MATCH (o:Skill)-[:SPECIALIZATION_OF]->(s)", "WITH o, null AS strength ORDER BY o.name"),
     (
         "needs",
-        "MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)",
+        "MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_SKILL]->(:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)",
         "WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name",
     ),
     (
         "leads_to",
-        "MATCH (o:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)",
+        "MATCH (o:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_SKILL]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)",
         "WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name",
     ),
 ];

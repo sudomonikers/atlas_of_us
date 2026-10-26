@@ -1,8 +1,8 @@
+//calls to models on bedrock: a fast model answering through a tool, and embeddings for the vector indexes
 use aws_sdk_bedrockruntime::{error::DisplayErrorContext, primitives::Blob};
 use serde_json::{Value, json};
 
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
-
+use crate::BoxError;
 
 pub const SMALL_MODEL: &str = "us.anthropic.claude-haiku-4-5-20251001-v1:0";
 const EMBEDDING_MODEL: &str = "amazon.titan-embed-text-v2:0";

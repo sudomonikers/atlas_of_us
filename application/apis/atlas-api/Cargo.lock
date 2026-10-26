@@ -68,6 +68,7 @@ name = "atlas-api"
 version = "0.1.0"
 dependencies = [
  "argon2",
+ "atlas-shared",
  "aws-config",
  "aws-sdk-bedrockruntime",
  "aws-sdk-eventbridge",
@@ -88,6 +89,21 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "atlas-shared"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-bedrockruntime",
+ "aws-sdk-eventbridge",
+ "chrono",
+ "neo4rs",
+ "serde",
+ "serde_json",
+ "tracing",
  "uuid",
 ]
 

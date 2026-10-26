@@ -131,21 +131,21 @@ CREATE (ksafe:Idea  {name:"King safety", type:"concept", description:"Protecting
 CREATE (tempo:Idea  {name:"Tempo", type:"concept", description:"A unit of time; a move's worth of initiative.", vector: [1, 2, 3]});
 CREATE (pawns:Idea  {name:"Pawn structure", type:"concept", description:"The configuration of pawns that shapes middlegame plans.", vector: [1, 2, 3]});
 
-CREATE (dev)-[:REQUIRES]->(rules);
-CREATE (center)-[:REQUIRES]->(rules);
-CREATE (ksafe)-[:REQUIRES]->(rules);
-CREATE (tempo)-[:REQUIRES]->(dev);
-CREATE (pawns)-[:REQUIRES]->(rules);
+CREATE (dev)-[:REQUIRES_KNOWLEDGE]->(rules);
+CREATE (center)-[:REQUIRES_KNOWLEDGE]->(rules);
+CREATE (ksafe)-[:REQUIRES_KNOWLEDGE]->(rules);
+CREATE (tempo)-[:REQUIRES_KNOWLEDGE]->(dev);
+CREATE (pawns)-[:REQUIRES_KNOWLEDGE]->(rules);
 
 CREATE (ruy:Idea {name:"Ruy Lopez", type:"concept", description:"1.e4 e5 2.Nf3 Nc6 3.Bb5; pressures Black's center via the c6-knight.", vector: [1, 2, 3]});
 CREATE (sic:Idea {name:"Sicilian Defense", type:"concept", description:"1.e4 c5; Black fights for the center asymmetrically.", vector: [1, 2, 3]});
 CREATE (naj:Idea {name:"Najdorf Variation", type:"concept", description:"Sicilian with 5...a6; flexible, sharp, deeply analyzed.", vector: [1, 2, 3]});
 
-CREATE (ruy)-[:REQUIRES]->(dev);
-CREATE (ruy)-[:REQUIRES]->(center);
-CREATE (sic)-[:REQUIRES]->(center);
-CREATE (sic)-[:REQUIRES]->(pawns);
-CREATE (naj)-[:SPECIALIZES]->(sic); // is-a-kind-of; pedagogical REQUIRES is implied
+CREATE (ruy)-[:REQUIRES_KNOWLEDGE]->(dev);
+CREATE (ruy)-[:REQUIRES_KNOWLEDGE]->(center);
+CREATE (sic)-[:REQUIRES_KNOWLEDGE]->(center);
+CREATE (sic)-[:REQUIRES_KNOWLEDGE]->(pawns);
+CREATE (naj)-[:SPECIALIZES]->(sic); // is-a-kind-of; pedagogical REQUIRES_KNOWLEDGE is implied
 
 // Membership: openings belong to their family subtopics
 CREATE (open)-[:INCLUDES]->(ruy);
@@ -155,8 +155,8 @@ CREATE (semi)-[:INCLUDES]->(naj);
 // Norms — the classic opening principles
 CREATE (castle:Idea {name:"Castle early", type:"norm", description:"Get the king to safety before launching operations.", vector: [1, 2, 3]});
 CREATE (noqueen:Idea {name:"Don't develop the queen too early", type:"norm", description:"An early queen becomes a target, losing tempo.", vector: [1, 2, 3]});
-CREATE (castle)-[:REQUIRES]->(ksafe);
-CREATE (noqueen)-[:REQUIRES]->(tempo);
+CREATE (castle)-[:REQUIRES_KNOWLEDGE]->(ksafe);
+CREATE (noqueen)-[:REQUIRES_KNOWLEDGE]->(tempo);
 
 // Claims — one uncontested, one genuinely disputed
 CREATE (kguns:Idea {name:"The King's Gambit is unsound at master level", type:"claim", description:"Thesis that 1.e4 e5 2.f4 is objectively dubious against best play.", vector: [1, 2, 3]});
@@ -170,8 +170,8 @@ FOREACH (n IN [castle, noqueen, kguns, sicbest, kgsound] | CREATE (cot)-[:INCLUD
 You will notice there are a ton of different relationships going on here. Within the Topics sub-graph itself, the following relationships are used:
 | Relationship | From → To | Directed? | Cyclic OK? | Meaning |
 | --- | --- | --- | --- | --- |
-| REQUIRES | Idea → Idea | yes | no — sacred DAG | Pedagogical prerequisite. The only edge the learning-path query reads. |
-| PRECEDES | Idea → Idea | yes | no (clean DAG) | Temporal order (events, historical facts). Kept separate from REQUIRES. |
+| REQUIRES_KNOWLEDGE | Idea → Idea | yes | no — sacred DAG | Pedagogical prerequisite. The only edge the learning-path query reads. |
+| PRECEDES | Idea → Idea | yes | no (clean DAG) | Temporal order (events, historical facts). Kept separate from REQUIRES_KNOWLEDGE. |
 | SPECIALIZES | Idea → Idea | yes | no | Narrower form of a broader Idea (Rawls's justice → Justice). |
 | CONTRADICTS | Idea — Idea | symmetric | n/a | Mutually exclusive Ideas. How you hold falsehoods without the graph taking sides. |
 | ANALOGOUS_TO | Idea — Idea | symmetric | yes | Same structure, different domain (thermodynamic ↔ information entropy). Not a merge. |
@@ -328,7 +328,7 @@ A stub looks the same, with `status: "stub"` on the Skill and only `name` and `r
 #### How skills relate to each other
 There are three different ways two skills can be related, and they are kept apart. Prerequisites are the main web between skills, and how a person gets from what they can do to what they want to do. Specialization is a strict "kind of" link, and same skill is one node:
 
-**Specialization.** A skill that is a kind of another skill, a narrower and more specific form of it, points at it with SPECIALIZATION_OF. The test is strict: everyone who has the narrower skill also has a form of the broader one. Sourdough Baking is a kind of Baking. Underwater Welding is a kind of Welding, and it REQUIRES Diving, a different skill. A skill can be a kind of several skills, and most are a kind of one or none:
+**Specialization.** A skill that is a kind of another skill, a narrower and more specific form of it, points at it with SPECIALIZATION_OF. The test is strict: everyone who has the narrower skill also has a form of the broader one. Sourdough Baking is a kind of Baking. Underwater Welding is a kind of Welding, and it REQUIRES_SKILL Diving, a different skill. A skill can be a kind of several skills, and most are a kind of one or none:
 ```cypher
 (:Skill {name: "Sourdough Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Cooking"})
 (:Skill {name: "Data Visualization"})-[:SPECIALIZATION_OF]->(:Skill {name: "Data Analysis"})
@@ -337,12 +337,17 @@ There are three different ways two skills can be related, and they are kept apar
 
 A skill points only at its most specific broader skills: Sourdough Baking points at Baking, and reaches Cooking through it. Following SPECIALIZATION_OF out from a skill always leads away from it, so specializations have no loops. These links come from the resolver, when the taxonomy import, a user or the prerequisites job names a skill that is a kind of one we have, or that existing skills are kinds of.
 
-**Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps). Prerequisites are written by the prerequisites job once a skill is filled, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away:
+**Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES_SKILL a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps) and a `reason`, one short sentence on why. Prerequisites are written by the prerequisites job once a skill is filled, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away. Like every requirement (see "Requirements on other sub-graphs"), a prerequisite sits on the lowest level it applies to and carries up, and a higher level has its own REQUIRES_SKILL to the same skill only when the level of it needed or the strength changes:
 ```cypher
-(:DreyfusLevel {name: "Cooking Competent"})-[:REQUIRES {strength: 0.8}]->(:DreyfusLevel {name: "Knife Skills Advanced Beginner"})
+MATCH (c:Skill {name: "Cooking"})-[:HAS_LEVEL]->(cn:Novice), (c)-[:HAS_LEVEL]->(cp:Proficient)
+MATCH (k:Skill {name: "Knife Skills"})-[:HAS_LEVEL]->(kn:Novice), (k)-[:HAS_LEVEL]->(kc:Competent)
+// every level of Cooking needs a Novice's Knife Skills
+CREATE (cn)-[:REQUIRES_SKILL {strength: 0.6, reason: "Chops ingredients safely to follow a recipe"}]->(kn)
+// from Proficient it needs to be Competent with a knife
+CREATE (cp)-[:REQUIRES_SKILL {strength: 0.7, reason: "Preps quickly and evenly while juggling several dishes"}]->(kc)
 ```
 
-Prerequisites can never form a cycle: following REQUIRES out from any level of a skill must never lead back to a level of that same skill. The prerequisites job checks this before writing each one.
+Prerequisites can never form a cycle: following REQUIRES_SKILL out from any level of a skill must never lead back to a level of that same skill. The prerequisites job checks this straight after writing each one, and takes it out again if it closed a loop.
 
 **Same skill.** One node, with the other name in its aliases.
 

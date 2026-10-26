@@ -5,16 +5,17 @@ set -eu
 cd "$(dirname "$0")"
 
 # static arm64 binary, built natively in alpine (musl). cargo's target dir lives in a docker volume
-# because building through the macOS bind mount fails intermittently
+# because building through the macOS bind mount fails intermittently. apis/ is mounted, not just this crate, so the
+# build can see ../atlas-shared
 mkdir -p target/lambda
 docker run --rm \
-  -v "$PWD":/app \
+  -v "$PWD/..":/app \
   -v atlas-cargo-registry:/usr/local/cargo/registry \
   -v atlas-lambda-target:/target \
   -e CARGO_PROFILE_RELEASE_STRIP=true \
-  -w /app \
+  -w /app/atlas-jobs \
   rust:alpine \
-  sh -c 'apk add -q musl-dev && cargo build --release --target-dir /target && cp /target/release/atlas-jobs /app/target/lambda/bootstrap'
+  sh -c 'apk add -q musl-dev && cargo build --release --target-dir /target && cp /target/release/atlas-jobs /app/atlas-jobs/target/lambda/bootstrap'
 
 (cd target/lambda && rm -f bootstrap.zip && zip -q bootstrap.zip bootstrap)
 
