@@ -28,9 +28,9 @@ nothing about what the graph is. The module that uses it owns the data and decid
 ### What the board takes
 | Prop | What it is |
 |---|---|
-| `nodes` | `{id, label, look, opened?, from?}`. `look` is `filled` or `hollow` (a dashed outline), `opened` marks a node that has been expanded, and `from` is the node it was brought on from, which it starts beside |
+| `nodes` | `{id, label, look, shape?, opened?, from?}`. `look` is `filled`, `hollow` (a dashed outline) or `pale` (a pale blue fill), `shape` is `blob` or `diamond` for a different kind of thing, `opened` marks a node that has been expanded, and `from` is the node it was brought on from, which it starts beside |
 | `links` | `{from, to, kind, weight?}`. The arrow points at `to`, and `weight` (0 to 1) thickens the line |
-| `kinds` | Each kind of link: its label for the legend, `solid`, `dashed` or `dotted`, whether it has an arrow, its colour, and how long it likes to be |
+| `kinds` | Each kind of link: its label for the legend, `solid`, `dashed` or `dotted`, whether it has an arrow, its colour, and how long it likes to be. The legend turns each kind off, and with it every node whose links are all of kinds that are off, other than the selected node |
 | `layout` | A `BoardLayout`, which holds every node's position and the view. The owner keeps it, so the board comes back as it was left |
 | `selected`, `focus` | The selected node, and a node to glide to. A new `focus` object glides to it again |
 | `onSelect`, `onExpand`, `onClear` | Called on a tap, a double tap (or Shift+Enter) and the Clear button |
@@ -54,10 +54,12 @@ The Skills Explorer shows the split:
 
 - It keeps the board's state (`SkillBoard` in `skill_board.ts`), with the `BoardLayout` inside it, so the board
   survives a trip to a skill's page.
-- It maps skills to `nodes` (filled when the skill's levels are written, hollow for a stub) and its three kinds of
-  link to `kinds`: "A kind of", "Needs" and "Similar".
+- It maps skills to `nodes` (filled when the skill's levels are written, hollow for a stub), and the personality traits
+  they take to pale diamonds. Its four kinds of link go to `kinds`: "A kind of", "Needs", "Similar" and "Takes".
 - Expanding calls `GET /api/skills/{id}/neighbors`, which returns a page of twelve of each kind of link with the total,
-  and the module adds them to `nodes` and `links`. Its inspector beside the board brings in the next page of a kind.
+  and every trait the skill takes, and the module adds them to `nodes` and `links`. Expanding a trait calls
+  `GET /api/personality/traits/{id}/skills` for the skills that take it. Its inspector beside the board brings in the
+  next page of a kind.
 - Its search box goes over the board through `children`.
 
 Another module does the same with its own data, routes, kinds of link and inspector, and gets the same board.

@@ -46,7 +46,7 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
 | `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) |
-| `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total` |
+| `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total`. It also has every personality trait its levels take, as `traits`, strongest first with the strength of its strongest requirement |
 | `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `needs` or `leads_to`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
 
@@ -168,15 +168,20 @@ turn, and the skills hopped through stay as a trail above the page.
 The Explorer also has a Graph view: a board in the style of Neo4j Bloom (`GraphBoard` in
 `src/shared_components/graph_board.tsx`, which knows nothing about skills, so any sub-graph can use it; see
 `ADRs/graph_board.md`). Searching puts a skill on the board.
-Double-clicking a skill expands it, bringing every skill linked to it onto the board, and a force layout spreads them
-out. A skill can be dragged and stays where it's dropped, and the board pans and zooms. The board draws three kinds of
-link, and a legend turns each on and off:
+Double-clicking a skill expands it, bringing every skill linked to it and every personality trait it takes onto the
+board, and a force layout spreads them out. Double-clicking a trait brings on the skills that take it, strongest first,
+read with `GET /api/personality/traits/{id}/skills`. Anything on the board can be dragged and stays where it's dropped,
+and the board pans and zooms. The board draws four kinds of link, and a legend turns each on and off. Turning a kind
+off also hides the skills and traits whose links are all of kinds that are off, other than the selected one, and they
+come back where they were when it's turned on again:
 
 - **A kind of:** a solid line with an arrow to the broader skill.
 - **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES` link.
 - **Similar:** a dotted line.
+- **Takes:** a solid red line with an arrow from a skill to a personality trait, thicker for a stronger `REQUIRES_TRAIT`.
 
-Ready skills are filled in, and stubs have a dashed outline. Selecting a skill shows its description and how many of
+Ready skills are filled in, stubs have a dashed outline, and traits are pale blue diamonds. Selecting a trait shows
+its overview and how many skills take it, and once it's expanded, the next twelve can be brought on. Selecting a skill shows its description and how many of
 each kind of link it has, read with `GET /{id}/neighbors`, which never fills it. Expanding brings on the first page of
 each kind of link, and a kind with more can bring on the next page. "Open skill" goes to the skill's page, where a stub
 gets filled. A skill page has a button that puts its skill on the board, expanded.

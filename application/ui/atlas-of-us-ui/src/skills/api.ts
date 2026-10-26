@@ -88,6 +88,14 @@ export interface Neighbors {
   needs: Group; //skills its levels require
   leads_to: Group; //skills whose levels require its levels
   similar: Group; //the closest skills by meaning, other than its broader and narrower ones
+  traits: TraitLink[]; //every personality trait its levels take, strongest first
+}
+
+//a personality trait a skill's levels take, with how much the strongest of them matters, 0 to 1
+export interface TraitLink {
+  id: string;
+  name: string;
+  strength: number;
 }
 
 //the skills around a skill: the first page of each way it links, and the skill itself without its levels
@@ -96,3 +104,14 @@ export const getNeighbors = (id: string) => request<Neighbors>('GET', `/skills/$
 //the next page of one way a skill links, from `skip`
 export const getNeighborPage = (id: string, group: PagedGroup, skip: number) =>
   request<Group>('GET', `/skills/${encodeURIComponent(id)}/neighbors/${group}?skip=${skip}`);
+
+//a personality trait and a page of the skills whose levels take it, strongest first, with how many take it in all
+export interface TraitSkills {
+  trait: { id: string; name: string; description: string | null; domain: string | null };
+  skills: Neighbor[];
+  total: number;
+}
+
+//the skills that take a trait, from `skip`. The route belongs to the Personality module
+export const getTraitSkills = (id: string, skip = 0) =>
+  request<TraitSkills>('GET', `/personality/traits/${encodeURIComponent(id)}/skills?skip=${skip}`);

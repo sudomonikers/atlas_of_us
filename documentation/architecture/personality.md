@@ -247,7 +247,9 @@ The shape is in "Requirements on other sub-graphs" in `../data_model/skills/skil
 - **Idempotent:** a skill that isn't `ready`, or already has trait requirements, is left as it is, so a repeated event
   costs one read. A failure is logged, and the skill stays usable without them.
 - **Backfill:** replaying `SkillFilled` from the bus archive links every skill filled before this consumer existed.
-- **Shown:** `GET /api/skills/{id}` returns each level's `traits`, and the skill page lists them under the level.
+- **Shown:** `GET /api/skills/{id}` returns each level's `traits`, and the skill page lists them under the level. On
+  the skills graph, expanding a skill brings on its traits, and expanding a trait brings on the skills that take it,
+  from `GET /api/personality/traits/{id}/skills`.
 
 ## API reference
 All under `/api/personality`.
@@ -255,6 +257,7 @@ All under `/api/personality`.
 | Route | What it does |
 |---|---|
 | `GET /traits` | Every facet, with its domain and everyone's average |
+| `GET /traits/{id}/skills?skip=` | A facet, with its overview and domain, and a page of twelve of the skills whose levels take it, strongest first with the strength of the strongest requirement, and the `total` |
 | `GET /model` | The Big Five, its domains and facets, and how they interact, for Explore |
 | `GET /people/{id}/evidence` | Every scored answer and its shifts. Only the signed-in person's own |
 | `PUT /answers` | Saves an answer, and scores its batch when that finishes it |

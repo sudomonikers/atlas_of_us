@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
 import type { GroupName, PagedGroup, SkillRef, SkillStatus } from './api';
 import { SearchField } from './search';
-import { emptyBoard, expandSkill, moreOf, place, readThen, type BoardSkill, type SkillBoard } from './skill_board';
+import { emptyBoard, expandSkill, expandTrait, moreOf, moreTakers, place, readThen, readTraitThen, type BoardSkill, type BoardTrait, type SkillBoard } from './skill_board';
 import { useSkillSearch, type SearchState } from './use_skill_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import type { BoardNode } from '../shared_components/board_layout';
@@ -21,12 +21,13 @@ const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 //how many search results show under the board's search box
 const RESULTS = 6;
 
-//the three ways skills link, as the board draws them. "A kind of" points to the broader skill, and "Needs" to the
-//skill that's needed
+//the three ways skills link, and how a skill links to the personality traits it takes, as the board draws them. "A
+//kind of" points to the broader skill, "Needs" to the skill that's needed, and "Takes" to the trait
 const KINDS: LinkKind[] = [
   { id: 'kind_of', label: 'A kind of', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
   { id: 'needs', label: 'Needs', line: 'dashed', arrow: true, colour: cinnamon, length: 130 },
   { id: 'similar', label: 'Similar', line: 'dotted', arrow: false, colour: blue, length: 150 },
+  { id: 'takes', label: 'Takes', line: 'solid', arrow: true, colour: brownRed, length: 120 },
 ];
 
 //the ways a skill links, as the inspector counts them
@@ -56,19 +57,28 @@ interface SkillGraphProps {
 export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
   const [search, setSearch] = useState<SearchState>({ query: '' });
   const searchError = useSkillSearch(search, setSearch);
-  const [busy, setBusy] = useState<string>(); //the skill being expanded, or `<id>:<group>` while more of a group is read
+  const [busy, setBusy] = useState<string>(); //the skill or trait being expanded, or `<id>:<group>` while more of a group is read
   const [error, setError] = useState<string>();
 
   const nodes = useMemo<BoardNode[]>(
-    () =>
-      Object.values(board.skills).map(({ skill, from, expanded }) => ({
+    () => [
+      ...Object.values(board.skills).map(({ skill, from, expanded }): BoardNode => ({
         id: skill.id,
         label: skill.name,
         look: skill.status === 'ready' ? 'filled' : 'hollow',
         opened: expanded,
         from,
       })),
-    [board.skills],
+      ...Object.values(board.traits).map(({ trait, from, expanded }): BoardNode => ({
+        id: trait.id,
+        label: trait.name,
+        look: 'pale',
+        shape: 'diamond',
+        opened: expanded,
+        from,
+      })),
+    ],
+    [board.skills, board.traits],
   );
 
   const failed = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
@@ -76,20 +86,20 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
   const select = (id?: string) => {
     setError(undefined);
     onBoard((b) => ({ ...b, selected: id }));
-    if (id) readThen(board, id, onBoard).catch(failed);
+    if (id) (board.traits[id] ? readTraitThen : readThen)(board, id, onBoard).catch(failed);
   };
 
   const grow = (id: string) => {
     setError(undefined);
     setBusy(id);
     onBoard((b) => ({ ...b, selected: id }));
-    expandSkill(board, id, onBoard).catch(failed).finally(() => setBusy(undefined));
+    (board.traits[id] ? expandTrait : expandSkill)(board, id, onBoard).catch(failed).finally(() => setBusy(undefined));
   };
 
-  const more = (id: string, group: PagedGroup) => {
+  const more = (id: string, group: PagedGroup | 'takers') => {
     setError(undefined);
     setBusy(`${id}:${group}`);
-    moreOf(board, id, group, onBoard).catch(failed).finally(() => setBusy(undefined));
+    (group === 'takers' ? moreTakers(board, id, onBoard) : moreOf(board, id, group, onBoard)).catch(failed).finally(() => setBusy(undefined));
   };
 
   const pick = (skill: SkillRef) => {
@@ -101,13 +111,16 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
   const hide = (id: string) =>
     onBoard((b) => {
       const skills = { ...b.skills };
+      const traits = { ...b.traits };
       delete skills[id];
+      delete traits[id];
       const links = b.links.filter((l) => l.from !== id && l.to !== id);
-      return { ...b, skills, links, selected: b.selected === id ? undefined : b.selected };
+      return { ...b, skills, traits, links, selected: b.selected === id ? undefined : b.selected };
     });
 
   const results = search.query.trim() ? search.results?.slice(0, RESULTS) : undefined;
   const chosen = board.selected ? board.skills[board.selected] : undefined;
+  const chosenTrait = board.selected ? board.traits[board.selected] : undefined;
 
   return (
     <div style={styles.wrap}>
@@ -120,7 +133,7 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
           layout={board.layout}
           selected={board.selected}
           focus={board.focus}
-          describe={(node) => `${node.label}, ${STATUS[board.skills[node.id]?.skill.status ?? 'stub'].toLowerCase()}`}
+          describe={(node) => (board.traits[node.id] ? `${node.label}, a personality trait` : `${node.label}, ${STATUS[board.skills[node.id]?.skill.status ?? 'stub'].toLowerCase()}`)}
           onSelect={select}
           onExpand={grow}
           onClear={() => onBoard(emptyBoard())}
@@ -154,12 +167,15 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
       <aside style={styles.inspector} className="comic-panel" aria-live="polite">
         {chosen ? (
           <Inspector on={chosen} busy={busy} onExpand={grow} onMore={more} onOpen={onOpen} onHide={hide} />
+        ) : chosenTrait ? (
+          <TraitInspector on={chosenTrait} busy={busy} onExpand={grow} onMore={(id) => more(id, 'takers')} onHide={hide} />
         ) : (
           <>
             <h3 style={styles.heading}>How the board works</h3>
             <ul style={styles.tips}>
               <li>Click a skill to read about it here.</li>
-              <li>Double-click one to bring in every skill it links to.</li>
+              <li>Double-click one to bring in every skill it links to, and the personality traits it takes.</li>
+              <li>Double-click a trait, the pale diamonds, to bring in the skills that take it.</li>
               <li>Drag a skill to move it, and it stays where you put it.</li>
               <li>Drag the background to look around, and scroll or pinch to zoom.</li>
               <li>The buttons along the bottom turn each kind of link on and off.</li>
@@ -210,6 +226,10 @@ function Inspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
               </div>
             );
           })}
+          <div style={styles.count}>
+            <dt>Takes</dt>
+            <dd style={styles.countNumber}>{neighbors.traits.length}</dd>
+          </div>
         </dl>
       )}
       <div style={styles.actions}>
@@ -220,6 +240,53 @@ function Inspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
           Open skill
         </button>
         <button className="comic-lift" style={styles.button} onClick={() => onHide(skill.id)}>
+          Hide
+        </button>
+      </div>
+    </>
+  );
+}
+
+//the selected personality trait: what it is, how many skills take it, and what can be done with it. Once it's expanded,
+//it can bring the next page of skills that take it onto the board
+function TraitInspector({ on, busy, onExpand, onMore, onHide }: {
+  on: BoardTrait;
+  busy?: string;
+  onExpand: (id: string) => void;
+  onMore: (id: string) => void;
+  onHide: (id: string) => void;
+}) {
+  const { trait, read } = on;
+  const expanding = busy === trait.id;
+  const adding = busy === `${trait.id}:takers`;
+  const domain = read?.trait.domain;
+  return (
+    <>
+      <h3 style={styles.name}>{trait.name}</h3>
+      <span className="comic-chip" style={styles.status}>
+        {domain ? `Personality trait, ${domain[0].toUpperCase()}${domain.slice(1)}` : 'Personality trait'}
+      </span>
+      {read ? read.trait.description && <p style={styles.description}>{read.trait.description}</p> : <p style={styles.description}>Reading it...</p>}
+      {read && (
+        <dl style={styles.counts}>
+          <div style={styles.count}>
+            <dt>Skills that take it</dt>
+            <dd style={styles.countNumber}>
+              {on.expanded && read.total > read.skills.length && (
+                <button className="comic-lift" style={styles.more} disabled={adding} onClick={() => onMore(trait.id)}>
+                  {adding ? 'Adding...' : 'Add more'}
+                </button>
+              )}
+              {read.total}
+            </dd>
+          </div>
+        </dl>
+      )}
+      <div style={styles.actions}>
+        <button className="comic-lift" style={styles.primary} disabled={on.expanded || expanding} onClick={() => onExpand(trait.id)}>
+          {expanding ? 'Expanding...' : on.expanded ? 'Expanded' : 'Expand'}
+        </button>
+        <button className="comic-lift" style={styles.button} onClick={() => onHide(trait.id)}>
           Hide
         </button>
       </div>

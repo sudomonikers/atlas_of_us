@@ -7,6 +7,7 @@ const cinnamon = 'var(--cinnamon-wood)';
 const brownRed = 'var(--brown-red)';
 const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
+const paleBlue = 'var(--pale-blue)';
 const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
@@ -24,6 +25,10 @@ const LABEL_ZOOM = 0.6;
 
 //a hand-drawn blob of radius R, centred on 0,0
 const BLOB = 'M0 -18 C11 -18.5 18.5 -10 18 0 C17.5 11 10 18.5 0 18 C-11 17.5 -18.5 10 -18 0 C-17.5 -10.5 -10 -18 0 -18 Z';
+//a hand-drawn diamond of about the same size
+const DIAMOND = 'M0 -21 C6 -14.5 14 -6.5 21 0 C14.5 6 6.5 14 0 21 C-6 14.5 -14 6.5 -21 0 C-14.5 -6 -6.5 -14 0 -21 Z';
+const SHAPES = { blob: BLOB, diamond: DIAMOND };
+const FILLS = { filled: cinnamon, hollow: ivory, pale: paleBlue };
 
 export interface BoardLink {
   from: string;
@@ -278,6 +283,11 @@ export function GraphBoard({ label, nodes, links, kinds, layout, selected, focus
 
   const view = layout.current();
   const shown = links.filter((l) => !hidden.includes(l.kind));
+  //a node goes with the kinds of link turned off when every link it has is one of them. It keeps its place in the
+  //layout, so it comes back where it was. A node with no links at all, and the selected node, always show
+  const linked = new Set(links.flatMap((l) => [l.from, l.to]));
+  const showing = new Set(shown.flatMap((l) => [l.from, l.to]));
+  const visible = nodes.filter((n) => n.id === selected || !linked.has(n.id) || showing.has(n.id));
   const kindOf = new Map(kinds.map((k) => [k.id, k]));
   //zoomed out, only the selected node and the ones linked to it keep their labels
   const labelled = new Set<string>();
@@ -326,7 +336,7 @@ export function GraphBoard({ label, nodes, links, kinds, layout, selected, focus
                 />
               );
             })}
-            {nodes.map((node) => {
+            {visible.map((node) => {
               const point = layout.at(node.id);
               if (!point) return null;
               return (
@@ -406,13 +416,14 @@ const Line = memo(function Line({ d, kind, width, dim, marker }: { d: string; ki
 //moved or changed is
 const Node = memo(function Node({ node, x, y, selected, labelled, name }: { node: BoardNode; x: number; y: number; selected: boolean; labelled: boolean; name: string }) {
   const label = node.label.length > LABEL_MAX ? `${node.label.slice(0, LABEL_MAX - 2).trimEnd()}...` : node.label;
+  const shape = SHAPES[node.shape ?? 'blob'];
   return (
     <g data-node={node.id} transform={`translate(${x} ${y})`} style={styles.node} tabIndex={0} role="button" aria-label={name} aria-pressed={selected}>
       <title>{node.label}</title>
-      <path d={BLOB} transform="translate(3 3)" style={{ fill: gunmetal }} />
+      <path d={shape} transform="translate(3 3)" style={{ fill: gunmetal }} />
       <path
-        d={BLOB}
-        style={{ fill: node.look === 'filled' ? cinnamon : ivory, stroke: selected ? brownRed : gunmetal }}
+        d={shape}
+        style={{ fill: FILLS[node.look], stroke: selected ? brownRed : gunmetal }}
         strokeWidth={selected ? 5 : 3}
         strokeDasharray={node.look === 'hollow' && !selected ? '5 4' : undefined}
       />

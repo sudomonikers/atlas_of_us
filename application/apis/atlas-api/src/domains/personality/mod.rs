@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use aws_sdk_sqs::error::DisplayErrorContext;
-use axum::{Extension, Json, Router, extract::{Path, State}, http::StatusCode, routing::{get, post, put}};
+use axum::{Extension, Json, Router, extract::{Path, Query, State}, http::StatusCode, routing::{get, post, put}};
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -12,6 +12,7 @@ use crate::{auth::AuthUser, state::AppState};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
+        .route("/traits/{id}/skills", get(list_trait_skills))
         .route("/model", get(get_model))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/answers", put(answer_question).delete(clear_answers))
@@ -49,6 +50,64 @@ pub async fn list_all_personality_traits(State(state): State<AppState>) -> Resul
         traits.push(row.to::<PersonalityTrait>().map_err(internal)?);
     }
     Ok(Json(traits))
+}
+
+//a skill whose levels take a trait, with how much the strongest of them matters, 0 to 1
+#[derive(Serialize, Deserialize)]
+pub struct TraitSkill {
+    id: String,
+    name: String,
+    status: String,
+    strength: f64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TraitCentre {
+    id: String,
+    name: String,
+    description: Option<String>, //its overview, or its one-line description where it has none
+    domain: Option<String>, //the PersonalityDomain's key, e.g. 'openness'
+}
+
+//a trait and a page of the skills that take it, strongest first, with how many take it in all
+#[derive(Serialize)]
+pub struct TraitSkills {
+    #[serde(rename = "trait")]
+    r#trait: TraitCentre,
+    skills: Vec<TraitSkill>,
+    total: i64,
+}
+
+#[derive(Deserialize)]
+pub struct SkillsPage {
+    #[serde(default)]
+    skip: i64,
+}
+
+//how many skills come at a time, the same as a page of a skill's neighbors
+const SKILLS_PAGE: i64 = 12;
+
+//the skills whose levels take a trait, a page at a time from `skip`, for exploring from the trait on the skills graph
+pub async fn list_trait_skills(State(state): State<AppState>, Path(id): Path<String>, Query(page): Query<SkillsPage>) -> Result<Json<TraitSkills>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (t:PersonalityTrait {id: $id})
+        RETURN {id: t.id, name: t.name, description: coalesce(t.overview, t.description),
+                domain: COLLECT { MATCH (d:PersonalityDomain)-[:HAS_FACET]->(t) RETURN d.key }[0]} AS trait,
+               COLLECT {
+                   MATCH (s:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_TRAIT]->(t)
+                   WITH s, max(r.strength) AS strength ORDER BY strength DESC, s.name
+                   SKIP $skip LIMIT $limit
+                   RETURN {id: s.id, name: s.name, status: s.status, strength: strength}
+               } AS skills,
+               COUNT { MATCH (s:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[:REQUIRES_TRAIT]->(t) WITH DISTINCT s RETURN s } AS total
+    ").param("id", id).param("skip", page.skip.max(0)).param("limit", SKILLS_PAGE)).await.map_err(internal)?;
+    let row = rows.next().await.map_err(internal)?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "There's no such personality trait.".to_string()))?;
+    Ok(Json(TraitSkills {
+        r#trait: row.get("trait").map_err(internal)?,
+        skills: row.get("skills").map_err(internal)?,
+        total: row.get("total").map_err(internal)?,
+    }))
 }
 
 #[derive(Serialize, Deserialize)]
