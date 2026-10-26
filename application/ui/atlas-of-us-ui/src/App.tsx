@@ -11,6 +11,7 @@ const Blog = lazy(() => import('./blog/blog'))
 const Personality = lazy(() => import('./personality/personality'))
 const Profile = lazy(() => import('./profile/profile'))
 const Roadmap = lazy(() => import('./roadmap/roadmap'))
+const Skills = lazy(() => import('./skills/skills'))
 
 function Page({ path }: { path: string }) {
   if (path === '/login') return <Auth mode="login" />
@@ -21,6 +22,7 @@ function Page({ path }: { path: string }) {
   if (path === '/blog') return <Blog />
   if (path === '/admin' || path.startsWith('/admin/')) return <Admin />
   if (path === '/personality') return <Personality />
+  if (path === '/skills') return <Skills />
   return <Home />
 }
 

@@ -15,7 +15,7 @@ const LINKS = [
 const ATLAS = [
   ['Personality', '/personality'],
   ['What you know'],
-  ['What you can do'],
+  ['Skills', '/skills'],
   ['Your body'],
   ['Your people'],
   ['Your stuff'],
