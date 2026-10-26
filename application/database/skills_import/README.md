@@ -37,8 +37,8 @@ cargo run --release -- data
 | `ATLAS_TOKEN` | A login token for the account it asks as: the `x-atlas-token` the ui sends, valid for 24 hours. When it expires mid-run, the run stops, and a rerun with a new token picks up where it left off |
 
 - Only ESCO's "skill/competence" entries are asked for. Its "knowledge" entries belong to the Topics sub-graph.
-- Broader skills are asked for before narrower ones, so the resolver can find the skill a narrower one is a
-  specialization of.
+- Broader skills are asked for before narrower ones, so the resolver can find the skills a narrower one is a kind
+  of.
 - It sends 3 requests a second (`--rate` changes it), under the waf's limit of 1000 per ip every 5 minutes. All 10,831
   skills take about an hour. A rate limited request waits a minute and tries again, and a server error is retried a
   few times.

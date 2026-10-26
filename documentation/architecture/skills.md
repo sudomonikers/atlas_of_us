@@ -43,9 +43,9 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 
 | Route | What it does |
 |---|---|
-| `GET /search?q=` | The closest skills, each with its broader skill |
+| `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
-| `GET /{id}` | A skill with its levels, its broader skill and its specializations |
+| `GET /{id}` | A skill with its levels, its `broader` skills (the ones it's a kind of) and its `narrower` skills (the ones that are kinds of it) |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
 
 ## Where skills come from
@@ -74,7 +74,7 @@ How we import it (`application/database/skills_import/`):
   name it ("use spreadsheets software" becomes "Spreadsheets") and screen it, the resolver decides whether we already
   have it, and the API creates the stub and publishes `SkillCreated`. The import itself only reads the files, so a run
   exercises the API and the events end to end.
-- **Broader skills are asked for first,** so the resolver can place a narrower one under the skill it specializes.
+- **Broader skills are asked for first,** so the resolver finds them when it places a narrower one.
 - **ESCO is only a source.** The graph keeps nothing that ties a skill to ESCO, and an imported skill looks like any
   other.
 - **Imports are re-runnable.** The import records the API's answer for every label, and skips labels it has already
@@ -93,11 +93,15 @@ On top of what `../data_model/skills/skills.md` describes:
 ### How skills relate to each other
 There are three different relationships between skills, and keeping them apart matters:
 
-- **Specialization:** `(Sourdough Baking)-[:SPECIALIZATION_OF]->(Baking)`. A narrower version of a broader skill. Comes
-  from the resolver, when the import or a user names something more specific than what we have.
 - **Prerequisite:** lives on the **levels**, not the skills, matching the data model. `(Cooking Competent)-[:REQUIRES
-  {strength}]->(Knife Skills Advanced Beginner)`. Comes from the prerequisites job.
+  {strength}]->(Knife Skills Advanced Beginner)`. Comes from the prerequisites job. This is the main web between
+  skills: what each one needs and what it leads to.
+- **Specialization:** `(Sourdough Baking)-[:SPECIALIZATION_OF]->(Baking)`. A kind of another skill, only when everyone
+  who has the narrower skill has a form of the broader one. A skill can be a kind of several skills (Data Visualization
+  is a kind of Data Analysis and of Graphic Design), and most are a kind of one or none. Comes from the resolver.
 - **Same skill:** one node, with the other name in its aliases.
+
+How alike two skills are lives in their vectors, and the vector index works it out when it's needed.
 
 ### Statuses
 
@@ -114,20 +118,23 @@ graph instead of in a message waiting to be delivered.
 
 ## The resolver
 The resolver answers one question: given a name (and maybe a description), is it the **same as** an existing skill,
-**more specific than** one, or **new**? It's used by the API's gates and by the prerequisites job, with the same logic in both.
+and if it's **new**, which existing skills is it a kind of, and which are kinds of it? It's used by the API's gates and by
+the prerequisites job, with the same logic in both.
 
 1. **Find candidates:** an exact match on name or alias, ignoring case, is `same` straight away. Otherwise the eight
    nearest skills by vector similarity, scoring at least 0.69 (`MIN_SCORE`), are the candidates, and with none at all
    the name is `new`.
 2. **Judge:** a small, fast model looks at the name, its description and the candidates (with their aliases and broader
-   skills) and gives a short reason, then `same`, `specialization_of`, `broader_than` or `new`, with the candidate it
-   means.
+   skills) and gives a short reason, then the candidate it's the `same` as, if any. Otherwise it lists the candidates
+   it's `broader` than, the ones it's a kind of (only the most specific), and the ones that are `narrower`, kinds of it.
+   Most names are a kind of one candidate or none.
 3. **Act:**
    - `same`: use the existing node.
-   - `specialization_of`: create a stub under that parent.
-   - `broader_than` or `new`: create a stub with no parent.
+   - otherwise: create a stub that is a kind of each `broader` skill, with each `narrower` skill a kind of it. When a
+     narrower skill already pointed straight at one of the stub's broader skills, that link now runs through the stub,
+     so the direct one goes. A `narrower` link that would make a loop is left out.
 
-A stub is created with its five levels in one transaction. A uniqueness constraint on the name means that if two people
+A stub is created with its five levels and its links in one transaction. A uniqueness constraint on the name means that if two people
 ask for the same new skill at the same moment, the second `MERGE` finds the first one's node instead of creating
 another, and only the first publishes `SkillCreated`.
 
@@ -137,8 +144,8 @@ another, and only the first publishes `SkillCreated`.
 The user lands on the skills module, sees a short explanation of how skills and Dreyfus levels work, and searches. The
 search matches names and aliases through a full-text index (each word as a prefix, or with one typo once it's four
 letters long) and does a vector search, and combines the two lists by reciprocal rank fusion, so a skill near the top of
-either ranks high and one in both ranks higher. It shows the ten closest skills along with their broader parents, so
-someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
+either ranks high and one in both ranks higher. It shows the ten closest skills along with the broader skills they're a kind
+of, so someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
 alone.
 
 ### Opening a skill
@@ -161,7 +168,7 @@ one structured call to a fast model, and the fourth is the resolver:
 3. **Screen:** reject gibberish, jokes and slurs. Every real skill passes, however narrow, broad or niche, and whatever
    it's about, including violent and sexual ones.
 4. **Resolve:** run the resolver on the normalized name. If it says `same`, we show the user the skill they meant. If
-   it says `specialization_of` or `new`, we create the stub.
+   it says the skill is new, we create the stub, linked to the skills it's a kind of and the ones that are kinds of it.
 
 If the stub is created, the user goes straight into the opening flow above.
 

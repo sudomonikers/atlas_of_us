@@ -98,12 +98,16 @@ CREATE (cp)-[:NEXT_LEVEL {description: "Through sustained, immersive practice, l
 A stub looks the same, with `status: "stub"` on the Skill and only `name` and `rank` on its levels. It has no NEXT_LEVEL relationships until it's filled.
 
 ## How skills relate to each other
-There are three different ways two skills can be related, and they are kept apart:
+There are three different ways two skills can be related, and they are kept apart. Prerequisites are the main web between skills, and how a person gets from what they can do to what they want to do. Specialization is a strict "kind of" link, and same skill is one node:
 
-**Specialization.** A narrower version of a broader skill points at it with SPECIALIZATION_OF. These come from the resolver, when the taxonomy import or a user asks for something more specific than a skill we already have. A skill has at most one broader skill, so the specializations form a tree, and search can show a skill's parent alongside it:
+**Specialization.** A skill that is a kind of another skill, a narrower and more specific form of it, points at it with SPECIALIZATION_OF. The test is strict: everyone who has the narrower skill also has a form of the broader one. Sourdough Baking is a kind of Baking. Underwater Welding is a kind of Welding, and it REQUIRES Diving, a different skill. A skill can be a kind of several skills, and most are a kind of one or none:
 ```cypher
 (:Skill {name: "Sourdough Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Baking"})-[:SPECIALIZATION_OF]->(:Skill {name: "Cooking"})
+(:Skill {name: "Data Visualization"})-[:SPECIALIZATION_OF]->(:Skill {name: "Data Analysis"})
+(:Skill {name: "Data Visualization"})-[:SPECIALIZATION_OF]->(:Skill {name: "Graphic Design"})
 ```
+
+A skill points only at its most specific broader skills: Sourdough Baking points at Baking, and reaches Cooking through it. Following SPECIALIZATION_OF out from a skill always leads away from it, so specializations have no loops. These links come from the resolver, when the taxonomy import, a user or the prerequisites job names a skill that is a kind of one we have, or that existing skills are kinds of.
 
 **Prerequisite.** Prerequisites live on the **levels**, not on the skills, because a higher level of a skill usually needs more of another one. A level REQUIRES a level of another skill, with a `strength` from 0 to 1 for how essential it is (1 means it can't be done without it, 0.3 means it helps). Prerequisites are written by the prerequisites job once a skill is filled, and a prerequisite we don't have yet is created as a stub so the relationship can point at its level straight away:
 ```cypher

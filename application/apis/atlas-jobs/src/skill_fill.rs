@@ -22,7 +22,7 @@ struct Stub {
     name: String,
     description: Option<String>,
     aliases: Vec<String>,
-    parent: Option<String>, //its broader skill
+    broader: Vec<String>, //the skills it's a kind of
 }
 
 #[derive(Deserialize)]
@@ -42,7 +42,7 @@ struct LlmLevel {
 const FILL_PROMPT: &str = "You write the levels of a skill for a graph of human skills. People claim a level of a skill \
 and attach evidence that they're at it, so each level has to say clearly what someone at it can do.
 
-You get the skill's name, description, the other names it goes by, and its broader skill if it has one. Write all five \
+You get the skill's name, description, the other names it goes by, and the broader skills it's a kind of, if any. Write all five \
 levels of the Dreyfus model for it:
 1. Novice: follows rules and instructions to the letter, with no judgment of their own.
 2. Advanced Beginner: starts to recognise situations from experience, and bends the rules a little.
@@ -93,8 +93,8 @@ pub async fn run(graph: &Graph, detail: Value) {
 async fn fill(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, model: &str, bus: &Bus, skill_id: &str) -> Result<bool, BoxError> {
     let mut rows = graph.execute(query("
         MATCH (s:Skill {id: $id})
-        OPTIONAL MATCH (s)-[:SPECIALIZATION_OF]->(p:Skill)
-        RETURN s.status AS status, s.name AS name, s.description AS description, s.aliases AS aliases, p.name AS parent
+        RETURN s.status AS status, s.name AS name, s.description AS description, s.aliases AS aliases,
+               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN b.name ORDER BY b.name } AS broader
     ").param("id", skill_id)).await?;
     let stub = match rows.next().await? {
         Some(row) => row.to::<Stub>()?,
@@ -148,7 +148,7 @@ async fn generate(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, model
         }],
         "tool_choice": {"type": "tool", "name": "record_levels"},
         "messages": [{"role": "user", "content": json!({
-            "name": stub.name, "description": stub.description, "other_names": stub.aliases, "broader_skill": stub.parent,
+            "name": stub.name, "description": stub.description, "other_names": stub.aliases, "broader_skills": stub.broader,
         }).to_string()}],
     })).await?;
     Ok(serde_json::from_value::<LlmFill>(input)?.levels)

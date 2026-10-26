@@ -11,7 +11,7 @@ The skills module needs text embeddings in two places (see `../skills.md`):
   of names and aliases. The vector half is what finds "Public Speaking" for "talking in front of a crowd", where no
   words match.
 - **The resolver.** A new skill's name and description are embedded to find the eight nearest existing skills, which
-  a fast model then judges as the same skill, a broader one, or neither. A skill missing from those eight can't be
+  a fast model then judges as the same skill, a broader or narrower one, or neither. A skill missing from those eight can't be
   matched, so it becomes a duplicate.
 
 Both run while a user waits, inside the 60 second API request. The graph will start with about 14,000 skills from ESCO

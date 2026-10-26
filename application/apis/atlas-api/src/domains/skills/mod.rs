@@ -51,14 +51,14 @@ pub struct SkillRef {
     name: String,
 }
 
-//a skill as search and the gates show it, with the broader skill it's a specialization of
+//a skill as search and the gates show it, with the broader skills it's a kind of
 #[derive(Serialize, Deserialize)]
 pub struct SkillSummary {
     id: String,
     name: String,
     description: Option<String>,
     status: String, //stub, filling, ready or failed
-    parent: Option<SkillRef>,
+    broader: Vec<SkillRef>,
 }
 
 //fetches skills by id, in the order given
@@ -66,9 +66,8 @@ async fn summaries(state: &AppState, ids: &[String]) -> Result<Vec<SkillSummary>
     let mut rows = state.graph.execute(query("
         UNWIND range(0, size($ids) - 1) AS i
         MATCH (s:Skill {id: $ids[i]})
-        OPTIONAL MATCH (s)-[:SPECIALIZATION_OF]->(p:Skill)
         RETURN s.id AS id, s.name AS name, s.description AS description, s.status AS status,
-               CASE WHEN p IS NULL THEN null ELSE {id: p.id, name: p.name} END AS parent
+               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN {id: b.id, name: b.name} AS b ORDER BY b.name } AS broader
         ORDER BY i
     ").param("ids", ids.to_vec())).await?;
     let mut skills = Vec::new();
@@ -93,7 +92,7 @@ pub struct SearchParams {
     q: String,
 }
 
-//the skills closest to what was typed, by name and alias and by meaning, each with its broader skill
+//the skills closest to what was typed, by name and alias and by meaning, each with its broader skills
 pub async fn search(State(state): State<AppState>, Query(params): Query<SearchParams>) -> Result<Json<Vec<SkillSummary>>, (StatusCode, String)> {
     let q = params.q.trim();
     if q.is_empty() {
@@ -189,10 +188,9 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
             let skill = summaries(&state, &[skill_id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
             return Ok(Json(AskOutcome::Existing { skill }));
         }
-        resolver::Resolution::SpecializationOf { parent_id } => {
-            resolver::create_stub(&state, &screening.name, &screening.description, vector, Some(&parent_id)).await.map_err(internal)?
+        resolver::Resolution::New { broader, narrower } => {
+            resolver::create_stub(&state, &screening.name, &screening.description, vector, &broader, &narrower).await.map_err(internal)?
         }
-        resolver::Resolution::New => resolver::create_stub(&state, &screening.name, &screening.description, vector, None).await.map_err(internal)?,
     };
     tracing::info!(skill_id = id, "created a skill stub");
     let skill = summaries(&state, &[id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
@@ -222,8 +220,8 @@ pub struct Skill {
     description: Option<String>,
     aliases: Vec<String>,
     status: String,
-    parent: Option<SkillRef>,
-    specializations: Vec<SkillRef>,
+    broader: Vec<SkillRef>, //the skills it's a kind of
+    narrower: Vec<SkillRef>, //the skills that are kinds of it
     levels: Vec<Level>, //Novice to Expert. A stub's levels only have a rank and a name
 }
 
@@ -231,7 +229,6 @@ pub struct Skill {
 pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Skill>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         MATCH (s:Skill {id: $id})
-        OPTIONAL MATCH (s)-[:SPECIALIZATION_OF]->(p:Skill)
         CALL (s) {
             MATCH (s)-[:HAS_LEVEL]->(l:DreyfusLevel)
             OPTIONAL MATCH (l)-[n:NEXT_LEVEL]->()
@@ -241,13 +238,10 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
                 example_evidence: l.exampleEvidence, version: l.version, trust: l.trust, next_level: n.description
             }) AS levels
         }
-        CALL (s) {
-            OPTIONAL MATCH (c:Skill)-[:SPECIALIZATION_OF]->(s)
-            WITH c ORDER BY c.name
-            RETURN collect({id: c.id, name: c.name}) AS specializations
-        }
         RETURN s.id AS id, s.name AS name, s.description AS description, s.aliases AS aliases, s.status AS status,
-               CASE WHEN p IS NULL THEN null ELSE {id: p.id, name: p.name} END AS parent, specializations, levels
+               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN {id: b.id, name: b.name} AS b ORDER BY b.name } AS broader,
+               COLLECT { MATCH (n:Skill)-[:SPECIALIZATION_OF]->(s) RETURN {id: n.id, name: n.name} AS n ORDER BY n.name } AS narrower,
+               levels
     ").param("id", id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Skill>().map_err(internal)?))

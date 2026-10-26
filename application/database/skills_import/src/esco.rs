@@ -33,7 +33,7 @@ struct HierarchyRow {
 }
 
 //the labels of the "skill/competence" entries (its "knowledge" entries belong to the Topics sub-graph). Broader skills
-//come before narrower ones, so when a narrower one is asked for, the resolver can find the skill it's a specialization of
+//come before narrower ones, so when a narrower one is asked for, the resolver can find the skills it's a kind of
 pub fn labels(dir: &Path) -> Result<Vec<String>, BoxError> {
     let mut reader = csv::Reader::from_path(dir.join(SKILLS_FILE)).map_err(|e| format!("{SKILLS_FILE}: {e}"))?;
     let mut skills: Vec<(String, String)> = Vec::new();
@@ -63,7 +63,7 @@ pub fn labels(dir: &Path) -> Result<Vec<String>, BoxError> {
     Ok(ordered.into_iter().map(|(_, label)| label).collect())
 }
 
-//the longest chain of broader skills above `id`. The hierarchy is a tree in practice, and `level` stops a loop in it
+//the longest chain of broader skills above `id`, through any of a skill's broader skills. `level` stops a loop in the hierarchy
 fn depth(id: &str, broader: &HashMap<String, Vec<String>>, depths: &mut HashMap<String, usize>, level: usize) -> usize {
     if let Some(&depth) = depths.get(id) {
         return depth;

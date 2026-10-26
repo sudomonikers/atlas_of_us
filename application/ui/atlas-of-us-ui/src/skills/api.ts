@@ -7,13 +7,13 @@ export interface SkillRef {
   name: string;
 }
 
-//a skill as search and the gates show it, with the broader skill it's a specialization of
+//a skill as search and the gates show it, with the broader skills it's a kind of
 export interface SkillSummary {
   id: string;
   name: string;
   description: string | null;
   status: SkillStatus;
-  parent: SkillRef | null;
+  broader: SkillRef[];
 }
 
 //one of a skill's five Dreyfus levels. A stub's levels only have a rank and a name
@@ -34,8 +34,8 @@ export interface Skill {
   description: string | null;
   aliases: string[];
   status: SkillStatus;
-  parent: SkillRef | null;
-  specializations: SkillRef[];
+  broader: SkillRef[]; //the skills it's a kind of
+  narrower: SkillRef[]; //the skills that are kinds of it
   levels: Level[]; //Novice to Expert
 }
 
@@ -46,7 +46,7 @@ export type AskOutcome =
   | { outcome: 'existing'; skill: SkillSummary } //a skill we already have
   | { outcome: 'created'; skill: SkillSummary }; //a new stub, ready to be opened
 
-//the closest skills to what was typed, each with its broader skill
+//the closest skills to what was typed, each with its broader skills
 export const searchSkills = (q: string) => request<SkillSummary[]>('GET', `/skills/search?q=${encodeURIComponent(q)}`);
 
 //runs the gates and the resolver on what the user typed
