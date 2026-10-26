@@ -165,7 +165,8 @@ turn, and the skills hopped through stay as a trail above the page.
 
 ### Exploring the graph
 The Explorer also has a Graph view: a board in the style of Neo4j Bloom (`GraphBoard` in
-`src/shared_components/graph_board.tsx`, which knows nothing about skills). Searching puts a skill on the board.
+`src/shared_components/graph_board.tsx`, which knows nothing about skills, so any sub-graph can use it; see
+`ADRs/graph_board.md`). Searching puts a skill on the board.
 Double-clicking a skill expands it, bringing every skill linked to it onto the board, and a force layout spreads them
 out. A skill can be dragged and stays where it's dropped, and the board pans and zooms. The board draws three kinds of
 link, and a legend turns each on and off:
