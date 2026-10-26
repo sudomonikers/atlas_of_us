@@ -4,7 +4,7 @@ import { Auth } from './auth/auth'
 import Home from './home/home'
 import { usePath } from './router'
 
-//every page but home and auth is its own chunk, so the landing page doesn't download three.js and the scenes
+//every page but home and auth is its own chunk, so the landing page doesn't download the scenes and the other pages
 const About = lazy(() => import('./about/about'))
 const Admin = lazy(() => import('./admin/admin'))
 const Blog = lazy(() => import('./blog/blog'))

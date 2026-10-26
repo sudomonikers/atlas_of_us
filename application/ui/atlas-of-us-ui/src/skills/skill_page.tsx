@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getRelated, getSkill, requestFill, type Level, type Related, type Skill, type SkillRef } from './api';
+import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 
@@ -24,13 +24,14 @@ interface SkillPageProps {
   id: string;
   onLoaded: (skill: SkillRef) => void;
   onOpen: (skill: SkillRef) => void;
+  onShowInGraph: (skill: SkillRef) => void;
 }
 
 //one skill: its five levels, and every skill linked to it to hop to next. A stub is filled the first time it's opened,
 //and the page waits on it. Keyed by the skill's id, so each skill starts fresh
-export function SkillPage({ id, onLoaded, onOpen }: SkillPageProps) {
+export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProps) {
   const [skill, setSkill] = useState<Skill>();
-  const [related, setRelated] = useState<Related>();
+  const [neighbors, setNeighbors] = useState<Neighbors>();
   const [error, setError] = useState<string>();
   const [rank, setRank] = useState(1); //the level being read
 
@@ -39,7 +40,7 @@ export function SkillPage({ id, onLoaded, onOpen }: SkillPageProps) {
     getSkill(id).then(
       async (loaded) => {
         if (!live) return;
-        onLoaded({ id: loaded.id, name: loaded.name });
+        onLoaded({ id: loaded.id, name: loaded.name, status: loaded.status });
         //opening a stub is what fills it
         if (loaded.status === 'stub') {
           const { status } = await requestFill(id);
@@ -49,7 +50,7 @@ export function SkillPage({ id, onLoaded, onOpen }: SkillPageProps) {
       },
       (e) => live && setError(e instanceof Error ? e.message : String(e)),
     ).catch((e) => live && setError(e instanceof Error ? e.message : String(e)));
-    getRelated(id).then((r) => live && setRelated(r), () => {}); //the levels are still worth showing without it
+    getNeighbors(id).then((n) => live && setNeighbors(n), () => {}); //the levels are still worth showing without them
     return () => {
       live = false;
     };
@@ -64,7 +65,7 @@ export function SkillPage({ id, onLoaded, onOpen }: SkillPageProps) {
         getSkill(id).then((loaded) => {
           if (loaded.status === 'filling') return;
           setSkill(loaded);
-          getRelated(id).then(setRelated, () => {});
+          getNeighbors(id).then(setNeighbors, () => {});
         }, () => {}), //a failed check just waits for the next one
       FILL_POLL_MS,
     );
@@ -83,7 +84,12 @@ export function SkillPage({ id, onLoaded, onOpen }: SkillPageProps) {
   return (
     <article style={styles.column}>
       <header style={styles.header} className="comic-panel comic-pop">
-        <h2 style={styles.name}>{skill.name}</h2>
+        <div style={styles.nameRow}>
+          <h2 style={styles.name}>{skill.name}</h2>
+          <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
+            See it in the graph
+          </button>
+        </div>
         {skill.description && <p style={styles.description}>{skill.description}</p>}
         {skill.aliases.length > 0 && <p style={styles.aliases}>Also known as {skill.aliases.join(', ')}</p>}
       </header>
@@ -109,7 +115,7 @@ export function SkillPage({ id, onLoaded, onOpen }: SkillPageProps) {
         </div>
       )}
 
-      <Connections skill={skill} related={related} onOpen={onOpen} />
+      {neighbors && <Connections name={skill.name} neighbors={neighbors} onNeighbors={setNeighbors} onOpen={onOpen} />}
     </article>
   );
 }
@@ -179,36 +185,61 @@ function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRan
   );
 }
 
-//every skill linked to this one, grouped by how. Each opens that skill
-function Connections({ skill, related, onOpen }: { skill: Skill; related?: Related; onOpen: (skill: SkillRef) => void }) {
-  const groups: { title: string; note: string; skills: SkillRef[]; fill: string }[] = [
-    { title: 'A kind of', note: `${skill.name} is a more specific form of these`, skills: skill.broader, fill: paleBlue },
-    { title: 'Kinds of it', note: `More specific forms of ${skill.name}`, skills: skill.narrower, fill: paleBlue },
-    { title: 'Needs', note: `Getting good at ${skill.name} takes these`, skills: related?.needs ?? [], fill: paleCinnamon },
-    { title: 'Leads to', note: `${skill.name} helps you get good at these`, skills: related?.leads_to ?? [], fill: paleCinnamon },
-    { title: 'Similar', note: `Close to ${skill.name} in what they're about`, skills: related?.similar ?? [], fill: paleRed },
-  ].filter((group) => group.skills.length > 0);
-  if (groups.length === 0) return null;
+//the skills linked to this one, grouped by how, a page at a time. Each opens that skill
+function Connections({ name, neighbors, onNeighbors, onOpen }: {
+  name: string;
+  neighbors: Neighbors;
+  onNeighbors: (update: (n?: Neighbors) => Neighbors | undefined) => void;
+  onOpen: (skill: SkillRef) => void;
+}) {
+  const [reading, setReading] = useState<PagedGroup>(); //the group whose next page is being read
+  const groups: { group: GroupName; title: string; note: string; fill: string }[] = [
+    { group: 'broader', title: 'A kind of', note: `${name} is a more specific form of these`, fill: paleBlue },
+    { group: 'narrower', title: 'Kinds of it', note: `More specific forms of ${name}`, fill: paleBlue },
+    { group: 'needs', title: 'Needs', note: `Getting good at ${name} takes these`, fill: paleCinnamon },
+    { group: 'leads_to', title: 'Leads to', note: `${name} helps you get good at these`, fill: paleCinnamon },
+    { group: 'similar', title: 'Similar', note: `Close to ${name} in what they're about`, fill: paleRed },
+  ];
+  const shown = groups.filter(({ group }) => neighbors[group].total > 0);
+  if (shown.length === 0) return null;
+
+  const more = (group: PagedGroup) => {
+    setReading(group);
+    getNeighborPage(neighbors.skill.id, group, neighbors[group].skills.length)
+      .then(
+        (page) => onNeighbors((n) => n && { ...n, [group]: { skills: [...n[group].skills, ...page.skills], total: page.total } }),
+        () => {}, //the button stays, to try again
+      )
+      .finally(() => setReading(undefined));
+  };
 
   return (
     <section style={styles.connections}>
       <h3 style={styles.connectionsHeading}>Where to next</h3>
       <div style={styles.groups}>
-        {groups.map((group) => (
-          <div key={group.title} style={{ ...styles.group, '--panel-fill': group.fill } as CSSProperties} className="comic-panel">
-            <h4 style={styles.groupTitle}>{group.title}</h4>
-            <p style={styles.groupNote}>{group.note}</p>
-            <ul style={styles.chips}>
-              {group.skills.map((linked) => (
-                <li key={linked.id}>
-                  <button className="comic-lift" style={styles.link} onClick={() => onOpen({ id: linked.id, name: linked.name })}>
-                    {linked.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {shown.map(({ group, title, note, fill }) => {
+          const { skills, total } = neighbors[group];
+          return (
+            <div key={group} style={{ ...styles.group, '--panel-fill': fill } as CSSProperties} className="comic-panel">
+              <h4 style={styles.groupTitle}>{title}</h4>
+              <p style={styles.groupNote}>{note}</p>
+              <ul style={styles.chips}>
+                {skills.map((linked) => (
+                  <li key={linked.id}>
+                    <button className="comic-lift" style={styles.link} onClick={() => onOpen(linked)}>
+                      {linked.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {group !== 'similar' && skills.length < total && (
+                <button className="comic-lift" style={styles.moreLinks} disabled={reading === group} onClick={() => more(group)}>
+                  {reading === group ? 'Reading...' : `Show more (${total - skills.length} left)`}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -234,6 +265,24 @@ const styles: Record<string, CSSProperties> = {
     '--panel-fill': paleRed,
     '--tilt': '-0.3deg',
   } as CSSProperties,
+  nameRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px 16px',
+  },
+  graphButton: {
+    padding: '2px 14px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: corners,
+    boxShadow: `3px 3px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 18,
+    letterSpacing: 1,
+  },
   name: {
     margin: 0,
     fontFamily: comic,
@@ -418,6 +467,17 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  moreLinks: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    padding: '1px 12px',
+    background: 'transparent',
+    color: gunmetal,
+    border: `2px dashed ${gunmetal}`,
+    borderRadius: corners,
+    font: 'inherit',
+    fontSize: 15,
   },
   link: {
     padding: '3px 12px',

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { askForSkill, searchSkills, type AskOutcome, type SkillRef, type SkillSummary } from './api';
+import { useRef, useState, type CSSProperties } from 'react';
+import { askForSkill, type AskOutcome, type SkillRef } from './api';
+import { useSkillSearch, type SearchState } from './use_skill_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import { navigate } from '../router';
 
@@ -14,15 +15,6 @@ const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
-//how long typing has to pause before it searches
-const DEBOUNCE_MS = 250;
-
-//the search box, kept by the explorer so it's still there on the way back from a skill
-export interface SearchState {
-  query: string;
-  results?: SkillSummary[]; //for the query, once it has come back
-}
-
 interface SkillSearchProps {
   search: SearchState;
   onSearch: (search: SearchState) => void;
@@ -32,63 +24,14 @@ interface SkillSearchProps {
 //finds skills by name and meaning as the user types, and asks for one we don't have
 export function SkillSearch({ search, onSearch, onOpen }: SkillSearchProps) {
   const { query, results } = search;
-  const [error, setError] = useState<string>();
-  const latest = useRef(query); //the query a response has to match to be shown
-  const input = useRef<HTMLInputElement>(null);
-  const clear = () => {
-    onSearch({ query: '' });
-    input.current?.focus();
-  };
-
-  useEffect(() => {
-    latest.current = query;
-    if (!query.trim() || results) return;
-    const timer = window.setTimeout(
-      () =>
-        searchSkills(query).then(
-          (found) => {
-            if (latest.current !== query) return;
-            onSearch({ query, results: found });
-            setError(undefined);
-          },
-          (e) => latest.current === query && setError(e instanceof Error ? e.message : String(e)),
-        ),
-      DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [query, results, onSearch]);
+  const error = useSkillSearch(search, onSearch);
 
   return (
     <section style={styles.panel} className="comic-panel comic-pop">
       <label style={styles.label} htmlFor="skill-search">
         What can you do?
       </label>
-      <div style={styles.field}>
-        <input
-          ref={input}
-          id="skill-search"
-          style={styles.input}
-          type="text"
-          role="searchbox"
-          enterKeyHint="search"
-          autoComplete="off"
-          placeholder="Baking, public speaking, welding..."
-          value={query}
-          maxLength={200}
-          autoFocus
-          onChange={(e) => onSearch({ query: e.target.value })}
-          onKeyDown={(e) => e.key === 'Escape' && clear()}
-        />
-        {query && (
-          <button className="comic-lift" style={styles.clear} aria-label="Clear the search" onClick={clear}>
-            {/* two hand-drawn strokes, slightly uneven */}
-            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden>
-              <path d="M4 4.5 C8 8 12 12.5 16 15.5" fill="none" stroke={ivory} strokeWidth="3.2" strokeLinecap="round" />
-              <path d="M15.5 4 C12 7.5 8.5 11.5 4.5 16" fill="none" stroke={ivory} strokeWidth="3.2" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
-      </div>
+      <SearchField id="skill-search" query={query} onQuery={(q) => onSearch({ query: q })} autoFocus />
 
       {error && <AtlasError message={error} />}
 
@@ -116,6 +59,43 @@ export function SkillSearch({ search, onSearch, onOpen }: SkillSearchProps) {
         </>
       )}
     </section>
+  );
+}
+
+//a search input with a hand-drawn button inside its right edge that clears it, as Escape does
+export function SearchField({ id, query, onQuery, autoFocus, compact }: { id: string; query: string; onQuery: (query: string) => void; autoFocus?: boolean; compact?: boolean }) {
+  const input = useRef<HTMLInputElement>(null);
+  const clear = () => {
+    onQuery('');
+    input.current?.focus();
+  };
+  return (
+    <div style={styles.field}>
+      <input
+        ref={input}
+        id={id}
+        style={compact ? { ...styles.input, ...styles.inputCompact } : styles.input}
+        type="text"
+        role="searchbox"
+        enterKeyHint="search"
+        autoComplete="off"
+        placeholder="Baking, public speaking, welding..."
+        value={query}
+        maxLength={200}
+        autoFocus={autoFocus}
+        onChange={(e) => onQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Escape' && clear()}
+      />
+      {query && (
+        <button className="comic-lift" style={styles.clear} aria-label="Clear the search" onClick={clear}>
+          {/* two hand-drawn strokes, slightly uneven */}
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden>
+            <path d="M4 4.5 C8 8 12 12.5 16 15.5" fill="none" style={{ stroke: ivory }} strokeWidth="3.2" strokeLinecap="round" />
+            <path d="M15.5 4 C12 7.5 8.5 11.5 4.5 16" fill="none" style={{ stroke: ivory }} strokeWidth="3.2" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -218,6 +198,11 @@ const styles: Record<string, CSSProperties> = {
     border: `3px solid ${gunmetal}`,
     borderRadius: corners,
     outlineColor: brownRed,
+  },
+  inputCompact: {
+    padding: '6px 50px 6px 12px',
+    fontSize: 18,
+    boxShadow: `3px 3px 0 ${gunmetal}`,
   },
   clear: {
     position: 'absolute',

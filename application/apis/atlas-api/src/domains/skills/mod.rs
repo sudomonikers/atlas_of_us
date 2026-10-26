@@ -24,7 +24,8 @@ pub fn router() -> Router<AppState> {
         .route("/", get(health_check).post(ask_for_skill))
         .route("/search", get(search))
         .route("/{id}", get(get_skill))
-        .route("/{id}/related", get(get_related))
+        .route("/{id}/neighbors", get(get_neighbors))
+        .route("/{id}/neighbors/{group}", get(get_neighbor_page))
         .route("/{id}/fill", post(request_fill))
 }
 
@@ -50,6 +51,7 @@ fn not_found() -> (StatusCode, String) {
 pub struct SkillRef {
     id: String,
     name: String,
+    status: String,
 }
 
 //a skill as search and the gates show it, with the broader skills it's a kind of
@@ -68,7 +70,7 @@ async fn summaries(state: &AppState, ids: &[String]) -> Result<Vec<SkillSummary>
         UNWIND range(0, size($ids) - 1) AS i
         MATCH (s:Skill {id: $ids[i]})
         RETURN s.id AS id, s.name AS name, s.description AS description, s.status AS status,
-               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN {id: b.id, name: b.name} AS b ORDER BY b.name } AS broader
+               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN {id: b.id, name: b.name, status: b.status} AS b ORDER BY b.name } AS broader
         ORDER BY i
     ").param("ids", ids.to_vec())).await?;
     let mut skills = Vec::new();
@@ -221,8 +223,6 @@ pub struct Skill {
     description: Option<String>,
     aliases: Vec<String>,
     status: String,
-    broader: Vec<SkillRef>, //the skills it's a kind of
-    narrower: Vec<SkillRef>, //the skills that are kinds of it
     levels: Vec<Level>, //Novice to Expert. A stub's levels only have a rank and a name
 }
 
@@ -239,53 +239,88 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
                 example_evidence: l.exampleEvidence, version: l.version, trust: l.trust, next_level: n.description
             }) AS levels
         }
-        RETURN s.id AS id, s.name AS name, s.description AS description, s.aliases AS aliases, s.status AS status,
-               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN {id: b.id, name: b.name} AS b ORDER BY b.name } AS broader,
-               COLLECT { MATCH (n:Skill)-[:SPECIALIZATION_OF]->(s) RETURN {id: n.id, name: n.name} AS n ORDER BY n.name } AS narrower,
-               levels
+        RETURN s.id AS id, s.name AS name, s.description AS description, s.aliases AS aliases, s.status AS status, levels
     ").param("id", id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Skill>().map_err(internal)?))
 }
 
-//a skill linked by prerequisites, with how essential the strongest link between their levels is, 0 to 1
+//a skill linked to another. A prerequisite carries how essential the strongest link between their levels is, 0 to 1
 #[derive(Serialize, Deserialize)]
-pub struct Prerequisite {
+pub struct Neighbor {
     id: String,
     name: String,
-    strength: f64,
+    status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    strength: Option<f64>,
+}
+
+//a page of the skills linked to a skill one way, and how many are linked that way in all
+#[derive(Serialize, Deserialize)]
+pub struct Group {
+    skills: Vec<Neighbor>,
+    total: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Centre {
+    id: String,
+    name: String,
+    description: Option<String>,
+    status: String,
 }
 
 #[derive(Serialize)]
-pub struct Related {
-    needs: Vec<Prerequisite>, //skills this one's levels require
-    leads_to: Vec<Prerequisite>, //skills whose levels require this one's
-    similar: Vec<SkillRef>, //the closest skills by meaning, other than its broader and narrower ones
+pub struct Neighbors {
+    skill: Centre,
+    broader: Group, //the skills it's a kind of
+    narrower: Group, //the skills that are kinds of it
+    needs: Group, //skills its levels require
+    leads_to: Group, //skills whose levels require its levels
+    similar: Group, //the closest skills by meaning, other than its broader and narrower ones
 }
 
-//how many similar skills a skill shows
+//how many of each kind of link come at a time, and how many similar skills a skill has
+const NEIGHBOR_PAGE: i64 = 12;
 const SIMILAR: i64 = 8;
 
-//the skills around a skill, for hopping from one to the next: what it needs, what it leads to, and what it's like
-pub async fn get_related(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Related>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query("
-        MATCH (s:Skill {id: $id})
-        RETURN
-            COLLECT {
-                MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)
-                WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name
-                RETURN {id: o.id, name: o.name, strength: strength}
-            } AS needs,
-            COLLECT {
-                MATCH (o:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)
-                WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name
-                RETURN {id: o.id, name: o.name, strength: strength}
-            } AS leads_to,
-            s.vector AS vector
-    ").param("id", id.as_str())).await.map_err(internal)?;
+//the kinds of link that are paged through: the pattern from the skill `s` to a linked skill `o`, and the order they
+//come in. Prerequisites come strongest first, with the strength of their strongest link
+const GROUPS: [(&str, &str, &str); 4] = [
+    ("broader", "MATCH (s)-[:SPECIALIZATION_OF]->(o:Skill)", "WITH o, null AS strength ORDER BY o.name"),
+    ("narrower", "MATCH (o:Skill)-[:SPECIALIZATION_OF]->(s)", "WITH o, null AS strength ORDER BY o.name"),
+    (
+        "needs",
+        "MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)",
+        "WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name",
+    ),
+    (
+        "leads_to",
+        "MATCH (o:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)",
+        "WITH o, coalesce(max(r.strength), 0.0) AS strength ORDER BY strength DESC, o.name",
+    ),
+];
+
+//a page of one kind of link as a map expression, from $skip, with the total
+fn group_expression(pattern: &str, order: &str) -> String {
+    format!(
+        "{{skills: COLLECT {{ {pattern} {order} SKIP $skip LIMIT $limit RETURN {{id: o.id, name: o.name, status: o.status, strength: strength}} }},
+          total: COUNT {{ {pattern} WITH DISTINCT o RETURN o }}}}"
+    )
+}
+
+//the skills around a skill, for exploring from it: a page of each kind of link with how many there are in all, and
+//the skill itself without its levels
+pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Neighbors>, (StatusCode, String)> {
+    let groups: Vec<String> = GROUPS.iter().map(|(name, pattern, order)| format!("{} AS {name}", group_expression(pattern, order))).collect();
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (s:Skill {{id: $id}})
+        RETURN {{id: s.id, name: s.name, description: s.description, status: s.status}} AS skill, {}, s.vector AS vector
+    ", groups.join(", "))).param("id", id.as_str()).param("skip", 0).param("limit", NEIGHBOR_PAGE)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
-    let needs: Vec<Prerequisite> = row.get("needs").map_err(internal)?;
-    let leads_to: Vec<Prerequisite> = row.get("leads_to").map_err(internal)?;
+    let skill: Centre = row.get("skill").map_err(internal)?;
+    let group = |name: &str| row.get::<Group>(name).map_err(internal);
+    let (broader, narrower, needs, leads_to) = (group("broader")?, group("narrower")?, group("needs")?, group("leads_to")?);
     let vector: Option<Vec<f64>> = row.get("vector").map_err(internal)?;
     drop(rows);
 
@@ -296,15 +331,34 @@ pub async fn get_related(State(state): State<AppState>, Path(id): Path<String>) 
             MATCH (s:Skill {id: $id})
             CALL db.index.vector.queryNodes('skill_vector', $k, $vector) YIELD node, score
             WHERE node <> s AND score >= $min_score AND NOT (node)-[:SPECIALIZATION_OF]-(s)
-            RETURN node.id AS id, node.name AS name
+            RETURN node.id AS id, node.name AS name, node.status AS status
             ORDER BY score DESC
         ").param("id", id.as_str()).param("k", SIMILAR + 1).param("vector", vector).param("min_score", resolver::MIN_SCORE))
             .await.map_err(internal)?;
         while let Some(row) = rows.next().await.map_err(internal)? {
-            similar.push(row.to::<SkillRef>().map_err(internal)?);
+            similar.push(row.to::<Neighbor>().map_err(internal)?);
         }
     }
-    Ok(Json(Related { needs, leads_to, similar }))
+    let similar = Group { total: similar.len() as i64, skills: similar };
+    Ok(Json(Neighbors { skill, broader, narrower, needs, leads_to, similar }))
+}
+
+#[derive(Deserialize)]
+pub struct PageParams {
+    skip: i64,
+}
+
+//the next page of one kind of link, from `skip`
+pub async fn get_neighbor_page(State(state): State<AppState>, Path((id, group)): Path<(String, String)>, Query(params): Query<PageParams>) -> Result<Json<Group>, (StatusCode, String)> {
+    let (_, pattern, order) = GROUPS.iter().find(|(name, _, _)| *name == group)
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "Skills aren't linked that way.".to_string()))?;
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (s:Skill {{id: $id}})
+        RETURN {} AS page
+    ", group_expression(pattern, order))).param("id", id.as_str()).param("skip", params.skip.max(0)).param("limit", NEIGHBOR_PAGE))
+        .await.map_err(internal)?;
+    let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
+    Ok(Json(row.get::<Group>("page").map_err(internal)?))
 }
 
 #[derive(Serialize)]

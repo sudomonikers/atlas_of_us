@@ -13,15 +13,14 @@
     "deploy:site": "aws s3 sync dist s3://atlas-of-us-site --exclude 'assets/*' --delete --cache-control no-cache"
   },
   "dependencies": {
-    "@react-three/fiber": "^9.8.1",
-    "@types/three": "^0.186.0",
+    "d3-force": "^3.0.0",
     "flag-icons": "^7.5.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "three": "^0.186.1"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/d3-force": "^3.0.10",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

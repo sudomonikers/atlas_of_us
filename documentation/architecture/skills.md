@@ -45,9 +45,12 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 |---|---|
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
-| `GET /{id}` | A skill with its levels, its `broader` skills (the ones it's a kind of) and its `narrower` skills (the ones that are kinds of it) |
-| `GET /{id}/related` | The skills around a skill: what its levels `needs` and what it `leads_to` through `REQUIRES` (each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones |
+| `GET /{id}` | A skill with its levels |
+| `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total` |
+| `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `needs` or `leads_to`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
+
+Every linked skill a route returns comes with its `id`, `name` and `status`.
 
 ## Where skills come from
 A Skill node is created in exactly three ways, and every one of them goes through the resolver so it can't create a
@@ -150,15 +153,31 @@ of, so someone searching "pastry lamination" can see "Baking" too. When the sear
 alone.
 
 ### Opening a skill
-A skill opens at `/skills/<id>`, with its five levels and, under them, every skill linked to it: the skills it's a kind
-of, the kinds of it, what it needs, what it leads to, and similar skills. Each one opens in turn, and the skills hopped
-through stay as a trail above the page.
+A skill opens at `/skills/<id>`, with its five levels and, under them, the skills linked to it: the skills it's a kind
+of, the kinds of it, what it needs, what it leads to, and similar skills, twelve of each at a time. Each one opens in
+turn, and the skills hopped through stay as a trail above the page.
 
 - **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
   review the content.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
   (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
   it's safe to call on every open. The UI polls `GET /{id}` until it's `ready`.
+
+### Exploring the graph
+The Explorer also has a Graph view: a board in the style of Neo4j Bloom (`GraphBoard` in
+`src/shared_components/graph_board.tsx`, which knows nothing about skills). Searching puts a skill on the board.
+Double-clicking a skill expands it, bringing every skill linked to it onto the board, and a force layout spreads them
+out. A skill can be dragged and stays where it's dropped, and the board pans and zooms. The board draws three kinds of
+link, and a legend turns each on and off:
+
+- **A kind of:** a solid line with an arrow to the broader skill.
+- **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES` link.
+- **Similar:** a dotted line.
+
+Ready skills are filled in, and stubs have a dashed outline. Selecting a skill shows its description and how many of
+each kind of link it has, read with `GET /{id}/neighbors`, which never fills it. Expanding brings on the first page of
+each kind of link, and a kind with more can bring on the next page. "Open skill" goes to the skill's page, where a stub
+gets filled. A skill page has a button that puts its skill on the board, expanded.
 
 ### Asking for a skill we don't have
 If nothing matches, the user can ask for it. The API runs **the gates** before anything is written. The first three are

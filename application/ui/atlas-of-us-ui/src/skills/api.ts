@@ -5,6 +5,7 @@ export type SkillStatus = 'stub' | 'filling' | 'ready' | 'failed';
 export interface SkillRef {
   id: string;
   name: string;
+  status: SkillStatus;
 }
 
 //a skill as search and the gates show it, with the broader skills it's a kind of
@@ -34,8 +35,6 @@ export interface Skill {
   description: string | null;
   aliases: string[];
   status: SkillStatus;
-  broader: SkillRef[]; //the skills it's a kind of
-  narrower: SkillRef[]; //the skills that are kinds of it
   levels: Level[]; //Novice to Expert
 }
 
@@ -58,16 +57,33 @@ export const getSkill = (id: string) => request<Skill>('GET', `/skills/${encodeU
 //poll getSkill until it's ready
 export const requestFill = (id: string) => request<{ status: SkillStatus }>('POST', `/skills/${encodeURIComponent(id)}/fill`);
 
-//a skill linked by prerequisites, with how essential the strongest link between their levels is, 0 to 1
-export interface Prerequisite extends SkillRef {
-  strength: number;
+//a skill linked to another. A prerequisite carries how essential the strongest link between their levels is, 0 to 1
+export interface Neighbor extends SkillRef {
+  strength?: number;
 }
 
-export interface Related {
-  needs: Prerequisite[]; //skills this one's levels require
-  leads_to: Prerequisite[]; //skills whose levels require this one's
-  similar: SkillRef[]; //the closest skills by meaning, other than its broader and narrower ones
+//a page of the skills linked to a skill one way, and how many are linked that way in all
+export interface Group {
+  skills: Neighbor[];
+  total: number;
 }
 
-//the skills around a skill, for hopping from one to the next
-export const getRelated = (id: string) => request<Related>('GET', `/skills/${encodeURIComponent(id)}/related`);
+//the ways skills link, and the ones that come a page at a time
+export type GroupName = 'broader' | 'narrower' | 'needs' | 'leads_to' | 'similar';
+export type PagedGroup = Exclude<GroupName, 'similar'>;
+
+export interface Neighbors {
+  skill: SkillRef & { description: string | null };
+  broader: Group; //the skills it's a kind of
+  narrower: Group; //the skills that are kinds of it
+  needs: Group; //skills its levels require
+  leads_to: Group; //skills whose levels require its levels
+  similar: Group; //the closest skills by meaning, other than its broader and narrower ones
+}
+
+//the skills around a skill: the first page of each way it links, and the skill itself without its levels
+export const getNeighbors = (id: string) => request<Neighbors>('GET', `/skills/${encodeURIComponent(id)}/neighbors`);
+
+//the next page of one way a skill links, from `skip`
+export const getNeighborPage = (id: string, group: PagedGroup, skip: number) =>
+  request<Group>('GET', `/skills/${encodeURIComponent(id)}/neighbors/${group}?skip=${skip}`);
