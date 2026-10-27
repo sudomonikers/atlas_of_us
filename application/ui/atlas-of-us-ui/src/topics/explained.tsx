@@ -26,8 +26,8 @@ const LEVELS = [
   {
     name: 'Remember',
     gist: 'Recalls the facts, the terms and the basic Ideas.',
-    board: 'Can name the Ruy Lopez and the Sicilian, and says the first moves of each.',
-    detail: "Remembering is having the topic's facts to hand: names, dates, definitions, sequences. It is the ground everything else stands on, and on its own it is brittle. Someone who only remembers can repeat an answer but can't yet say why it's the answer.",
+    board: 'Can name the Ruy Lopez and the Sicilian (specific openings in Chees), and can name the first moves of each.',
+    detail: "Remembering is having the topic's facts to hand: names, dates, definitions, sequences. It is the ground everything else stands on. Someone who only remembers can repeat an answer but can't yet say why it's the answer.",
   },
   {
     name: 'Understand',
@@ -61,12 +61,12 @@ const LEVELS = [
   },
 ];
 
-//an example of each type of Idea, from the same topic
+//an example of each type of Idea, all from chess, each saying enough for someone who doesn't play
 const TYPE_EXAMPLES: Record<IdeaType, string> = {
-  concept: 'Center control. You grasp it well or badly, but it is not true or false.',
-  claim: "The King's Gambit is unsound at master level. Some believe it, some don't.",
-  norm: 'Castle early. It tells you what to do.',
-  value: 'Fighting spirit. Some players hold it dearer than safety.',
+  concept: '"Controlling the center." Pieces in the middle of the board reach more squares. You grasp it well or badly, but the concept itself is not true or false.',
+  claim: '"The player who moves first has an advantage." Most players believe it, but no one has proved this particular claim.',
+  norm: '"Get your king to safety early." Norms are common ideas of what to do.',
+  value: '"Fighting spirit": playing for a win when a draw is there for the taking.',
 };
 
 //how the Atlas puts the model to work
@@ -154,7 +154,7 @@ export default function Explained() {
             </div>
             <p style={styles.gist}>{level.gist}</p>
             <p style={styles.kitchen}>
-              <strong>At the board.</strong> {level.board}
+              So for chess - {level.board}
             </p>
             <Disclosure label="What it takes">
               <p style={styles.text}>{level.detail}</p>
@@ -164,7 +164,7 @@ export default function Explained() {
       </ol>
 
       <h2 style={styles.sectionHeading}>Four kinds of Idea</h2>
-      <p style={styles.sectionText}>A topic is made of Ideas, and each Idea is one of these. Each asks something different of you.</p>
+      <p style={styles.sectionText}>A topic is made of Ideas, and each Idea is one of these. Each asks something different of you. Here is one of each from chess, the board game where two players take turns moving pieces, each trying to trap the other's king.</p>
       <ul style={styles.types}>
         {(Object.keys(IDEA_TYPES) as IdeaType[]).map((type, i) => (
           <li key={type} style={{ ...styles.type, '--tilt': `${i % 2 ? 0.3 : -0.3}deg` } as CSSProperties} className="comic-panel comic-pop">
@@ -173,7 +173,7 @@ export default function Explained() {
             </span>
             <p style={styles.gist}>{IDEA_TYPES[type].tell}</p>
             <p style={styles.kitchen}>
-              <strong>For example.</strong> {TYPE_EXAMPLES[type]}
+              <strong>For example - </strong> {TYPE_EXAMPLES[type]}
             </p>
           </li>
         ))}
