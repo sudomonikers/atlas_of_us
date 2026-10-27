@@ -6,7 +6,7 @@ Each message is `{"kind": "...", "job": {...}}` and carries everything the job n
 It also works through the events queues (`infrastructure/events.tf`). Each of those messages is an event from the
 `atlas-events` bus. Every job that reacts to an event has its own queue, named `<event>-<module>`, and the queue picks
 the handler in `src/events/mod.rs`. Handlers publish to the bus named by `EVENT_BUS_NAME`, and log the event when it
-isn't set.
+isn't set. `documentation/architecture/events.md` walks through adding a new event or a job that reacts to one.
 
 The code is laid out the same way:
 

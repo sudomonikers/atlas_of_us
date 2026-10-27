@@ -52,8 +52,8 @@ nothing about what the graph is. The module that uses it owns the data and decid
 ### What the module does
 The Skills Explorer shows the split:
 
-- It keeps the board's state (`SkillBoard` in `skill_board.ts`), with the `BoardLayout` inside it, so the board
-  survives a trip to a skill's page.
+- It keeps the board's state (`SkillBoard` in `skill_board.ts`), with the `BoardLayout` inside it, and clears it when
+  the Graph view is left, so each visit starts from an empty board.
 - It maps skills to `nodes` (filled when the skill's levels are written, hollow for a stub), and the personality traits
   they take to pale diamonds. Its four kinds of link go to `kinds`: "A kind of", "Needs", "Similar" and "Takes".
 - Expanding calls `GET /api/skills/{id}/neighbors`, which returns a page of twelve of each kind of link with the total,

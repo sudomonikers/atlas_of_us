@@ -33,14 +33,18 @@ export default function Explorer({ skillId }: { skillId?: string }) {
   const at = trail.findIndex((s) => s.id === skillId);
   const shown = at >= 0 ? trail.slice(0, at + 1) : trail;
 
+  //leaving the graph clears its board, so the next visit starts fresh
+  const leaveGraph = () => setBoard(emptyBoard());
   const open = (skill: SkillRef, from: Mode | 'skill') => {
+    if (from === 'graph') leaveGraph();
     setTrail(from === 'skill' ? [...shown, skill] : [skill]);
     navigate(`/skills/${encodeURIComponent(skill.id)}`);
   };
-  //puts a skill on the graph, expanded, and goes to it
+  //puts a skill on an empty graph, expanded, and goes to it
   const showInGraph = (skill: SkillRef) => {
-    setBoard((b) => place(b, skill));
-    expandSkill(board, skill.id, setBoard).catch(() => {}); //it's on the board either way, and can be expanded from there
+    const fresh = place(emptyBoard(), skill);
+    setBoard(fresh);
+    expandSkill(fresh, skill.id, setBoard).catch(() => {}); //it's on the board either way, and can be expanded from there
     setMode('graph');
     navigate('/skills');
   };
@@ -57,7 +61,10 @@ export default function Explorer({ skillId }: { skillId?: string }) {
               className="comic-lift"
               style={{ ...styles.mode, ...(mode === m.id ? styles.modeActive : {}) }}
               aria-pressed={mode === m.id}
-              onClick={() => setMode(m.id)}
+              onClick={() => {
+                if (mode === 'graph' && m.id !== 'graph') leaveGraph();
+                setMode(m.id);
+              }}
             >
               {m.label}
             </button>
