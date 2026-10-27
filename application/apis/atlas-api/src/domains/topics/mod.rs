@@ -92,6 +92,9 @@ async fn summaries(state: &AppState, ids: &[String]) -> Result<Vec<TopicSummary>
 //how many topics a search returns, and how many each half of it contributes before they're combined
 const SEARCH_RESULTS: usize = 10;
 const SEARCH_CANDIDATES: i64 = 20;
+//how close a topic has to be to be found by meaning, as the vector index scores it ((1 + cosine) / 2). Titan scored a
+//search against the topic it's after at 0.65 and up, and against unrelated topics at 0.57 and below
+const SEARCH_MIN_SCORE: f64 = 0.6;
 //reciprocal rank fusion's constant: higher values flatten the difference between ranks
 const RRF_K: f64 = 60.0;
 
@@ -118,13 +121,14 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchPa
         ").param("lucene", lucene).param("limit", SEARCH_CANDIDATES)).await.map_err(internal)?;
         ranked.push(ids(&mut rows).await.map_err(internal)?);
     }
-    //by meaning. Search still works by name when the embedding can't be made
+    //by meaning, leaving out what isn't close. Search still works by name when the embedding can't be made
     match bedrock::embed(&state.bedrock, q).await {
         Ok(vector) => {
             let mut rows = state.graph.execute(query("
-                CALL db.index.vector.queryNodes('topic_vector', $k, $vector) YIELD node
+                CALL db.index.vector.queryNodes('topic_vector', $k, $vector) YIELD node, score
+                WHERE score >= $min_score
                 RETURN node.id AS id
-            ").param("k", SEARCH_CANDIDATES).param("vector", vector)).await.map_err(internal)?;
+            ").param("k", SEARCH_CANDIDATES).param("vector", vector).param("min_score", SEARCH_MIN_SCORE)).await.map_err(internal)?;
             ranked.push(ids(&mut rows).await.map_err(internal)?);
         }
         Err(e) => tracing::error!("couldn't embed the search, searching by name only: {e}"),

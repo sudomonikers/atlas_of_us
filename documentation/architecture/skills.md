@@ -148,8 +148,8 @@ another, and only the first publishes `SkillCreated`.
 
 ### Searching
 The user lands on the skills module, sees a short explanation of how skills and Dreyfus levels work, and searches. The
-search matches names and aliases through a full-text index (each word as a prefix, or with one typo once it's four
-letters long) and does a vector search, and combines the two lists by reciprocal rank fusion, so a skill near the top of
+search matches names and aliases through a full-text index (every word has to match, as a prefix or with one typo once
+it's four letters long) and does a vector search that keeps skills scoring at least 0.6, and combines the two lists by reciprocal rank fusion, so a skill near the top of
 either ranks high and one in both ranks higher. It shows the ten closest skills along with the broader skills they're a kind
 of, so someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
 alone.

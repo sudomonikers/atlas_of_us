@@ -40,7 +40,7 @@ All routes are under `/api/topics`. Asking and filling need a logged in user.
 
 | Route | What it does |
 |---|---|
-| `GET /search?q=` | The closest topics, by name and alias through the `topic_names` full-text index and by meaning through `topic_vector`, combined by reciprocal rank fusion, each with the broader topics it's a subtopic of |
+| `GET /search?q=` | The closest topics, by name and alias through the `topic_names` full-text index (every word has to match) and by meaning through `topic_vector` (scoring at least 0.6), combined by reciprocal rank fusion, each with the broader topics it's a subtopic of |
 | `POST /` `{query}` | Asks for a topic we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_topic` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the topic it means) or `created` (the new stub) |
 | `GET /{id}` | A topic with its six levels, its Ideas (each with its `type` and the Ideas it `requires`), and its `broader` and `narrower` topics |
 | `GET /{id}/neighbors` | The topic without its levels, and what's around it: its `broader` and `narrower` topics, the `ideas` it includes, the skills whose levels need it (`needed_by`, strongest first, each with the strength of its strongest link and the `rank` of the deepest Bloom level it needs), and up to eight `similar` topics by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total` |
