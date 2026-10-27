@@ -284,11 +284,27 @@ body {
 .atlas-bob {
   animation: atlas-bob 3s ease-in-out infinite;
 }
+/* a thinking ellipsis: its three dots rise in turn while something is fetched (Dots in shared_components/thinking.tsx) */
+.comic-dots span {
+  display: inline-block;
+  font-weight: 700;
+  animation: comic-dot 1.2s ease-in-out infinite;
+}
+.comic-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.comic-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
 /* stepped on/off flashing, for "more" indicators */
 .comic-flash {
   animation: comic-flash 1s steps(1) infinite;
 }
 
+@keyframes comic-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-0.3em); opacity: 1; }
+}
 @keyframes comic-pop {
   0% { opacity: 0; transform: rotate(var(--tilt, 0deg)) scale(0.6) translateY(24px); }
   60% { opacity: 1; transform: rotate(var(--tilt, 0deg)) scale(1.06) translateY(-4px); }
@@ -420,6 +436,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .comic-pop, .comic-slam, .comic-blink, .comic-meter-fill, .comic-flash {
     animation: none;
+  }
+  .comic-dots span {
+    animation: none;
+    opacity: 1;
   }
   .comic-pop {
     transform: rotate(var(--tilt, 0deg));

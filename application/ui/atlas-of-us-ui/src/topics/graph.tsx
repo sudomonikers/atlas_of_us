@@ -8,6 +8,7 @@ import type { BoardNode } from '../shared_components/board_layout';
 import { GraphBoard, type LinkKind } from '../shared_components/graph_board';
 import { Mascot } from '../shared_components/mascot';
 import { SearchField } from '../shared_components/search_field';
+import { Dots, Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -162,7 +163,7 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
           onClear={() => onBoard(emptyBoard())}
           empty={
             <div style={styles.empty}>
-              <Mascot size={72} />
+              <Mascot size={96} />
               <p style={styles.bubble} className="comic-bubble comic-pop">
                 Search for a topic to put it on the board, then double-click it to see what it's made of and what it connects to.
               </p>
@@ -183,7 +184,17 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
               ))}
             </ul>
           )}
+          {search.query.trim() && !search.results && !searchError && (
+            <div style={styles.working}>
+              <Thinking label="Looking" />
+            </div>
+          )}
           {searchError && <AtlasError message={searchError} />}
+          {busy && (
+            <div style={styles.working}>
+              <Thinking label="Bringing them onto the board" />
+            </div>
+          )}
         </GraphBoard>
       </div>
 
@@ -232,7 +243,7 @@ function Count({ id, group, label, items, total, expanded, busy, onMore }: {
       <dd style={styles.countNumber}>
         {expanded && total > items && group !== 'similar' && (
           <button className="comic-lift" style={styles.more} disabled={adding} onClick={() => onMore(id, group as PagedGroup | IdeaGroupName)}>
-            {adding ? 'Adding...' : 'Add more'}
+            {adding ? <>Adding<Dots /></> : 'Add more'}
           </button>
         )}
         {total}
@@ -253,7 +264,7 @@ function Actions({ id, expanded, busy, onExpand, open, onHide }: {
   return (
     <div style={styles.actions}>
       <button className="comic-lift" style={styles.primary} disabled={expanded || expanding} onClick={() => onExpand(id)}>
-        {expanding ? 'Expanding...' : expanded ? 'Expanded' : 'Expand'}
+        {expanding ? <>Expanding<Dots /></> : expanded ? 'Expanded' : 'Expand'}
       </button>
       <button className="comic-lift" style={styles.button} onClick={open[1]}>
         {open[0]}
@@ -281,7 +292,7 @@ function TopicInspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
       <span className="comic-chip" style={styles.status}>
         {STATUS[topic.status]}
       </span>
-      {neighbors ? neighbors.topic.description && <p style={styles.description}>{neighbors.topic.description}</p> : <p style={styles.description}>Reading it...</p>}
+      {neighbors ? neighbors.topic.description && <p style={styles.description}>{neighbors.topic.description}</p> : <Thinking label="Reading it" style={styles.description} />}
       {neighbors && (
         <dl style={styles.counts}>
           {TOPIC_COUNTS.map(([group, label]) => (
@@ -310,7 +321,7 @@ function IdeaInspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
       <span className="comic-chip" style={styles.status}>
         Idea, a {IDEA_TYPES[idea.type].label.toLowerCase()}
       </span>
-      {read ? read.idea.description && <p style={styles.description}>{read.idea.description}</p> : <p style={styles.description}>Reading it...</p>}
+      {read ? read.idea.description && <p style={styles.description}>{read.idea.description}</p> : <Thinking label="Reading it" style={styles.description} />}
       {read && (
         <dl style={styles.counts}>
           {IDEA_COUNTS.map(([group, label]) => (
@@ -344,6 +355,16 @@ function SkillInspector({ on, onOpen, onHide }: { on: BoardSkill; onOpen: (id: s
 }
 
 const styles: Record<string, CSSProperties> = {
+  //what's being fetched, under the board's search box
+  working: {
+    marginTop: 8,
+    padding: '4px 10px',
+    alignSelf: 'flex-start',
+    background: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: corners,
+    boxShadow: `3px 3px 0 ${gunmetal}`,
+  },
   //the board, with the inspector beside it, or under it once there's no room
   wrap: {
     maxWidth: 1100,
@@ -507,7 +528,7 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 14,
-    maxWidth: 440,
+    maxWidth: 480,
   },
   bubble: {
     margin: 0,

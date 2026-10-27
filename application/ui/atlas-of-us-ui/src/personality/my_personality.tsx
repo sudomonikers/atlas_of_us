@@ -1,9 +1,10 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
 import { PersonalityReport } from './report';
 import { polesOf } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
 import { ProgressMeter } from '../shared_components/progress-meter';
+import { Dots } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -202,7 +203,7 @@ function ContributionCard({ contribution: c, onContested }: { contribution: Cont
   );
 }
 
-const OUTCOMES: Record<Contest['status'], string> = { pending: 'Thinking it over...', accepted: 'You got me', rejected: 'Not budging' };
+const OUTCOMES: Record<Contest['status'], ReactNode> = { pending: <>Thinking it over<Dots /></>, accepted: 'You got me', rejected: 'Not budging' };
 
 //one thing the person said about the evidence, and what came of it
 function ContestEntry({ contest: c }: { contest: Contest }) {
@@ -272,7 +273,7 @@ function ContestForm({ contribution: c, onCancel, onSent }: { contribution: Cont
           Cancel
         </button>
         <button className="comic-chip comic-lift" style={styles.contestKind} disabled={sending || !message.trim()} onClick={send}>
-          {sending ? 'Sending...' : 'Send'}
+          {sending ? <>Sending<Dots /></> : 'Send'}
         </button>
       </div>
     </div>

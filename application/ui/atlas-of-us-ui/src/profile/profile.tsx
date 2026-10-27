@@ -8,6 +8,7 @@ import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
 import { AtlasError } from '../shared_components/atlas-error';
 import { getProfile, type Profile as ProfileData } from './api';
+import { Dots } from '../shared_components/thinking';
 
 const gunmetal = 'var(--gunmetal-black)';
 const blue = 'var(--air-force-blue)';
@@ -73,7 +74,7 @@ export default function Profile({ username }: { username: string }) {
           <AtlasError message={error} style={styles.bubble} />
         ) : (
           <div style={styles.bubble} className="comic-bubble comic-pop">
-            {profile ? `@${profile.username}` : "Looking them up. I'm sure they're fascinating..."}
+            {profile ? `@${profile.username}` : <>Looking them up. I'm sure they're fascinating<Dots /></>}
           </div>
         )}
       </header>

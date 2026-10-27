@@ -502,10 +502,12 @@ const styles: Record<string, CSSProperties> = {
     fill: brownRed,
     fontSize: 17,
   },
+  //above the empty board's message, so search results drop down over it
   corner: {
     position: 'absolute',
     top: 12,
     left: 12,
+    zIndex: 1,
     width: 'min(380px, calc(100% - 24px))',
   },
   bottom: {

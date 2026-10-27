@@ -3,6 +3,7 @@ import { getModel, type Breakdown, type Domain, type DomainTrait, type Personali
 import { DOMAIN_LOOK, polesOf, type Poles } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
+import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -63,7 +64,7 @@ export default function Explore() {
   };
 
   if (error) return <AtlasError message={`I couldn't load the guide. ${error}`} style={styles.status} />;
-  if (!model) return <p style={styles.status}>Dusting off the field guide...</p>;
+  if (!model) return <Thinking label="Dusting off the field guide" style={styles.status} />;
 
   const { domains } = model;
   const [overview, overviewRest] = splitSentences(model.overview ?? '', 2);

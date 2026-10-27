@@ -3,6 +3,7 @@ import { BLOOM_NAMES, IDEA_TYPES, getNeighborPage, getNeighbors, getTopic, reque
 import type { Placed } from './topic_board';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
+import { Dots, Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -79,7 +80,7 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
     );
 
   if (error) return <AtlasError message={error} style={styles.column} />;
-  if (!topic) return <p style={{ ...styles.column, ...styles.loading }}>Finding that topic...</p>;
+  if (!topic) return <Thinking label="Finding that topic" mascot style={styles.column} />;
   const ref = { id: topic.id, name: topic.name, status: topic.status };
 
   return (
@@ -288,7 +289,7 @@ function Connections({ name, neighbors, onNeighbors, onOpen, onOpenSkill }: {
               </ul>
               {group !== 'similar' && items.length < total && (
                 <button className="comic-lift" style={styles.moreLinks} disabled={reading === group} onClick={() => more(group)}>
-                  {reading === group ? 'Reading...' : `Show more (${total - items.length} left)`}
+                  {reading === group ? <>Reading<Dots /></> : `Show more (${total - items.length} left)`}
                 </button>
               )}
             </div>
@@ -303,9 +304,6 @@ const styles: Record<string, CSSProperties> = {
   column: {
     maxWidth: 1100,
     margin: '0 auto 40px',
-  },
-  loading: {
-    fontSize: 20,
   },
   header: {
     marginBottom: 28,

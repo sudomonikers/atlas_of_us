@@ -7,6 +7,7 @@ import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { getEmail, listEmails, replyToEmail, type Contact, type Email, type EmailSummary } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
+import { Dots, Thinking } from '../shared_components/thinking';
 
 const EMAIL_PATH = '/admin/emails/';
 
@@ -17,7 +18,9 @@ export default function Admin() {
   const path = usePath();
   const emailId = path.startsWith(EMAIL_PATH) ? decodeURIComponent(path.slice(EMAIL_PATH.length)) || undefined : undefined;
 
-  if (session.status === 'checking') return <Shell>Checking who you are...</Shell>;
+  if (session.status === 'checking') return <Shell>
+      <Thinking label="Checking who you are" />
+    </Shell>;
   if (session.status === 'anonymous') {
     return (
       <RequireLogin reason="The admin pages need you to log in.">
@@ -58,7 +61,7 @@ function Inbox({ emailId }: { emailId?: string }) {
     <Shell
       actions={
         <button className="comic-lift" style={styles.small} disabled={refreshing} onClick={refresh}>
-          {refreshing ? 'Checking...' : 'Refresh'}
+          {refreshing ? <>Checking<Dots /></> : 'Refresh'}
         </button>
       }
     >
@@ -66,7 +69,7 @@ function Inbox({ emailId }: { emailId?: string }) {
       <div style={styles.columns}>
         <section style={styles.listPanel} className="comic-panel" aria-label="Inbox">
           <h2 style={styles.panelTitle}>Inbox {emails && <span style={styles.count}>{emails.length}</span>}</h2>
-          {!emails && !error && <p style={styles.muted}>Opening the mailbag...</p>}
+          {!emails && !error && <Thinking label="Opening the mailbag" style={styles.muted} />}
           {emails?.length === 0 && <p style={styles.muted}>No emails yet.</p>}
           <ul style={styles.list}>
             {emails?.map((e) => (
@@ -113,7 +116,7 @@ function EmailView({ id, onReplied }: { id: string; onReplied: () => void }) {
   }, [id]);
 
   if (error) return <AtlasError message={error} />;
-  if (!email) return <p style={styles.muted}>Unfolding the letter...</p>;
+  if (!email) return <Thinking label="Unfolding the letter" style={styles.muted} />;
 
   const flagged = [
     email.spam_verdict && email.spam_verdict !== 'PASS' && `Spam check: ${email.spam_verdict}`,
@@ -225,7 +228,7 @@ function ReplyForm({ to, onSend }: { to?: string; onSend: (body: string) => Prom
         disabled={!body.trim() || sending}
         onClick={send}
       >
-        {sending ? 'Sending...' : 'Send reply ▶'}
+        {sending ? <>Sending<Dots /></> : 'Send reply ▶'}
       </button>
     </div>
   );

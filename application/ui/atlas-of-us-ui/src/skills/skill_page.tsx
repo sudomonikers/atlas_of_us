@@ -3,6 +3,7 @@ import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, t
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
+import { Dots, Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -82,7 +83,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
     );
 
   if (error) return <AtlasError message={error} style={styles.column} />;
-  if (!skill) return <p style={{ ...styles.column, ...styles.loading }}>Finding that skill...</p>;
+  if (!skill) return <Thinking label="Finding that skill" mascot style={styles.column} />;
 
   return (
     <article style={styles.column}>
@@ -340,7 +341,7 @@ function Connections({ name, neighbors, onNeighbors, onOpen }: {
               </ul>
               {group !== 'similar' && skills.length < total && (
                 <button className="comic-lift" style={styles.moreLinks} disabled={reading === group} onClick={() => more(group)}>
-                  {reading === group ? 'Reading...' : `Show more (${total - skills.length} left)`}
+                  {reading === group ? <>Reading<Dots /></> : `Show more (${total - skills.length} left)`}
                 </button>
               )}
             </div>
@@ -355,9 +356,6 @@ const styles: Record<string, CSSProperties> = {
   column: {
     maxWidth: 1100,
     margin: '0 auto 40px',
-  },
-  loading: {
-    fontSize: 20,
   },
   header: {
     marginBottom: 28,

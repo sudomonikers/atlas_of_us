@@ -6,6 +6,7 @@ import { Nav } from '../shared_components/nav';
 import { PhoneNumberInput } from '../shared_components/phone-number-input';
 import { createUser, login } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
+import { Dots } from '../shared_components/thinking';
 
 /* ---------------------------------------------------------------------------------------------
  * pages
@@ -45,7 +46,7 @@ function Login({ onAuthenticated, onSwitch }: PageProps) {
           <input style={styles.input} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <button className="comic-lift" style={styles.submit} disabled={submit.busy}>
-          {submit.busy ? 'Logging in...' : 'Log in ▶'}
+          {submit.busy ? <>Logging in<Dots /></> : 'Log in ▶'}
         </button>
       </form>
       <p style={styles.switch}>
@@ -103,7 +104,7 @@ function CreateUser({ onAuthenticated, onSwitch }: PageProps) {
           </Field>
         </div>
         <button className="comic-lift" style={styles.submit} disabled={submit.busy || mismatch}>
-          {submit.busy ? 'Creating your account...' : 'Create account ▶'}
+          {submit.busy ? <>Creating your account<Dots /></> : 'Create account ▶'}
         </button>
       </form>
       <p style={styles.switch}>

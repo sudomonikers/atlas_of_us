@@ -31,6 +31,7 @@ import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
 import { AtlasError } from '../shared_components/atlas-error';
+import { Dots } from '../shared_components/thinking';
 
 //scenes are split into their own chunks so their art, sounds and textures only load when one is opened
 const Sketchbook = lazy(() => import('./the_story_game/sketchbook'));
@@ -515,10 +516,10 @@ function Personality() {
         : view === 'scenarios'
           ? ready
             ? greeting(firstName, completed)
-            : 'Digging up your map...'
+            : <>Digging up your map<Dots /></>
           : traits
             ? traitsGreeting(firstName, traits)
-            : 'Flipping through my notes on you. Some of them are unflattering...';
+            : <>Flipping through my notes on you. Some of them are unflattering<Dots /></>;
   //a failed load replaces the greeting
   const failure =
     view === 'scenarios' && loadError
@@ -887,7 +888,7 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
 
         <span style={dash.cardFooter}>
           {when && <span>{`${status === 'complete' ? 'Finished' : 'Started'} ${formatDate(when)}`}</span>}
-          {playable && <span style={dash.go}>{locked ? 'Recalculating...' : status === 'complete' ? 'Play again ▶' : status === 'in_progress' ? 'Resume ▶' : 'Play ▶'}</span>}
+          {playable && <span style={dash.go}>{locked ? <>Recalculating<Dots /></> : status === 'complete' ? 'Play again ▶' : status === 'in_progress' ? 'Resume ▶' : 'Play ▶'}</span>}
         </span>
       </button>
     </li>
@@ -1177,7 +1178,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
                   disabled={!answered || saving}
                   onClick={forward}
                 >
-                  {saving ? 'Saving...' : 'Continue ▶'}
+                  {saving ? <>Saving<Dots /></> : 'Continue ▶'}
                 </button>
               </div>
             </div>

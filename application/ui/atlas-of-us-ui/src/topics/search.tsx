@@ -4,6 +4,7 @@ import { useTopicSearch, type SearchState } from './use_topic_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import { SearchField } from '../shared_components/search_field';
 import { navigate } from '../router';
+import { Dots, Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -38,6 +39,7 @@ export function TopicSearch({ search, onSearch, onOpen }: TopicSearchProps) {
       <SearchField id="topic-search" query={query} onQuery={(q) => onSearch({ query: q })} placeholder={PLACEHOLDER} autoFocus />
 
       {error && <AtlasError message={error} />}
+      {query.trim() && !results && !error && <Thinking label="Looking" />}
 
       {query.trim() && results && (
         <>
@@ -121,7 +123,7 @@ function AskForTopic({ query, nothingFound, onOpen }: { query: string; nothingFo
     <div style={styles.ask}>
       <p style={styles.askText}>{nothingFound ? "Nothing in the Atlas matches that yet." : "Not what you're looking for?"}</p>
       <button className="comic-lift" style={styles.askButton} disabled={asking} onClick={ask}>
-        {asking ? 'Checking...' : `Add "${query}" to the Atlas`}
+        {asking ? <>Checking<Dots /></> : `Add "${query}" to the Atlas`}
       </button>
       {error && <AtlasError message={error} />}
     </div>

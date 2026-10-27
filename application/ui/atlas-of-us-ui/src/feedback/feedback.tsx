@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { request } from '../auth/api';
 import { AtlasError } from '../shared_components/atlas-error';
+import { Dots } from '../shared_components/thinking';
 
 //a button that opens a popup where the user tells us what they want. The page they were on goes along with it
 export function Feedback({ buttonStyle }: { buttonStyle: CSSProperties }) {
@@ -67,7 +68,7 @@ export function Feedback({ buttonStyle }: { buttonStyle: CSSProperties }) {
                   disabled={!description.trim() || sending}
                   onClick={submit}
                 >
-                  {sending ? 'Sending...' : 'Send ▶'}
+                  {sending ? <>Sending<Dots /></> : 'Send ▶'}
                 </button>
               )}
             </div>

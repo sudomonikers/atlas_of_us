@@ -17,8 +17,7 @@ export function Plea() {
         <Mascot size={70} />
         <p style={styles.text} className="comic-bubble">
           Real talk: every person I map costs about $0.68 in AI and servers, and Andrew is fresh out of VC money (he never
-          had any). No ads, no selling your data, just me with my hat out. Chip in a dollar and you've paid your own way.
-          Mostly.
+          had any). He's threatening to turn me off if I don't start pulling my weight around here, so please chip in if you can!
         </p>
       </div>
       <a className="comic-lift" style={styles.button} href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">

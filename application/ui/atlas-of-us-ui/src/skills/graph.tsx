@@ -9,6 +9,7 @@ import type { BoardNode } from '../shared_components/board_layout';
 import { GraphBoard, type LinkKind } from '../shared_components/graph_board';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
+import { Dots, Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -161,7 +162,7 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
           onClear={() => onBoard(emptyBoard())}
           empty={
             <div style={styles.empty}>
-              <Mascot size={72} />
+              <Mascot size={96} />
               <p style={styles.bubble} className="comic-bubble comic-pop">
                 Search for a skill to put it on the board, then double-click it to see what it connects to.
               </p>
@@ -182,7 +183,17 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
               ))}
             </ul>
           )}
+          {search.query.trim() && !search.results && !searchError && (
+            <div style={styles.working}>
+              <Thinking label="Looking" />
+            </div>
+          )}
           {searchError && <AtlasError message={searchError} />}
+          {busy && (
+            <div style={styles.working}>
+              <Thinking label="Bringing them onto the board" />
+            </div>
+          )}
         </GraphBoard>
       </div>
 
@@ -231,7 +242,7 @@ function Inspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
       <span className="comic-chip" style={styles.status}>
         {STATUS[skill.status]}
       </span>
-      {neighbors ? neighbors.skill.description && <p style={styles.description}>{neighbors.skill.description}</p> : <p style={styles.description}>Reading it...</p>}
+      {neighbors ? neighbors.skill.description && <p style={styles.description}>{neighbors.skill.description}</p> : <Thinking label="Reading it" style={styles.description} />}
       {neighbors && (
         <dl style={styles.counts}>
           {GROUP_LABELS.map(([group, label]) => {
@@ -243,7 +254,7 @@ function Inspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
                 <dd style={styles.countNumber}>
                   {on.expanded && left > 0 && group !== 'similar' && (
                     <button className="comic-lift" style={styles.more} disabled={busy === `${skill.id}:${group}`} onClick={() => onMore(skill.id, group)}>
-                      {busy === `${skill.id}:${group}` ? 'Adding...' : 'Add more'}
+                      {busy === `${skill.id}:${group}` ? <>Adding<Dots /></> : 'Add more'}
                     </button>
                   )}
                   {total}
@@ -263,7 +274,7 @@ function Inspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
       )}
       <div style={styles.actions}>
         <button className="comic-lift" style={styles.primary} disabled={on.expanded || expanding} onClick={() => onExpand(skill.id)}>
-          {expanding ? 'Expanding...' : on.expanded ? 'Expanded' : 'Expand'}
+          {expanding ? <>Expanding<Dots /></> : on.expanded ? 'Expanded' : 'Expand'}
         </button>
         <button className="comic-lift" style={styles.button} onClick={() => onOpen(skill)}>
           Open skill
@@ -295,7 +306,7 @@ function TraitInspector({ on, busy, onExpand, onMore, onHide }: {
       <span className="comic-chip" style={styles.status}>
         {domain ? `Personality trait, ${domain[0].toUpperCase()}${domain.slice(1)}` : 'Personality trait'}
       </span>
-      {read ? read.trait.description && <p style={styles.description}>{read.trait.description}</p> : <p style={styles.description}>Reading it...</p>}
+      {read ? read.trait.description && <p style={styles.description}>{read.trait.description}</p> : <Thinking label="Reading it" style={styles.description} />}
       {read && (
         <dl style={styles.counts}>
           <div style={styles.count}>
@@ -303,7 +314,7 @@ function TraitInspector({ on, busy, onExpand, onMore, onHide }: {
             <dd style={styles.countNumber}>
               {on.expanded && read.total > read.skills.length && (
                 <button className="comic-lift" style={styles.more} disabled={adding} onClick={() => onMore(trait.id)}>
-                  {adding ? 'Adding...' : 'Add more'}
+                  {adding ? <>Adding<Dots /></> : 'Add more'}
                 </button>
               )}
               {read.total}
@@ -313,7 +324,7 @@ function TraitInspector({ on, busy, onExpand, onMore, onHide }: {
       )}
       <div style={styles.actions}>
         <button className="comic-lift" style={styles.primary} disabled={on.expanded || expanding} onClick={() => onExpand(trait.id)}>
-          {expanding ? 'Expanding...' : on.expanded ? 'Expanded' : 'Expand'}
+          {expanding ? <>Expanding<Dots /></> : on.expanded ? 'Expanded' : 'Expand'}
         </button>
         <button className="comic-lift" style={styles.button} onClick={() => onHide(trait.id)}>
           Hide
@@ -342,7 +353,7 @@ function TopicInspector({ on, busy, onExpand, onMore, onHide }: {
       <span className="comic-chip" style={styles.status}>
         Topic
       </span>
-      {read ? read.topic.description && <p style={styles.description}>{read.topic.description}</p> : <p style={styles.description}>Reading it...</p>}
+      {read ? read.topic.description && <p style={styles.description}>{read.topic.description}</p> : <Thinking label="Reading it" style={styles.description} />}
       {needed && (
         <dl style={styles.counts}>
           <div style={styles.count}>
@@ -350,7 +361,7 @@ function TopicInspector({ on, busy, onExpand, onMore, onHide }: {
             <dd style={styles.countNumber}>
               {on.expanded && needed.total > needed.items.length && (
                 <button className="comic-lift" style={styles.more} disabled={adding} onClick={() => onMore(topic.id)}>
-                  {adding ? 'Adding...' : 'Add more'}
+                  {adding ? <>Adding<Dots /></> : 'Add more'}
                 </button>
               )}
               {needed.total}
@@ -360,7 +371,7 @@ function TopicInspector({ on, busy, onExpand, onMore, onHide }: {
       )}
       <div style={styles.actions}>
         <button className="comic-lift" style={styles.primary} disabled={on.expanded || expanding} onClick={() => onExpand(topic.id)}>
-          {expanding ? 'Expanding...' : on.expanded ? 'Expanded' : 'Expand'}
+          {expanding ? <>Expanding<Dots /></> : on.expanded ? 'Expanded' : 'Expand'}
         </button>
         <button className="comic-lift" style={styles.button} onClick={() => navigate(`/topics/${encodeURIComponent(topic.id)}`)}>
           Open in Topics
@@ -374,6 +385,16 @@ function TopicInspector({ on, busy, onExpand, onMore, onHide }: {
 }
 
 const styles: Record<string, CSSProperties> = {
+  //what's being fetched, under the board's search box
+  working: {
+    marginTop: 8,
+    padding: '4px 10px',
+    alignSelf: 'flex-start',
+    background: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: corners,
+    boxShadow: `3px 3px 0 ${gunmetal}`,
+  },
   //the board, with the inspector beside it, or under it once there's no room
   wrap: {
     maxWidth: 1100,
@@ -537,7 +558,7 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 14,
-    maxWidth: 440,
+    maxWidth: 480,
   },
   bubble: {
     margin: 0,
