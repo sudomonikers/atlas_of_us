@@ -131,3 +131,69 @@ export const getIdea = (id: string) => request<IdeaNeighbors>('GET', `/topics/id
 //the next page of one way an Idea links, from `skip`
 export const getIdeaPage = (id: string, group: IdeaGroupName, skip: number) =>
   request<Group>('GET', `/topics/ideas/${encodeURIComponent(id)}/neighbors/${group}?skip=${skip}`);
+
+//a note, or a file someone gave as evidence for where they are with a topic
+export interface Evidence {
+  id: string;
+  kind: 'note' | 'file';
+  text: string | null; //a note's
+  file_name: string | null; //a file's, with its content_type and size in bytes
+  content_type: string | null;
+  size: number | null;
+  created_at: string;
+}
+
+//where the logged in user is with a topic: the rank of the level they've reached, if they've placed themselves on it
+export interface Engagement {
+  rank: number | null;
+  evidence: Evidence[]; //oldest first
+}
+
+//a topic someone has placed themselves on, with the level they've reached and their evidence
+export interface EngagedTopic {
+  topic: TopicRef;
+  rank: number;
+  updated_at: string;
+  evidence: Evidence[];
+}
+
+//the kinds of file evidence can be, for the file picker. The api checks them too
+export const EVIDENCE_FILE_TYPES = '.pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md,.docx';
+export const MAX_EVIDENCE_MB = 20;
+export const MAX_EVIDENCE = 5; //pieces per topic
+
+const engagementPath = (id: string) => `/topics/${encodeURIComponent(id)}`;
+
+export const getEngagement = (id: string) => request<Engagement>('GET', `${engagementPath(id)}/engagement`);
+
+//places the logged in user at one of a ready topic's levels, in place of any they were at before
+export const setLevel = (id: string, rank: number) => request<void>('PUT', `${engagementPath(id)}/engagement`, { rank });
+
+//takes the logged in user off a topic, with all their evidence for it
+export const removeEngagement = (id: string) => request<void>('DELETE', `${engagementPath(id)}/engagement`);
+
+export const addNote = (id: string, text: string) => request<Evidence>('POST', `${engagementPath(id)}/evidence`, { text });
+
+//browsers leave some files' type empty, so it's worked out from the name
+const fileType = (file: File) => file.type || (file.name.toLowerCase().endsWith('.md') ? 'text/markdown' : 'text/plain');
+
+//sends a file straight to the evidence bucket through a url the api presigns, then adds it as evidence
+export async function uploadFile(id: string, file: File): Promise<Evidence> {
+  const contentType = fileType(file);
+  const { upload_id, url } = await request<{ upload_id: string; url: string }>('POST', `${engagementPath(id)}/evidence/uploads`, {
+    file_name: file.name,
+    content_type: contentType,
+    size: file.size,
+  });
+  const sent = await fetch(url, { method: 'PUT', headers: { 'Content-Type': contentType }, body: file }).catch(() => undefined);
+  if (!sent?.ok) throw new Error("I couldn't send your file. Try again?");
+  return request<Evidence>('POST', `${engagementPath(id)}/evidence/files`, { upload_id, file_name: file.name });
+}
+
+export const removeEvidence = (evidenceId: string) => request<void>('DELETE', `/topics/evidence/${encodeURIComponent(evidenceId)}`);
+
+//a short-lived url that downloads a file of evidence
+export const fileUrl = (evidenceId: string) => request<{ url: string }>('GET', `/topics/evidence/${encodeURIComponent(evidenceId)}/file`);
+
+//the topics the logged in user has placed themselves on, deepest first
+export const getEngagements = () => request<EngagedTopic[]>('GET', '/topics/engagements');

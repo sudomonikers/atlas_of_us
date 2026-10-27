@@ -2,7 +2,10 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, type PersonPersonality } from '../personality/api';
 import { PersonalityReport } from '../personality/report';
-import { navigate } from '../router';
+import { BLOOM_NAMES, type EngagedTopic } from '../topics/api';
+import { EvidenceList } from '../topics/evidence';
+import { LevelSteps } from '../topics/my_knowledge';
+import { navigate, replace, useSearch } from '../router';
 import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
@@ -14,12 +17,22 @@ const gunmetal = 'var(--gunmetal-black)';
 const blue = 'var(--air-force-blue)';
 const comic = 'var(--font-comic)';
 
+//one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link can open on it
+type Tab = 'personality' | 'topics';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'personality', label: 'Personality' },
+  { id: 'topics', label: 'Topics' },
+];
+
 //everything we know about someone, at /u/{username}, one section per part of them. Anyone can see it once
 //they've made it public, otherwise only they can
 export default function Profile({ username }: { username: string }) {
   const session = useSession();
   const [profile, setProfile] = useState<ProfileData>();
   const [error, setError] = useState<string>();
+  const asked = new URLSearchParams(useSearch()).get('tab');
+  const tab = TABS.find((t) => t.id === asked)?.id ?? 'personality';
+  const setTab = (next: Tab) => replace(next === 'personality' ? window.location.pathname : `${window.location.pathname}?tab=${next}`);
 
   //waits for a stored login to be checked, so an owner viewing their private profile isn't turned away
   useEffect(() => {
@@ -108,7 +121,26 @@ export default function Profile({ username }: { username: string }) {
         </div>
       )}
 
-      {profile && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
+      {profile && (
+        <>
+          <div style={styles.tabs} role="tablist" aria-label="Parts of the Atlas">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className="comic-lift"
+                style={{ ...styles.tab, ...(tab === t.id ? styles.tabActive : {}) }}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {tab === 'personality' && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
+          {tab === 'topics' && <TopicsSection topics={profile.topics} firstName={profile.first_name} />}
+        </>
+      )}
 
       <div style={styles.footer}>
         <button className="comic-lift" style={styles.button} onClick={() => navigate(mine ? '/personality' : '/')}>
@@ -125,8 +157,7 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
   const domains = DOMAINS.map((d) => ({ ...d, traits: personality.traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
 
   return (
-    <section style={styles.section} className="comic-panel">
-      <h2 style={styles.sectionTitle}>Personality</h2>
+    <section style={styles.section} className="comic-panel" role="tabpanel">
       {personality.report && <PersonalityReport report={personality.report} />}
       {!domains.length && <p>{firstName} hasn't played enough scenarios to be measured yet.</p>}
       {domains.map((domain) => (
@@ -160,6 +191,29 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
               );
             })}
           </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+//the topics they've placed themselves on, deepest first, each with the level they're at and their evidence
+function TopicsSection({ topics, firstName }: { topics: EngagedTopic[]; firstName: string }) {
+  return (
+    <section style={styles.section} className="comic-panel" role="tabpanel">
+      {!topics.length && <p>{firstName} hasn't placed themselves on any topics yet.</p>}
+      {topics.map(({ topic, rank, evidence }) => (
+        <div key={topic.id} style={styles.topic}>
+          <div style={styles.topicHead}>
+            <a style={styles.topicName} href={`/topics/${encodeURIComponent(topic.id)}`} onClick={(e) => { e.preventDefault(); navigate(`/topics/${encodeURIComponent(topic.id)}`); }}>
+              {topic.name}
+            </a>
+            <span style={styles.topicLevel}>
+              <LevelSteps rank={rank} />
+              {BLOOM_NAMES[rank - 1]}
+            </span>
+          </div>
+          <EvidenceList evidence={evidence} />
         </div>
       ))}
     </section>
@@ -233,14 +287,27 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 19,
     '--panel-fill': 'var(--pale-blue)',
   } as CSSProperties,
-  sectionTitle: {
-    marginBottom: 12,
+  tabs: {
+    maxWidth: 1100,
+    margin: '0 auto 20px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  tab: {
+    padding: '4px 20px',
+    background: 'var(--ivory-white)',
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
     fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 44,
+    fontSize: 24,
     letterSpacing: 1.5,
-    lineHeight: 1,
-    color: blue,
+  },
+  tabActive: {
+    background: 'var(--brown-red)',
+    color: 'var(--ivory-white)',
   },
   domain: {
     marginBottom: 24,
@@ -254,6 +321,36 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 1.5,
     lineHeight: 1,
     color: 'var(--brown-red)',
+  },
+  topic: {
+    marginBottom: 20,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  topicHead: {
+    paddingBottom: 6,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '6px 16px',
+    borderBottom: `4px solid ${gunmetal}`,
+  },
+  topicName: {
+    fontFamily: comic,
+    fontSize: 28,
+    letterSpacing: 1.5,
+    lineHeight: 1.1,
+    color: 'var(--brown-red)',
+    textDecoration: 'none',
+    overflowWrap: 'anywhere',
+  },
+  topicLevel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    fontSize: 18,
   },
   traits: {
     margin: 0,

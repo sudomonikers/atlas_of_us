@@ -29,8 +29,9 @@ resource "aws_lambda_function" "api" {
     variables = merge(
       { for name, param in data.aws_ssm_parameter.api : name => param.value },
       {
-        JOBS_QUEUE_URL = aws_sqs_queue.jobs.url
-        EVENT_BUS_NAME = aws_cloudwatch_event_bus.atlas.name
+        JOBS_QUEUE_URL  = aws_sqs_queue.jobs.url
+        EVENT_BUS_NAME  = aws_cloudwatch_event_bus.atlas.name
+        EVIDENCE_BUCKET = aws_s3_bucket.evidence.id
       },
     )
   }

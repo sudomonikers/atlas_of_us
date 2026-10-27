@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { BLOOM_NAMES, IDEA_TYPES, getNeighborPage, getNeighbors, getTopic, requestFill, type Idea, type IdeaType, type Level, type Linked, type Neighbors, type PagedGroup, type Topic } from './api';
+import { BLOOM_NAMES, IDEA_TYPES, getEngagement, getNeighborPage, getNeighbors, getTopic, removeEngagement, requestFill, type Engagement, type Idea, type IdeaType, type Level, type Linked, type Neighbors, type PagedGroup, type Topic } from './api';
+import { EvidenceForm, EvidenceList } from './evidence';
+import { SelfAssessment } from './self_assessment';
 import type { Placed } from './topic_board';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
@@ -35,6 +37,8 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
   const [neighbors, setNeighbors] = useState<Neighbors>();
   const [error, setError] = useState<string>();
   const [rank, setRank] = useState(1); //the level being read
+  const [engagement, setEngagement] = useState<Engagement>(); //where the user is with it, once it's ready
+  const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
 
   useEffect(() => {
     let live = true;
@@ -73,6 +77,16 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
     return () => window.clearInterval(timer);
   }, [id, status]);
 
+  //where the user is with it, once it has levels to be at
+  useEffect(() => {
+    if (status !== 'ready') return;
+    let live = true;
+    getEngagement(id).then((e) => live && setEngagement(e), () => {}); //the topic is still worth reading without it
+    return () => {
+      live = false;
+    };
+  }, [id, status]);
+
   const retry = () =>
     requestFill(id).then(
       ({ status }) => setTopic((t) => t && { ...t, status }),
@@ -88,9 +102,16 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
       <header style={styles.header} className="comic-panel comic-pop">
         <div style={styles.nameRow}>
           <h2 style={styles.name}>{topic.name}</h2>
-          <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ kind: 'topic', topic: ref })}>
-            See it in the graph
-          </button>
+          <div style={styles.headerButtons}>
+            {engagement?.rank === null && (
+              <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
+                Add yourself
+              </button>
+            )}
+            <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ kind: 'topic', topic: ref })}>
+              See it in the graph
+            </button>
+          </div>
         </div>
         {topic.description && <p style={styles.description}>{topic.description}</p>}
         {topic.aliases.length > 0 && <p style={styles.aliases}>Also known as {topic.aliases.join(', ')}</p>}
@@ -98,7 +119,9 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
 
       {topic.status === 'ready' && (
         <>
-          <Levels levels={topic.levels} rank={rank} onRank={setRank} />
+          {engagement && engagement.rank !== null && <Standing topic={topic} rank={engagement.rank} engagement={engagement} onChange={setEngagement} onWalk={() => setWalking(true)} />}
+          {engagement && walking && <SelfAssessment topic={topic} engagement={engagement} onChange={setEngagement} onClose={() => setWalking(false)} />}
+          <Levels levels={topic.levels} rank={rank} mine={engagement?.rank ?? null} onRank={setRank} />
           <Ideas ideas={topic.ideas} name={topic.name} onOpen={onOpen} />
         </>
       )}
@@ -127,8 +150,55 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
   );
 }
 
-//the level picker, as a ladder, and what the picked level says
-function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRank: (rank: number) => void }) {
+//the level the user has placed themselves at in the topic, with their evidence
+function Standing({ topic, rank, engagement, onChange, onWalk }: {
+  topic: Topic;
+  rank: number;
+  engagement: Engagement;
+  onChange: (engagement: Engagement) => void;
+  onWalk: () => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const remove = () => {
+    if (!window.confirm(`Take yourself off ${topic.name}? Your evidence for it goes too.`)) return;
+    setRemoving(true);
+    setError(undefined);
+    removeEngagement(topic.id)
+      .then(() => onChange({ rank: null, evidence: [] }))
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setRemoving(false));
+  };
+
+  return (
+    <section style={styles.standing} className="comic-panel">
+      <div style={styles.standingHead}>
+        <h3 style={styles.standingTitle}>You're at {BLOOM_NAMES[rank - 1]}</h3>
+        <div style={styles.standingButtons}>
+          {!adding && (
+            <button className="comic-lift" style={styles.button} onClick={() => setAdding(true)}>
+              Add evidence
+            </button>
+          )}
+          <button className="comic-lift" style={styles.graphButton} onClick={onWalk}>
+            Walk through again
+          </button>
+          <button className="comic-lift" style={styles.moreLinks} disabled={removing} onClick={remove}>
+            {removing ? <>Removing<Dots /></> : 'Remove'}
+          </button>
+        </div>
+      </div>
+      <EvidenceList evidence={engagement.evidence} onRemoved={(gone) => onChange({ ...engagement, evidence: engagement.evidence.filter((e) => e.id !== gone) })} />
+      {adding && <EvidenceForm topicId={topic.id} given={engagement.evidence.length} onAdded={(added) => onChange({ ...engagement, evidence: [...engagement.evidence, added] })} />}
+      {error && <AtlasError message={error} size={36} />}
+    </section>
+  );
+}
+
+//the level picker, as a ladder, and what the picked level says. The level the user is at is marked
+function Levels({ levels, rank, mine, onRank }: { levels: Level[]; rank: number; mine: number | null; onRank: (rank: number) => void }) {
   const level = levels.find((l) => l.rank === rank);
   return (
     <section style={styles.levels}>
@@ -144,6 +214,7 @@ function Levels({ levels, rank, onRank }: { levels: Level[]; rank: number; onRan
           >
             <span style={styles.rungNumber}>{i + 1}</span>
             {name}
+            {mine === i + 1 && <span className="comic-chip" style={styles.you}>You</span>}
           </button>
         ))}
       </div>
@@ -324,6 +395,12 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'space-between',
     gap: '8px 16px',
   },
+  headerButtons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
   graphButton: {
     padding: '2px 14px',
     background: ivory,
@@ -379,6 +456,44 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 20,
     letterSpacing: 1,
+  },
+  standing: {
+    marginBottom: 28,
+    padding: '18px 24px',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    background: '#fff',
+    borderRadius: 'var(--wobbly)',
+    '--panel-fill': paleBlue,
+    '--tilt': '-0.2deg',
+  } as CSSProperties,
+  standingHead: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px 16px',
+  },
+  standingTitle: {
+    margin: 0,
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 28,
+    letterSpacing: 1,
+    color: brownRed,
+  },
+  standingButtons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
+  you: {
+    background: ivory,
+    color: gunmetal,
+    fontSize: 13,
   },
   levels: {
     marginBottom: 36,

@@ -1,6 +1,7 @@
 //Topics Graph: Topic nodes that INCLUDE Idea nodes (concept | claim | norm | value), each Topic with 6 Bloom levels
 //linked by HAS_LEVEL. How topics are searched for, asked for and filled is described in
 //documentation/architecture/topics.md
+mod engagement;
 mod gates;
 
 use std::collections::HashMap;
@@ -10,7 +11,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use neo4rs::query;
 use serde::{Deserialize, Serialize};
@@ -19,6 +20,8 @@ use serde_json::json;
 use atlas_shared::topics::resolver;
 
 use crate::{auth::AuthUser, bedrock, events, helpers::lucene, state::AppState};
+
+pub use engagement::{PersonTopic, person_topics};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -32,6 +35,13 @@ pub fn router() -> Router<AppState> {
         .route("/{id}/fill", post(request_fill))
         .route("/ideas/{id}", get(get_idea))
         .route("/ideas/{id}/neighbors/{group}", get(get_idea_page))
+        .route("/engagements", get(engagement::list_engagements))
+        .route("/{id}/engagement", get(engagement::get_engagement).put(engagement::set_level).delete(engagement::remove_engagement))
+        .route("/{id}/evidence", post(engagement::add_note))
+        .route("/{id}/evidence/uploads", post(engagement::start_upload))
+        .route("/{id}/evidence/files", post(engagement::add_file))
+        .route("/evidence/{id}", delete(engagement::remove_evidence))
+        .route("/evidence/{id}/file", get(engagement::get_file))
 }
 
 /// Healthcheck for the topics router.

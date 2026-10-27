@@ -64,6 +64,7 @@ async fn main() {
         jobs_queue,
         bus: env::var("EVENT_BUS_NAME").ok().map(|name| events::Bus::new(&aws, name)),
         bedrock: aws_sdk_bedrockruntime::Client::new(&aws),
+        evidence_bucket: env::var("EVIDENCE_BUCKET").ok(),
     };
 
     // build our application 

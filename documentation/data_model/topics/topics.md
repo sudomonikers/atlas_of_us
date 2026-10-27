@@ -110,13 +110,21 @@ And of course there are many different relationships that a Person node can have
 | Relationship | To | Key properties | Meaning |
 | --- | --- | --- | --- |
 | UNDERSTANDS | Idea | | Epistemic grasp: they understand it. Available for any type. How deeply they know the subject is on ENGAGES_TOPIC. |
-| ENGAGES_TOPIC | BloomLevel of a Topic | | How deeply they know the topic: the one Bloom level, Remember to Create, they've reached in it. The higher rungs (Analyze, Evaluate, Create) are about the topic's Ideas as a set, more than any one of them. |
+| ENGAGES_TOPIC | BloomLevel of a Topic | since, updatedAt | How deeply they know the topic: the one Bloom level, Remember to Create, they've reached in it, by their own account. A Person has one per Topic. The higher rungs (Analyze, Evaluate, Create) are about the topic's Ideas as a set, more than any one of them. |
+| GAVE_EVIDENCE | Evidence | | Something they offer to show where they are with a Topic (see below). |
 | BELIEVES | Idea (claim) | conviction (−1…+1, signed), warrant, centrality, reason, since | Doxastic stance. Orthogonal to understanding. 0 conviction = considered-but-undecided (≠ no edge). |
 | ENDORSES | Idea (norm) | intensity, reason | Commitment to an ought. |
 | HOLDS | Idea (value) | intensity, since | Holding a value dear. |
 | CURIOUS_ABOUT | Idea / Topic | intensity | Aesthetic/affective stance → doubles as a learning goal. |
 | INTIMIDATED_BY | Idea / Topic | intensity | Affective stance (reused from Skills). |
 | BORED_BY | Idea / Topic | intensity | Affective stance (reused from Skills). |
+
+A Person backs up where they are with a topic with Evidence: each piece a note they wrote or a file they uploaded. Evidence is ABOUT the Topic rather than the level, so it stays when they move up a level. A file's bytes live in the evidence bucket under its `key`, `evidence/<personId>/<evidenceId>`:
+```cypher
+MATCH (andrew:Person {username: "sudomoniker"}), (cot:Topic {name: "Chess Opening Theory"})
+CREATE (andrew)-[:GAVE_EVIDENCE]->(:Evidence {id: randomUUID(), kind: "note", text: "Prepared a Najdorf repertoire for my club's league", createdAt: datetime()})-[:ABOUT]->(cot)
+CREATE (andrew)-[:GAVE_EVIDENCE]->(:Evidence {id: "4f1c...", kind: "file", fileName: "najdorf-prep.pdf", contentType: "application/pdf", size: 182044, key: "evidence/0b6f.../4f1c...", createdAt: datetime()})-[:ABOUT]->(cot)
+```
 
 So to continue with Andre and Lulu, they may have the following relationships with the Chess Opening Theory Topic:
 ```cypher

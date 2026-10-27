@@ -14,7 +14,16 @@ const subscribe = (listener: () => void) => {
 
 export const usePath = () => useSyncExternalStore(subscribe, () => window.location.pathname);
 
+//the url's query string, e.g. "?tab=topics", re-rendering when it changes
+export const useSearch = () => useSyncExternalStore(subscribe, () => window.location.search);
+
 export const navigate = (to: string) => {
   window.history.pushState(null, '', to);
+  window.dispatchEvent(new Event(NAVIGATE));
+};
+
+//changes the url in place, without adding to the history: for state like an open tab, that the back button shouldn't step through
+export const replace = (to: string) => {
+  window.history.replaceState(null, '', to);
   window.dispatchEvent(new Event(NAVIGATE));
 };

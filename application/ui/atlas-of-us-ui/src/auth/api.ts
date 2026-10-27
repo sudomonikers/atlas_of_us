@@ -36,10 +36,10 @@ const RETRY_MS = 500;
 const TIMEOUT_MS = 15_000;
 
 //calls the api with the stored token, if any. Failures throw with the api's message.
-//A GET or PUT that gets no response at all, or none within TIMEOUT_MS, is sent once more: a browser waking from sleep,
-//back from another app, or idle for a while can send the first request down a connection that died while it was away.
-//Both are safe to repeat, and POSTs never are
-export async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
+//A GET, PUT or DELETE that gets no response at all, or none within TIMEOUT_MS, is sent once more: a browser waking from
+//sleep, back from another app, or idle for a while can send the first request down a connection that died while it was
+//away. They're safe to repeat, and POSTs never are
+export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const token = localStorage.getItem(TOKEN_KEY);
   const payload = body === undefined ? '' : JSON.stringify(body);
   const init: RequestInit = {

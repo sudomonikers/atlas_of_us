@@ -24,7 +24,9 @@ Every meaningful change is published as an **event**.
 | Idea resolver | `application/apis/atlas-jobs/src/ideas.rs` | Decides whether each Idea a fill names is one we already have |
 | Skill requirements job | `application/apis/atlas-jobs/src/events/skill_filled/topics.rs` | Links a filled skill's levels to the topics they need |
 | Event bus | `application/infrastructure/events.tf` | The `TopicFillRequested-Topics` and `SkillFilled-Topics` rules and queues (see `events.md`) |
-| Migration | `application/database/migrations/003_topics_indexes.cypher` | The constraints, the full-text index and the vector indexes |
+| Placing yourself | `application/apis/atlas-api/src/domains/topics/engagement.rs` | The level a user is at in a topic, and their evidence for it |
+| Evidence bucket | `application/infrastructure/evidence.tf` | The private `atlas-of-us-evidence` bucket for files given as evidence, its CORS rule for the site, and the API's access to it (`EVIDENCE_BUCKET`) |
+| Migrations | `application/database/migrations/003_topics_indexes.cypher`, `004_evidence.cypher` | The constraints, the full-text index and the vector indexes, and the Evidence id constraint |
 | Taxonomy import | `application/database/topics_import/` | Asks the API for each ESCO field and knowledge entry, broader ones first |
 
 ### Models
@@ -36,7 +38,7 @@ Every meaningful change is published as an **event**.
   embedding of `"<name>. <description>. Also known as <alias>, <alias>."`, and an Idea's of `"<name>. <description>"`.
 
 ### The API
-All routes are under `/api/topics`. Asking and filling need a logged in user.
+All routes are under `/api/topics`. Asking, filling and placing yourself on a topic need a logged in user.
 
 | Route | What it does |
 |---|---|
@@ -48,6 +50,15 @@ All routes are under `/api/topics`. Asking and filling need a logged in user.
 | `POST /{id}/fill` | Asks for a `stub` or `failed` topic to be filled, and returns its status. A topic that is already `filling` or `ready` is left as it is, so it's safe to call every time a topic is opened |
 | `GET /ideas/{id}` | An Idea with its `type` and `description`, and a page of twelve of each way it links, with the `total`: the `topics` that include it, the Ideas it `requires`, the Ideas `required_by` it, and the Ideas `analogous` to it |
 | `GET /ideas/{id}/neighbors/{group}?skip=` | The next page of `topics`, `requires`, `required_by` or `analogous`, from `skip` |
+| `GET /{id}/engagement` | The `rank` of the level the user is at in the topic (`null` when they haven't placed themselves on it) and their `evidence`, oldest first |
+| `PUT /{id}/engagement` `{rank}` | Places the user at a `ready` topic's level, in place of the one they were at |
+| `DELETE /{id}/engagement` | Takes the user off the topic, with their evidence for it and its files |
+| `POST /{id}/evidence` `{text}` | Adds a note as evidence, up to 2,000 characters |
+| `POST /{id}/evidence/uploads` `{file_name, content_type, size}` | An `upload_id` and a `url` the browser PUTs the file to, with its `Content-Type`, for ten minutes. Files are PDFs, images, text, Markdown or Word documents, up to 20 MB |
+| `POST /{id}/evidence/files` `{upload_id, file_name}` | Adds an uploaded file as evidence, once it's in the bucket. A file that's too big or the wrong kind is deleted |
+| `DELETE /evidence/{id}` | Removes a piece of the user's evidence, and its file |
+| `GET /evidence/{id}/file` | A `url` that downloads a file of evidence for five minutes. Its owner can always get one, and anyone can when the owner's profile is public |
+| `GET /engagements` | Every topic the user has placed themselves on, deepest first, with their evidence |
 
 ## Where topics come from
 A Topic node is created in three ways, and every one goes through the topic resolver:
@@ -68,7 +79,8 @@ each topic goes, and the graph keeps nothing that ties a topic to ESCO. ESCO's k
 and subjects such as religions, philosophies and hobbies come in through users and through skills.
 
 ## What the user sees
-The Topics page (`/topics`) has three views: the Topics Explorer, My Knowledge, and Topics Explained, which walks
+The Topics page (`/topics`) has three views: the Topics Explorer, My Knowledge (the topics the user has placed
+themselves on), and Topics Explained, which walks
 through the six Bloom levels with one topic, chess opening theory, and the four kinds of Idea.
 
 ### Searching
@@ -86,6 +98,21 @@ A topic opens at `/topics/<id>`, and the topics and Ideas hopped through stay as
   and the page polls `GET /{id}` until it's `ready`.
 - **Where to next** lists the topics it's part of, its subtopics, the skills that need it ("Chess Playing at
   Analyze"), and similar topics, twelve of each at a time. A topic opens here, and a skill opens in Skills.
+
+### Placing yourself on a topic
+On a `ready` topic's page, "Add yourself" beside its name opens a walkthrough that climbs
+the six levels from Remember, showing each one's description and signs and asking "Is this you?". "I'm past this"
+climbs to the next level, "Back" steps down to the one before, and "That's me exactly" places them at the level
+they're reading, saved as their one `ENGAGES_TOPIC` to the topic.
+Once placed, they can back it up with evidence, a note or a file, as many as five pieces, with the level's "What would
+prove it" as prompts.
+
+Their level then shows on the topic's page, with a "You" mark on its rung, their evidence, and ways to add evidence,
+walk through again or take themselves off the topic. A file goes from the browser straight to the evidence bucket
+through a presigned url, and the API checks it arrived before adding it.
+
+My Knowledge lists every topic they've placed themselves on, deepest first, and each opens its topic. Their profile
+shows the same topics with their levels and evidence, to whoever can see the profile.
 
 ### Opening an Idea
 An Idea opens at `/topics/ideas/<id>`, with its type and what that type means, its description, and the topics it's in,
