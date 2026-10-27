@@ -32,7 +32,7 @@ struct HierarchyRow {
     child_type: String,
 }
 
-//the labels of the "skill/competence" entries (its "knowledge" entries belong to the Topics sub-graph). Broader skills
+//the labels of the "skill/competence" entries (its "knowledge" entries are the topics import's). Broader skills
 //come before narrower ones, so when a narrower one is asked for, the resolver can find the skills it's a kind of
 pub fn labels(dir: &Path) -> Result<Vec<String>, BoxError> {
     let mut reader = csv::Reader::from_path(dir.join(SKILLS_FILE)).map_err(|e| format!("{SKILLS_FILE}: {e}"))?;

@@ -14,7 +14,8 @@ The code is laid out the same way:
 |---|---|
 | `src/main.rs` | Takes each record and sends it to `jobs` or `events` by the queue it came from |
 | `src/bedrock.rs` | Calls to Claude on Bedrock, shared by everything, with retries and the budget cutoff |
-| `../atlas-shared/` | Code shared with the api: the event bus, the skills resolver, and the fast model and embeddings it calls |
+| `src/ideas.rs` | The Idea resolver, which the topic fill runs on the Ideas it names |
+| `../atlas-shared/` | Code shared with the api: the event bus, the skills and topics resolvers, and the fast model and embeddings they call |
 | `src/jobs/` | The jobs the api queues, one file each, picked by `kind` in `mod.rs` |
 | `src/events/` | One folder per event, such as `skill_filled/`, with one file per module that reacts to it, such as `personality.rs` for `SkillFilled-Personality`. `mod.rs` picks the handler by queue and builds the bus |
 
@@ -22,6 +23,8 @@ The code is laid out the same way:
 |---|---|
 | `SkillFillRequested-Skills` | Fills a `filling` skill (`events/skill_fill_requested/skills.rs`). One Bedrock call writes its five Dreyfus levels, then the skill is `ready` and `SkillFilled` is published. A fill that fails sets the skill to `failed` and publishes `SkillFillFailed`. A skill that isn't `filling` is left as it is. |
 | `SkillFilled-Skills` | Links a filled skill's levels to the levels of the skills they need (`events/skill_filled/skills.rs`). One Bedrock call names each prerequisite, the level of it needed, its `strength` and `reason`, on the lowest level it applies to. The resolver finds each one we have and creates a stub (never filled) for each one we don't, and the job writes them as `REQUIRES_SKILL`, checking after each write and taking it out again if it made a loop. A skill that isn't `ready`, or already has prerequisites, is left as it is. |
+| `SkillFilled-Topics` | Links a filled skill's levels to the topics they need knowledge of (`events/skill_filled/topics.rs`). One Bedrock call names each topic, the `bloom` level of it needed, its `strength` and `reason`, on the lowest level it applies to. The topic resolver finds each one we have and creates a stub (never filled) for each one we don't, and the job writes them as `REQUIRES_KNOWLEDGE` from the skill's level to the topic's Bloom level. A skill that isn't `ready`, or already needs topics, is left as it is. |
+| `TopicFillRequested-Topics` | Fills a `filling` topic (`events/topic_fill_requested/topics.rs`). One Bedrock call writes its six Bloom levels and names its Ideas with the Ideas each requires. The Idea resolver finds each Idea we already have, then the levels, the Ideas and their `REQUIRES_KNOWLEDGE` links are written, the topic is `ready`, and any link that made a loop is taken out again. It publishes `IdeaCreated` for each new Idea and `TopicFilled`. A fill that fails sets the topic to `failed` and publishes `TopicFillFailed`. A topic that isn't `filling` is left as it is. |
 | `SkillFilled-Personality` | Links a filled skill's levels to the personality traits they take (`events/skill_filled/personality.rs`). One Bedrock call names each trait's `level`, `strength` and `reason` on the lowest level it applies to, and the job writes them as `REQUIRES_TRAIT`. A skill that isn't `ready`, or already has trait requirements, is left as it is. |
 
 | kind | what it does |

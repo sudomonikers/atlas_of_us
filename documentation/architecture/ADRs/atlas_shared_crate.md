@@ -23,6 +23,7 @@ The code both crates run lives once, in `atlas-shared`:
 | `bedrock` | `answer` (a forced tool call on `SMALL_MODEL`, Claude Haiku 4.5) and `embed` (Titan Text Embeddings V2) |
 | `events` | The `Bus` and `publish`, which adds `eventId`, `schemaVersion` and `occurredAt` and logs the event when there's no bus |
 | `skills::resolver` | `resolve`, `create_stub`, `embedding_text` and `MIN_SCORE` |
+| `topics::resolver` | The same for topics, used by the API's topic gates and the `SkillFilled-Topics` job, with `BLOOM_LEVELS` in `topics` |
 
 Functions take the graph, the Bedrock client and the bus they need as arguments, so they work the same in either
 crate. Code only one crate runs stays in it: the gates in the API (`domains/skills/gates.rs`), and atlas-jobs' own

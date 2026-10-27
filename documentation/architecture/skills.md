@@ -47,7 +47,7 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 |---|---|
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
-| `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) and the levels of other skills it needs (`skills`: the skill's `id`, `name` and `status`, the `rank` of it needed, `strength`, `reason`) |
+| `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) the levels of other skills it needs (`skills`: the skill's `id`, `name` and `status`, the `rank` of it needed, `strength`, `reason`), and the levels of topics it needs knowledge of (`topics`: the topic's `id`, `name` and `status`, the `rank` of the Bloom level needed, `strength`, `reason`) |
 | `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES_SKILL` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total`. It also has every personality trait its levels take, as `traits`, strongest first with the strength of its strongest requirement |
 | `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `needs` or `leads_to`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
@@ -75,7 +75,7 @@ gives us what we would otherwise have to build ourselves:
 How we import it (`application/database/skills_import/`):
 
 - **Only the "skill/competence" entries become Skills.** ESCO also has "knowledge" entries (such as "French history").
-  Those belong to the Topics sub-graph, and are left for it.
+  Those belong to the Topics sub-graph, and the topics import asks for them (see "The taxonomy: ESCO" in `topics.md`).
 - **Each one is asked for through the API** (`POST /api/skills`), with its ESCO label as what the user typed. The gates
   name it ("use spreadsheets software" becomes "Spreadsheets") and screen it, the resolver decides whether we already
   have it, and the API creates the stub and publishes `SkillCreated`. The import itself only reads the files, so a run
@@ -160,8 +160,8 @@ of, the kinds of it, what it needs, what it leads to, and similar skills, twelve
 turn, and the skills hopped through stay as a trail above the page.
 
 - **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
-  review the content. Each level shows the skills it takes and the personality it takes: every requirement from that
-  level and the ones below it, strongest first, with how much it matters and why, and the level a carried-up one comes
+  review the content. Each level shows the skills it takes, the knowledge it takes and the personality it takes: every
+  requirement from that level and the ones below it, strongest first, with how much it matters and why, and the level a carried-up one comes
   from. Each skill it takes names the level of it needed, opens that skill, and is marked when it isn't filled in yet.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
   (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
@@ -236,7 +236,8 @@ prerequisites yet:
 
 Requirements on Topics, Physical Attributes, Personality Traits and anything else are written by the modules that own
 those sub-graphs. They react to `SkillFilled` and add their own requirements to the levels (see below). The Personality
-module links each level to the traits it takes (see "Skill requirements" in `personality.md`).
+module links each level to the traits it takes (see "Skill requirements" in `personality.md`), and the Topics module to
+the topics it needs knowledge of (see "Skill requirements" in `topics.md`).
 
 ## Community review
 Level content is shared by everyone who claims that skill. If one user could rewrite "Competent", every other user's
@@ -284,7 +285,7 @@ because Topics, Physical Attributes, Jobs and others will all need to react to s
 - **One custom EventBridge bus for the whole Atlas** (`atlas-events`). Every module publishes to it, and Skills events
   have the source `atlas.skills`.
 - **Each job that reacts to an event has its own rule and its own SQS queue,** with a dead-letter queue, named
-  `<event>-<module>`: `SkillFillRequested-Skills`, `SkillFilled-Skills`, `SkillFilled-Personality`. One job's backlog, replay or failures
+  `<event>-<module>`: `SkillFillRequested-Skills`, `SkillFilled-Skills`, `SkillFilled-Personality`, `SkillFilled-Topics`. One job's backlog, replay or failures
   never hold up another's, even when several modules react to the same event. Each is one entry in `event_jobs` in
   `events.tf`, with how many of its events run at once. The queues all feed the `atlas-jobs` Lambda, which picks the
   handler by the queue.

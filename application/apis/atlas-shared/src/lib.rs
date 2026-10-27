@@ -2,5 +2,6 @@
 pub mod bedrock;
 pub mod events;
 pub mod skills;
+pub mod topics;
 
 pub type BoxError = Box<dyn std::error::Error + Send + Sync>;

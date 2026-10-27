@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TraitRequirement } from './api';
+import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 
@@ -19,6 +19,8 @@ const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 const FILL_POLL_MS = 4000;
 
 const LEVEL_NAMES = ['Novice', 'Advanced Beginner', 'Competent', 'Proficient', 'Expert'];
+//a topic's levels, Bloom's taxonomy, by rank
+const BLOOM_NAMES = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'];
 
 interface SkillPageProps {
   id: string;
@@ -179,6 +181,7 @@ function Levels({ levels, rank, onRank, onOpen }: {
             </div>
           )}
           <Prerequisites levels={levels} rank={rank} onOpen={onOpen} />
+          <Knowledge levels={levels} rank={rank} />
           <Traits levels={levels} rank={rank} />
           {level.next_level && next && (
             <div style={styles.next}>
@@ -229,6 +232,29 @@ function Prerequisites({ levels, rank, onOpen }: { levels: Level[]; rank: number
               <button className="comic-lift" style={styles.link} onClick={() => onOpen(requirement)}>
                 {requirement.name} at {LEVEL_NAMES[requirement.rank - 1]}
               </button>
+              <Strength strength={requirement.strength} from={from} rank={rank} label="How essential it is" />
+              {requirement.status !== 'ready' && <span style={styles.from}>not filled in yet</span>}
+            </div>
+            <span>{requirement.reason}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+//the topics the picked level needs knowledge of, and the level of each
+function Knowledge({ levels, rank }: { levels: Level[]; rank: number }) {
+  const topics = carriedUp<TopicRequirement>(levels, rank, (level) => level.topics, (requirement) => requirement.id);
+  if (!topics.length) return null;
+  return (
+    <div>
+      <h4 style={styles.subheading}>Knowledge it takes</h4>
+      <ul style={styles.traits}>
+        {topics.map(({ requirement, from }) => (
+          <li key={requirement.id} style={styles.trait}>
+            <div style={styles.traitHead}>
+              <strong>{requirement.name} at {BLOOM_NAMES[requirement.rank - 1]}</strong>
               <Strength strength={requirement.strength} from={from} rank={rank} label="How essential it is" />
               {requirement.status !== 'ready' && <span style={styles.from}>not filled in yet</span>}
             </div>

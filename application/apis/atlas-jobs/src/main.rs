@@ -2,6 +2,7 @@
 //Lambda invokes this with one record at a time from any of those queues
 mod bedrock;
 mod events;
+mod ideas;
 mod jobs;
 
 use std::{env, io::IsTerminal};

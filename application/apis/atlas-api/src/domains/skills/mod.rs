@@ -218,6 +218,7 @@ pub struct Level {
     next_level: Option<String>, //what it takes to reach the next level. Missing on Expert and on a stub's levels
     traits: Vec<TraitRequirement>, //the personality it takes, written on this level itself. Lower levels' carry up to it
     skills: Vec<SkillRequirement>, //the other skills it needs, written on this level itself. Lower levels' carry up to it
+    topics: Vec<TopicRequirement>, //the levels of topics it needs knowledge of, written on this level itself. Lower levels' carry up to it
 }
 
 //a personality trait a level takes. `level` is where on the trait it pulls, above 0.5 for more of it and below for less
@@ -236,6 +237,17 @@ pub struct SkillRequirement {
     name: String,
     status: String,
     rank: i64, //the level of it that's needed
+    strength: f64, //how essential it is, 0 to 1
+    reason: String,
+}
+
+//a level of a topic a level needs knowledge of
+#[derive(Serialize, Deserialize)]
+pub struct TopicRequirement {
+    id: String,
+    name: String,
+    status: String,
+    rank: i64, //the Bloom level of it that's needed, 1 (Remember) to 6 (Create)
     strength: f64, //how essential it is, 0 to 1
     reason: String,
 }
@@ -268,6 +280,11 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
                 skills: COLLECT {
                     MATCH (l)-[r:REQUIRES_SKILL]->(ol:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)
                     RETURN {id: o.id, name: o.name, status: o.status, rank: ol.rank, strength: r.strength, reason: r.reason}
+                    ORDER BY r.strength DESC
+                },
+                topics: COLLECT {
+                    MATCH (l)-[r:REQUIRES_KNOWLEDGE]->(tl:BloomLevel)<-[:HAS_LEVEL]-(t:Topic)
+                    RETURN {id: t.id, name: t.name, status: t.status, rank: tl.rank, strength: r.strength, reason: r.reason}
                     ORDER BY r.strength DESC
                 }
             }) AS levels

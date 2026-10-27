@@ -11,6 +11,7 @@ use serde_json::Value;
 //one folder per event, and in it one file per module that reacts to it, matching the queue <event>-<module>
 mod skill_fill_requested;
 mod skill_filled;
+mod topic_fill_requested;
 
 //an event as it arrives on a queue: the bus's envelope, with what the publisher sent in `detail`
 #[derive(Deserialize)]
@@ -33,6 +34,8 @@ pub async fn handle(graph: &Graph, queue: &str, body: &str) {
         "SkillFillRequested-Skills" => skill_fill_requested::skills::run(graph, event.detail).await,
         "SkillFilled-Skills" => skill_filled::skills::run(graph, event.detail).await,
         "SkillFilled-Personality" => skill_filled::personality::run(graph, event.detail).await,
+        "SkillFilled-Topics" => skill_filled::topics::run(graph, event.detail).await,
+        "TopicFillRequested-Topics" => topic_fill_requested::topics::run(graph, event.detail).await,
         _ => tracing::warn!(queue, source = event.source, detail_type = event.detail_type, detail = %event.detail, "no handler for queue"),
     }
 }

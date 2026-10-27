@@ -112,6 +112,31 @@ Ideas are also broken down into 4 different types:
 | value | A standing evaluative commitment — a good you hold, which grounds norms but isn't itself an instruction. | "Is it a thing held dear, that you'd hold with more or less intensity?" | Holding (intensity) + thin Understanding | Loyalty, autonomy, honesty-as-a-good, novelty, tradition |
 
 
+#### What a Topic carries
+Topics are created and filled the same way skills are (see `documentation/architecture/topics.md`). On top of its `name` and `description`, a Topic has:
+
+- `status`: `stub` when it exists but is empty, `filling` while its content is being written, `ready` once it's filled, and `failed` when filling gave up.
+- `aliases`: every other name we know it by.
+- `vector`: an embedding of the name, description and aliases, used to find whether a topic already exists.
+- six Bloom levels, from the moment it's created, the depths someone can know the topic to. A Person's ENGAGES_TOPIC points at the level they know the topic to, and a skill's levels point at them with REQUIRES_KNOWLEDGE for how deeply they need the topic:
+
+| rank | Level | Someone at it |
+| --- | --- | --- |
+| 1 | Remember | Recalls the topic's facts, terms and basic Ideas |
+| 2 | Understand | Explains the Ideas in their own words and says how they connect |
+| 3 | Apply | Uses the Ideas in a new situation |
+| 4 | Analyze | Breaks the topic into its parts and sees how they relate |
+| 5 | Evaluate | Judges claims and arguments in the topic, and defends a position |
+| 6 | Create | Puts the Ideas together into something new |
+
+```cypher
+MATCH (t:Topic {name: "Chess Opening Theory"})
+CREATE (t)-[:HAS_LEVEL]->(:BloomLevel:Remember {name: "Chess Opening Theory Remember", rank: 1, description: "...", observableSigns: ["..."], exampleEvidence: ["..."], version: 1, trust: "provisional"})
+// and so on up to (:BloomLevel:Create {rank: 6})
+```
+
+A stub's levels have only a `name` and a `rank`, and it includes no Ideas. Filling a topic writes the levels' content and the Ideas it includes, with the REQUIRES_KNOWLEDGE links between them. An Idea that already exists, in another topic, is included rather than created again, and an Idea with the same structure as one in another field is a new Idea, ANALOGOUS_TO the other. An Idea has an `id`, `name`, `type`, `description` and `vector`, the embedding of `"<name>. <description>"`. Idea names repeat across fields, so only the `id` is unique.
+
 So now we can see the shape of Topics and their underlying Ideas in cypher. The following is what an imagined "Chess Opening Theory" Topic might look like, broken down into Ideas and also sub-topics:
 ```cypher
 CREATE (cot:Topic {name:"Chess Opening Theory", description:"The study of the initial phase of a chess game: established move sequences and the principles behind them.", vector: [1, 2, 3]});
@@ -182,8 +207,8 @@ You will notice there are a ton of different relationships going on here. Within
 And of course there are many different relationships that a Person node can have with Topics/Ideas. They are described as follows:
 | Relationship | To | Key properties | Meaning |
 | --- | --- | --- | --- |
-| UNDERSTANDS | Idea | bloom (Remember→Create) | Epistemic grasp. Available for any type. |
-| ENGAGES_TOPIC | Topic | bloom | Collection-level mastery (the top Bloom rungs — Analyze/Evaluate/Create — that are irreducibly about a set of Ideas). |
+| UNDERSTANDS | Idea | | Epistemic grasp: they understand it. Available for any type. How deeply they know the subject is on ENGAGES_TOPIC. |
+| ENGAGES_TOPIC | BloomLevel of a Topic | | How deeply they know the topic: the one Bloom level, Remember to Create, they've reached in it. The higher rungs (Analyze, Evaluate, Create) are about the topic's Ideas as a set, more than any one of them. |
 | BELIEVES | Idea (claim) | conviction (−1…+1, signed), warrant, centrality, reason, since | Doxastic stance. Orthogonal to understanding. 0 conviction = considered-but-undecided (≠ no edge). |
 | ENDORSES | Idea (norm) | intensity, reason | Commitment to an ought. |
 | HOLDS | Idea (value) | intensity, since | Holding a value dear. |
@@ -193,11 +218,13 @@ And of course there are many different relationships that a Person node can have
 
 So to continue with Andre and Lulu, they may have the following relationships with the Chess Opening Theory Topic:
 ```cypher
-// Deep grasp of concepts and a specific sharp line
-(andrew)-[:UNDERSTANDS {bloom:"Evaluate"}]->(center)
-(andrew)-[:UNDERSTANDS {bloom:"Evaluate"}]->(sic)
-(andrew)-[:UNDERSTANDS {bloom:"Analyze"}]->(naj)
-(andrew)-[:ENGAGES_TOPIC {bloom:"Evaluate"}]->(cot)
+MATCH (cot)-[:HAS_LEVEL]->(cotEvaluate:Evaluate), (cot)-[:HAS_LEVEL]->(cotUnderstand:Understand)
+
+// Grasps the concepts and a specific sharp line, and judges the theory as a whole
+(andrew)-[:UNDERSTANDS]->(center)
+(andrew)-[:UNDERSTANDS]->(sic)
+(andrew)-[:UNDERSTANDS]->(naj)
+(andrew)-[:ENGAGES_TOPIC]->(cotEvaluate)
 
 // Mainstream believer on the King's Gambit; strong Sicilian partisan
 (andrew)-[:BELIEVES {conviction:+0.8, warrant:"engine+practice", centrality:0.4}]->(kguns)
@@ -208,10 +235,10 @@ So to continue with Andre and Lulu, they may have the following relationships wi
 (andrew)-[:ENDORSES {intensity:0.6, reason:"Sound default, but I break them with prep"}]->(castle);
 
 // Solid on fundamentals, mid-climb; Najdorf is beyond her fringe
-(lulu)-[:UNDERSTANDS {bloom:"Apply"}]->(center)
-(lulu)-[:UNDERSTANDS {bloom:"Understand"}]->(sic)
+(lulu)-[:UNDERSTANDS]->(center)
+(lulu)-[:UNDERSTANDS]->(sic)
 // no edge to (naj) yet → Najdorf sits just past her learning frontier
-(lulu)-[:ENGAGES_TOPIC {bloom:"Understand"}]->(cot)
+(lulu)-[:ENGAGES_TOPIC]->(cotUnderstand)
 
 // The interesting divergence: she disagrees with Andrew about the King's Gambit
 (lulu)-[:BELIEVES {conviction:+0.6, warrant:"romantic/experience", centrality:0.5}]->(kgsound)
@@ -455,7 +482,25 @@ CREATE (cc)-[:REQUIRES_TRAIT {level: 0.3, strength: 0.5, reason: "Keeps several 
 CREATE (ce)-[:REQUIRES_TRAIT {level: 0.8, strength: 0.7, reason: "Invents new dishes rather than adapting known ones"}]->(i)
 ```
 
-Topics and Physical Attributes will add their own requirements to the levels in the same way.
+##### Topics
+A level REQUIRES_KNOWLEDGE a level of a Topic when a person needs to know that subject to reach it, the same way REQUIRES_SKILL points at a level of another skill. The topic's level is how deeply it's needed, one of its six Bloom levels: Remember, Understand, Apply, Analyze, Evaluate or Create. The relationship carries:
+- `strength`: how essential it is, from 0 to 1.
+- `reason`: one short sentence on why, in terms of the skill.
+
+It carries up the levels the same way, and a higher level has its own REQUIRES_KNOWLEDGE to the same topic only when the level of it or the `strength` it needs there is different. The Topics module writes these when a skill is filled (see "Skill requirements" in `documentation/architecture/topics.md`), creating a stub for any topic we don't have yet:
+```cypher
+MATCH (s:Skill {name: "Cooking"})-[:HAS_LEVEL]->(cn:Novice), (s)-[:HAS_LEVEL]->(cp:Proficient)
+MATCH (:Topic {name: "Food Safety"})-[:HAS_LEVEL]->(fr:Remember), (:Topic {name: "Food Safety"})-[:HAS_LEVEL]->(fa:Apply)
+MATCH (:Topic {name: "Nutrition"})-[:HAS_LEVEL]->(nu:Understand)
+// a Novice has to remember the basic rules of food safety
+CREATE (cn)-[:REQUIRES_KNOWLEDGE {strength: 0.8, reason: "Stores and cooks food without making anyone ill"}]->(fr)
+// a Proficient cook applies them to dishes they've never made
+CREATE (cp)-[:REQUIRES_KNOWLEDGE {strength: 0.8, reason: "Works out safe handling for unfamiliar ingredients"}]->(fa)
+// and plans balanced meals
+CREATE (cp)-[:REQUIRES_KNOWLEDGE {strength: 0.4, reason: "Balances a menu for the people eating it"}]->(nu)
+```
+
+Physical Attributes will add their own requirements to the levels in the same way.
 
 ### Physical Attributes Graph
 A person's physical body is an important part about who they are. It affects their capabilities in terms of Skills they can have and Ideas they can understand, as well as influences their PersonalityTraits. The Physical Attributes graph is more than just skin, muscle, and bone. It is the entirety of you from your nervous system to your limbic sytem to more abstract things like 'reaction time' and other diseases you may have. This particular graph is interesting in that it is extremely large and complex, but also mostly known and seeded. While it does change it doesn't change much over time. The following are covered:

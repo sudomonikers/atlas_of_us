@@ -227,4 +227,22 @@ CREATE (cc)-[:REQUIRES_TRAIT {level: 0.3, strength: 0.5, reason: "Keeps several 
 CREATE (ce)-[:REQUIRES_TRAIT {level: 0.8, strength: 0.7, reason: "Invents new dishes rather than adapting known ones"}]->(i)
 ```
 
-Topics and Physical Attributes will add their own requirements to the levels in the same way.
+### Topics
+A level REQUIRES_KNOWLEDGE a level of a Topic when a person needs to know that subject to reach it, the same way REQUIRES_SKILL points at a level of another skill. The topic's level is how deeply it's needed, one of its six Bloom levels: Remember, Understand, Apply, Analyze, Evaluate or Create. The relationship carries:
+- `strength`: how essential it is, from 0 to 1.
+- `reason`: one short sentence on why, in terms of the skill.
+
+It carries up the levels the same way, and a higher level has its own REQUIRES_KNOWLEDGE to the same topic only when the level of it or the `strength` it needs there is different. The Topics module writes these when a skill is filled (see "Skill requirements" in `documentation/architecture/topics.md`), creating a stub for any topic we don't have yet:
+```cypher
+MATCH (s:Skill {name: "Cooking"})-[:HAS_LEVEL]->(cn:Novice), (s)-[:HAS_LEVEL]->(cp:Proficient)
+MATCH (:Topic {name: "Food Safety"})-[:HAS_LEVEL]->(fr:Remember), (:Topic {name: "Food Safety"})-[:HAS_LEVEL]->(fa:Apply)
+MATCH (:Topic {name: "Nutrition"})-[:HAS_LEVEL]->(nu:Understand)
+// a Novice has to remember the basic rules of food safety
+CREATE (cn)-[:REQUIRES_KNOWLEDGE {strength: 0.8, reason: "Stores and cooks food without making anyone ill"}]->(fr)
+// a Proficient cook applies them to dishes they've never made
+CREATE (cp)-[:REQUIRES_KNOWLEDGE {strength: 0.8, reason: "Works out safe handling for unfamiliar ingredients"}]->(fa)
+// and plans balanced meals
+CREATE (cp)-[:REQUIRES_KNOWLEDGE {strength: 0.4, reason: "Balances a menu for the people eating it"}]->(nu)
+```
+
+Physical Attributes will add their own requirements to the levels in the same way.

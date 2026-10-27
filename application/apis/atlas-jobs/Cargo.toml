@@ -25,5 +25,5 @@ aws-sdk-bedrockruntime = { version = "1", default-features = false, features = [
 # Lambda (invoked with batches of SQS records)
 lambda_runtime = "1.4.0"
 
-# Shared with atlas-api: bedrock, the event bus and the skills resolver
+# Shared with atlas-api: bedrock, the event bus and the skills and topics resolvers
 atlas-shared = { path = "../atlas-shared" }

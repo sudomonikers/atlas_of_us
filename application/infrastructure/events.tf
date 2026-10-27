@@ -1,8 +1,8 @@
 ### EVENTS
 # The Atlas event bus. Every module publishes what happened to its sub-graph here (Skills events have the source
-# atlas.skills), and every job that reacts to an event has its own rule and queue, named <event>-<module>, so one job's
-# backlog, replay or failures never hold up another's. The queues all feed the atlas-jobs lambda (jobs_lambda.tf), which
-# picks the handler by the queue. See documentation/architecture/skills.md.
+# atlas.skills, and Topics events atlas.topics), and every job that reacts to an event has its own rule and queue, named
+# <event>-<module>, so one job's backlog, replay or failures never hold up another's. The queues all feed the atlas-jobs
+# lambda (jobs_lambda.tf), which picks the handler by the queue. See documentation/architecture/events.md.
 locals {
   events_name = "atlas-events"
 
@@ -12,6 +12,8 @@ locals {
     { event = "SkillFillRequested", source = "atlas.skills", module = "Skills", concurrency = 5 },
     { event = "SkillFilled", source = "atlas.skills", module = "Skills", concurrency = 2 },
     { event = "SkillFilled", source = "atlas.skills", module = "Personality", concurrency = 2 },
+    { event = "SkillFilled", source = "atlas.skills", module = "Topics", concurrency = 2 },
+    { event = "TopicFillRequested", source = "atlas.topics", module = "Topics", concurrency = 5 },
   ] : "${job.event}-${job.module}" => job }
 }
 

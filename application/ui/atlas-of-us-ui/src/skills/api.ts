@@ -29,6 +29,7 @@ export interface Level {
   next_level: string | null; //what it takes to reach the next level. Missing on Expert and on a stub's levels
   traits: TraitRequirement[]; //the personality it takes, written on this level itself. Lower levels' carry up to it
   skills: SkillRequirement[]; //the other skills it needs, written on this level itself. Lower levels' carry up to it
+  topics: TopicRequirement[]; //the levels of topics it needs knowledge of, written on this level itself. Lower levels' carry up to it
 }
 
 //a personality trait a level takes. `level` is where on the trait it pulls, above 0.5 for more of it and below for less
@@ -42,6 +43,16 @@ export interface TraitRequirement {
 //a level of another skill a level needs
 export interface SkillRequirement extends SkillRef {
   rank: number; //the level of it that's needed
+  strength: number; //how essential it is, 0 to 1
+  reason: string;
+}
+
+//a level of a topic a level needs knowledge of
+export interface TopicRequirement {
+  id: string;
+  name: string;
+  status: SkillStatus; //topics go stub, filling, ready or failed, the same as skills
+  rank: number; //the Bloom level of it that's needed, 1 (Remember) to 6 (Create)
   strength: number; //how essential it is, 0 to 1
   reason: string;
 }

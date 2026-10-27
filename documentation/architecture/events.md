@@ -6,7 +6,8 @@ knows nothing about who listens, so a new module can start reacting to skills, s
 module.
 
 This page covers how events move through the Atlas, and the steps for adding a new event or a new job that reacts to
-one. The events each module publishes are listed on that module's page, such as "Events" in `skills.md`.
+one. The events each module publishes are listed on that module's page, such as "Events" in `skills.md` and in
+`topics.md`.
 
 ## The pieces
 
@@ -84,6 +85,8 @@ events::publish(...)                  (+ archive)    ──rule──▶  SkillF
 An event with no job reacting to it still lands in the archive, so a job added later can replay it.
 
 ## Adding a job that reacts to an event
+The steps below use `SkillFilled-Topics`, the job that links a filled skill's levels to the topics they need, as the
+example.
 
 1. **Add an entry to `event_jobs`** in `events.tf`:
    ```hcl
