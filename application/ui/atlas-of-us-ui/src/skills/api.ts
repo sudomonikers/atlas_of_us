@@ -1,6 +1,10 @@
 import { request } from '../auth/api';
+import { evidenceApi, type Evidence } from '../shared_components/evidence_api';
 
 export type SkillStatus = 'stub' | 'filling' | 'ready' | 'failed';
+
+//a skill's five levels, the Dreyfus model, by rank
+export const LEVEL_NAMES = ['Novice', 'Advanced Beginner', 'Competent', 'Proficient', 'Expert'];
 
 export interface SkillRef {
   id: string;
@@ -145,3 +149,44 @@ export interface TraitSkills {
 //the skills that take a trait, from `skip`. The route belongs to the Personality module
 export const getTraitSkills = (id: string, skip = 0) =>
   request<TraitSkills>('GET', `/personality/traits/${encodeURIComponent(id)}/skills?skip=${skip}`);
+
+//where the logged in user is with a skill: the Dreyfus level they've reached (ACHIEVED), if they've placed themselves
+//on it, when they got there if they said, and their evidence for it
+export interface Achievement {
+  rank: number | null; //1 (Novice) to 5 (Expert)
+  achieved_on: string | null; //YYYY-MM-DD
+  evidence: Evidence[]; //oldest first
+}
+
+//a skill someone has placed themselves on, with the level they've reached, when, and their evidence
+export interface AchievedSkill {
+  skill: SkillRef;
+  rank: number;
+  achieved_on: string | null; //YYYY-MM-DD
+  updated_at: string;
+  evidence: Evidence[];
+}
+
+const achievementPath = (id: string) => `/skills/${encodeURIComponent(id)}/achievement`;
+
+export const getAchievement = (id: string) => request<Achievement>('GET', achievementPath(id));
+
+//places the logged in user at one of a ready skill's levels, in place of any they were at before, with when they got
+//there if they say
+export const setAchievement = (id: string, rank: number, achievedOn: string | null) =>
+  request<void>('PUT', achievementPath(id), { rank, achieved_on: achievedOn });
+
+//takes the logged in user off a skill, with all their evidence for it
+export const removeAchievement = (id: string) => request<void>('DELETE', achievementPath(id));
+
+//adding the logged in user's evidence about a skill, once they've placed themselves on it
+export const skillEvidence = (id: string) => evidenceApi(`/skills/${encodeURIComponent(id)}`);
+
+//every skill the logged in user has placed themselves on, highest level first
+export const getAchievements = () => request<AchievedSkill[]>('GET', '/skills/achievements');
+
+//when someone reached a level, YYYY-MM-DD, as a month and year, e.g. March 2024
+export function monthYear(date: string) {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+}

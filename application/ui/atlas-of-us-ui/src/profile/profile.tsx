@@ -1,10 +1,11 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
 import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, type PersonPersonality } from '../personality/api';
 import { PersonalityReport } from '../personality/report';
+import { LEVEL_NAMES, monthYear, type AchievedSkill } from '../skills/api';
 import { BLOOM_NAMES, type EngagedTopic } from '../topics/api';
-import { EvidenceList } from '../topics/evidence';
-import { LevelSteps } from '../topics/my_knowledge';
+import { EvidenceList } from '../shared_components/evidence';
+import { LevelSteps } from '../shared_components/level_steps';
 import { navigate, replace, useSearch } from '../router';
 import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
@@ -18,10 +19,11 @@ const blue = 'var(--air-force-blue)';
 const comic = 'var(--font-comic)';
 
 //one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link can open on it
-type Tab = 'personality' | 'topics';
+type Tab = 'personality' | 'topics' | 'skills';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'personality', label: 'Personality' },
   { id: 'topics', label: 'Topics' },
+  { id: 'skills', label: 'Skills' },
 ];
 
 //everything we know about someone, at /u/{username}, one section per part of them. Anyone can see it once
@@ -139,6 +141,7 @@ export default function Profile({ username }: { username: string }) {
           </div>
           {tab === 'personality' && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
           {tab === 'topics' && <TopicsSection topics={profile.topics} firstName={profile.first_name} />}
+          {tab === 'skills' && <SkillsSection skills={profile.skills} firstName={profile.first_name} />}
         </>
       )}
 
@@ -197,25 +200,62 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
   );
 }
 
-//the topics they've placed themselves on, deepest first, each with the level they're at and their evidence
+//opens a page in the app from a link, without a reload
+const follow = (to: string) => (e: MouseEvent) => {
+  e.preventDefault();
+  navigate(to);
+};
+
+//the topics they've placed themselves on, deepest first, each with the Bloom level they're at and their evidence
 function TopicsSection({ topics, firstName }: { topics: EngagedTopic[]; firstName: string }) {
   return (
     <section style={styles.section} className="comic-panel" role="tabpanel">
       {!topics.length && <p>{firstName} hasn't placed themselves on any topics yet.</p>}
-      {topics.map(({ topic, rank, evidence }) => (
-        <div key={topic.id} style={styles.topic}>
-          <div style={styles.topicHead}>
-            <a style={styles.topicName} href={`/topics/${encodeURIComponent(topic.id)}`} onClick={(e) => { e.preventDefault(); navigate(`/topics/${encodeURIComponent(topic.id)}`); }}>
-              {topic.name}
-            </a>
-            <span style={styles.topicLevel}>
-              <LevelSteps rank={rank} />
-              {BLOOM_NAMES[rank - 1]}
-            </span>
+      {topics.map(({ topic, rank, evidence }) => {
+        const to = `/topics/${encodeURIComponent(topic.id)}`;
+        return (
+          <div key={topic.id} style={styles.entry}>
+            <div style={styles.entryHead}>
+              <a style={styles.entryName} href={to} onClick={follow(to)}>
+                {topic.name}
+              </a>
+              <span style={styles.entryLevel}>
+                <LevelSteps rank={rank} total={BLOOM_NAMES.length} />
+                {BLOOM_NAMES[rank - 1]}
+              </span>
+            </div>
+            <EvidenceList evidence={evidence} />
           </div>
-          <EvidenceList evidence={evidence} />
-        </div>
-      ))}
+        );
+      })}
+    </section>
+  );
+}
+
+//the skills they've placed themselves on, highest level first, each with the Dreyfus level they're at, since when, and
+//their evidence
+function SkillsSection({ skills, firstName }: { skills: AchievedSkill[]; firstName: string }) {
+  return (
+    <section style={styles.section} className="comic-panel" role="tabpanel">
+      {!skills.length && <p>{firstName} hasn't placed themselves on any skills yet.</p>}
+      {skills.map(({ skill, rank, achieved_on, evidence }) => {
+        const to = `/skills/${encodeURIComponent(skill.id)}`;
+        return (
+          <div key={skill.id} style={styles.entry}>
+            <div style={styles.entryHead}>
+              <a style={styles.entryName} href={to} onClick={follow(to)}>
+                {skill.name}
+              </a>
+              <span style={styles.entryLevel}>
+                <LevelSteps rank={rank} total={LEVEL_NAMES.length} />
+                {LEVEL_NAMES[rank - 1]}
+                {achieved_on && <span style={styles.since}>since {monthYear(achieved_on)}</span>}
+              </span>
+            </div>
+            <EvidenceList evidence={evidence} />
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -322,13 +362,13 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1,
     color: 'var(--brown-red)',
   },
-  topic: {
+  entry: {
     marginBottom: 20,
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
   },
-  topicHead: {
+  entryHead: {
     paddingBottom: 6,
     display: 'flex',
     flexWrap: 'wrap',
@@ -337,7 +377,7 @@ const styles: Record<string, CSSProperties> = {
     gap: '6px 16px',
     borderBottom: `4px solid ${gunmetal}`,
   },
-  topicName: {
+  entryName: {
     fontFamily: comic,
     fontSize: 28,
     letterSpacing: 1.5,
@@ -346,11 +386,16 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: 'none',
     overflowWrap: 'anywhere',
   },
-  topicLevel: {
+  entryLevel: {
     display: 'flex',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
     fontSize: 18,
+  },
+  since: {
+    fontSize: 15,
+    color: blue,
   },
   traits: {
     margin: 0,

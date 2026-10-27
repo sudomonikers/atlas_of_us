@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { BLOOM_NAMES, IDEA_TYPES, getEngagement, getNeighborPage, getNeighbors, getTopic, removeEngagement, requestFill, type Engagement, type Idea, type IdeaType, type Level, type Linked, type Neighbors, type PagedGroup, type Topic } from './api';
-import { EvidenceForm, EvidenceList } from './evidence';
-import { SelfAssessment } from './self_assessment';
+import { BLOOM_NAMES, IDEA_TYPES, getNeighborPage, getEngagement, getNeighbors, getTopic, requestFill, type Engagement, type Idea, type IdeaType, type Level, type Linked, type Neighbors, type PagedGroup, type Topic } from './api';
+import { EngagementCard } from './engagement_card';
+import { EngagementWalkthrough } from './engagement_walkthrough';
 import type { Placed } from './topic_board';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
@@ -119,8 +119,12 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
 
       {topic.status === 'ready' && (
         <>
-          {engagement && engagement.rank !== null && <Standing topic={topic} rank={engagement.rank} engagement={engagement} onChange={setEngagement} onWalk={() => setWalking(true)} />}
-          {engagement && walking && <SelfAssessment topic={topic} engagement={engagement} onChange={setEngagement} onClose={() => setWalking(false)} />}
+          {engagement && engagement.rank !== null && (
+            <EngagementCard topic={topic} rank={engagement.rank} engagement={engagement} onChange={setEngagement} onWalk={() => setWalking(true)} />
+          )}
+          {engagement && walking && (
+            <EngagementWalkthrough topic={topic} engagement={engagement} onChange={setEngagement} onClose={() => setWalking(false)} />
+          )}
           <Levels levels={topic.levels} rank={rank} mine={engagement?.rank ?? null} onRank={setRank} />
           <Ideas ideas={topic.ideas} name={topic.name} onOpen={onOpen} />
         </>
@@ -147,53 +151,6 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
 
       {neighbors && <Connections name={topic.name} neighbors={neighbors} onNeighbors={setNeighbors} onOpen={onOpen} onOpenSkill={onOpenSkill} />}
     </article>
-  );
-}
-
-//the level the user has placed themselves at in the topic, with their evidence
-function Standing({ topic, rank, engagement, onChange, onWalk }: {
-  topic: Topic;
-  rank: number;
-  engagement: Engagement;
-  onChange: (engagement: Engagement) => void;
-  onWalk: () => void;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [removing, setRemoving] = useState(false);
-  const [error, setError] = useState<string>();
-
-  const remove = () => {
-    if (!window.confirm(`Take yourself off ${topic.name}? Your evidence for it goes too.`)) return;
-    setRemoving(true);
-    setError(undefined);
-    removeEngagement(topic.id)
-      .then(() => onChange({ rank: null, evidence: [] }))
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-      .finally(() => setRemoving(false));
-  };
-
-  return (
-    <section style={styles.standing} className="comic-panel">
-      <div style={styles.standingHead}>
-        <h3 style={styles.standingTitle}>You're at {BLOOM_NAMES[rank - 1]}</h3>
-        <div style={styles.standingButtons}>
-          {!adding && (
-            <button className="comic-lift" style={styles.button} onClick={() => setAdding(true)}>
-              Add evidence
-            </button>
-          )}
-          <button className="comic-lift" style={styles.graphButton} onClick={onWalk}>
-            Walk through again
-          </button>
-          <button className="comic-lift" style={styles.moreLinks} disabled={removing} onClick={remove}>
-            {removing ? <>Removing<Dots /></> : 'Remove'}
-          </button>
-        </div>
-      </div>
-      <EvidenceList evidence={engagement.evidence} onRemoved={(gone) => onChange({ ...engagement, evidence: engagement.evidence.filter((e) => e.id !== gone) })} />
-      {adding && <EvidenceForm topicId={topic.id} given={engagement.evidence.length} onAdded={(added) => onChange({ ...engagement, evidence: [...engagement.evidence, added] })} />}
-      {error && <AtlasError message={error} size={36} />}
-    </section>
   );
 }
 
@@ -456,39 +413,6 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 20,
     letterSpacing: 1,
-  },
-  standing: {
-    marginBottom: 28,
-    padding: '18px 24px',
-    boxSizing: 'border-box',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-    background: '#fff',
-    borderRadius: 'var(--wobbly)',
-    '--panel-fill': paleBlue,
-    '--tilt': '-0.2deg',
-  } as CSSProperties,
-  standingHead: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '10px 16px',
-  },
-  standingTitle: {
-    margin: 0,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 28,
-    letterSpacing: 1,
-    color: brownRed,
-  },
-  standingButtons: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10,
   },
   you: {
     background: ivory,

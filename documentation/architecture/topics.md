@@ -24,7 +24,8 @@ Every meaningful change is published as an **event**.
 | Idea resolver | `application/apis/atlas-jobs/src/ideas.rs` | Decides whether each Idea a fill names is one we already have |
 | Skill requirements job | `application/apis/atlas-jobs/src/events/skill_filled/topics.rs` | Links a filled skill's levels to the topics they need |
 | Event bus | `application/infrastructure/events.tf` | The `TopicFillRequested-Topics` and `SkillFilled-Topics` rules and queues (see `events.md`) |
-| Placing yourself | `application/apis/atlas-api/src/domains/topics/engagement.rs` | The level a user is at in a topic, and their evidence for it |
+| Placing yourself | `application/apis/atlas-api/src/domains/topics/engagement.rs` | The level a user is at in a topic (`ENGAGES_TOPIC`), and the routes for their evidence about it once they're on it |
+| Evidence | `application/apis/atlas-api/src/evidence/mod.rs` | Notes and files a person gives about a node, for any module to call with the node, and `/api/evidence` for removing and downloading them. The UI's evidence list and form, `FileUpload`, `Stepper` and `LevelSteps` are in `src/shared_components/`. Each module builds its own walkthrough, card and list on them (`topics/engagement_walkthrough.tsx` and `engagement_card.tsx`, `skills/achievement_walkthrough.tsx` and `achievement_card.tsx`) |
 | Evidence bucket | `application/infrastructure/evidence.tf` | The private `atlas-of-us-evidence` bucket for files given as evidence, its CORS rule for the site, and the API's access to it (`EVIDENCE_BUCKET`) |
 | Migrations | `application/database/migrations/003_topics_indexes.cypher`, `004_evidence.cypher` | The constraints, the full-text index and the vector indexes, and the Evidence id constraint |
 | Taxonomy import | `application/database/topics_import/` | Asks the API for each ESCO field and knowledge entry, broader ones first |
@@ -56,9 +57,14 @@ All routes are under `/api/topics`. Asking, filling and placing yourself on a to
 | `POST /{id}/evidence` `{text}` | Adds a note as evidence, up to 2,000 characters |
 | `POST /{id}/evidence/uploads` `{file_name, content_type, size}` | An `upload_id` and a `url` the browser PUTs the file to, with its `Content-Type`, for ten minutes. Files are PDFs, images, text, Markdown or Word documents, up to 20 MB |
 | `POST /{id}/evidence/files` `{upload_id, file_name}` | Adds an uploaded file as evidence, once it's in the bucket. A file that's too big or the wrong kind is deleted |
-| `DELETE /evidence/{id}` | Removes a piece of the user's evidence, and its file |
-| `GET /evidence/{id}/file` | A `url` that downloads a file of evidence for five minutes. Its owner can always get one, and anyone can when the owner's profile is public |
 | `GET /engagements` | Every topic the user has placed themselves on, deepest first, with their evidence |
+
+Evidence itself, whether it's about a topic or a skill, is under `/api/evidence`:
+
+| Route | What it does |
+|---|---|
+| `DELETE /{id}` | Removes a piece of the user's evidence, and its file |
+| `GET /{id}/file` | A `url` that downloads a file of evidence for five minutes. Its owner can always get one, and anyone can when the owner's profile is public |
 
 ## Where topics come from
 A Topic node is created in three ways, and every one goes through the topic resolver:

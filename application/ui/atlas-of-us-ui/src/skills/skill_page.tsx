@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
+import { LEVEL_NAMES, getNeighborPage, getAchievement, getNeighbors, getSkill, requestFill, type Achievement, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
+import { AchievementCard } from './achievement_card';
+import { AchievementWalkthrough } from './achievement_walkthrough';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
@@ -20,7 +22,6 @@ const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 //how often a skill being filled is checked on
 const FILL_POLL_MS = 4000;
 
-const LEVEL_NAMES = ['Novice', 'Advanced Beginner', 'Competent', 'Proficient', 'Expert'];
 //a topic's levels, Bloom's taxonomy, by rank
 const BLOOM_NAMES = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'];
 
@@ -38,6 +39,8 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
   const [neighbors, setNeighbors] = useState<Neighbors>();
   const [error, setError] = useState<string>();
   const [rank, setRank] = useState(1); //the level being read
+  const [achievement, setAchievement] = useState<Achievement>(); //where the user is with it, once it's ready
+  const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
 
   useEffect(() => {
     let live = true;
@@ -76,6 +79,16 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
     return () => window.clearInterval(timer);
   }, [id, status]);
 
+  //where the user is with it, once it has levels to be at
+  useEffect(() => {
+    if (status !== 'ready') return;
+    let live = true;
+    getAchievement(id).then((a) => live && setAchievement(a), () => {}); //the skill is still worth reading without it
+    return () => {
+      live = false;
+    };
+  }, [id, status]);
+
   const retry = () =>
     requestFill(id).then(
       ({ status }) => setSkill((s) => s && { ...s, status }),
@@ -90,15 +103,32 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
       <header style={styles.header} className="comic-panel comic-pop">
         <div style={styles.nameRow}>
           <h2 style={styles.name}>{skill.name}</h2>
-          <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
-            See it in the graph
-          </button>
+          <div style={styles.headerButtons}>
+            {achievement?.rank === null && (
+              <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
+                Add yourself
+              </button>
+            )}
+            <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
+              See it in the graph
+            </button>
+          </div>
         </div>
         {skill.description && <p style={styles.description}>{skill.description}</p>}
         {skill.aliases.length > 0 && <p style={styles.aliases}>Also known as {skill.aliases.join(', ')}</p>}
       </header>
 
-      {skill.status === 'ready' && <Levels levels={skill.levels} rank={rank} onRank={setRank} onOpen={onOpen} />}
+      {skill.status === 'ready' && (
+        <>
+          {achievement && achievement.rank !== null && (
+            <AchievementCard skill={skill} rank={achievement.rank} achievement={achievement} onChange={setAchievement} onWalk={() => setWalking(true)} />
+          )}
+          {achievement && walking && (
+            <AchievementWalkthrough skill={skill} achievement={achievement} onChange={setAchievement} onClose={() => setWalking(false)} />
+          )}
+          <Levels levels={skill.levels} rank={rank} mine={achievement?.rank ?? null} onRank={setRank} onOpen={onOpen} />
+        </>
+      )}
       {(skill.status === 'filling' || skill.status === 'stub') && (
         <div style={styles.waiting}>
           <Mascot />
@@ -125,9 +155,10 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
 }
 
 //the level picker, as a ladder, and what the picked level says
-function Levels({ levels, rank, onRank, onOpen }: {
+function Levels({ levels, rank, mine, onRank, onOpen }: {
   levels: Level[];
   rank: number;
+  mine: number | null; //the level the user is at, marked on its rung
   onRank: (rank: number) => void;
   onOpen: (skill: SkillRef) => void;
 }) {
@@ -147,6 +178,7 @@ function Levels({ levels, rank, onRank, onOpen }: {
           >
             <span style={styles.rungNumber}>{i + 1}</span>
             {name}
+            {mine === i + 1 && <span className="comic-chip" style={styles.you}>You</span>}
           </button>
         ))}
       </div>
@@ -375,6 +407,17 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '8px 16px',
+  },
+  headerButtons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
+  you: {
+    background: ivory,
+    color: gunmetal,
+    fontSize: 13,
   },
   graphButton: {
     padding: '2px 14px',

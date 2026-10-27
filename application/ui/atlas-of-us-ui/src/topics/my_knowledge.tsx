@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { BLOOM_NAMES, getEngagements, type EngagedTopic } from './api';
 import { navigate } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
+import { LevelSteps } from '../shared_components/level_steps';
 import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -21,7 +22,7 @@ export default function MyKnowledge() {
   useEffect(() => {
     let live = true;
     getEngagements().then(
-      (t) => live && setTopics(t),
+      (loaded) => live && setTopics(loaded),
       (e) => live && setError(e instanceof Error ? e.message : String(e)),
     );
     return () => {
@@ -35,11 +36,7 @@ export default function MyKnowledge() {
       <p style={styles.text}>The topics you know, and how deeply you know them.</p>
       {error && <AtlasError message={error} />}
       {!error && !topics && <Thinking label="Gathering what you know" />}
-      {topics && !topics.length && (
-        <p style={styles.text}>
-          Nothing here yet. Open a topic in the Topics Explorer and walk through its levels to place yourself on it.
-        </p>
-      )}
+      {topics && !topics.length && <p style={styles.text}>Nothing here yet. Open a topic in the Topics Explorer and add yourself to it.</p>}
       {!!topics?.length && (
         <ul style={styles.list}>
           {topics.map(({ topic, rank, evidence }) => (
@@ -47,10 +44,10 @@ export default function MyKnowledge() {
               <button className="comic-lift" style={styles.row} onClick={() => navigate(`/topics/${encodeURIComponent(topic.id)}`)}>
                 <span style={styles.name}>{topic.name}</span>
                 <span style={styles.level}>
-                  <LevelSteps rank={rank} />
+                  <LevelSteps rank={rank} total={BLOOM_NAMES.length} />
                   {BLOOM_NAMES[rank - 1]}
                 </span>
-                <span style={styles.evidence}>
+                <span style={styles.detail}>
                   {evidence.length ? `${evidence.length} piece${evidence.length === 1 ? '' : 's'} of evidence` : 'No evidence yet'}
                 </span>
               </button>
@@ -59,17 +56,6 @@ export default function MyKnowledge() {
         </ul>
       )}
     </section>
-  );
-}
-
-//the six levels as rising steps, filled up to the one reached
-export function LevelSteps({ rank }: { rank: number }) {
-  return (
-    <span style={styles.steps} role="img" aria-label={`Level ${rank} of ${BLOOM_NAMES.length}`}>
-      {BLOOM_NAMES.map((name, i) => (
-        <span key={name} style={{ ...styles.step, height: 6 + i * 3, ...(i < rank ? styles.stepReached : {}) }} />
-      ))}
-    </span>
   );
 }
 
@@ -135,26 +121,12 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    minWidth: 150,
+    minWidth: 190,
     fontSize: 17,
     color: brownRed,
   },
-  evidence: {
+  detail: {
     fontSize: 15,
     color: blue,
-  },
-  steps: {
-    display: 'inline-flex',
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  step: {
-    width: 8,
-    background: ivory,
-    border: `2px solid ${gunmetal}`,
-    borderRadius: 3,
-  },
-  stepReached: {
-    background: brownRed,
   },
 };

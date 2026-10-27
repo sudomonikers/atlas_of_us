@@ -1,5 +1,6 @@
 //Skills Graph: Skill nodes with 5 Dreyfus levels linked by HAS_LEVEL / NEXT_LEVEL. How skills are searched for, asked
 //for and filled is described in documentation/architecture/skills.md
+mod achievement;
 mod gates;
 
 use std::collections::HashMap;
@@ -21,6 +22,9 @@ use crate::{auth::AuthUser, bedrock, events, helpers::lucene, state::AppState};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
+pub use achievement::{PersonSkill, person_skills};
+
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(health_check).post(ask_for_skill))
@@ -29,6 +33,7 @@ pub fn router() -> Router<AppState> {
         .route("/{id}/neighbors", get(get_neighbors))
         .route("/{id}/neighbors/{group}", get(get_neighbor_page))
         .route("/{id}/fill", post(request_fill))
+        .merge(achievement::router())
 }
 
 /// Healthcheck for the skills router.

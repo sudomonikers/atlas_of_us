@@ -401,11 +401,14 @@ as well as engagement level relationships such as:
 
 These relationships can stack. A person may both like AND dislike the exact same thing for different reasons and for different intensities. Intensity is a float between 0 and one indicating degree, and reason is a string indicated by the user themself.
 
-A Person will of course also have relationships with the different Dreyfus levels:
+A Person will of course also have a relationship with the one Dreyfus level they've reached in a skill, by their own account:
 ```cypher
-(a:Person)-[:ACHIEVED {timestamp: "", proof: "", verified: false, levelVersion: 1}]->(cn:DreyfusLevel:Novice)
+(a:Person)-[:ACHIEVED {achievedOn: date("2024-03-01"), levelVersion: 1, since: datetime(), updatedAt: datetime()}]->(cc:DreyfusLevel:Competent)
 ```
-When a person has a higher Dreyfus level, they may have relationships with all lower levels or may not depending on their initial level when entering in the system. However it is assumed a Person has all lower levels of a Skill up to their highest level achieved. Note that the timestamp is the date achieved, NOT the date entered in the system. This date is entered by the user. The proof property is a url link to an s3 blob (likely a video or pdf, but could be anything). The verification property is a boolean switch that gets flipped asynchronously after proof is attached.
+A Person has one ACHIEVED per Skill, to the highest level they've reached, and is taken to have every level below it. `achievedOn` is the date they reached it, which they enter themselves and can leave out, and `since` is when they first placed themselves on the skill. They back it up with Evidence, each piece a note they wrote or a file they uploaded, the same Evidence nodes as for topics (see the Topics graph):
+```cypher
+(a:Person)-[:GAVE_EVIDENCE]->(:Evidence {id: randomUUID(), kind: "note", text: "Cooked the family dinner every night for a year", createdAt: datetime()})-[:ABOUT]->(c:Skill {name: "Cooking"})
+```
 
 `levelVersion` is the version of the level the claim was made against. When a level is revised, existing claims keep their old `levelVersion`, so a claim whose `levelVersion` is lower than the level's `version` is one whose criteria have changed since. The person is asked to re-confirm it, and re-confirming sets `levelVersion` to the current version. Only levels that have been filled can be claimed.
 

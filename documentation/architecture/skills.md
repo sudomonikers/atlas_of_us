@@ -23,6 +23,7 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 | UI | `application/ui/atlas-of-us-ui/src/skills/` | Search, the skill page, claiming a level, reviewing content and proposals |
 | API | `application/apis/atlas-api/src/domains/skills/mod.rs` | Search, the creation gates, claiming levels, endorsements and proposals, publishing events |
 | Gates | `application/apis/atlas-api/src/domains/skills/gates.rs` | Normalize and classify what a user asks for, and screen out nonsense |
+| Placing yourself | `application/apis/atlas-api/src/domains/skills/achievement.rs` | The level a user is at in a skill (`ACHIEVED`), when they got there, and the routes for their evidence about it once they're on it. Evidence itself is `src/evidence/mod.rs` (see `topics.md`) |
 | Resolver | `application/apis/atlas-shared/src/skills/resolver.rs` | Decides whether a skill name is the same as, more specific than, or different from existing skills, and creates stubs. It's in the crate the API and atlas-jobs share (see `ADRs/atlas_shared_crate.md`), so both run the same logic |
 | Fill job | `application/apis/atlas-jobs/src/events/skill_fill_requested/skills.rs` | Generates a stub's Dreyfus levels with Bedrock |
 | Prerequisites job | `application/apis/atlas-jobs/src/events/skill_filled/skills.rs` | Links a filled skill's levels to the levels of the skills they need, with the resolver |
@@ -41,7 +42,7 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
   typed. Why Titan is in `ADRs/skills_embeddings.md`.
 
 ### The API
-All routes are under `/api/skills`. Asking, confirming and filling need a logged in user.
+All routes are under `/api/skills`. Asking, filling and placing yourself on a skill need a logged in user.
 
 | Route | What it does |
 |---|---|
@@ -51,6 +52,11 @@ All routes are under `/api/skills`. Asking, confirming and filling need a logged
 | `GET /{id}/neighbors` | The skill without its levels, and the skills around it: its `broader` skills (the ones it's a kind of), its `narrower` skills (the ones that are kinds of it), what its levels `needs` and what it `leads_to` through `REQUIRES_SKILL` (strongest first, each with the strength of its strongest link), and up to eight `similar` skills by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total`. It also has every personality trait its levels take, as `traits`, strongest first with the strength of its strongest requirement, and every topic its levels need, as `topics`, strongest first with the strength of its strongest link and the `rank` of the deepest Bloom level any level needs |
 | `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `needs` or `leads_to`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` skill to be filled, and returns its status |
+| `GET /{id}/achievement` | The `rank` of the level the user is at in the skill (`null` when they haven't placed themselves on it), when they reached it (`achieved_on`, `YYYY-MM-DD`, when they said), and their `evidence`, oldest first |
+| `PUT /{id}/achievement` `{rank, achieved_on?}` | Places the user at a `ready` skill's level, in place of the one they were at, with the date they reached it if they give one. It can't be in the future |
+| `DELETE /{id}/achievement` | Takes the user off the skill, with their evidence for it and its files |
+| `POST /{id}/evidence`, `/{id}/evidence/uploads`, `/{id}/evidence/files` | Adds a note or a file as evidence, the same as for a topic (see `topics.md`) |
+| `GET /achievements` | Every skill the user has placed themselves on, highest level first, with their evidence |
 
 Every linked skill a route returns comes with its `id`, `name` and `status`.
 
@@ -159,14 +165,24 @@ A skill opens at `/skills/<id>`, with its five levels and, under them, the skill
 of, the kinds of it, what it needs, what it leads to, and similar skills, twelve of each at a time. Each one opens in
 turn, and the skills hopped through stay as a trail above the page.
 
-- **A `ready` skill** opens straight to its levels. The user can claim a level, attach evidence (uploaded to S3), and
-  review the content. Each level shows the skills it takes, the knowledge it takes and the personality it takes: every
+- **A `ready` skill** opens straight to its levels, with "Add yourself" beside its name (see "Placing yourself on a
+  skill"). Each level shows the skills it takes, the knowledge it takes and the personality it takes: every
   requirement from that level and the ones below it, strongest first, with how much it matters and why, and the level a carried-up one comes
   from. Each skill it takes names the level of it needed, opens that skill, and is marked when it isn't filled in yet.
   Each topic it needs names the Bloom level of it needed, and opens that topic in Topics.
 - **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
   (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
   it's safe to call on every open. The UI polls `GET /{id}` until it's `ready`.
+
+### Placing yourself on a skill
+"Add yourself" opens the same walkthrough as a topic's: it climbs the five levels from Novice, showing each one's
+description and signs. "I'm past this" climbs to the next level, "Back" steps down, and "That's me exactly" asks when
+they reached that level, which they can skip, then saves it as their one `ACHIEVED` to the skill, with the level's
+`version`. They can then back it up with up to five pieces of evidence, notes or files, the same as for a topic.
+
+Their level then shows on the skill's page, with when they reached it, a "You" mark on its rung, their evidence, and
+ways to add evidence, walk through again or take themselves off the skill. My Skills lists every skill they've placed
+themselves on, highest level first, and their profile's Skills tab shows the same to whoever can see the profile.
 
 ### Exploring the graph
 The Explorer also has a Graph view: a board in the style of Neo4j Bloom (`GraphBoard` in

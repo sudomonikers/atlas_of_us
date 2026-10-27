@@ -1,8 +1,8 @@
 import { useState, type CSSProperties } from 'react';
-import { EVIDENCE_FILE_TYPES, MAX_EVIDENCE, MAX_EVIDENCE_MB, addNote, fileUrl, removeEvidence, uploadFile, type Evidence } from './api';
-import { AtlasError } from '../shared_components/atlas-error';
-import { FileUpload } from '../shared_components/file_upload';
-import { Dots } from '../shared_components/thinking';
+import { EVIDENCE_FILE_TYPES, MAX_EVIDENCE, MAX_EVIDENCE_MB, fileUrl, removeEvidence, type Evidence, type EvidenceApi } from './evidence_api';
+import { AtlasError } from './atlas-error';
+import { FileUpload } from './file_upload';
+import { Dots } from './thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -33,7 +33,7 @@ function FileMark() {
   );
 }
 
-//someone's evidence for a topic: notes as they wrote them, and files to download. With onRemoved, each can be removed
+//someone's evidence for where they are with something: notes as they wrote them, and files to download. With onRemoved, each can be removed
 export function EvidenceList({ evidence, onRemoved }: { evidence: Evidence[]; onRemoved?: (id: string) => void }) {
   const [busy, setBusy] = useState<string>(); //the evidence being opened or removed
   const [error, setError] = useState<string>();
@@ -75,21 +75,21 @@ export function EvidenceList({ evidence, onRemoved }: { evidence: Evidence[]; on
   );
 }
 
-//adds evidence for where the logged in user is with a topic: a note they write, or a file they pick. `given` is how
-//many pieces they've given for it already, and once it's the most a topic takes, it says so instead
-export function EvidenceForm({ topicId, given, onAdded }: { topicId: string; given: number; onAdded: (evidence: Evidence) => void }) {
+//adds evidence for where the logged in user is with something: a note they write, or a file they pick. `given`
+//is how many pieces they've given for it already, and once it's the most one takes, it says so instead
+export function EvidenceForm({ api, given, onAdded }: { api: EvidenceApi; given: number; onAdded: (evidence: Evidence) => void }) {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
 
   if (given >= MAX_EVIDENCE) {
-    return <p style={styles.hint}>That's the most evidence a topic takes ({MAX_EVIDENCE} pieces). Remove one to add another.</p>;
+    return <p style={styles.hint}>That's the most evidence one takes ({MAX_EVIDENCE} pieces). Remove one to add another.</p>;
   }
 
   const saveNote = () => {
     setSaving(true);
     setError(undefined);
-    addNote(topicId, note)
+    api.addNote(note)
       .then((added) => {
         onAdded(added);
         setNote('');
@@ -123,7 +123,7 @@ export function EvidenceForm({ topicId, given, onAdded }: { topicId: string; giv
         accept={EVIDENCE_FILE_TYPES}
         maxMb={MAX_EVIDENCE_MB}
         hint={`PDF, image, text or Word, up to ${MAX_EVIDENCE_MB} MB`}
-        onUpload={(file) => uploadFile(topicId, file).then(onAdded)}
+        onUpload={(file) => api.uploadFile(file).then(onAdded)}
       />
     </div>
   );

@@ -3,6 +3,7 @@ mod helpers;
 
 mod domains;
 mod auth;
+mod evidence;
 mod feedback;
 mod admin;
 mod profile;
@@ -74,6 +75,7 @@ async fn main() {
         .nest("/api/topics", topics::router())
         .nest("/api/skills", skills::router())
         .nest("/api/physical", physical::router())
+        .nest("/api/evidence", evidence::router())
         .nest("/api/feedback", feedback::router())
         .nest("/api/admin", admin::router(state.clone()))
         .nest("/api/profiles", profile::router())
