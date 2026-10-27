@@ -8,6 +8,7 @@ const brownRed = 'var(--brown-red)';
 const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const paleBlue = 'var(--pale-blue)';
+const paleRed = 'var(--pale-red)';
 const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
@@ -28,7 +29,7 @@ const BLOB = 'M0 -18 C11 -18.5 18.5 -10 18 0 C17.5 11 10 18.5 0 18 C-11 17.5 -18
 //a hand-drawn diamond of about the same size
 const DIAMOND = 'M0 -21 C6 -14.5 14 -6.5 21 0 C14.5 6 6.5 14 0 21 C-6 14.5 -14 6.5 -21 0 C-14.5 -6 -6.5 -14 0 -21 Z';
 const SHAPES = { blob: BLOB, diamond: DIAMOND };
-const FILLS = { filled: cinnamon, hollow: ivory, pale: paleBlue };
+const FILLS = { filled: cinnamon, hollow: ivory, pale: paleBlue, warm: paleRed };
 
 export interface BoardLink {
   from: string;

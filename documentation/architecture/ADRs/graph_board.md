@@ -3,7 +3,8 @@
 **Status:** Accepted, 26 Oct 2026
 **Where it lives:** `application/ui/atlas-of-us-ui/src/shared_components/graph_board.tsx` (`GraphBoard`) and
 `board_layout.ts` (`BoardLayout`) beside it. Its first user is the Skills Explorer's Graph view, in
-`src/skills/graph.tsx` and `src/skills/skill_board.ts`.
+`src/skills/graph.tsx` and `src/skills/skill_board.ts`, and its second the Topics Explorer's, in `src/topics/graph.tsx`
+and `src/topics/topic_board.ts`.
 
 ## Context
 The Atlas is a graph, and most of its sub-graphs are worth seeing as one: what a skill is a kind of and what it needs,
@@ -28,7 +29,7 @@ nothing about what the graph is. The module that uses it owns the data and decid
 ### What the board takes
 | Prop | What it is |
 |---|---|
-| `nodes` | `{id, label, look, shape?, opened?, from?}`. `look` is `filled`, `hollow` (a dashed outline) or `pale` (a pale blue fill), `shape` is `blob` or `diamond` for a different kind of thing, `opened` marks a node that has been expanded, and `from` is the node it was brought on from, which it starts beside |
+| `nodes` | `{id, label, look, shape?, opened?, from?}`. `look` is `filled`, `hollow` (a dashed outline), `pale` (a pale blue fill) or `warm` (a pale red fill), `shape` is `blob` or `diamond` for a different kind of thing, `opened` marks a node that has been expanded, and `from` is the node it was brought on from, which it starts beside |
 | `links` | `{from, to, kind, weight?}`. The arrow points at `to`, and `weight` (0 to 1) thickens the line |
 | `kinds` | Each kind of link: its label for the legend, `solid`, `dashed` or `dotted`, whether it has an arrow, its colour, and how long it likes to be. The legend turns each kind off, and with it every node whose links are all of kinds that are off, other than the selected node |
 | `layout` | A `BoardLayout`, which holds every node's position and the view. The owner keeps it, so the board comes back as it was left |
@@ -54,15 +55,18 @@ The Skills Explorer shows the split:
 
 - It keeps the board's state (`SkillBoard` in `skill_board.ts`), with the `BoardLayout` inside it, and clears it when
   the Graph view is left, so each visit starts from an empty board.
-- It maps skills to `nodes` (filled when the skill's levels are written, hollow for a stub), and the personality traits
-  they take to pale diamonds. Its four kinds of link go to `kinds`: "A kind of", "Needs", "Similar" and "Takes".
+- It maps skills to `nodes` (filled when the skill's levels are written, hollow for a stub), the personality traits
+  they take to pale diamonds, and the topics they need to warm blobs. Its five kinds of link go to `kinds`: "A kind
+  of", "Needs", "Similar", "Takes" and "Knows".
 - Expanding calls `GET /api/skills/{id}/neighbors`, which returns a page of twelve of each kind of link with the total,
-  and every trait the skill takes, and the module adds them to `nodes` and `links`. Expanding a trait calls
-  `GET /api/personality/traits/{id}/skills` for the skills that take it. Its inspector beside the board brings in the
+  and every trait the skill takes and topic it needs, and the module adds them to `nodes` and `links`. Expanding a trait
+  calls `GET /api/personality/traits/{id}/skills` for the skills that take it, and expanding a topic calls
+  `GET /api/topics/{id}/neighbors` for the skills that need it. Its inspector beside the board brings in the
   next page of a kind.
 - Its search box goes over the board through `children`.
 
-Another module does the same with its own data, routes, kinds of link and inspector, and gets the same board.
+The Topics Explorer does the same with its own data: topics as blobs, Ideas as pale diamonds, and the skills that
+need a topic as warm blobs, with six kinds of link of its own (see "Exploring the graph" in `../topics.md`).
 
 ### Performance
 - Each node and each link is a memoized component. Panning and zooming change only the transform on the group holding

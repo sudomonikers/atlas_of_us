@@ -3,7 +3,7 @@ import type { SimulationNodeDatum } from 'd3-force';
 export interface BoardNode {
   id: string;
   label: string;
-  look: 'filled' | 'hollow' | 'pale'; //hollow is drawn with a dashed outline, and pale is filled in a pale blue
+  look: 'filled' | 'hollow' | 'pale' | 'warm'; //hollow is drawn with a dashed outline, pale is filled in a pale blue, and warm in a pale red
   shape?: 'blob' | 'diamond'; //a blob unless it's a different kind of thing from most of the board
   opened?: boolean; //marked with a dot, for a node whose links have been brought onto the board
   from?: string; //the node it was brought on from, which it starts next to

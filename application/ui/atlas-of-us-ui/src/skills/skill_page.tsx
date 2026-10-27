@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { getNeighborPage, getNeighbors, getSkill, requestFill, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
+import { navigate } from '../router';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -243,7 +244,7 @@ function Prerequisites({ levels, rank, onOpen }: { levels: Level[]; rank: number
   );
 }
 
-//the topics the picked level needs knowledge of, and the level of each
+//the topics the picked level needs knowledge of, and the level of each. Each opens that topic
 function Knowledge({ levels, rank }: { levels: Level[]; rank: number }) {
   const topics = carriedUp<TopicRequirement>(levels, rank, (level) => level.topics, (requirement) => requirement.id);
   if (!topics.length) return null;
@@ -254,7 +255,9 @@ function Knowledge({ levels, rank }: { levels: Level[]; rank: number }) {
         {topics.map(({ requirement, from }) => (
           <li key={requirement.id} style={styles.trait}>
             <div style={styles.traitHead}>
-              <strong>{requirement.name} at {BLOOM_NAMES[requirement.rank - 1]}</strong>
+              <button className="comic-lift" style={styles.link} onClick={() => navigate(`/topics/${encodeURIComponent(requirement.id)}`)}>
+                {requirement.name} at {BLOOM_NAMES[requirement.rank - 1]}
+              </button>
               <Strength strength={requirement.strength} from={from} rank={rank} label="How essential it is" />
               {requirement.status !== 'ready' && <span style={styles.from}>not filled in yet</span>}
             </div>

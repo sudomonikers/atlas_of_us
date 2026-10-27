@@ -27,7 +27,11 @@ pub fn router() -> Router<AppState> {
         .route("/", get(health_check).post(ask_for_topic))
         .route("/search", get(search))
         .route("/{id}", get(get_topic))
+        .route("/{id}/neighbors", get(get_neighbors))
+        .route("/{id}/neighbors/{group}", get(get_neighbor_page))
         .route("/{id}/fill", post(request_fill))
+        .route("/ideas/{id}", get(get_idea))
+        .route("/ideas/{id}/neighbors/{group}", get(get_idea_page))
 }
 
 /// Healthcheck for the topics router.
@@ -268,6 +272,198 @@ pub async fn get_topic(State(state): State<AppState>, Path(id): Path<String>) ->
     ").param("id", id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Topic>().map_err(internal)?))
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Exploring from a topic or an Idea
+// ---------------------------------------------------------------------------------------------------------------------
+
+//something linked to a topic or an Idea: a topic, an Idea or a skill. A topic or a skill has a status, an Idea a type,
+//and a skill that needs the topic the strength of its strongest link and the deepest Bloom level it needs
+#[derive(Serialize, Deserialize)]
+pub struct Linked {
+    id: String,
+    name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    status: Option<String>,
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    strength: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rank: Option<i64>,
+}
+
+//a page of what's linked one way, and how many are linked that way in all
+#[derive(Serialize, Deserialize)]
+pub struct Group {
+    items: Vec<Linked>,
+    total: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Centre {
+    id: String,
+    name: String,
+    description: Option<String>,
+    status: String,
+}
+
+#[derive(Serialize)]
+pub struct Neighbors {
+    topic: Centre,
+    broader: Group, //the topics it's a subtopic of
+    narrower: Group, //its subtopics
+    ideas: Group, //the Ideas it includes
+    needed_by: Group, //skills whose levels need knowledge of it
+    similar: Group, //the closest topics by meaning, other than its broader and narrower ones
+}
+
+//how many of each kind of link come at a time, and how many similar topics a topic has
+const NEIGHBOR_PAGE: i64 = 12;
+const SIMILAR: i64 = 8;
+
+//a kind of link that's paged through: its name, the pattern from the centre `c` to a linked node `o`, the order they
+//come in, and what each is returned as
+type GroupQuery = (&'static str, &'static str, &'static str, &'static str);
+
+const TOPIC: &str = "{id: o.id, name: o.name, status: o.status}";
+const IDEA: &str = "{id: o.id, name: o.name, type: o.type}";
+
+const GROUPS: [GroupQuery; 4] = [
+    ("broader", "MATCH (c)-[:SUBTOPIC_OF]->(o:Topic)", "WITH o ORDER BY o.name", TOPIC),
+    ("narrower", "MATCH (o:Topic)-[:SUBTOPIC_OF]->(c)", "WITH o ORDER BY o.name", TOPIC),
+    ("ideas", "MATCH (c)-[:INCLUDES]->(o:Idea)", "WITH o ORDER BY o.name", IDEA),
+    (
+        "needed_by",
+        "MATCH (o:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_KNOWLEDGE]->(b:BloomLevel)<-[:HAS_LEVEL]-(c)",
+        "WITH c, o, max(r.strength) AS strength, max(b.rank) AS rank ORDER BY strength DESC, o.name",
+        "{id: o.id, name: o.name, status: o.status, strength: strength, rank: rank}",
+    ),
+];
+
+const IDEA_GROUPS: [GroupQuery; 4] = [
+    ("topics", "MATCH (o:Topic)-[:INCLUDES]->(c)", "WITH o ORDER BY o.name", TOPIC),
+    ("requires", "MATCH (c)-[:REQUIRES_KNOWLEDGE]->(o:Idea)", "WITH o ORDER BY o.name", IDEA),
+    ("required_by", "MATCH (o:Idea)-[:REQUIRES_KNOWLEDGE]->(c)", "WITH o ORDER BY o.name", IDEA),
+    ("analogous", "MATCH (c)-[:ANALOGOUS_TO]-(o:Idea)", "WITH DISTINCT o ORDER BY o.name", IDEA),
+];
+
+//a page of one kind of link from $skip, as the columns <name>_items and <name>_total. They're two columns rather than
+//one map, since Neo4j 5.26 rejects an aggregating COLLECT inside a map literal
+fn group_columns((name, pattern, order, item): &GroupQuery) -> String {
+    format!(
+        "COLLECT {{ {pattern} {order} SKIP $skip LIMIT $limit RETURN {item} }} AS {name}_items,
+         COUNT {{ {pattern} WITH DISTINCT o RETURN o }} AS {name}_total"
+    )
+}
+
+//every kind of link in `groups`, as columns
+fn all_group_columns(groups: &[GroupQuery]) -> String {
+    groups.iter().map(group_columns).collect::<Vec<_>>().join(", ")
+}
+
+//one kind of link read back from its two columns
+fn read_group(row: &neo4rs::Row, name: &str) -> Result<Group, (StatusCode, String)> {
+    Ok(Group {
+        items: row.get(&format!("{name}_items")).map_err(internal)?,
+        total: row.get(&format!("{name}_total")).map_err(internal)?,
+    })
+}
+
+//what's around a topic, for exploring from it: a page of each kind of link with how many there are in all, and the
+//topic itself without its levels
+pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Neighbors>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (c:Topic {{id: $id}})
+        RETURN {{id: c.id, name: c.name, description: c.description, status: c.status}} AS topic, {}, c.vector AS vector
+    ", all_group_columns(&GROUPS))).param("id", id.as_str()).param("skip", 0).param("limit", NEIGHBOR_PAGE)).await.map_err(internal)?;
+    let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
+    let topic: Centre = row.get("topic").map_err(internal)?;
+    let group = |name: &str| read_group(&row, name);
+    let (broader, narrower, ideas, needed_by) = (group("broader")?, group("narrower")?, group("ideas")?, group("needed_by")?);
+    let vector: Option<Vec<f64>> = row.get("vector").map_err(internal)?;
+    drop(rows);
+
+    let mut similar = Vec::new();
+    if let Some(vector) = vector {
+        //one more than shown, since the topic itself is the closest
+        let mut rows = state.graph.execute(query("
+            MATCH (c:Topic {id: $id})
+            CALL db.index.vector.queryNodes('topic_vector', $k, $vector) YIELD node, score
+            WHERE node <> c AND score >= $min_score AND NOT (node)-[:SUBTOPIC_OF]-(c)
+            RETURN node.id AS id, node.name AS name, node.status AS status
+            ORDER BY score DESC
+        ").param("id", id.as_str()).param("k", SIMILAR + 1).param("vector", vector).param("min_score", resolver::MIN_SCORE))
+            .await.map_err(internal)?;
+        while let Some(row) = rows.next().await.map_err(internal)? {
+            similar.push(row.to::<Linked>().map_err(internal)?);
+        }
+    }
+    let similar = Group { total: similar.len() as i64, items: similar };
+    Ok(Json(Neighbors { topic, broader, narrower, ideas, needed_by, similar }))
+}
+
+#[derive(Deserialize)]
+pub struct PageParams {
+    skip: i64,
+}
+
+//the next page of one kind of link from the node `label` with `id`, from `skip`
+async fn page(state: &AppState, label: &str, groups: &[GroupQuery], id: &str, group: &str, skip: i64) -> Result<Json<Group>, (StatusCode, String)> {
+    let found = groups.iter().find(|g| g.0 == group).ok_or_else(|| (StatusCode::NOT_FOUND, "They aren't linked that way.".to_string()))?;
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (c:{label} {{id: $id}})
+        RETURN {}
+    ", group_columns(found))).param("id", id).param("skip", skip.max(0)).param("limit", NEIGHBOR_PAGE))
+        .await.map_err(internal)?;
+    let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
+    Ok(Json(read_group(&row, found.0)?))
+}
+
+//the next page of one kind of link from a topic
+pub async fn get_neighbor_page(State(state): State<AppState>, Path((id, group)): Path<(String, String)>, Query(params): Query<PageParams>) -> Result<Json<Group>, (StatusCode, String)> {
+    page(&state, "Topic", &GROUPS, &id, &group, params.skip).await
+}
+
+#[derive(Serialize)]
+pub struct IdeaNeighbors {
+    idea: IdeaCentre,
+    topics: Group, //the topics that include it
+    requires: Group, //the Ideas to understand first
+    required_by: Group, //the Ideas that build on it
+    analogous: Group, //Ideas with the same structure in another field
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct IdeaCentre {
+    id: String,
+    name: String,
+    #[serde(rename = "type")]
+    kind: String,
+    description: Option<String>,
+}
+
+//an Idea, with a page of each kind of link from it and how many there are in all
+pub async fn get_idea(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<IdeaNeighbors>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (c:Idea {{id: $id}})
+        RETURN {{id: c.id, name: c.name, type: c.type, description: c.description}} AS idea, {}
+    ", all_group_columns(&IDEA_GROUPS))).param("id", id.as_str()).param("skip", 0).param("limit", NEIGHBOR_PAGE)).await.map_err(internal)?;
+    let row = rows.next().await.map_err(internal)?.ok_or_else(|| (StatusCode::NOT_FOUND, "That Idea doesn't exist.".to_string()))?;
+    let group = |name: &str| read_group(&row, name);
+    Ok(Json(IdeaNeighbors {
+        idea: row.get("idea").map_err(internal)?,
+        topics: group("topics")?,
+        requires: group("requires")?,
+        required_by: group("required_by")?,
+        analogous: group("analogous")?,
+    }))
+}
+
+//the next page of one kind of link from an Idea
+pub async fn get_idea_page(State(state): State<AppState>, Path((id, group)): Path<(String, String)>, Query(params): Query<PageParams>) -> Result<Json<Group>, (StatusCode, String)> {
+    page(&state, "Idea", &IDEA_GROUPS, &id, &group, params.skip).await
 }
 
 #[derive(Serialize)]

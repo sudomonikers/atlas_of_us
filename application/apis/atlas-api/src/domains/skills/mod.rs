@@ -328,6 +328,17 @@ pub struct TraitLink {
     strength: f64,
 }
 
+//a topic a skill's levels need knowledge of, with how essential the strongest of those links is, 0 to 1, and the
+//deepest Bloom level of it any level needs
+#[derive(Serialize, Deserialize)]
+pub struct TopicLink {
+    id: String,
+    name: String,
+    status: String,
+    strength: f64,
+    rank: i64,
+}
+
 #[derive(Serialize)]
 pub struct Neighbors {
     skill: Centre,
@@ -337,6 +348,7 @@ pub struct Neighbors {
     leads_to: Group, //skills whose levels require its levels
     similar: Group, //the closest skills by meaning, other than its broader and narrower ones
     traits: Vec<TraitLink>, //every personality trait its levels take, strongest first. There are only 30, so they aren't paged
+    topics: Vec<TopicLink>, //every topic its levels need knowledge of, strongest first. A skill needs a handful, so they aren't paged
 }
 
 //how many of each kind of link come at a time, and how many similar skills a skill has
@@ -380,6 +392,11 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
                    WITH t, max(r.strength) AS strength ORDER BY strength DESC, t.name
                    RETURN {{id: t.id, name: t.name, strength: strength}}
                }} AS traits,
+               COLLECT {{
+                   MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_KNOWLEDGE]->(b:BloomLevel)<-[:HAS_LEVEL]-(t:Topic)
+                   WITH t, max(r.strength) AS strength, max(b.rank) AS rank ORDER BY strength DESC, t.name
+                   RETURN {{id: t.id, name: t.name, status: t.status, strength: strength, rank: rank}}
+               }} AS topics,
                s.vector AS vector
     ", groups.join(", "))).param("id", id.as_str()).param("skip", 0).param("limit", NEIGHBOR_PAGE)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
@@ -387,6 +404,7 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
     let group = |name: &str| row.get::<Group>(name).map_err(internal);
     let (broader, narrower, needs, leads_to) = (group("broader")?, group("narrower")?, group("needs")?, group("leads_to")?);
     let traits: Vec<TraitLink> = row.get("traits").map_err(internal)?;
+    let topics: Vec<TopicLink> = row.get("topics").map_err(internal)?;
     let vector: Option<Vec<f64>> = row.get("vector").map_err(internal)?;
     drop(rows);
 
@@ -406,7 +424,7 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
         }
     }
     let similar = Group { total: similar.len() as i64, skills: similar };
-    Ok(Json(Neighbors { skill, broader, narrower, needs, leads_to, similar, traits }))
+    Ok(Json(Neighbors { skill, broader, narrower, needs, leads_to, similar, traits, topics }))
 }
 
 #[derive(Deserialize)]

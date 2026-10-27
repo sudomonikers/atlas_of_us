@@ -14,7 +14,7 @@ const LINKS = [
 //every part of a person the Atlas maps. Only those with a path are live
 const ATLAS = [
   ['Personality', '/personality'],
-  ['What you know'],
+  ['Knowledge', '/topics'],
   ['Skills', '/skills'],
   ['Your body'],
   ['Your people'],

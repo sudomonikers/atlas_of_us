@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { getNeighborPage, getNeighbors, getTraitSkills, type GroupName, type Neighbor, type Neighbors, type PagedGroup, type SkillRef, type TraitLink, type TraitSkills } from './api';
+import { getNeighborPage, getNeighbors, getTraitSkills, type GroupName, type Neighbor, type Neighbors, type PagedGroup, type SkillRef, type TopicLink, type TraitLink, type TraitSkills } from './api';
+import { getNeighborPage as getTopicPage, getNeighbors as getTopicNeighbors, type Linked, type Neighbors as TopicNeighbors } from '../topics/api';
 import { BoardLayout } from '../shared_components/board_layout';
 import type { BoardLink } from '../shared_components/graph_board';
 
@@ -19,10 +20,20 @@ export interface BoardTrait {
   read?: TraitSkills;
 }
 
+//a topic on the board, brought on by a skill that needs it, with what's been read about it from Topics: the skills
+//that need it, a page at a time
+export interface BoardTopic {
+  topic: { id: string; name: string; status: SkillRef['status'] };
+  from?: string; //the skill it was brought on from
+  expanded: boolean; //whether the skills that need it that have been read are on the board
+  read?: TopicNeighbors;
+}
+
 //everything on the board. The explorer keeps it, so the board is still there on the way back from a skill
 export interface SkillBoard {
   skills: Record<string, BoardSkill>;
   traits: Record<string, BoardTrait>;
+  topics: Record<string, BoardTopic>;
   links: BoardLink[];
   layout: BoardLayout;
   selected?: string;
@@ -33,7 +44,7 @@ type Update = Dispatch<SetStateAction<SkillBoard>>;
 
 const GROUPS: GroupName[] = ['broader', 'narrower', 'needs', 'leads_to', 'similar'];
 
-export const emptyBoard = (): SkillBoard => ({ skills: {}, traits: {}, links: [], layout: new BoardLayout() });
+export const emptyBoard = (): SkillBoard => ({ skills: {}, traits: {}, topics: {}, links: [], layout: new BoardLayout() });
 
 //puts a skill on the board if it isn't already, and selects it and moves to it
 export function place(board: SkillBoard, skill: SkillRef): SkillBoard {
@@ -114,12 +125,28 @@ function bringTakers(board: SkillBoard, id: string, found: Neighbor[]): SkillBoa
   return { ...board, skills, links };
 }
 
-//brings the skills linked to a skill that have been read onto the board
+//brings the topics a skill needs onto the board, next to it. "Knows" points from the skill to the topic
+function bringTopics(board: SkillBoard, id: string, found: TopicLink[]): SkillBoard {
+  const topics = { ...board.topics };
+  for (const t of found) if (!topics[t.id]) topics[t.id] = { topic: { id: t.id, name: t.name, status: t.status }, from: id, expanded: false };
+  const links = addLinks(board.links, found.map((t) => ({ from: id, to: t.id, kind: 'knows', weight: t.strength })));
+  return { ...board, topics, links };
+}
+
+//brings skills that need a topic onto the board, next to it
+function bringKnowers(board: SkillBoard, id: string, found: Linked[]): SkillBoard {
+  const skills = { ...board.skills };
+  for (const s of found) if (!skills[s.id]) skills[s.id] = { skill: { id: s.id, name: s.name, status: s.status ?? 'stub' }, from: id, expanded: false };
+  const links = addLinks(board.links, found.map((s) => ({ from: s.id, to: id, kind: 'knows', weight: s.strength })));
+  return { ...board, skills, links };
+}
+
+//brings the skills linked to a skill that have been read onto the board, with the traits it takes and the topics it needs
 function expand(board: SkillBoard, id: string): SkillBoard {
   const on = board.skills[id];
   if (!on?.neighbors || on.expanded) return board;
   const { neighbors } = on;
-  const brought = bringTraits(bring(board, id, GROUPS.map((g) => [g, neighbors[g].skills])), id, neighbors.traits);
+  const brought = bringTopics(bringTraits(bring(board, id, GROUPS.map((g) => [g, neighbors[g].skills])), id, neighbors.traits), id, neighbors.topics);
   return { ...brought, skills: { ...brought.skills, [id]: { ...on, expanded: true } } };
 }
 
@@ -184,6 +211,47 @@ export function moreTakers(board: SkillBoard, id: string, setBoard: Update) {
       const read = { ...on.read, skills: [...on.read.skills, ...page.skills], total: page.total };
       const brought = bringTakers(b, id, page.skills);
       return { ...brought, traits: { ...brought.traits, [id]: { ...on, read } } };
+    }),
+  );
+}
+
+//keeps what was read about a topic on the board
+function readTopic(board: SkillBoard, read: TopicNeighbors): SkillBoard {
+  const on = board.topics[read.topic.id];
+  if (!on) return board;
+  const { id, name, status } = read.topic;
+  return { ...board, topics: { ...board.topics, [id]: { ...on, topic: { id, name, status }, read } } };
+}
+
+//reads a topic and the first page of the skills that need it, if it hasn't been read, then passes `then` the board.
+//The route belongs to the Topics module
+export function readTopicThen(board: SkillBoard, id: string, setBoard: Update, then: (b: SkillBoard) => SkillBoard = (b) => b) {
+  if (board.topics[id]?.read) {
+    setBoard((b) => then(b));
+    return Promise.resolve();
+  }
+  return getTopicNeighbors(id).then((read) => setBoard((b) => then(readTopic(b, read))));
+}
+
+//brings the skills that need a topic onto the board, reading it first if it hasn't been read
+export const expandTopic = (board: SkillBoard, id: string, setBoard: Update) =>
+  readTopicThen(board, id, setBoard, (b) => {
+    const on = b.topics[id];
+    if (!on?.read || on.expanded) return b;
+    const brought = bringKnowers(b, id, on.read.needed_by.items);
+    return { ...brought, topics: { ...brought.topics, [id]: { ...on, expanded: true } } };
+  });
+
+//reads the next page of the skills that need an expanded topic, and brings them onto the board
+export function moreKnowers(board: SkillBoard, id: string, setBoard: Update) {
+  const shown = board.topics[id]?.read?.needed_by.items.length ?? 0;
+  return getTopicPage(id, 'needed_by', shown).then((page) =>
+    setBoard((b) => {
+      const on = b.topics[id];
+      if (!on?.read) return b;
+      const read = { ...on.read, needed_by: { items: [...on.read.needed_by.items, ...page.items], total: page.total } };
+      const brought = bringKnowers(b, id, page.items);
+      return { ...brought, topics: { ...brought.topics, [id]: { ...on, read } } };
     }),
   );
 }

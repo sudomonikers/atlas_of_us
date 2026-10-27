@@ -108,6 +108,17 @@ export interface Neighbors {
   leads_to: Group; //skills whose levels require its levels
   similar: Group; //the closest skills by meaning, other than its broader and narrower ones
   traits: TraitLink[]; //every personality trait its levels take, strongest first
+  topics: TopicLink[]; //every topic its levels need knowledge of, strongest first
+}
+
+//a topic a skill's levels need, with how essential the strongest of those links is, 0 to 1, and the deepest Bloom
+//level of it any level needs, 1 (Remember) to 6 (Create)
+export interface TopicLink {
+  id: string;
+  name: string;
+  status: SkillStatus;
+  strength: number;
+  rank: number;
 }
 
 //a personality trait a skill's levels take, with how much the strongest of them matters, 0 to 1

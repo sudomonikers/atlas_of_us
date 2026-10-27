@@ -16,7 +16,8 @@ Every meaningful change is published as an **event**.
 
 | Piece | Where | What it does |
 |---|---|---|
-| API | `application/apis/atlas-api/src/domains/topics/mod.rs` | Search, asking for a topic, reading one, and asking for a fill |
+| UI | `application/ui/atlas-of-us-ui/src/topics/` | Search, the topic page, the Idea page, the graph, and Topics Explained |
+| API | `application/apis/atlas-api/src/domains/topics/mod.rs` | Search, asking for a topic, reading a topic or an Idea and what's around it, and asking for a fill |
 | Gates | `application/apis/atlas-api/src/domains/topics/gates.rs` | Normalize and classify what a user asks for, and screen out nonsense |
 | Topic resolver | `application/apis/atlas-shared/src/topics/resolver.rs` | Decides whether a topic name is the same as, a subtopic of, or broader than existing topics, and creates stubs. It's in the crate the API and atlas-jobs share (see `ADRs/atlas_shared_crate.md`) |
 | Fill job | `application/apis/atlas-jobs/src/events/topic_fill_requested/topics.rs` | Writes a stub's Bloom levels and Ideas with Bedrock |
@@ -42,7 +43,11 @@ All routes are under `/api/topics`. Asking and filling need a logged in user.
 | `GET /search?q=` | The closest topics, by name and alias through the `topic_names` full-text index and by meaning through `topic_vector`, combined by reciprocal rank fusion, each with the broader topics it's a subtopic of |
 | `POST /` `{query}` | Asks for a topic we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_topic` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the topic it means) or `created` (the new stub) |
 | `GET /{id}` | A topic with its six levels, its Ideas (each with its `type` and the Ideas it `requires`), and its `broader` and `narrower` topics |
+| `GET /{id}/neighbors` | The topic without its levels, and what's around it: its `broader` and `narrower` topics, the `ideas` it includes, the skills whose levels need it (`needed_by`, strongest first, each with the strength of its strongest link and the `rank` of the deepest Bloom level it needs), and up to eight `similar` topics by vector, other than its broader and narrower ones. Each comes as a page of twelve with the `total` |
+| `GET /{id}/neighbors/{group}?skip=` | The next page of `broader`, `narrower`, `ideas` or `needed_by`, from `skip` |
 | `POST /{id}/fill` | Asks for a `stub` or `failed` topic to be filled, and returns its status. A topic that is already `filling` or `ready` is left as it is, so it's safe to call every time a topic is opened |
+| `GET /ideas/{id}` | An Idea with its `type` and `description`, and a page of twelve of each way it links, with the `total`: the `topics` that include it, the Ideas it `requires`, the Ideas `required_by` it, and the Ideas `analogous` to it |
+| `GET /ideas/{id}/neighbors/{group}?skip=` | The next page of `topics`, `requires`, `required_by` or `analogous`, from `skip` |
 
 ## Where topics come from
 A Topic node is created in three ways, and every one goes through the topic resolver:
@@ -61,6 +66,48 @@ The import (`application/database/topics_import/`) asks the API for the fields a
 first, so the resolver finds a topic's broader topics when it places it. The resolver, not ESCO's filing, decides where
 each topic goes, and the graph keeps nothing that ties a topic to ESCO. ESCO's knowledge leans towards what jobs need,
 and subjects such as religions, philosophies and hobbies come in through users and through skills.
+
+## What the user sees
+The Topics page (`/topics`) has three views: the Topics Explorer, My Knowledge, and Topics Explained, which walks
+through the six Bloom levels with one topic, chess opening theory, and the four kinds of Idea.
+
+### Searching
+The explorer's search works as the skills search does: topics by name and meaning, each with the broader topics it's
+part of. When nothing fits, the user can ask for it, and a request that isn't a topic links to the module it belongs
+to.
+
+### Opening a topic
+A topic opens at `/topics/<id>`, and the topics and Ideas hopped through stay as a trail above the page.
+
+- **A `ready` topic** shows its six Bloom levels as tabs, each with what someone at it is like, the signs you can see,
+  and what would prove it. Under them, "What it's made of" lists its Ideas in an order to learn them in: each after the
+  Ideas in the topic it needs first, with its type and what it needs.
+- **A `stub`** shows its name and description while it fills. Opening it is what triggers the fill (`POST /{id}/fill`),
+  and the page polls `GET /{id}` until it's `ready`.
+- **Where to next** lists the topics it's part of, its subtopics, the skills that need it ("Chess Playing at
+  Analyze"), and similar topics, twelve of each at a time. A topic opens here, and a skill opens in Skills.
+
+### Opening an Idea
+An Idea opens at `/topics/ideas/<id>`, with its type and what that type means, its description, and the topics it's in,
+the Ideas it needs first, the Ideas it leads to, and the Ideas analogous to it. Following an Idea into another topic
+that includes it is how the shared Ideas between topics show.
+
+### Exploring the graph
+The Graph view uses the same board as Skills (`GraphBoard`, see `ADRs/graph_board.md`). Searching puts a topic on the
+board, and "See it in the graph" on a topic or an Idea puts that on an empty board, expanded. Topics are blobs, filled
+when ready and dashed for a stub, Ideas are pale blue diamonds, and skills are pale red blobs. Double-clicking a topic
+brings on its Ideas, the topics around it and the skills that need it, and double-clicking an Idea brings on the topics
+it's in and the Ideas linked to it. A skill opens in Skills. The board draws six kinds of link, each turned on and off
+from the legend:
+
+- **Part of:** a solid line with an arrow to the broader topic.
+- **Includes:** a dotted line from a topic to its Idea.
+- **Needs first:** a dashed line with an arrow to the Idea needed.
+- **Analogous:** a dotted blue line between Ideas.
+- **Similar:** a dotted pale line between topics.
+- **Needs knowledge:** a solid red line with an arrow from a skill to the topic, thicker for a stronger link.
+
+Leaving the Graph view, by opening a page or switching to Search, clears the board.
 
 ## Topic identity
 
@@ -146,7 +193,7 @@ topics yet:
    to straight away. A skill's level and a topic's level are in different sub-graphs, so the link can't make a loop.
 
 A skill's page shows the knowledge each level takes, carried up from the levels below it, the same way it shows the
-skills and personality it takes.
+skills and personality it takes, and each one opens its topic.
 
 ## Events
 Topics events have the source `atlas.topics`, and name a topic by `topicId` and an Idea by `ideaId`. How they move is in
