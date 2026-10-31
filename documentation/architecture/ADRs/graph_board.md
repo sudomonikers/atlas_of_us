@@ -45,8 +45,11 @@ The board is one canvas, so thousands of nodes stay smooth.
   over its flower. Clicking a name zooms to the flower.
 - **Zoomed in**, the dots in view crossfade into hand-drawn nodes with a hard shadow, filled in the field's colour when
   ready and dashed for a stub, with their names and the lines to what they sit under.
-- **At any zoom**, the selected node is drawn as a node with its name and its links, and the links expanding brought
-  on are always drawn.
+- **At any zoom**, the selected node is drawn as a node with its name and the links to what it sits under.
+- **The close-up.** Once anything is expanded, the map gives way to just the nodes the expanded links touch and the
+  selected node, laid out by `d3-force` around the first node expanded, which stays put. Each new node settles before
+  it's shown, and the board fits the close-up whenever more joins it. When the links are cleared the map comes back,
+  viewed from where it was left.
 
 ### What the board takes
 | Prop | What it is |
@@ -57,7 +60,8 @@ The board is one canvas, so thousands of nodes stay smooth.
 | `hierarchy` | The kind the map's own broader links are drawn as |
 | `layout` | A `BoardLayout`: the view and where the visitors are. The owner keeps it, so the board comes back as it was left |
 | `selected`, `focus`, `opened` | The selected node, a node to glide to (once for each new focus, even one passed before the board has a size), and the expanded nodes, marked with a dot |
-| `onSelect`, `onExpand`, `onClear` | Called on a tap, a double tap (or Shift+Enter) and the Clear button |
+| `onSelect`, `onExpand`, `onClear` | Called on a tap, a double tap (or Shift+Enter) and the Clear button, which reads "Back to the map" in a close-up |
+| `onBack` | Goes back a step, from the Back button or Ctrl+Z (Cmd+Z), when the owner has a step to go back to |
 | `describe` | A node's name for screen readers |
 | `preview` | A smaller board with no legend or Clear, whose taps the owner turns into somewhere to go |
 | `children` | What sits over the top left corner, such as a search box |
@@ -66,7 +70,8 @@ The board is one canvas, so thousands of nodes stay smooth.
 - **Moving around:** dragging the background pans, the wheel and a pinch zoom around the pointer, and Fit glides to
   show every flower. The first time a board is shown it fits the map, and the flowers bloom open from their middles.
 - **Visitors:** a small `d3-force` simulation pushes the visitors apart and pulls them toward the nodes they link to,
-  which stay pinned where the map has them. A dragged visitor is pinned where it's dropped.
+  which stay pinned where the map has them. In a close-up every node floats in the same simulation. A dragged node is
+  pinned where it's dropped.
 - **Finding what's under the pointer:** the map's nodes are bucketed in a grid, so a tap or a hover only looks nearby.
 - **Keyboard and screen readers:** the canvas has a label with the counts. Behind it are buttons for each field and
   for the selected node, the visitors and the nodes nearest the middle of the view once they show as nodes. Enter
@@ -87,6 +92,8 @@ The Skills Explorer shows the split:
     page.
   - Expanding adds what was read as links, and the inspector beside the board brings on the next page of a kind.
   - `hide` takes back what a node brought on.
+  - **Going back.** Each expand, hide and clear keeps the board as it was in `back`, so the board holds the chain of
+    earlier boards. Back restores the last one. The boards share what didn't change, so the chain costs little.
 - **Search.** The search box goes over the board through `children`. Picking a result selects it, and the board
   glides to it.
 
@@ -106,8 +113,8 @@ Frame times haven't been measured, and two-finger pinch hasn't been tested on a 
 ## Consequences
 - **One place for every node.** Exploring from a search, a page or the map lands on the same spot, and the shape of
   the sub-graph is always one zoom away.
-- **Map nodes can't be rearranged.** Only visitors move. A user who wants a different arrangement of map nodes can't
-  have one.
+- **Map nodes can't be rearranged on the map.** In a close-up anything can be moved, and it goes back to its place on
+  the map afterwards.
 - **The map is fetched whole.** It grows with the sub-graph. It's compressed, and fetched once a visit.
 - **A new explorer is mostly data work.** A module gives its map, its visitors, links and kinds, what selecting and
   expanding fetch, and its inspector.

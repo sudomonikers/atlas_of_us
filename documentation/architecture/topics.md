@@ -103,11 +103,12 @@ see `ADRs/graph_board.md`). `GET /map` gives every topic with the ids of its bro
   topic links to the module it belongs to. A new topic joins the map straight away.
 - **Selecting** a topic reads it with `GET /{id}/neighbors`, which never fills it, and the panel beside the board shows
   its description and how many of each kind of link it has. "Open topic" goes to its page.
-- **Expanding** a topic, by double-clicking it, brings on its Ideas, the topics around it and the skills that need it.
-  Expanding an Idea brings on the topics it's in and the Ideas linked to it. Topics already on the map are linked where
-  they are. Ideas (pale blue diamonds) and skills (pale red, which open in Skills) float beside what brought them and
-  can be dragged. A kind of link with more than the first page can bring on the next. Hide takes back what a node
-  brought on, and Clear takes back everything.
+- **Expanding** a topic, by double-clicking it, turns the board into a close-up of the topic, its Ideas, the topics
+  around it and the skills that need it, laid out around it. Expanding something else in the close-up adds what it
+  links to, and expanding an Idea brings on the topics it's in and the Ideas linked to it. Ideas are pale blue
+  diamonds and skills pale red (they open in Skills), and anything can be dragged. A kind of link with more than the
+  first page can bring on the next. Hide takes back what a node brought on, Back undoes the last expand, hide or clear
+  (Ctrl+Z too), and Back to the map leaves the close-up.
 
 The board draws six kinds of link, each turned on and off from the legend:
 

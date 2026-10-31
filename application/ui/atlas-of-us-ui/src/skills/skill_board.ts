@@ -36,6 +36,7 @@ export interface SkillBoard {
   topics: Record<string, BoardTopic>;
   links: BoardLink[];
   layout: BoardLayout;
+  back?: SkillBoard; //the board before the last expand, hide or clear, to go back to
   selected?: string;
   focus?: { id: string };
 }

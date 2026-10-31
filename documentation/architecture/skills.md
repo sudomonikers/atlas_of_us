@@ -170,13 +170,14 @@ gives every skill with the ids of its broader skills, fetched once a visit (`use
   the user can ask for it there (see "Asking for a skill we don't have"), and a new skill joins the map straight away.
 - **Selecting** a skill reads it with `GET /{id}/neighbors`, which never fills it, and the panel beside the board shows
   its description and how many of each kind of link it has. "Open skill" goes to its page, where a stub gets filled.
-- **Expanding** a skill, by double-clicking it, brings on every skill linked to it, every personality trait it takes
-  and every topic it needs. Skills are on the map already, so their links are drawn where they are. Traits (pale blue
-  diamonds) and topics (pale red) float beside the skill that brought them and can be dragged. Expanding a trait brings
+- **Expanding** a skill, by double-clicking it, turns the board into a close-up of the skill and every skill linked to
+  it, every personality trait it takes and every topic it needs, laid out around it; traits are pale blue diamonds and
+  topics pale red, and anything can be dragged. Expanding something else in the close-up adds what it links to.
+  Expanding a trait brings
   on the skills that take it, strongest first, read with `GET /api/personality/traits/{id}/skills`, and expanding a
   topic brings on the skills that need it, read with `GET /api/topics/{id}/neighbors`; a topic opens in Topics. A kind
-  of link with more than the first page can bring on the next. Hide takes back what a node brought on, and Clear takes
-  back everything.
+  of link with more than the first page can bring on the next. Hide takes back what a node brought on, Back undoes the last
+  expand, hide or clear (Ctrl+Z too), and Back to the map leaves the close-up.
 
 The board draws five kinds of link, and a legend turns each on and off. Turning a kind off also hides the floating
 traits and topics whose links are all of kinds that are off, other than the selected one:

@@ -100,7 +100,7 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
   const grow = (id: string) => {
     setError(undefined);
     setBusy(id);
-    onBoard((b) => ({ ...known(b, id), selected: id }));
+    onBoard((b) => ({ ...known(b, id), selected: id, back: opened.has(id) ? b.back : b }));
     (board.traits[id] ? expandTrait : board.topics[id] ? expandTopic : expandSkill)(board, id, onBoard).catch(failed).finally(() => setBusy(undefined));
   };
 
@@ -129,7 +129,7 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reads once each time something unread is selected, not on every change to the board
   }, [chosenId, unread]);
 
-  const hide = (id: string) => onBoard((b) => hideNode(b, id, (other) => map.byId.has(other)));
+  const hide = (id: string) => onBoard((b) => ({ ...hideNode(b, id, (other) => map.byId.has(other)), back: b }));
 
   const results = search.query.trim() ? search.results?.slice(0, RESULTS) : undefined;
   const chosen = board.selected ? board.skills[board.selected] : undefined;
@@ -161,7 +161,8 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
             }
             onSelect={select}
             onExpand={grow}
-            onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout }))}
+            onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout, back: b }))}
+            onBack={board.back && !busy ? () => onBoard((b) => b.back ?? b) : undefined}
           >
           <SearchField id="graph-search" query={search.query} onQuery={(query) => setSearch({ query })} placeholder={PLACEHOLDER} compact />
           {results && (
@@ -210,10 +211,9 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
               <li>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it. Paler dots and dashed outlines are skills whose levels aren't written yet.</li>
               <li>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
               <li>Click a skill to read about it here, or search for one.</li>
-              <li>Double-click one to bring in every skill it links to, the personality traits it takes, and the topics it needs.</li>
-              <li>Double-click a trait, the pale diamonds, to bring in the skills that take it, and a topic, the pale red ones, to bring in the skills that need it.</li>
-              <li>Traits and topics float beside the map; drag them where you want them.</li>
-              <li>Hide takes back what one skill brought in, and Clear takes back everything.</li>
+              <li>Double-click one to see just it and everything it links to: skills, the personality traits it takes, and the topics it needs. Drag any of them where you want them.</li>
+              <li>Double-click anything there to add what it links to. A trait (the pale diamonds) brings the skills that take it, and a topic (the pale red ones) the skills that need it.</li>
+              <li>Back undoes the last step, or press Ctrl+Z. Hide takes back what one skill brought in, and Back to the map leaves the close-up.</li>
               <li>The buttons along the bottom turn each kind of link on and off.</li>
             </ul>
           </>

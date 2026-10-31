@@ -79,17 +79,19 @@ interface GraphBoardProps {
   onSelect: (id?: string) => void;
   onExpand?: (id: string) => void;
   onClear?: () => void;
+  onBack?: () => void; //goes back a step, when there's one to go back to
   preview?: boolean; //a smaller board with no legend or tools, whose taps the owner turns into somewhere to go
   children?: ReactNode; //sits over the board's top left corner, such as a search box
 }
 
 //one board for a whole module's nodes. Zoomed out it's a map of every node at once, a flower for each broadest node
 //of everything under it. Zoomed in, the dots in view become nodes with names and the links to what they sit under.
-//Tap a node to select it and double tap to expand it; what expanding brings that isn't on the map floats beside it and
-//can be dragged. Drag the background to pan, and scroll or pinch to zoom. The owner decides what selecting and
-//expanding do
+//Tap a node to select it and double tap to expand it. Once anything is expanded the map gives way to a close-up of
+//just what's expanded and what it links to, laid out around the first node expanded; clearing the links brings the
+//map back. Drag the background to pan, a node in the close-up to move it, and scroll or pinch to zoom. The owner
+//decides what selecting and expanding do
 export function GraphBoard(props: GraphBoardProps) {
-  const { label, noun, items, visitors = NO_VISITORS, links = NO_LINKS, kinds, hierarchy, layout, selected, focus, opened, describe, onSelect, onExpand, onClear, preview, children } = props;
+  const { label, noun, items, visitors = NO_VISITORS, links = NO_LINKS, kinds, hierarchy, layout, selected, focus, opened, describe, onSelect, onExpand, onClear, onBack, preview, children } = props;
   const { seeds, fields } = useMemo(() => bloom(items), [items]);
   const seedOf = useMemo(() => new Map(seeds.map((s) => [s.id, s])), [seeds]);
   const byField = useMemo(() => fields.map((_, f) => seeds.filter((s) => s.field === f)), [fields, seeds]);
@@ -121,10 +123,29 @@ export function GraphBoard(props: GraphBoardProps) {
   const settle = useRef(0);
   const [hidden, setHidden] = useState<string[]>([]); //kinds of link toggled off in the legend
   const [reachable, setReachable] = useState<string[]>([]); //the nodes in view that get a focusable button
+  const mapView = useRef<View | undefined>(undefined); //where the map was looked at from, to go back to after a close-up
 
-  //where a node is on the board: its seed, opening out from its flower's middle as the map blooms, or its floating point
+  //once anything is expanded, the board is a close-up of every node a link touches and the selected one, all floating
+  //around the first node expanded; otherwise it's the map, with the visitors floating beside it
+  const closeUp = links.length > 0;
+  const gathered = useMemo<BoardNode[]>(() => {
+    if (!closeUp) return visitors;
+    const ids = new Set(links.flatMap((l) => [l.from, l.to]));
+    if (selected) ids.add(selected);
+    const out = visitors.filter((v) => ids.has(v.id));
+    for (const id of ids) {
+      const s = seedOf.get(id);
+      if (s) out.push({ id, label: s.name, look: s.filled ? 'filled' : 'hollow', from: id });
+    }
+    return out;
+  }, [closeUp, visitors, links, selected, seedOf]);
+
+  //where a node is on the board: its floating point in a close-up, its seed, opening out from its flower's middle as
+  //the map blooms, or its floating point
   const where = useCallback(
     (id: string): { x: number; y: number } | undefined => {
+      const floated = closeUp ? layout.at(id) : undefined;
+      if (floated) return { x: floated.x ?? 0, y: floated.y ?? 0 };
       const s = seedOf.get(id);
       if (s) {
         const f = fields[s.field];
@@ -134,7 +155,7 @@ export function GraphBoard(props: GraphBoardProps) {
       const p = layout.at(id);
       return p ? { x: p.x ?? 0, y: p.y ?? 0 } : undefined;
     },
-    [seedOf, fields, layout],
+    [seedOf, fields, layout, closeUp],
   );
 
   const shown = useMemo(() => links.filter((l) => !hidden.includes(l.kind)), [links, hidden]);
@@ -142,8 +163,8 @@ export function GraphBoard(props: GraphBoardProps) {
   const floating = useMemo(() => {
     const linked = new Set(links.flatMap((l) => [l.from, l.to]));
     const showing = new Set(shown.flatMap((l) => [l.from, l.to]));
-    return visitors.filter((v) => v.id === selected || !linked.has(v.id) || showing.has(v.id));
-  }, [visitors, links, shown, selected]);
+    return gathered.filter((v) => v.id === selected || !linked.has(v.id) || showing.has(v.id));
+  }, [gathered, links, shown, selected]);
 
   const draw = useCallback(() => {
     const el = canvas.current;
@@ -175,7 +196,7 @@ export function GraphBoard(props: GraphBoardProps) {
     ctx.clearRect(0, 0, w, h);
 
     //far: every seed as a dot, a field at a time so each colour is filled once. Ones not filled in yet are paler
-    if (near < 1) {
+    if (near < 1 && !closeUp) {
       const r = Math.max(1.3, R * k * 0.6);
       fields.forEach((field, f) => {
         ctx.fillStyle = colour(field.id ? FIELD_COLOURS[f % FIELD_COLOURS.length] : '--gunmetal-black');
@@ -198,7 +219,7 @@ export function GraphBoard(props: GraphBoardProps) {
 
     //the seeds in view near enough to draw as nodes
     const pad = R * k * 3 + 160;
-    const close = near > 0 ? seeds.filter((s) => inView(screen(where(s.id)!), pad)) : [];
+    const close = near > 0 && !closeUp ? seeds.filter((s) => inView(screen(where(s.id)!), pad)) : [];
     const nodeR = Math.max(R * k, 0);
 
     //a slightly bowed line between two points on screen, stopping short of both ends, with an arrowhead if it has one
@@ -237,11 +258,11 @@ export function GraphBoard(props: GraphBoardProps) {
     };
 
     //how big a node is drawn: the selected one and floating ones stay big enough to see however far out
-    const radius = (id: string) => (id === selected ? Math.max(nodeR, 11) : seedOf.has(id) ? nodeR : Math.max(nodeR, 8));
+    const radius = (id: string) => (id === selected ? Math.max(nodeR, 11) : seedOf.has(id) && !closeUp ? nodeR : Math.max(nodeR, 8));
 
     //near: each seed in view links to what it sits under
     const tree = kindOf.get(hierarchy);
-    if (tree && !hidden.includes(hierarchy)) {
+    if (tree && !hidden.includes(hierarchy) && !closeUp) {
       const drawTree = (s: Seed, alpha: number) => {
         const a = screen(where(s.id)!);
         for (const b of s.broader) {
@@ -301,14 +322,17 @@ export function GraphBoard(props: GraphBoardProps) {
     };
     const seedNode = (s: Seed, alpha: number) => node(s.id, screen(where(s.id)!), radius(s.id), s.filled ? fieldColour(s) : colour('--ivory-white'), s.filled ? 'filled' : 'hollow', 'blob', alpha);
     if (near > 0) for (const s of close) if (s.id !== selected) seedNode(s, near);
-    for (const v of floating) {
-      const p = where(v.id);
-      if (p && v.id !== selected) node(v.id, screen(p), radius(v.id), colour(FILLS[v.look]), v.look, v.shape ?? 'blob', 1);
-    }
-    const chosenSeed = selected ? seedOf.get(selected) : undefined;
+    //a floating node from the map keeps its field's colour
+    const floatNode = (v: BoardNode) => {
+      const s = seedOf.get(v.id);
+      if (s) seedNode(s, 1);
+      else node(v.id, screen(where(v.id)!), radius(v.id), colour(FILLS[v.look]), v.look, v.shape ?? 'blob', 1);
+    };
+    for (const v of floating) if (v.id !== selected && where(v.id)) floatNode(v);
     const chosenVisitor = selected ? floating.find((v) => v.id === selected) : undefined;
+    const chosenSeed = selected && !chosenVisitor ? seedOf.get(selected) : undefined;
     if (chosenSeed) seedNode(chosenSeed, 1);
-    if (chosenVisitor) node(chosenVisitor.id, screen(where(chosenVisitor.id)!), radius(chosenVisitor.id), colour(FILLS[chosenVisitor.look]), chosenVisitor.look, chosenVisitor.shape ?? 'blob', 1);
+    if (chosenVisitor) floatNode(chosenVisitor);
 
     //labels, the same size at any zoom, with a white halo so they read over lines
     const text = (s: string, x: number, y: number, px: number, align: CanvasTextAlign, fill = ink) => {
@@ -331,7 +355,7 @@ export function GraphBoard(props: GraphBoardProps) {
       named.add(selected);
       if (near >= 0.5) for (const l of shown) if (l.from === selected || l.to === selected) named.add(l.from === selected ? l.to : l.from);
     }
-    if (k >= LABEL_ZOOM) {
+    if (k >= (closeUp ? NEAR_TO : LABEL_ZOOM)) {
       for (const s of close) named.add(s.id);
       for (const v of floating) named.add(v.id);
     }
@@ -342,14 +366,14 @@ export function GraphBoard(props: GraphBoardProps) {
       const sp = screen(p);
       if (!inView(sp, 100)) continue;
       const chosen = id === selected;
-      ctx.globalAlpha = chosen || !seedOf.has(id) ? 1 : Math.max(near, 0.85);
+      ctx.globalAlpha = chosen || closeUp || !seedOf.has(id) ? 1 : Math.max(near, 0.85);
       text(cut(nameOf(id), chosen ? 40 : max), sp.x, sp.y + radius(id) + 13, chosen ? 17 : 14, 'center', chosen ? red : ink);
     }
     ctx.globalAlpha = 1;
 
     //far: the fields' names in the middle of their flowers, while the flower is big enough on screen
     labels.current = [];
-    if (near < 1) {
+    if (near < 1 && !closeUp) {
       ctx.globalAlpha = 1 - near;
       for (const field of fields) {
         const sr = field.r * k;
@@ -372,7 +396,7 @@ export function GraphBoard(props: GraphBoardProps) {
         text(nameOf(hovered.current), sp.x + Math.max(radius(hovered.current), 4) + 8, sp.y, 17, 'left');
       }
     }
-  }, [layout, kinds, fields, byField, seeds, seedOf, where, selected, hierarchy, hidden, shown, floating, opened, visitors]);
+  }, [layout, kinds, fields, byField, seeds, seedOf, where, selected, hierarchy, hidden, shown, floating, opened, visitors, closeUp]);
 
   //which nodes get a focusable button: the selected one, the floating ones, and the ones nearest the middle of the view
   //when zoomed in enough to see them as nodes. Worked out once the view stops moving
@@ -382,7 +406,7 @@ export function GraphBoard(props: GraphBoardProps) {
     const ids: string[] = [];
     if (selected) ids.push(selected);
     for (const v of floating) if (!ids.includes(v.id)) ids.push(v.id);
-    if (k >= NEAR_TO) {
+    if (k >= NEAR_TO && !closeUp) {
       const middle = { x: (w / 2 - x) / k, y: (h / 2 - y) / k };
       const close = seeds
         .filter((s) => {
@@ -394,7 +418,7 @@ export function GraphBoard(props: GraphBoardProps) {
       for (const s of close.slice(0, REACHABLE)) if (!ids.includes(s.id)) ids.push(s.id);
     }
     setReachable((before) => (before.join() === ids.join() ? before : ids));
-  }, [layout, seeds, floating, selected]);
+  }, [layout, seeds, floating, selected, closeUp]);
 
   const schedule = useCallback(() => {
     cancelAnimationFrame(pending.current);
@@ -422,18 +446,19 @@ export function GraphBoard(props: GraphBoardProps) {
     [layout, draw, schedule],
   );
 
-  //the view that shows every flower, with a little room around it
+  //the view that shows every flower, or everything in a close-up, with a little room around it
   const fitted = useCallback((): View | undefined => {
     const { w, h } = size.current;
     if (!w || !fields.length) return undefined;
-    const points = [...fields.flatMap((f) => [{ x: f.x - f.r, y: f.y - f.r }, { x: f.x + f.r, y: f.y + f.r }]), ...layout.all().map((p) => ({ x: p.x ?? 0, y: p.y ?? 0 }))];
+    const floated = layout.all().flatMap((p) => [{ x: (p.x ?? 0) - R * 3, y: (p.y ?? 0) - R * 3 }, { x: (p.x ?? 0) + R * 3, y: (p.y ?? 0) + R * 3 }]);
+    const points = closeUp ? floated : [...fields.flatMap((f) => [{ x: f.x - f.r, y: f.y - f.r }, { x: f.x + f.r, y: f.y + f.r }]), ...floated];
     const xs = points.map((p) => p.x);
     const ys = points.map((p) => p.y);
     const [left, right, top, bottom] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-    const k = Math.min(w / (right - left || 1), h / (bottom - top || 1)) * 0.88;
-    fitK.current = k;
+    const k = Math.min(MAX_ZOOM / 2, Math.min(w / (right - left || 1), h / (bottom - top || 1)) * 0.88);
+    fitK.current = Math.min(k, 0.4);
     return { x: w / 2 - ((left + right) / 2) * k, y: h / 2 - ((top + bottom) / 2) * k, k };
-  }, [fields, layout]);
+  }, [fields, layout, closeUp]);
 
   //glides to the focused node, once for each new focus. One passed before the board has a size waits for it
   const toFocus = () => {
@@ -446,7 +471,6 @@ export function GraphBoard(props: GraphBoardProps) {
   const latestFocus = useRef(toFocus);
   useEffect(() => {
     latestFocus.current = toFocus;
-    toFocus();
   });
 
   //the canvas matches its frame, in device pixels so it's sharp. The first time the board is shown it fits the whole
@@ -496,13 +520,18 @@ export function GraphBoard(props: GraphBoardProps) {
     schedule();
   }, [schedule]);
 
-  //the floating nodes push apart and are pulled toward the nodes they link to, which stay where the map has them
+  //the floating nodes push apart and are pulled toward the nodes they link to, which stay where the map has them. In a
+  //close-up the first node expanded stays put, and new nodes settle before they're shown
   useEffect(() => {
     const view = layout.current();
     const { w, h } = size.current;
-    layout.sync(visitors, (id) => where(id), { x: (w / 2 - view.x) / view.k, y: (h / 2 - view.y) / view.k });
+    const added = gathered.filter((n) => !layout.at(n.id)).length;
+    layout.sync(gathered, (id) => where(id), { x: (w / 2 - view.x) / view.k, y: (h / 2 - view.y) / view.k });
+    const first = closeUp ? ([links[0].from, links[0].to].find((id) => opened?.has(id)) ?? links[0].from) : undefined;
+    const root = first ? layout.at(first) : undefined;
+    if (root && root.fx == null) [root.fx, root.fy] = [root.x, root.y];
     const length = new Map(kinds.map((kd) => [kd.id, kd.length]));
-    const floatingIds = new Set(visitors.map((v) => v.id));
+    const floatingIds = new Set(gathered.map((v) => v.id));
     const touching = links.filter((l) => floatingIds.has(l.from) || floatingIds.has(l.to));
     const anchors = new Map<string, Point>();
     for (const l of touching) {
@@ -519,14 +548,57 @@ export function GraphBoard(props: GraphBoardProps) {
       .force('charge', forceManyBody<Point>().strength(-340).distanceMax(500))
       .force('collide', forceCollide<Point>(R * 2.2))
       .force('link', forceLink<Point, Spring>(springs).id((p) => p.id).distance((l) => l.length).strength(0.35))
-      .alpha(0.6)
+      .alpha(added ? 0.6 : 0.1)
       .on('tick', schedule);
+    if (closeUp && added) s.tick(150);
     sim.current = s;
     return () => {
       s.stop();
       sim.current = null;
     };
-  }, [visitors, links, kinds, layout, where, schedule]);
+  }, [gathered, links, kinds, layout, where, schedule, closeUp, opened]);
+
+  //Ctrl+Z or Cmd+Z goes back a step, unless it would undo typing
+  const latestBack = useRef(onBack);
+  useEffect(() => {
+    latestBack.current = onBack;
+  });
+  useEffect(() => {
+    if (preview) return;
+    const press = (e: globalThis.KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'z' || !(e.ctrlKey || e.metaKey) || e.shiftKey || !latestBack.current) return;
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, [contenteditable]')) return;
+      e.preventDefault();
+      latestBack.current();
+    };
+    window.addEventListener('keydown', press);
+    return () => window.removeEventListener('keydown', press);
+  }, [preview]);
+
+  //going into a close-up fits it in view, as does more coming into it, and coming out goes back to where the map was
+  //looked at from
+  const count = gathered.length;
+  const wasCloseUp = useRef(closeUp);
+  useEffect(() => {
+    if (!size.current.w) return;
+    const entering = closeUp && !wasCloseUp.current;
+    if (entering) mapView.current = layout.current();
+    if (closeUp) {
+      const view = fitted();
+      if (view) glideTo(view);
+    } else if (wasCloseUp.current) {
+      const back = mapView.current;
+      const view = fitted(); //also keeps how far out the map can zoom up to date
+      if (back ?? view) glideTo((back ?? view)!);
+    }
+    wasCloseUp.current = closeUp;
+  }, [closeUp, count, fitted, glideTo, layout]);
+
+  //once the floating nodes have their places, glides to a new focus
+  useEffect(() => {
+    latestFocus.current();
+  });
+
 
 
   useEffect(
@@ -572,6 +644,7 @@ export function GraphBoard(props: GraphBoardProps) {
       const p = where(v.id);
       if (p && Math.hypot(p.x - wx, p.y - wy) < Math.max(reach, 8 / k)) return { node: v.id };
     }
+    if (closeUp) return {};
     const label = labels.current.find((l) => sx >= l.x - 4 && sx <= l.x + l.w + 4 && sy >= l.y - 4 && sy <= l.y + l.h + 4);
     if (label) return { field: label.field };
     const cx = Math.floor(wx / (SPACING * 2));
@@ -730,7 +803,7 @@ export function GraphBoard(props: GraphBoardProps) {
       <div style={styles.hidden}>
         <ul aria-label="Fields">
           {fields
-            .filter((f) => f.id)
+            .filter((f) => f.id && !closeUp)
             .map((f) => (
               <li key={f.id}>
                 <button onClick={() => (preview ? onSelect(f.id) : zoomToField(f))}>
@@ -784,12 +857,17 @@ export function GraphBoard(props: GraphBoardProps) {
           </div>
         )}
         <div style={styles.tools}>
+          {!preview && (
+            <button className="comic-lift" style={styles.tool} onClick={onBack} disabled={!onBack} title="Ctrl+Z">
+              Back
+            </button>
+          )}
           <button className="comic-lift" style={styles.tool} onClick={fit}>
             Fit
           </button>
           {onClear && !preview && (
             <button className="comic-lift" style={styles.tool} onClick={onClear} disabled={!links.length && !visitors.length && !selected}>
-              Clear
+              {closeUp ? 'Back to the map' : 'Clear'}
             </button>
           )}
         </div>

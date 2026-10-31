@@ -107,7 +107,7 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
     if (board.skills[id]) return select(id); //skills open in Skills, and aren't expanded here
     setError(undefined);
     setBusy(id);
-    onBoard((b) => ({ ...known(b, id), selected: id }));
+    onBoard((b) => ({ ...known(b, id), selected: id, back: opened.has(id) ? b.back : b }));
     expandNode(board, id, onBoard).catch(failed).finally(() => setBusy(undefined));
   };
 
@@ -134,7 +134,7 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reads once each time something unread is selected, not on every change to the board
   }, [chosenId, unread]);
 
-  const hide = (id: string) => onBoard((b) => hideNode(b, id, (other) => map.byId.has(other)));
+  const hide = (id: string) => onBoard((b) => ({ ...hideNode(b, id, (other) => map.byId.has(other)), back: b }));
 
   const describe = (id: string) => {
     const idea = board.ideas[id];
@@ -170,7 +170,8 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
             describe={describe}
             onSelect={select}
             onExpand={grow}
-            onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout }))}
+            onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout, back: b }))}
+            onBack={board.back && !busy ? () => onBoard((b) => b.back ?? b) : undefined}
           >
           <SearchField id="topic-graph-search" query={search.query} onQuery={(query) => setSearch({ query })} placeholder={PLACEHOLDER} compact />
           {results && (
@@ -219,10 +220,9 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
               <li>Every dot is a topic. Each flower is a broad field, with the topics that are part of it around it. Paler dots and dashed outlines are topics that aren't written up yet.</li>
               <li>Drag the background to look around. Scroll or pinch to zoom in, and the dots become topics with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
               <li>Click a topic to read about it here, or search for one.</li>
-              <li>Double-click a topic to bring in its Ideas, the topics around it, and the skills that need it.</li>
-              <li>Double-click an Idea, the pale diamonds, to bring in what it needs first, what builds on it, and the other topics it's in.</li>
-              <li>Skills that need a topic are the pale red ones, and open in Skills. Ideas and skills float beside the map; drag them where you want them.</li>
-              <li>Hide takes back what one topic or Idea brought in, and Clear takes back everything.</li>
+              <li>Double-click a topic to see just it, its Ideas, the topics around it, and the skills that need it. Drag any of them where you want them.</li>
+              <li>Double-click anything there to add what it links to. An Idea (the pale diamonds) brings what it needs first, what builds on it, and the other topics it's in. Skills that need a topic are the pale red ones, and open in Skills.</li>
+              <li>Back undoes the last step, or press Ctrl+Z. Hide takes back what one topic or Idea brought in, and Back to the map leaves the close-up.</li>
               <li>The buttons along the bottom turn each kind of link on and off.</li>
             </ul>
           </>
