@@ -71,7 +71,7 @@ pub struct MapSkill {
     broader: Vec<String>,
 }
 
-//every skill, for the map in Skills Explained, which groups them under the broadest skills they're kinds of
+//every skill, for the Skills Explorer's map, which groups them under the broadest skills they're kinds of
 pub async fn map(State(state): State<AppState>) -> Result<Json<Vec<MapSkill>>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         MATCH (s:Skill)

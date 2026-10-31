@@ -4,8 +4,7 @@
 **Where it lives:** `application/ui/atlas-of-us-ui/src/shared_components/graph_board.tsx` (`GraphBoard`), with
 `bloom.ts` (the map's layout) and `board_layout.ts` (`BoardLayout`, the view and the floating nodes) beside it. Its
 users are the Skills Explorer (`src/skills/graph.tsx`, with its state in `skill_board.ts`) and the Topics Explorer
-(`src/topics/graph.tsx`, with `topic_board.ts`), and the smaller boards at the top of Skills Explained and Topics
-Explained.
+(`src/topics/graph.tsx`, with `topic_board.ts`), and the smaller board at the top of Topics Explained.
 
 ## Context
 The Atlas is a graph, and most of its sub-graphs are worth exploring as one: what a skill is a kind of and what it
@@ -83,13 +82,12 @@ The Skills Explorer shows the split:
 - **The map.** `useMap` (`use_map.ts`) fetches the map once a visit. A skill created by "ask for it" is added to it, so it shows
   without a refetch.
 - **The board's state.** `SkillBoard` in `skill_board.ts`, with the `BoardLayout` inside it, is kept by the Skills
-  page, so the board survives opening a skill's page and visiting Skills Explained. It holds a record for each skill,
+  page, so the board survives opening a skill's page and visiting My Skills. It holds a record for each skill,
   trait and topic that has been selected or brought on, with what's been read about it and whether it's expanded.
   Records that aren't on the map are the board's visitors.
 - **Selecting and expanding.**
   - Selecting reads the node (`GET /api/skills/{id}/neighbors`, `GET /api/personality/traits/{id}/skills` or
-    `GET /api/topics/{id}/neighbors`), whether it was selected on the board, from Skills Explained, or from a skill's
-    page.
+    `GET /api/topics/{id}/neighbors`), whether it was selected on the board or from a skill's page.
   - Expanding adds what was read as links, and the inspector beside the board brings on the next page of a kind.
   - `hide` takes back what a node brought on.
   - **Going back.** Each expand, hide and clear keeps the board as it was in `back`, so the board holds the chain of
@@ -105,7 +103,7 @@ We rendered the boards with sample data in the development build, in headless Ch
 
 - A skills map of about 2,700 nodes in 36 fields, and a topics map of about 1,100, drawn zoomed out, zoomed in, mid
   crossfade and at 390 pixels wide, with no sideways scroll.
-- Selecting from Skills Explained opens the Explorer zoomed to the node, with the inspector read.
+- Selecting from the smaller board opens the Explorer zoomed to the node, with the inspector read.
 - Expanding a skill draws its "Needs" and "Similar" links to other flowers, and its traits and topic float beside it.
 
 Frame times haven't been measured, and two-finger pinch hasn't been tested on a real device yet.

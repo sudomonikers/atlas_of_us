@@ -82,7 +82,7 @@ export interface MapSkill extends SkillRef {
   broader: string[];
 }
 
-//every skill, for the map in Skills Explained
+//every skill, for the Skills Explorer's map
 export const getSkillMap = () => request<MapSkill[]>('GET', '/skills/map');
 
 //the closest skills to what was typed, each with its broader skills

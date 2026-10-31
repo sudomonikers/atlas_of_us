@@ -46,7 +46,7 @@ All routes are under `/api/skills`. Asking, filling and placing yourself on a sk
 
 | Route | What it does |
 |---|---|
-| `GET /map` | Every skill, with its `id`, `name`, `status` and the ids of the `broader` skills it's a kind of, for the map in Skills Explained |
+| `GET /map` | Every skill, with its `id`, `name`, `status` and the ids of the `broader` skills it's a kind of, for the Skills Explorer's map |
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
 | `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) the levels of other skills it needs (`skills`: the skill's `id`, `name` and `status`, the `rank` of it needed, `strength`, `reason`), and the levels of topics it needs knowledge of (`topics`: the topic's `id`, `name` and `status`, the `rank` of the Bloom level needed, `strength`, `reason`) |
@@ -152,9 +152,9 @@ ask for the same new skill at the same moment, the second `MERGE` finds the firs
 another, and only the first publishes `SkillCreated`.
 
 ## What the user sees
-The Skills page (`/skills`) has three views. Skills Explained opens first: it says why what you can do matters over a
-map of every skill, then walks through the five Dreyfus levels with one skill, cooking. Then come the Skills Explorer, the board of every
-skill, and My Skills.
+The Skills page (`/skills`) has two views. The Skills Explorer opens first: a line on what the page is and how to use it, the
+board of every skill, and under it the five Dreyfus levels walked through with one skill, cooking (`src/skills/explained.tsx`).
+Then comes My Skills.
 
 ### Exploring
 The Skills Explorer is one board of every skill (`SkillGraph` in `src/skills/graph.tsx`, on the shared `GraphBoard`
@@ -194,9 +194,8 @@ either ranks high and one in both ranks higher. It shows the ten closest skills 
 of, so someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
 alone.
 
-Skills Explained has a smaller board of the same map at the top. Clicking a skill or a field there opens the Explorer
-selected on it, and "See it on the map" on a skill's page does the same. The Skills page keeps the Explorer's board, so
-it's still there after a look at a skill or at Skills Explained.
+"See it on the map" on a skill's page goes back to the board selected on the skill. The Skills page keeps the
+Explorer's board, so it's still there after a look at a skill or at My Skills.
 
 ### Opening a skill
 A skill opens at `/skills/<id>`, with its five levels and, under them, the skills linked to it: the skills it's a kind

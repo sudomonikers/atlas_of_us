@@ -120,7 +120,7 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
     onBoard((b) => place(b, { id: skill.id, name: skill.name, status: skill.status }));
   };
 
-  //reads the selected skill, trait or topic, however it was selected: here, from Skills Explained or from a skill's page
+  //reads the selected skill, trait or topic, however it was selected: here or from a skill's page
   const chosenId = board.selected;
   const unread = !!chosenId && ((board.skills[chosenId] && !board.skills[chosenId].neighbors) || (board.traits[chosenId] && !board.traits[chosenId].read) || (board.topics[chosenId] && !board.topics[chosenId].read));
   useEffect(() => {
@@ -208,13 +208,13 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
           <>
             <h3 style={styles.heading}>How the board works</h3>
             <ul style={styles.tips}>
-              <li>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it. Paler dots and dashed outlines are skills whose levels aren't written yet.</li>
-              <li>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
-              <li>Click a skill to read about it here, or search for one.</li>
-              <li>Double-click one to see just it and everything it links to: skills, the personality traits it takes, and the topics it needs. Drag any of them where you want them.</li>
-              <li>Double-click anything there to add what it links to. A trait (the pale diamonds) brings the skills that take it, and a topic (the pale red ones) the skills that need it.</li>
-              <li>Back undoes the last step, or press Ctrl+Z. Hide takes back what one skill brought in, and Back to the map leaves the close-up.</li>
-              <li>The buttons along the bottom turn each kind of link on and off.</li>
+              <li style={styles.tip}>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it. Paler dots and dashed outlines are skills whose levels aren't written yet.</li>
+              <li style={styles.tip}>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
+              <li style={styles.tip}>Click a skill to read about it here, under the board, or search for one.</li>
+              <li style={styles.tip}>Double-click one to see just it and everything it links to: skills, the personality traits it takes, and the topics it needs. Drag any of them where you want them.</li>
+              <li style={styles.tip}>Double-click anything there to add what it links to. A trait (the pale diamonds) brings the skills that take it, and a topic (the pale red ones) the skills that need it.</li>
+              <li style={styles.tip}>Back undoes the last step, or press Ctrl+Z. Hide takes back what one skill brought in, and Back to the map leaves the close-up.</li>
+              <li style={styles.tip}>The buttons along the bottom turn each kind of link on and off.</li>
             </ul>
           </>
         )}
@@ -400,20 +400,18 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: `3px 3px 0 ${gunmetal}`,
   },
   //the board, with the inspector beside it, or under it once there's no room
+  //the board across the whole width, with the panel under it
   wrap: {
     maxWidth: 1100,
     margin: '0 auto 40px',
     display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
+    flexDirection: 'column',
     gap: 20,
   },
   boardColumn: {
-    flex: '999 1 560px',
     minWidth: 0,
   },
   inspector: {
-    flex: '1 0 260px',
     padding: '18px 20px',
     boxSizing: 'border-box',
     display: 'flex',
@@ -433,14 +431,18 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 1,
     color: brownRed,
   },
+  //in two columns where there's room
   tips: {
     margin: 0,
     paddingLeft: 20,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
+    columns: '320px 2',
+    columnGap: 40,
     fontSize: 16,
     lineHeight: 1.4,
+  },
+  tip: {
+    marginBottom: 6,
+    breakInside: 'avoid',
   },
   name: {
     margin: 0,

@@ -1,8 +1,4 @@
-import { useState, type CSSProperties } from 'react';
-import { getSkillMap, type SkillRef } from './api';
-import { useMap } from '../shared_components/use_map';
-import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
-import { BoardLayout } from '../shared_components/board_layout';
+import type { CSSProperties } from 'react';
 import { Disclosure } from '../shared_components/disclosure';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -88,44 +84,21 @@ const IN_THE_ATLAS = [
   },
 ];
 
-
-//the Skills Explained view: why what you can do matters, over a map of every skill, what the Dreyfus model is, each of its levels, then how the Atlas uses it
-//how the map draws a skill's link to the broader skill it's a kind of, as the explorer's board does
-const KIND_OF: LinkKind[] = [{ id: 'kind_of', label: 'A kind of', line: 'solid', arrow: true, colour: gunmetal, length: 90 }];
-
-interface ExplainedProps {
-  onExplore: (skill: SkillRef) => void; //a skill or a field on the map was clicked, to explore from it
+//what the page is and how to use it, over the explorer's board
+export function HowToExplore() {
+  return (
+    <p style={styles.how}>
+      This is every skill in the Atlas, grouped under the broad skills they're kinds of. Search for one or zoom in to find
+      it, click it to read about it, and double-click it to see everything it connects to.
+    </p>
+  );
 }
 
-export default function Explained({ onExplore }: ExplainedProps) {
-  const map = useMap(getSkillMap);
-  const [layout] = useState(() => new BoardLayout());
+//how skills are measured, under the explorer's board: what the Dreyfus model is, each of its levels, then how the Atlas
+//uses it
+export default function Explained() {
   return (
     <div style={styles.column}>
-      <header style={styles.why}>
-        <span className="comic-stamp" style={{ ...styles.stamp, color: cinnamon }}>
-          Why it matters
-        </span>
-        <h2 style={styles.heading}>What you can do is part of who you are.</h2>
-      </header>
-      {map.nodes ? (
-        <GraphBoard
-          preview
-          label="Every skill in the Atlas"
-          noun="skills"
-          items={map.items}
-          kinds={KIND_OF}
-          hierarchy="kind_of"
-          layout={layout}
-          onSelect={(id) => {
-            const skill = id ? map.byId.get(id) : undefined;
-            if (skill) onExplore({ id: skill.id, name: skill.name, status: skill.status });
-          }}
-        />
-      ) : (
-        <MapWaiting error={map.error} preview />
-      )}
-
       <section style={{ ...styles.panel, ...styles.intro }} className="comic-panel comic-pop">
         <div style={styles.introColumn}>
           <span className="comic-stamp" style={{ ...styles.stamp, color: brownRed }}>
@@ -210,9 +183,10 @@ export default function Explained({ onExplore }: ExplainedProps) {
 }
 
 const styles: Record<string, CSSProperties> = {
+  //a little way under the board
   column: {
     maxWidth: 1100,
-    margin: '0 auto 40px',
+    margin: '56px auto 40px',
   },
   panel: {
     padding: '26px 30px',
@@ -220,13 +194,12 @@ const styles: Record<string, CSSProperties> = {
     background: '#fff',
     borderRadius: 'var(--wobbly)',
   },
-  //why it matters, over the map
-  why: {
-    marginBottom: 16,
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: '8px 16px',
+  //what the page is, over the board
+  how: {
+    maxWidth: 1100,
+    margin: '0 auto 16px',
+    fontSize: 17,
+    lineHeight: 1.5,
   },
   //what the model is on the left, what changes on the right; they stack on narrow screens
   intro: {

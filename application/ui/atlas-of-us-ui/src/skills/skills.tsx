@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import { navigate, usePath } from '../router';
 import Explorer from './explorer';
-import { emptyBoard, place, type SkillBoard } from './skill_board';
+import { emptyBoard, type SkillBoard } from './skill_board';
 import MySkills from './my_skills';
-import Explained from './explained';
+import Explained, { HowToExplore } from './explained';
 import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
@@ -15,11 +15,10 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-type View = 'explorer' | 'mine' | 'explained';
+type View = 'explorer' | 'mine';
 
 const VIEWS: { id: View; label: string; bubble: string }[] = [
-  { id: 'explained', label: 'Skills Explained', bubble: 'Nobody starts out an expert. Here is how the levels work.' },
-  { id: 'explorer', label: 'Skills Explorer', bubble: 'Every skill anyone can have, from juggling to brain surgery. Search for one, then follow where it leads.' },
+  { id: 'explorer', label: 'Skills Explorer', bubble: 'Every skill anyone can have, from juggling to brain surgery. Nobody starts out an expert at any of them.' },
   { id: 'mine', label: 'My Skills', bubble: "What you can do now, and what you'd like to be able to do." },
 ];
 
@@ -27,8 +26,8 @@ function Skills() {
   const path = usePath();
   //an open skill lives in the url, /skills/<id>, and always shows in the explorer
   const skillId = path.startsWith('/skills/') ? decodeURIComponent(path.slice('/skills/'.length)) || undefined : undefined;
-  const [chosen, setView] = useState<View>('explained');
-  //the explorer's board, kept here so it's still there after a look at Skills Explained
+  const [chosen, setView] = useState<View>('explorer');
+  //the explorer's board, kept here so it's still there after a look at My Skills
   const [board, setBoard] = useState<SkillBoard>(emptyBoard);
   const view = skillId ? 'explorer' : chosen;
   const current = VIEWS.find((v) => v.id === view)!;
@@ -67,16 +66,12 @@ function Skills() {
           ))}
         </div>
 
+        {/* the board of every skill, with how to use it over it and how they're measured under it. An open skill's
+            page takes its place */}
+        {view === 'explorer' && !skillId && <HowToExplore />}
         {view === 'explorer' && <Explorer skillId={skillId} board={board} onBoard={setBoard} />}
+        {view === 'explorer' && !skillId && <Explained />}
         {view === 'mine' && <MySkills />}
-        {view === 'explained' && (
-          <Explained
-            onExplore={(skill) => {
-              setBoard((b) => place(b, skill));
-              setView('explorer');
-            }}
-          />
-        )}
         <Footer />
       </div>
     </RequireLogin>
