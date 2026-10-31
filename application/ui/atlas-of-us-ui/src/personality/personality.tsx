@@ -918,6 +918,8 @@ const SCENE_FPS = 24;
 
 const stepText = (step: Step) => (isPrompt(step) ? step.prompt : step.text);
 
+const visibleArea = () => window.visualViewport && { top: window.visualViewport.offsetTop, height: window.visualViewport.height };
+
 //where the script goes after a step, following the answer's choice when it's a prompt with choices
 const following = (script: Script, position: Position, answer?: Answer): Position | undefined => {
   const section = script.sections[position.section];
@@ -972,6 +974,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
   const [deadline, setDeadline] = useState<number>(); //when the clock runs out, once it's started
   const [stopped, setStopped] = useState<{ at: number; ranOut: boolean }>(); //when the clock stopped, and whether it was by running out
   const [now, setNow] = useState(0);
+  const [visible, setVisible] = useState(visibleArea); //the part of the screen the on-screen keyboard leaves showing
   const running = clock && deadline !== undefined && !stopped;
   const left = running ? Math.max(0, deadline - now) / 1000 : undefined;
 
@@ -982,6 +985,19 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
   const typed = shown >= text.length;
   const answer = isPrompt(step) ? answers[step.id] : undefined;
   const answered = !isPrompt(step) || (!!answer?.text.trim() && (!step.choices || answer.choice !== undefined));
+  const asking = isPrompt(step) && typed;
+
+  //the on-screen keyboard covers the page without resizing it, so the stage follows the visual viewport to stay above it
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const update = () => setVisible(visibleArea());
+    viewport?.addEventListener('resize', update);
+    viewport?.addEventListener('scroll', update);
+    return () => {
+      viewport?.removeEventListener('resize', update);
+      viewport?.removeEventListener('scroll', update);
+    };
+  }, []);
 
   useEffect(() => {
     if (typed) return;
@@ -1101,7 +1117,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
     setAnswers((a) => ({ ...a, [id]: { ...(a[id] ?? { text: '' }), ...change } }));
 
   return (
-    <div ref={stage} style={styles.stage}>
+    <div ref={stage} style={{ ...styles.stage, ...visible }}>
       <Suspense fallback={null}>{renderScene(step.animation, left === undefined ? undefined : left / clock!.seconds)}</Suspense>
 
       {left !== undefined && (
@@ -1124,68 +1140,74 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
             </div>
           )}
 
-          <p style={styles.text}>
-            {text.slice(0, shown)}
-            {/* the unwritten remainder holds its space so words don't jump between lines as they appear */}
-            <span style={styles.unwritten}>{text.slice(shown)}</span>
-          </p>
+          {/* keyed so every step starts scrolled to the top */}
+          <div key={`${position.section}-${position.index}`} style={styles.scroll}>
+            <p style={styles.text}>
+              {text.slice(0, shown)}
+              {/* the unwritten remainder holds its space so words don't jump between lines as they appear */}
+              <span style={styles.unwritten}>{text.slice(shown)}</span>
+            </p>
 
-          {isPrompt(step) && typed && (
-            <div style={styles.prompt}>
-              {step.choices && (
-                <div style={styles.choices}>
-                  {step.choices.map((choice, i) => (
-                    <button
-                      key={choice.label}
-                      className="comic-lift"
-                      style={{ ...styles.choice, ...(answer?.choice === i ? styles.choiceSelected : {}) }}
-                      onClick={() => updateAnswer(step.id, { choice: i })}
-                    >
-                      {answer?.choice === i ? '▶ ' : ''}
-                      {choice.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <textarea
-                style={styles.answer}
-                rows={3}
-                maxLength={MAX_ANSWER_LENGTH}
-                value={answer?.text ?? ''}
-                placeholder={
-                  !step.choices
-                    ? 'Type your answer and explain your thinking...'
-                    : answer?.choice !== undefined && step.choices[answer.choice].other
-                      ? 'Tell me your own answer, and why...'
-                      : 'Why? Explain your thinking...'
-                }
-                onChange={(e) => updateAnswer(step.id, { text: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) forward();
-                  if (e.key === 'Escape') e.currentTarget.blur();
-                }}
-              />
-              {saveError && <AtlasError message={saveError} />}
-              <div style={styles.promptFooter}>
-                <span style={styles.hint}>
-                  Ctrl+Enter to continue · Esc to leave the text box
-                  {/* a count once they're getting close to the limit */}
-                  {(answer?.text.length ?? 0) > MAX_ANSWER_LENGTH * 0.8 && ` · ${answer!.text.length}/${MAX_ANSWER_LENGTH}`}
-                </span>
-                <button
-                  className="comic-lift"
-                  style={{ ...styles.continue, ...(answered && !saving ? {} : styles.continueDisabled) }}
-                  disabled={!answered || saving}
-                  onClick={forward}
-                >
-                  {saving ? <>Saving<Dots /></> : 'Continue ▶'}
-                </button>
+            {isPrompt(step) && typed && (
+              <div style={styles.prompt}>
+                {step.choices && (
+                  <div style={styles.choices}>
+                    {step.choices.map((choice, i) => (
+                      <button
+                        key={choice.label}
+                        className="comic-lift"
+                        style={{ ...styles.choice, ...(answer?.choice === i ? styles.choiceSelected : {}) }}
+                        onClick={() => updateAnswer(step.id, { choice: i })}
+                      >
+                        {answer?.choice === i ? '▶ ' : ''}
+                        {choice.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <textarea
+                  style={styles.answer}
+                  rows={3}
+                  maxLength={MAX_ANSWER_LENGTH}
+                  value={answer?.text ?? ''}
+                  placeholder={
+                    !step.choices
+                      ? 'Type your answer and explain your thinking...'
+                      : answer?.choice !== undefined && step.choices[answer.choice].other
+                        ? 'Tell me your own answer, and why...'
+                        : 'Why? Explain your thinking...'
+                  }
+                  onChange={(e) => updateAnswer(step.id, { text: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) forward();
+                    if (e.key === 'Escape') e.currentTarget.blur();
+                  }}
+                />
+                {saveError && <AtlasError message={saveError} />}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {!isPrompt(step) && typed && <span style={styles.more} className="comic-flash">{nextPosition() ? '▼' : '■'}</span>}
-          <span style={styles.nav}>← back · → next</span>
+          <div style={styles.controls}>
+            {history.length > 1 && (
+              <button className="comic-lift" style={styles.back} onClick={back}>
+                ◀ Back
+              </button>
+            )}
+            <span style={styles.hint}>
+              <span className="keyboard-only">{asking ? 'Ctrl+Enter to continue · Esc to leave the text box' : '← back · → next'}</span>
+              {/* a count once they're getting close to the limit */}
+              {asking && (answer?.text.length ?? 0) > MAX_ANSWER_LENGTH * 0.8 && ` · ${answer!.text.length}/${MAX_ANSWER_LENGTH}`}
+            </span>
+            <button
+              className="comic-lift"
+              style={{ ...styles.continue, ...(asking && (!answered || saving) ? styles.continueDisabled : {}) }}
+              disabled={asking && (!answered || saving)}
+              onClick={forward}
+            >
+              {saving ? <>Saving<Dots /></> : asking ? 'Continue ▶' : isPrompt(step) || nextPosition() ? 'Next ▶' : 'Finish ■'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1195,21 +1217,33 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
 const styles: Record<string, CSSProperties> = {
   stage: {
     position: 'fixed',
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '100%',
     overflow: 'hidden',
     background: '#000',
   },
+  //runs from under the exit button to the bottom edge, with the box sitting at the bottom of it
   dock: {
     position: 'absolute',
     left: '50%',
+    top: 72,
     bottom: 28,
     transform: 'translateX(-50%)',
     width: 'min(860px, calc(100% - 32px))',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
     zIndex: 10,
   },
   box: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
     minHeight: 130,
-    padding: '24px 30px 32px',
+    maxHeight: '100%',
+    padding: '24px 30px 16px',
     background: ivory,
     borderRadius: 'var(--wobbly)',
     textAlign: 'left',
@@ -1235,28 +1269,21 @@ const styles: Record<string, CSSProperties> = {
     textTransform: 'uppercase',
     '--tilt': '-3deg',
   } as CSSProperties,
+  //the box's colour wash and speaker tag spill outside it, so the scrolling happens on a layer inside
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+  },
   text: {
     whiteSpace: 'pre-wrap',
   },
   unwritten: {
     visibility: 'hidden',
   },
-  more: {
-    position: 'absolute',
-    right: 24,
-    bottom: 8,
-    fontSize: 18,
-    color: brownRed,
-  },
-  nav: {
-    position: 'absolute',
-    left: 30,
-    bottom: 8,
-    fontSize: 15,
-    opacity: 0.5,
-  },
   prompt: {
     marginTop: 16,
+    padding: '0 5px 6px 0', //room for the choices' shadows inside the scrolling layer
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
@@ -1291,17 +1318,30 @@ const styles: Record<string, CSSProperties> = {
     outlineColor: brownRed,
     resize: 'vertical',
   },
-  promptFooter: {
+  controls: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
   },
   hint: {
+    flex: 1,
     fontSize: 15,
     opacity: 0.6,
   },
+  back: {
+    minHeight: 44,
+    padding: '4px 14px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1,
+  },
   continue: {
+    minHeight: 44,
     padding: '4px 18px',
     background: brownRed,
     color: ivory,

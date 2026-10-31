@@ -114,6 +114,13 @@ body {
   }
 }
 
+/* keyboard shortcuts, on devices with a mouse and keyboard */
+@media (hover: none) {
+  .keyboard-only {
+    display: none;
+  }
+}
+
 /* a speech bubble whose tail points left at whoever is talking */
 .comic-bubble {
   position: relative;
