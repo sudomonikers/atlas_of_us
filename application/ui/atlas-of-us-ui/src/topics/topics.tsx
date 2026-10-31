@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { navigate, usePath } from '../router';
 import Explorer, { type Opened } from './explorer';
+import { emptyBoard, place, type TopicBoard } from './topic_board';
 import MyKnowledge from './my_knowledge';
 import Explained from './explained';
 import { Footer } from '../shared_components/footer';
@@ -17,9 +18,9 @@ const comic = 'var(--font-comic)';
 type View = 'explorer' | 'mine' | 'explained';
 
 const VIEWS: { id: View; label: string; bubble: string }[] = [
+  { id: 'explained', label: 'Topics Explained', bubble: 'Knowing about something has depths, and topics are made of Ideas. Here is how it works.' },
   { id: 'explorer', label: 'Topics Explorer', bubble: 'Everything a person can know about, from barley to black holes. Search for a topic, then follow the Ideas it is made of.' },
   { id: 'mine', label: 'My Knowledge', bubble: "What you know now, how deeply, and what you'd like to know." },
-  { id: 'explained', label: 'Topics Explained', bubble: 'Knowing about something has depths, and topics are made of Ideas. Here is how it works.' },
 ];
 
 //what's open from the url: a topic at /topics/<id>, or an Idea at /topics/ideas/<id>
@@ -37,7 +38,9 @@ function Topics() {
   const path = usePath();
   //an open topic or Idea lives in the url, and always shows in the explorer
   const opened = openedFrom(path);
-  const [chosen, setView] = useState<View>('explorer');
+  const [chosen, setView] = useState<View>('explained');
+  //the explorer's board, kept here so it's still there after a look at Topics Explained
+  const [board, setBoard] = useState<TopicBoard>(emptyBoard);
   const view = opened ? 'explorer' : chosen;
   const current = VIEWS.find((v) => v.id === view)!;
   const choose = (next: View) => {
@@ -75,9 +78,16 @@ function Topics() {
           ))}
         </div>
 
-        {view === 'explorer' && <Explorer opened={opened} />}
+        {view === 'explorer' && <Explorer opened={opened} board={board} onBoard={setBoard} />}
         {view === 'mine' && <MyKnowledge />}
-        {view === 'explained' && <Explained />}
+        {view === 'explained' && (
+          <Explained
+            onExplore={(topic) => {
+              setBoard((b) => place(b, { kind: 'topic', topic }));
+              setView('explorer');
+            }}
+          />
+        )}
         <Footer />
       </div>
     </RequireLogin>

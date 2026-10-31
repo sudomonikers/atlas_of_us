@@ -1,12 +1,12 @@
-import { useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import { IDEA_TYPES, type IdeaGroupName, type PagedGroup, type TopicStatus } from './api';
-import { PLACEHOLDER } from './search';
-import { emptyBoard, expandNode, moreOf, place, readThen, type BoardIdea, type BoardSkill, type BoardTopic, type Placed, type TopicBoard } from './topic_board';
+import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
+import { getTopicMap, IDEA_TYPES, type IdeaGroupName, type PagedGroup, type TopicStatus, type TopicSummary } from './api';
+import { useMap } from '../shared_components/use_map';
+import { AskForTopic, PLACEHOLDER } from './search';
+import { emptyBoard, expandNode, hide as hideNode, moreOf, place, readThen, type BoardIdea, type BoardSkill, type BoardTopic, type Placed, type TopicBoard } from './topic_board';
 import { useTopicSearch, type SearchState } from './use_topic_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import type { BoardNode } from '../shared_components/board_layout';
-import { GraphBoard, type LinkKind } from '../shared_components/graph_board';
-import { Mascot } from '../shared_components/mascot';
+import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
 import { SearchField } from '../shared_components/search_field';
 import { Dots, Thinking } from '../shared_components/thinking';
 
@@ -63,49 +63,51 @@ interface TopicGraphProps {
   onOpenSkill: (id: string) => void;
 }
 
-//the topics graph as a board to explore: search to put a topic on it, expand a topic or an Idea to bring in everything
-//it links to, and select one to read about it. Reading a topic never fills it; only opening it does
+//every topic on one board to explore. Zoomed out it's the map of every topic; search or zoom in to find one, select it to
+//read about it here, and expand a topic or an Idea to bring in everything it links to. Reading a topic never fills it;
+//only opening it does
 export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphProps) {
+  const map = useMap(getTopicMap);
   const [search, setSearch] = useState<SearchState>({ query: '' });
   const searchError = useTopicSearch(search, setSearch);
   const [busy, setBusy] = useState<string>(); //the node being expanded, or `<id>:<group>` while more of a group is read
   const [error, setError] = useState<string>();
 
-  const nodes = useMemo<BoardNode[]>(
+  //what floats beside the map: topics that aren't on it, Ideas, and the skills that need a topic
+  const visitors = useMemo<BoardNode[]>(
     () => [
-      ...Object.values(board.topics).map(({ topic, from, expanded }): BoardNode => ({
-        id: topic.id,
-        label: topic.name,
-        look: topic.status === 'ready' ? 'filled' : 'hollow',
-        opened: expanded,
-        from,
-      })),
-      ...Object.values(board.ideas).map(({ idea, from, expanded }): BoardNode => ({
-        id: idea.id,
-        label: idea.name,
-        look: 'pale',
-        shape: 'diamond',
-        opened: expanded,
-        from,
-      })),
+      ...Object.values(board.topics)
+        .filter(({ topic }) => !map.byId.has(topic.id))
+        .map(({ topic, from }): BoardNode => ({ id: topic.id, label: topic.name, look: topic.status === 'ready' ? 'filled' : 'hollow', from })),
+      ...Object.values(board.ideas).map(({ idea, from }): BoardNode => ({ id: idea.id, label: idea.name, look: 'pale', shape: 'diamond', from })),
       ...Object.values(board.skills).map(({ skill, from }): BoardNode => ({ id: skill.id, label: skill.name, look: 'warm', from })),
     ],
-    [board.topics, board.ideas, board.skills],
+    [board.topics, board.ideas, board.skills, map.byId],
   );
+  const opened = useMemo(
+    () => new Set([...Object.values(board.topics).filter((on) => on.expanded).map((on) => on.topic.id), ...Object.values(board.ideas).filter((on) => on.expanded).map((on) => on.idea.id)]),
+    [board.topics, board.ideas],
+  );
+
+  //a topic on the map gets a place on the board's records the first time it's selected
+  const known = (b: TopicBoard, id: string): TopicBoard => {
+    const topic = map.byId.get(id);
+    if (b.topics[id] || b.ideas[id] || b.skills[id] || !topic) return b;
+    return { ...b, topics: { ...b.topics, [id]: { topic: { id, name: topic.name, status: topic.status }, expanded: false } } };
+  };
 
   const failed = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
 
   const select = (id?: string) => {
     setError(undefined);
-    onBoard((b) => ({ ...b, selected: id }));
-    if (id) readThen(board, id, onBoard).catch(failed);
+    onBoard((b) => ({ ...(id ? known(b, id) : b), selected: id }));
   };
 
   const grow = (id: string) => {
     if (board.skills[id]) return select(id); //skills open in Skills, and aren't expanded here
     setError(undefined);
     setBusy(id);
-    onBoard((b) => ({ ...b, selected: id }));
+    onBoard((b) => ({ ...known(b, id), selected: id }));
     expandNode(board, id, onBoard).catch(failed).finally(() => setBusy(undefined));
   };
 
@@ -115,29 +117,32 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
     moreOf(board, id, group, onBoard).catch(failed).finally(() => setBusy(undefined));
   };
 
-  const pick = (placed: Placed) => {
+  //goes to a topic found by search, or just asked for, which joins the map if it's new
+  const pick = (topic: TopicSummary) => {
     setSearch({ query: '' });
-    onBoard((b) => place(b, placed));
-    grow(placed.kind === 'topic' ? placed.topic.id : placed.idea.id);
+    setError(undefined);
+    map.add({ id: topic.id, name: topic.name, status: topic.status, broader: topic.broader.map((b) => b.id) });
+    onBoard((b) => place(b, { kind: 'topic', topic: { id: topic.id, name: topic.name, status: topic.status } }));
   };
 
-  const hide = (id: string) =>
-    onBoard((b) => {
-      const topics = { ...b.topics };
-      const ideas = { ...b.ideas };
-      const skills = { ...b.skills };
-      delete topics[id];
-      delete ideas[id];
-      delete skills[id];
-      const links = b.links.filter((l) => l.from !== id && l.to !== id);
-      return { ...b, topics, ideas, skills, links, selected: b.selected === id ? undefined : b.selected };
-    });
+  //reads the selected topic or Idea, however it was selected: here, from Topics Explained or from a page
+  const chosenId = board.selected;
+  const unread = !!chosenId && ((board.topics[chosenId] && !board.topics[chosenId].neighbors) || (board.ideas[chosenId] && !board.ideas[chosenId].read));
+  useEffect(() => {
+    if (!chosenId || !unread) return;
+    readThen(board, chosenId, onBoard).catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads once each time something unread is selected, not on every change to the board
+  }, [chosenId, unread]);
 
-  const describe = (node: BoardNode) => {
-    const idea = board.ideas[node.id];
-    if (idea) return `${node.label}, an Idea, a ${IDEA_TYPES[idea.idea.type].label.toLowerCase()}`;
-    if (board.skills[node.id]) return `${node.label}, a skill that needs this knowledge`;
-    return `${node.label}, ${STATUS[board.topics[node.id]?.topic.status ?? 'stub'].toLowerCase()}`;
+  const hide = (id: string) => onBoard((b) => hideNode(b, id, (other) => map.byId.has(other)));
+
+  const describe = (id: string) => {
+    const idea = board.ideas[id];
+    if (idea) return `${idea.idea.name}, an Idea, a ${IDEA_TYPES[idea.idea.type].label.toLowerCase()}`;
+    const skill = board.skills[id];
+    if (skill) return `${skill.skill.name}, a skill that needs this knowledge`;
+    const topic = map.byId.get(id) ?? board.topics[id]?.topic;
+    return `${topic?.name}, ${STATUS[topic?.status ?? 'stub'].toLowerCase()}`;
   };
 
   const results = search.query.trim() ? search.results?.slice(0, RESULTS) : undefined;
@@ -149,39 +154,38 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
   return (
     <div style={styles.wrap}>
       <div style={styles.boardColumn}>
-        <GraphBoard
-          label="The topics and Ideas you've put on the board, and how they link"
-          nodes={nodes}
-          links={board.links}
-          kinds={KINDS}
-          layout={board.layout}
-          selected={board.selected}
-          focus={board.focus}
-          describe={describe}
-          onSelect={select}
-          onExpand={grow}
-          onClear={() => onBoard(emptyBoard())}
-          empty={
-            <div style={styles.empty}>
-              <Mascot size={96} />
-              <p style={styles.bubble} className="comic-bubble comic-pop">
-                Search for a topic to put it on the board, then double-click it to see what it's made of and what it connects to.
-              </p>
-            </div>
-          }
-        >
+        {map.nodes ? (
+          <GraphBoard
+            label="Every topic, and how the ones you've expanded link"
+            noun="topics"
+            items={map.items}
+            visitors={visitors}
+            links={board.links}
+            kinds={KINDS}
+            hierarchy="part_of"
+            layout={board.layout}
+            selected={board.selected}
+            focus={board.focus}
+            opened={opened}
+            describe={describe}
+            onSelect={select}
+            onExpand={grow}
+            onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout }))}
+          >
           <SearchField id="topic-graph-search" query={search.query} onQuery={(query) => setSearch({ query })} placeholder={PLACEHOLDER} compact />
           {results && (
             <ul style={styles.results}>
-              {results.length === 0 && <li style={styles.none}>Nothing in the Atlas matches that yet.</li>}
               {results.map((topic) => (
                 <li key={topic.id}>
-                  <button className="comic-lift" style={styles.result} onClick={() => pick({ kind: 'topic', topic })}>
+                  <button className="comic-lift" style={styles.result} onClick={() => pick(topic)}>
                     <span style={styles.resultName}>{topic.name}</span>
                     {topic.broader.length > 0 && <span style={styles.kindOf}>Part of {topic.broader.map((b) => b.name).join(', ')}</span>}
                   </button>
                 </li>
               ))}
+              <li style={styles.asking}>
+                <AskForTopic key={search.query} query={search.query.trim()} nothingFound={results.length === 0} onOpen={pick} />
+              </li>
             </ul>
           )}
           {search.query.trim() && !search.results && !searchError && (
@@ -195,7 +199,10 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
               <Thinking label="Bringing them onto the board" />
             </div>
           )}
-        </GraphBoard>
+          </GraphBoard>
+        ) : (
+          <MapWaiting error={map.error} />
+        )}
       </div>
 
       <aside style={styles.inspector} className="comic-panel" aria-live="polite">
@@ -209,12 +216,13 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
           <>
             <h3 style={styles.heading}>How the board works</h3>
             <ul style={styles.tips}>
-              <li>Click a topic or an Idea to read about it here.</li>
+              <li>Every dot is a topic. Each flower is a broad field, with the topics that are part of it around it. Paler dots and dashed outlines are topics that aren't written up yet.</li>
+              <li>Drag the background to look around. Scroll or pinch to zoom in, and the dots become topics with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
+              <li>Click a topic to read about it here, or search for one.</li>
               <li>Double-click a topic to bring in its Ideas, the topics around it, and the skills that need it.</li>
               <li>Double-click an Idea, the pale diamonds, to bring in what it needs first, what builds on it, and the other topics it's in.</li>
-              <li>Skills that need a topic are the pale red ones, and open in Skills.</li>
-              <li>Drag anything to move it, and it stays where you put it.</li>
-              <li>Drag the background to look around, and scroll or pinch to zoom.</li>
+              <li>Skills that need a topic are the pale red ones, and open in Skills. Ideas and skills float beside the map; drag them where you want them.</li>
+              <li>Hide takes back what one topic or Idea brought in, and Clear takes back everything.</li>
               <li>The buttons along the bottom turn each kind of link on and off.</li>
             </ul>
           </>
@@ -355,6 +363,10 @@ function SkillInspector({ on, onOpen, onHide }: { on: BoardSkill; onOpen: (id: s
 }
 
 const styles: Record<string, CSSProperties> = {
+  //asking for a topic that isn't in the results, at the bottom of them
+  asking: {
+    padding: '4px 4px 2px',
+  },
   //what's being fetched, under the board's search box
   working: {
     marginTop: 8,

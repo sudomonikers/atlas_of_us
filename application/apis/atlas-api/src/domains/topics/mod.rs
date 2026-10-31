@@ -30,6 +30,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(health_check).post(ask_for_topic))
         .route("/search", get(search))
+        .route("/map", get(map))
         .route("/{id}", get(get_topic))
         .route("/{id}/neighbors", get(get_neighbors))
         .route("/{id}/neighbors/{group}", get(get_neighbor_page))
@@ -62,6 +63,30 @@ pub struct TopicRef {
     id: String,
     name: String,
     status: String,
+}
+
+//a topic on the map of every topic, with the ids of the broader topics it's a subtopic of
+#[derive(Serialize, Deserialize)]
+pub struct MapTopic {
+    id: String,
+    name: String,
+    status: String,
+    broader: Vec<String>,
+}
+
+//every topic, for the map in Topics Explained, which groups them under the broadest topics they're part of
+pub async fn map(State(state): State<AppState>) -> Result<Json<Vec<MapTopic>>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (t:Topic)
+        RETURN t.id AS id, t.name AS name, t.status AS status,
+               COLLECT { MATCH (t)-[:SUBTOPIC_OF]->(b:Topic) RETURN b.id AS b ORDER BY b } AS broader
+        ORDER BY name
+    ")).await.map_err(internal)?;
+    let mut topics = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        topics.push(row.to::<MapTopic>().map_err(internal)?);
+    }
+    Ok(Json(topics))
 }
 
 //a topic as search and the gates show it, with the broader topics it's a subtopic of

@@ -29,6 +29,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(health_check).post(ask_for_skill))
         .route("/search", get(search))
+        .route("/map", get(map))
         .route("/{id}", get(get_skill))
         .route("/{id}/neighbors", get(get_neighbors))
         .route("/{id}/neighbors/{group}", get(get_neighbor_page))
@@ -59,6 +60,30 @@ pub struct SkillRef {
     id: String,
     name: String,
     status: String,
+}
+
+//a skill on the map of every skill, with the ids of the broader skills it's a kind of
+#[derive(Serialize, Deserialize)]
+pub struct MapSkill {
+    id: String,
+    name: String,
+    status: String,
+    broader: Vec<String>,
+}
+
+//every skill, for the map in Skills Explained, which groups them under the broadest skills they're kinds of
+pub async fn map(State(state): State<AppState>) -> Result<Json<Vec<MapSkill>>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (s:Skill)
+        RETURN s.id AS id, s.name AS name, s.status AS status,
+               COLLECT { MATCH (s)-[:SPECIALIZATION_OF]->(b:Skill) RETURN b.id AS b ORDER BY b } AS broader
+        ORDER BY name
+    ")).await.map_err(internal)?;
+    let mut skills = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        skills.push(row.to::<MapSkill>().map_err(internal)?);
+    }
+    Ok(Json(skills))
 }
 
 //a skill as search and the gates show it, with the broader skills it's a kind of

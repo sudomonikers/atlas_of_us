@@ -20,7 +20,7 @@ We start from an existing, curated skills taxonomy (ESCO) so the graph has a bac
 
 | Piece | Where (planned) | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/skills/` | Search, the skill page, claiming a level, reviewing content and proposals |
+| UI | `application/ui/atlas-of-us-ui/src/skills/` | The board of every skill, the skill page, claiming a level, reviewing content and proposals |
 | API | `application/apis/atlas-api/src/domains/skills/mod.rs` | Search, the creation gates, claiming levels, endorsements and proposals, publishing events |
 | Gates | `application/apis/atlas-api/src/domains/skills/gates.rs` | Normalize and classify what a user asks for, and screen out nonsense |
 | Placing yourself | `application/apis/atlas-api/src/domains/skills/achievement.rs` | The level a user is at in a skill (`ACHIEVED`), when they got there, and the routes for their evidence about it once they're on it. Evidence itself is `src/evidence/mod.rs` (see `topics.md`) |
@@ -46,6 +46,7 @@ All routes are under `/api/skills`. Asking, filling and placing yourself on a sk
 
 | Route | What it does |
 |---|---|
+| `GET /map` | Every skill, with its `id`, `name`, `status` and the ids of the `broader` skills it's a kind of, for the map in Skills Explained |
 | `GET /search?q=` | The closest skills, each with the broader skills it's a kind of |
 | `POST /` `{query}` | Asks for a skill we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_skill` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the skill it means) or `created` (the new stub) |
 | `GET /{id}` | A skill with its levels, each with the personality traits written on it (`traits`: `name`, `level`, `strength`, `reason`) the levels of other skills it needs (`skills`: the skill's `id`, `name` and `status`, the `rank` of it needed, `strength`, `reason`), and the levels of topics it needs knowledge of (`topics`: the topic's `id`, `name` and `status`, the `rank` of the Bloom level needed, `strength`, `reason`) |
@@ -151,14 +152,50 @@ ask for the same new skill at the same moment, the second `MERGE` finds the firs
 another, and only the first publishes `SkillCreated`.
 
 ## What the user sees
+The Skills page (`/skills`) has three views. Skills Explained opens first: it says why what you can do matters over a
+map of every skill, then walks through the five Dreyfus levels with one skill, cooking. Then come the Skills Explorer, the board of every
+skill, and My Skills.
 
-### Searching
-The user lands on the skills module, sees a short explanation of how skills and Dreyfus levels work, and searches. The
-search matches names and aliases through a full-text index (every word has to match, as a prefix or with one typo once
+### Exploring
+The Skills Explorer is one board of every skill (`SkillGraph` in `src/skills/graph.tsx`, on the shared `GraphBoard`
+in `src/shared_components/graph_board.tsx`, which knows nothing about skills; see `ADRs/graph_board.md`). `GET /map`
+gives every skill with the ids of its broader skills, fetched once a visit (`useMap` in `src/shared_components/use_map.ts`).
+
+- **Zoomed out** it's a map: a flower for each broadest skill, its field, with every skill under it as a dot, filled
+  when ready and paler for a stub. The field's name sits over its flower, and clicking the name zooms to it.
+- **Zoomed in**, the dots become skills with their names and "A kind of" lines to their broader skills. Ready skills are
+  filled in the field's colour, and stubs have a dashed outline.
+- **Searching** in the board's corner shows the closest skills with the broader skills they're a kind of, so someone
+  searching "pastry lamination" can see "Baking" too, and picking one glides to it and selects it. When nothing fits,
+  the user can ask for it there (see "Asking for a skill we don't have"), and a new skill joins the map straight away.
+- **Selecting** a skill reads it with `GET /{id}/neighbors`, which never fills it, and the panel beside the board shows
+  its description and how many of each kind of link it has. "Open skill" goes to its page, where a stub gets filled.
+- **Expanding** a skill, by double-clicking it, brings on every skill linked to it, every personality trait it takes
+  and every topic it needs. Skills are on the map already, so their links are drawn where they are. Traits (pale blue
+  diamonds) and topics (pale red) float beside the skill that brought them and can be dragged. Expanding a trait brings
+  on the skills that take it, strongest first, read with `GET /api/personality/traits/{id}/skills`, and expanding a
+  topic brings on the skills that need it, read with `GET /api/topics/{id}/neighbors`; a topic opens in Topics. A kind
+  of link with more than the first page can bring on the next. Hide takes back what a node brought on, and Clear takes
+  back everything.
+
+The board draws five kinds of link, and a legend turns each on and off. Turning a kind off also hides the floating
+traits and topics whose links are all of kinds that are off, other than the selected one:
+
+- **A kind of:** a solid line with an arrow to the broader skill.
+- **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES_SKILL` link.
+- **Similar:** a dotted line.
+- **Takes:** a solid red line with an arrow from a skill to a personality trait, thicker for a stronger `REQUIRES_TRAIT`.
+- **Knows:** a solid blue line with an arrow from a skill to a topic, thicker for a stronger `REQUIRES_KNOWLEDGE`.
+
+The board's search matches names and aliases through a full-text index (every word has to match, as a prefix or with one typo once
 it's four letters long) and does a vector search that keeps skills scoring at least 0.6, and combines the two lists by reciprocal rank fusion, so a skill near the top of
 either ranks high and one in both ranks higher. It shows the ten closest skills along with the broader skills they're a kind
 of, so someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
 alone.
+
+Skills Explained has a smaller board of the same map at the top. Clicking a skill or a field there opens the Explorer
+selected on it, and "See it on the map" on a skill's page does the same. The Skills page keeps the Explorer's board, so
+it's still there after a look at a skill or at Skills Explained.
 
 ### Opening a skill
 A skill opens at `/skills/<id>`, with its five levels and, under them, the skills linked to it: the skills it's a kind
@@ -183,30 +220,6 @@ they reached that level, which they can skip, then saves it as their one `ACHIEV
 Their level then shows on the skill's page, with when they reached it, a "You" mark on its rung, their evidence, and
 ways to add evidence, walk through again or take themselves off the skill. My Skills lists every skill they've placed
 themselves on, highest level first, and their profile's Skills tab shows the same to whoever can see the profile.
-
-### Exploring the graph
-The Explorer also has a Graph view: a board in the style of Neo4j Bloom (`GraphBoard` in
-`src/shared_components/graph_board.tsx`, which knows nothing about skills, so any sub-graph can use it; see
-`ADRs/graph_board.md`). Searching puts a skill on the board.
-Double-clicking a skill expands it, bringing every skill linked to it, every personality trait it takes and every
-topic it needs onto the board, and a force layout spreads them out. Double-clicking a trait brings on the skills that
-take it, strongest first, read with `GET /api/personality/traits/{id}/skills`. Double-clicking a topic brings on the
-skills that need it, strongest first, read with `GET /api/topics/{id}/neighbors`, and a topic opens in Topics. Anything on the board can be dragged and stays where it's dropped,
-and the board pans and zooms. The board draws five kinds of link, and a legend turns each on and off. Turning a kind
-off also hides the skills and traits whose links are all of kinds that are off, other than the selected one, and they
-come back where they were when it's turned on again:
-
-- **A kind of:** a solid line with an arrow to the broader skill.
-- **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES_SKILL` link.
-- **Similar:** a dotted line.
-- **Takes:** a solid red line with an arrow from a skill to a personality trait, thicker for a stronger `REQUIRES_TRAIT`.
-- **Knows:** a solid blue line with an arrow from a skill to a topic, thicker for a stronger `REQUIRES_KNOWLEDGE`.
-
-Ready skills are filled in, stubs have a dashed outline, traits are pale blue diamonds, and topics are pale red blobs. Selecting a trait shows
-its overview and how many skills take it, and once it's expanded, the next twelve can be brought on. Selecting a skill shows its description and how many of
-each kind of link it has, read with `GET /{id}/neighbors`, which never fills it. Expanding brings on the first page of
-each kind of link, and a kind with more can bring on the next page. "Open skill" goes to the skill's page, where a stub
-gets filled. A skill page has a button that puts its skill on the board, expanded.
 
 ### Asking for a skill we don't have
 If nothing matches, the user can ask for it. The API runs **the gates** before anything is written. The first three are

@@ -77,6 +77,14 @@ export type AskOutcome =
   | { outcome: 'existing'; skill: SkillSummary } //a skill we already have
   | { outcome: 'created'; skill: SkillSummary }; //a new stub, ready to be opened
 
+//a skill on the map of every skill, with the ids of the broader skills it's a kind of
+export interface MapSkill extends SkillRef {
+  broader: string[];
+}
+
+//every skill, for the map in Skills Explained
+export const getSkillMap = () => request<MapSkill[]>('GET', '/skills/map');
+
 //the closest skills to what was typed, each with its broader skills
 export const searchSkills = (q: string) => request<SkillSummary[]>('GET', `/skills/search?q=${encodeURIComponent(q)}`);
 

@@ -1,13 +1,13 @@
-import { useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import type { GroupName, PagedGroup, SkillRef, SkillStatus } from './api';
-import { PLACEHOLDER } from './search';
-import { emptyBoard, expandSkill, expandTopic, expandTrait, moreKnowers, moreOf, moreTakers, place, readThen, readTopicThen, readTraitThen, type BoardSkill, type BoardTopic, type BoardTrait, type SkillBoard } from './skill_board';
+import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
+import { getSkillMap, type GroupName, type PagedGroup, type SkillRef, type SkillStatus, type SkillSummary } from './api';
+import { useMap } from '../shared_components/use_map';
+import { AskForSkill, PLACEHOLDER } from './search';
+import { emptyBoard, expandSkill, expandTopic, expandTrait, hide as hideNode, moreKnowers, moreOf, moreTakers, place, readThen, readTopicThen, readTraitThen, type BoardSkill, type BoardTopic, type BoardTrait, type SkillBoard } from './skill_board';
 import { useSkillSearch, type SearchState } from './use_skill_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import { SearchField } from '../shared_components/search_field';
 import type { BoardNode } from '../shared_components/board_layout';
-import { GraphBoard, type LinkKind } from '../shared_components/graph_board';
-import { Mascot } from '../shared_components/mascot';
+import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
 import { navigate } from '../router';
 import { Dots, Thinking } from '../shared_components/thinking';
 
@@ -57,54 +57,50 @@ interface SkillGraphProps {
   onOpen: (skill: SkillRef) => void;
 }
 
-//the skills graph as a board to explore, in the style of Neo4j Bloom: search to put a skill on it, expand a skill to
-//bring in everything it links to, and select one to read about it. Reading a skill never fills it; only opening it does
+//every skill on one board to explore, in the style of Neo4j Bloom. Zoomed out it's the map of every skill; search or
+//zoom in to find one, select it to read about it here, and expand it to bring in everything it links to. Reading a
+//skill never fills it; only opening it does
 export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
+  const map = useMap(getSkillMap);
   const [search, setSearch] = useState<SearchState>({ query: '' });
   const searchError = useSkillSearch(search, setSearch);
   const [busy, setBusy] = useState<string>(); //the skill, trait or topic being expanded, or `<id>:<group>` while more of a group is read
   const [error, setError] = useState<string>();
 
-  const nodes = useMemo<BoardNode[]>(
+  //what floats beside the map: skills that aren't on it, the traits skills take and the topics they need
+  const visitors = useMemo<BoardNode[]>(
     () => [
-      ...Object.values(board.skills).map(({ skill, from, expanded }): BoardNode => ({
-        id: skill.id,
-        label: skill.name,
-        look: skill.status === 'ready' ? 'filled' : 'hollow',
-        opened: expanded,
-        from,
-      })),
-      ...Object.values(board.traits).map(({ trait, from, expanded }): BoardNode => ({
-        id: trait.id,
-        label: trait.name,
-        look: 'pale',
-        shape: 'diamond',
-        opened: expanded,
-        from,
-      })),
-      ...Object.values(board.topics).map(({ topic, from, expanded }): BoardNode => ({
-        id: topic.id,
-        label: topic.name,
-        look: 'warm',
-        opened: expanded,
-        from,
-      })),
+      ...Object.values(board.skills)
+        .filter(({ skill }) => !map.byId.has(skill.id))
+        .map(({ skill, from }): BoardNode => ({ id: skill.id, label: skill.name, look: skill.status === 'ready' ? 'filled' : 'hollow', from })),
+      ...Object.values(board.traits).map(({ trait, from }): BoardNode => ({ id: trait.id, label: trait.name, look: 'pale', shape: 'diamond', from })),
+      ...Object.values(board.topics).map(({ topic, from }): BoardNode => ({ id: topic.id, label: topic.name, look: 'warm', from })),
     ],
+    [board.skills, board.traits, board.topics, map.byId],
+  );
+  const opened = useMemo(
+    () => new Set([...Object.values(board.skills), ...Object.values(board.traits), ...Object.values(board.topics)].filter((on) => on.expanded).map((on) => ('skill' in on ? on.skill.id : 'trait' in on ? on.trait.id : on.topic.id))),
     [board.skills, board.traits, board.topics],
   );
+
+  //a skill on the map gets a place on the board's records the first time it's selected
+  const known = (b: SkillBoard, id: string): SkillBoard => {
+    const skill = map.byId.get(id);
+    if (b.skills[id] || b.traits[id] || b.topics[id] || !skill) return b;
+    return { ...b, skills: { ...b.skills, [id]: { skill: { id, name: skill.name, status: skill.status }, expanded: false } } };
+  };
 
   const failed = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
 
   const select = (id?: string) => {
     setError(undefined);
-    onBoard((b) => ({ ...b, selected: id }));
-    if (id) (board.traits[id] ? readTraitThen : board.topics[id] ? readTopicThen : readThen)(board, id, onBoard).catch(failed);
+    onBoard((b) => ({ ...(id ? known(b, id) : b), selected: id }));
   };
 
   const grow = (id: string) => {
     setError(undefined);
     setBusy(id);
-    onBoard((b) => ({ ...b, selected: id }));
+    onBoard((b) => ({ ...known(b, id), selected: id }));
     (board.traits[id] ? expandTrait : board.topics[id] ? expandTopic : expandSkill)(board, id, onBoard).catch(failed).finally(() => setBusy(undefined));
   };
 
@@ -116,23 +112,24 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
       .finally(() => setBusy(undefined));
   };
 
-  const pick = (skill: SkillRef) => {
+  //goes to a skill found by search, or just asked for, which joins the map if it's new
+  const pick = (skill: SkillSummary) => {
     setSearch({ query: '' });
-    onBoard((b) => place(b, skill));
-    grow(skill.id);
+    setError(undefined);
+    map.add({ id: skill.id, name: skill.name, status: skill.status, broader: skill.broader.map((b) => b.id) });
+    onBoard((b) => place(b, { id: skill.id, name: skill.name, status: skill.status }));
   };
 
-  const hide = (id: string) =>
-    onBoard((b) => {
-      const skills = { ...b.skills };
-      const traits = { ...b.traits };
-      const topics = { ...b.topics };
-      delete skills[id];
-      delete traits[id];
-      delete topics[id];
-      const links = b.links.filter((l) => l.from !== id && l.to !== id);
-      return { ...b, skills, traits, topics, links, selected: b.selected === id ? undefined : b.selected };
-    });
+  //reads the selected skill, trait or topic, however it was selected: here, from Skills Explained or from a skill's page
+  const chosenId = board.selected;
+  const unread = !!chosenId && ((board.skills[chosenId] && !board.skills[chosenId].neighbors) || (board.traits[chosenId] && !board.traits[chosenId].read) || (board.topics[chosenId] && !board.topics[chosenId].read));
+  useEffect(() => {
+    if (!chosenId || !unread) return;
+    (board.traits[chosenId] ? readTraitThen : board.topics[chosenId] ? readTopicThen : readThen)(board, chosenId, onBoard).catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads once each time something unread is selected, not on every change to the board
+  }, [chosenId, unread]);
+
+  const hide = (id: string) => onBoard((b) => hideNode(b, id, (other) => map.byId.has(other)));
 
   const results = search.query.trim() ? search.results?.slice(0, RESULTS) : undefined;
   const chosen = board.selected ? board.skills[board.selected] : undefined;
@@ -142,37 +139,33 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
   return (
     <div style={styles.wrap}>
       <div style={styles.boardColumn}>
-        <GraphBoard
-          label="The skills you've put on the board, and how they link"
-          nodes={nodes}
-          links={board.links}
-          kinds={KINDS}
-          layout={board.layout}
-          selected={board.selected}
-          focus={board.focus}
-          describe={(node) =>
-            board.traits[node.id]
-              ? `${node.label}, a personality trait`
-              : board.topics[node.id]
-                ? `${node.label}, a topic`
-                : `${node.label}, ${STATUS[board.skills[node.id]?.skill.status ?? 'stub'].toLowerCase()}`
-          }
-          onSelect={select}
-          onExpand={grow}
-          onClear={() => onBoard(emptyBoard())}
-          empty={
-            <div style={styles.empty}>
-              <Mascot size={96} />
-              <p style={styles.bubble} className="comic-bubble comic-pop">
-                Search for a skill to put it on the board, then double-click it to see what it connects to.
-              </p>
-            </div>
-          }
-        >
+        {map.nodes ? (
+          <GraphBoard
+            label="Every skill, and how the ones you've expanded link"
+            noun="skills"
+            items={map.items}
+            visitors={visitors}
+            links={board.links}
+            kinds={KINDS}
+            hierarchy="kind_of"
+            layout={board.layout}
+            selected={board.selected}
+            focus={board.focus}
+            opened={opened}
+            describe={(id) =>
+              board.traits[id]
+                ? `${board.traits[id].trait.name}, a personality trait`
+                : board.topics[id]
+                  ? `${board.topics[id].topic.name}, a topic`
+                  : `${map.byId.get(id)?.name ?? board.skills[id]?.skill.name}, ${STATUS[map.byId.get(id)?.status ?? board.skills[id]?.skill.status ?? 'stub'].toLowerCase()}`
+            }
+            onSelect={select}
+            onExpand={grow}
+            onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout }))}
+          >
           <SearchField id="graph-search" query={search.query} onQuery={(query) => setSearch({ query })} placeholder={PLACEHOLDER} compact />
           {results && (
             <ul style={styles.results}>
-              {results.length === 0 && <li style={styles.none}>Nothing in the Atlas matches that yet.</li>}
               {results.map((skill) => (
                 <li key={skill.id}>
                   <button className="comic-lift" style={styles.result} onClick={() => pick(skill)}>
@@ -181,6 +174,9 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
                   </button>
                 </li>
               ))}
+              <li style={styles.asking}>
+                <AskForSkill key={search.query} query={search.query.trim()} nothingFound={results.length === 0} onOpen={pick} />
+              </li>
             </ul>
           )}
           {search.query.trim() && !search.results && !searchError && (
@@ -194,7 +190,10 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
               <Thinking label="Bringing them onto the board" />
             </div>
           )}
-        </GraphBoard>
+          </GraphBoard>
+        ) : (
+          <MapWaiting error={map.error} />
+        )}
       </div>
 
       <aside style={styles.inspector} className="comic-panel" aria-live="polite">
@@ -208,12 +207,13 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
           <>
             <h3 style={styles.heading}>How the board works</h3>
             <ul style={styles.tips}>
-              <li>Click a skill to read about it here.</li>
+              <li>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it. Paler dots and dashed outlines are skills whose levels aren't written yet.</li>
+              <li>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
+              <li>Click a skill to read about it here, or search for one.</li>
               <li>Double-click one to bring in every skill it links to, the personality traits it takes, and the topics it needs.</li>
-              <li>Double-click a trait, the pale diamonds, to bring in the skills that take it.</li>
-              <li>Double-click a topic, the pale red ones, to bring in the skills that need it.</li>
-              <li>Drag a skill to move it, and it stays where you put it.</li>
-              <li>Drag the background to look around, and scroll or pinch to zoom.</li>
+              <li>Double-click a trait, the pale diamonds, to bring in the skills that take it, and a topic, the pale red ones, to bring in the skills that need it.</li>
+              <li>Traits and topics float beside the map; drag them where you want them.</li>
+              <li>Hide takes back what one skill brought in, and Clear takes back everything.</li>
               <li>The buttons along the bottom turn each kind of link on and off.</li>
             </ul>
           </>
@@ -385,6 +385,10 @@ function TopicInspector({ on, busy, onExpand, onMore, onHide }: {
 }
 
 const styles: Record<string, CSSProperties> = {
+  //asking for a skill that isn't in the results, at the bottom of them
+  asking: {
+    padding: '4px 4px 2px',
+  },
   //what's being fetched, under the board's search box
   working: {
     marginTop: 8,

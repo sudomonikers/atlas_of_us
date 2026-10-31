@@ -5,7 +5,6 @@ export interface BoardNode {
   label: string;
   look: 'filled' | 'hollow' | 'pale' | 'warm'; //hollow is drawn with a dashed outline, pale is filled in a pale blue, and warm in a pale red
   shape?: 'blob' | 'diamond'; //a blob unless it's a different kind of thing from most of the board
-  opened?: boolean; //marked with a dot, for a node whose links have been brought onto the board
   from?: string; //the node it was brought on from, which it starts next to
 }
 
@@ -24,7 +23,8 @@ export interface View {
 export class BoardLayout {
   private points = new Map<string, Point>();
   private view: View = { x: 0, y: 0, k: 1 };
-  private centred = false;
+  private shown = false;
+  private focused?: object;
 
   at(id: string) {
     return this.points.get(id);
@@ -38,26 +38,28 @@ export class BoardLayout {
   look(view: View) {
     this.view = view;
   }
-  //puts the middle of the board in the middle of a w by h window, the first time it's shown
-  centre(w: number, h: number) {
-    if (this.centred) return;
-    this.centred = true;
-    this.view = { x: w / 2, y: h / 2, k: 1 };
+  //true the first time the board is shown, when it fits the whole map in view
+  firstShow() {
+    const first = !this.shown;
+    this.shown = true;
+    return first;
   }
-  //adds a point for each new node, next to the node it came from or at `near`, and drops the points of nodes that
-  //are gone. Returns whether anything changed
-  sync(nodes: BoardNode[], near: { x: number; y: number }) {
+  //true the first time it's given a focus, so a focus is glided to once even if the board is unmounted in between
+  newFocus(focus: object) {
+    const fresh = this.focused !== focus;
+    this.focused = focus;
+    return fresh;
+  }
+  //adds a point for each new node, next to where the node it came from is or at `near`, and drops the points of nodes
+  //that are gone
+  sync(nodes: BoardNode[], where: (id: string) => { x: number; y: number } | undefined, near: { x: number; y: number }) {
     const ids = new Set(nodes.map((n) => n.id));
-    let changed = false;
     for (const id of this.points.keys()) {
-      if (!ids.has(id)) {
-        this.points.delete(id);
-        changed = true;
-      }
+      if (!ids.has(id)) this.points.delete(id);
     }
     for (const node of nodes) {
       if (this.points.has(node.id)) continue;
-      const from = node.from ? this.points.get(node.from) : undefined;
+      const from = node.from ? where(node.from) : undefined;
       const angle = Math.random() * Math.PI * 2;
       const spread = from ? 70 : 10;
       this.points.set(node.id, {
@@ -65,8 +67,6 @@ export class BoardLayout {
         x: (from?.x ?? near.x) + Math.cos(angle) * spread,
         y: (from?.y ?? near.y) + Math.sin(angle) * spread,
       });
-      changed = true;
     }
-    return changed;
   }
 }

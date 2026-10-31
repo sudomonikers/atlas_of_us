@@ -1,5 +1,8 @@
-import type { CSSProperties } from 'react';
-import { IDEA_TYPES, type IdeaType } from './api';
+import { useState, type CSSProperties } from 'react';
+import { getTopicMap, IDEA_TYPES, type IdeaType, type TopicRef } from './api';
+import { useMap } from '../shared_components/use_map';
+import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
+import { BoardLayout } from '../shared_components/board_layout';
 import { Disclosure } from '../shared_components/disclosure';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -93,10 +96,44 @@ const IN_THE_ATLAS = [
   },
 ];
 
-//the Topics Explained view: what Bloom's taxonomy is, each of its levels, the kinds of Idea, then how the Atlas uses them
-export default function Explained() {
+
+//the Topics Explained view: why what you know matters, over a map of every topic, what Bloom's taxonomy is, each of its levels, the kinds of Idea, then how the Atlas uses them
+//how the map draws a topic's link to the broader topic it's part of, as the explorer's board does
+const PART_OF: LinkKind[] = [{ id: 'part_of', label: 'Part of', line: 'solid', arrow: true, colour: gunmetal, length: 90 }];
+
+interface ExplainedProps {
+  onExplore: (topic: TopicRef) => void; //a topic or a field on the map was clicked, to explore from it
+}
+
+export default function Explained({ onExplore }: ExplainedProps) {
+  const map = useMap(getTopicMap);
+  const [layout] = useState(() => new BoardLayout());
   return (
     <div style={styles.column}>
+      <header style={styles.why}>
+        <span className="comic-stamp" style={{ ...styles.stamp, color: cinnamon }}>
+          Why it matters
+        </span>
+        <h2 style={styles.heading}>What you know is how you see.</h2>
+      </header>
+      {map.nodes ? (
+        <GraphBoard
+          preview
+          label="Every topic in the Atlas"
+          noun="topics"
+          items={map.items}
+          kinds={PART_OF}
+          hierarchy="part_of"
+          layout={layout}
+          onSelect={(id) => {
+            const topic = id ? map.byId.get(id) : undefined;
+            if (topic) onExplore({ id: topic.id, name: topic.name, status: topic.status });
+          }}
+        />
+      ) : (
+        <MapWaiting error={map.error} preview />
+      )}
+
       <section style={{ ...styles.panel, ...styles.intro }} className="comic-panel comic-pop">
         <div style={styles.introColumn}>
           <span className="comic-stamp" style={{ ...styles.stamp, color: brownRed }}>
@@ -203,6 +240,14 @@ const styles: Record<string, CSSProperties> = {
     boxSizing: 'border-box',
     background: '#fff',
     borderRadius: 'var(--wobbly)',
+  },
+  //why it matters, over the map
+  why: {
+    marginBottom: 16,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '8px 16px',
   },
   //what the model is on the left, what changes on the right; they stack on narrow screens
   intro: {

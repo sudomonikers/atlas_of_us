@@ -109,7 +109,7 @@ export function TopicPage({ id, onLoaded, onOpen, onOpenSkill, onShowInGraph }: 
               </button>
             )}
             <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ kind: 'topic', topic: ref })}>
-              See it in the graph
+              See it on the map
             </button>
           </div>
         </div>

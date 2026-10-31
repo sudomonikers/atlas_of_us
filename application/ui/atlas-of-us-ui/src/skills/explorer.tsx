@@ -1,86 +1,50 @@
-import { useCallback, useState, type CSSProperties } from 'react';
+import { useCallback, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
 import type { SkillRef } from './api';
 import { SkillGraph } from './graph';
-import { emptyBoard, expandSkill, place, type SkillBoard } from './skill_board';
+import { place, type SkillBoard } from './skill_board';
 import { SkillPage } from './skill_page';
-import { SkillSearch } from './search';
-import type { SearchState } from './use_skill_search';
 import { navigate } from '../router';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const brownRed = 'var(--brown-red)';
 const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
-type Mode = 'search' | 'graph';
+interface ExplorerProps {
+  skillId?: string; //the open skill, from the url
+  board: SkillBoard;
+  onBoard: Dispatch<SetStateAction<SkillBoard>>;
+}
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: 'search', label: 'Search' },
-  { id: 'graph', label: 'Graph' },
-];
-
-//the Skills Explorer view. Search for a skill and hop from it to every skill linked to it, or lay skills out on the
-//graph and expand them. The open skill is in the url (/skills/<id>), and the trail of skills hopped through sits above it
-export default function Explorer({ skillId }: { skillId?: string }) {
-  const [mode, setMode] = useState<Mode>('search');
-  const [search, setSearch] = useState<SearchState>({ query: '' });
-  const [board, setBoard] = useState<SkillBoard>(emptyBoard);
+//the Skills Explorer view. The board of every skill, to search, zoom around, select and expand; and a skill's page once
+//one is opened. The open skill is in the url (/skills/<id>), and the trail of skills hopped through sits above it
+export default function Explorer({ skillId, board, onBoard }: ExplorerProps) {
   const [trail, setTrail] = useState<SkillRef[]>([]);
 
   //the trail up to the open skill, so going back cuts it there
   const at = trail.findIndex((s) => s.id === skillId);
   const shown = at >= 0 ? trail.slice(0, at + 1) : trail;
 
-  //leaving the graph clears its board, so the next visit starts fresh
-  const leaveGraph = () => setBoard(emptyBoard());
-  const open = (skill: SkillRef, from: Mode | 'skill') => {
-    if (from === 'graph') leaveGraph();
+  const open = (skill: SkillRef, from: 'board' | 'skill') => {
     setTrail(from === 'skill' ? [...shown, skill] : [skill]);
     navigate(`/skills/${encodeURIComponent(skill.id)}`);
   };
-  //puts a skill on an empty graph, expanded, and goes to it
+  //selects a skill on the board and goes back to it
   const showInGraph = (skill: SkillRef) => {
-    const fresh = place(emptyBoard(), skill);
-    setBoard(fresh);
-    expandSkill(fresh, skill.id, setBoard).catch(() => {}); //it's on the board either way, and can be expanded from there
-    setMode('graph');
+    onBoard((b) => place(b, skill));
     navigate('/skills');
   };
   //a skill opened straight from its url starts a trail of its own
   const loaded = useCallback((skill: SkillRef) => setTrail((t) => (t.some((s) => s.id === skill.id) ? t : [skill])), []);
 
-  if (!skillId) {
-    return (
-      <>
-        <div style={styles.modes} role="group" aria-label="How to explore">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              className="comic-lift"
-              style={{ ...styles.mode, ...(mode === m.id ? styles.modeActive : {}) }}
-              aria-pressed={mode === m.id}
-              onClick={() => {
-                if (mode === 'graph' && m.id !== 'graph') leaveGraph();
-                setMode(m.id);
-              }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-        {mode === 'search' && <SkillSearch search={search} onSearch={setSearch} onOpen={(skill) => open(skill, 'search')} />}
-        {mode === 'graph' && <SkillGraph board={board} onBoard={setBoard} onOpen={(skill) => open(skill, 'graph')} />}
-      </>
-    );
-  }
+  if (!skillId) return <SkillGraph board={board} onBoard={onBoard} onOpen={(skill) => open(skill, 'board')} />;
 
   return (
     <>
       <nav style={styles.trail} aria-label="Skills you've opened">
         <button className="comic-lift" style={styles.crumb} onClick={() => navigate('/skills')}>
-          {MODES.find((m) => m.id === mode)!.label}
+          The map
         </button>
         {shown.map((skill) => (
           <span key={skill.id} style={styles.step}>
@@ -105,27 +69,6 @@ export default function Explorer({ skillId }: { skillId?: string }) {
 }
 
 const styles: Record<string, CSSProperties> = {
-  modes: {
-    maxWidth: 1100,
-    margin: '0 auto 20px',
-    display: 'flex',
-    gap: 8,
-  },
-  mode: {
-    padding: '2px 16px',
-    background: ivory,
-    color: gunmetal,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: corners,
-    boxShadow: `3px 3px 0 ${gunmetal}`,
-    fontFamily: comic,
-    fontSize: 20,
-    letterSpacing: 1,
-  },
-  modeActive: {
-    background: gunmetal,
-    color: ivory,
-  },
   trail: {
     maxWidth: 1100,
     margin: '0 auto 20px',

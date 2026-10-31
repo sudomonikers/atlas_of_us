@@ -25,7 +25,7 @@ export interface BoardSkill {
   from?: string;
 }
 
-//everything on the board. The explorer keeps it, so the board is still there on the way back from a page
+//everything on the board. The Topics page keeps it, so the board is still there on the way back from a page
 export interface TopicBoard {
   topics: Record<string, BoardTopic>;
   ideas: Record<string, BoardIdea>;
@@ -47,15 +47,15 @@ const IDEA_GROUPS: IdeaGroupName[] = ['topics', 'requires', 'required_by', 'anal
 
 export const emptyBoard = (): TopicBoard => ({ topics: {}, ideas: {}, skills: {}, links: [], layout: new BoardLayout() });
 
-//puts a topic or an Idea on the board if it isn't already, and selects it and moves to it
-export function place(board: TopicBoard, placed: Placed): TopicBoard {
+//puts a topic or an Idea on the board if it isn't already, and selects it and moves to it. A new Idea floats beside `from`
+export function place(board: TopicBoard, placed: Placed, from?: string): TopicBoard {
   if (placed.kind === 'topic') {
     const { topic } = placed;
     const topics = board.topics[topic.id] ? board.topics : { ...board.topics, [topic.id]: { topic, expanded: false } };
     return { ...board, topics, selected: topic.id, focus: { id: topic.id } };
   }
   const { idea } = placed;
-  const ideas = board.ideas[idea.id] ? board.ideas : { ...board.ideas, [idea.id]: { idea, expanded: false } };
+  const ideas = board.ideas[idea.id] ? board.ideas : { ...board.ideas, [idea.id]: { idea, from, expanded: false } };
   return { ...board, ideas, selected: idea.id, focus: { id: idea.id } };
 }
 
@@ -187,4 +187,21 @@ export function moreOf(board: TopicBoard, id: string, group: PagedGroup | IdeaGr
       return { ...brought, ideas: { ...brought.ideas, [id]: { ...on, read } } };
     }),
   );
+}
+
+//takes a node off the board: the links it brought on, and the node itself unless it's on the map, where it just stops
+//being expanded. Then anything floating that nothing links to any more, other than the selected node, goes too
+export function hide(board: TopicBoard, id: string, onMap: (id: string) => boolean): TopicBoard {
+  const links = board.links.filter((l) => l.from !== id && l.to !== id);
+  const linked = new Set(links.flatMap((l) => [l.from, l.to]));
+  const selected = board.selected === id && !onMap(id) ? undefined : board.selected;
+  const stays = (other: string) => other === selected || linked.has(other);
+  const topics: TopicBoard['topics'] = {};
+  for (const [key, on] of Object.entries(board.topics)) {
+    if (key === id && onMap(id)) topics[key] = { ...on, expanded: false };
+    else if (key !== id && (onMap(key) || stays(key))) topics[key] = on;
+  }
+  const ideas = Object.fromEntries(Object.entries(board.ideas).filter(([key]) => key !== id && stays(key)));
+  const skills = Object.fromEntries(Object.entries(board.skills).filter(([key]) => key !== id && stays(key)));
+  return { ...board, topics, ideas, skills, links, selected };
 }

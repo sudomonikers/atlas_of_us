@@ -110,7 +110,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
               </button>
             )}
             <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
-              See it in the graph
+              See it on the map
             </button>
           </div>
         </div>

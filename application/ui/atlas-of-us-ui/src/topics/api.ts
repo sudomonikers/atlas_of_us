@@ -66,6 +66,14 @@ export type AskOutcome =
   | { outcome: 'existing'; topic: TopicSummary } //a topic we already have
   | { outcome: 'created'; topic: TopicSummary }; //a new stub, ready to be opened
 
+//a topic on the map of every topic, with the ids of the broader topics it's a subtopic of
+export interface MapTopic extends TopicRef {
+  broader: string[];
+}
+
+//every topic, for the map in Topics Explained
+export const getTopicMap = () => request<MapTopic[]>('GET', '/topics/map');
+
 //the closest topics to what was typed, each with its broader topics
 export const searchTopics = (q: string) => request<TopicSummary[]>('GET', `/topics/search?q=${encodeURIComponent(q)}`);
 

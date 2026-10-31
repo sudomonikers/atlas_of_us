@@ -18,6 +18,7 @@ use serde_json::json;
 use neo4rs::Graph;
 use std::{env, io::IsTerminal, time::Duration};
 use tower_http::{
+    compression::CompressionLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
     trace::TraceLayer,
 };
@@ -91,6 +92,8 @@ async fn main() {
                 tracing::info!(status = res.status().as_u16(), latency_ms = latency.as_millis() as u64, "finished");
             }))
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+        //gzip or brotli, whichever the caller accepts. Lambda sends a compressed body on as binary
+        .layer(CompressionLayer::new())
         //added after the layers so it isn't logged: load balancers and kubernetes probes hit it every few seconds
         .route("/api", get(health_check))
         .with_state(state);

@@ -78,7 +78,7 @@ export function IdeaPage({ id, onLoaded, onOpen, onShowInGraph }: IdeaPageProps)
         <div style={styles.nameRow}>
           <h2 style={styles.name}>{idea.name}</h2>
           <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ kind: 'idea', idea: ref })}>
-            See it in the graph
+            See it on the map
           </button>
         </div>
         <p style={styles.kind}>

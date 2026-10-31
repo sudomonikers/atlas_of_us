@@ -29,7 +29,7 @@ export interface BoardTopic {
   read?: TopicNeighbors;
 }
 
-//everything on the board. The explorer keeps it, so the board is still there on the way back from a skill
+//everything on the board. The Skills page keeps it, so the board is still there on the way back from a skill
 export interface SkillBoard {
   skills: Record<string, BoardSkill>;
   traits: Record<string, BoardTrait>;
@@ -254,4 +254,21 @@ export function moreKnowers(board: SkillBoard, id: string, setBoard: Update) {
       return { ...brought, topics: { ...brought.topics, [id]: { ...on, read } } };
     }),
   );
+}
+
+//takes a node off the board: the links it brought on, and the node itself unless it's on the map, where it just stops
+//being expanded. Then anything floating that nothing links to any more, other than the selected node, goes too
+export function hide(board: SkillBoard, id: string, onMap: (id: string) => boolean): SkillBoard {
+  const links = board.links.filter((l) => l.from !== id && l.to !== id);
+  const linked = new Set(links.flatMap((l) => [l.from, l.to]));
+  const selected = board.selected === id && !onMap(id) ? undefined : board.selected;
+  const stays = (other: string) => other === selected || linked.has(other);
+  const skills: SkillBoard['skills'] = {};
+  for (const [key, on] of Object.entries(board.skills)) {
+    if (key === id && onMap(id)) skills[key] = { ...on, expanded: false };
+    else if (key !== id && (onMap(key) || stays(key))) skills[key] = on;
+  }
+  const traits = Object.fromEntries(Object.entries(board.traits).filter(([key]) => key !== id && stays(key)));
+  const topics = Object.fromEntries(Object.entries(board.topics).filter(([key]) => key !== id && stays(key)));
+  return { ...board, skills, traits, topics, links, selected };
 }

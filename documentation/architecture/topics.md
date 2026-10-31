@@ -16,7 +16,7 @@ Every meaningful change is published as an **event**.
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/topics/` | Search, the topic page, the Idea page, the graph, and Topics Explained |
+| UI | `application/ui/atlas-of-us-ui/src/topics/` | The board of every topic, the topic page, the Idea page, and Topics Explained |
 | API | `application/apis/atlas-api/src/domains/topics/mod.rs` | Search, asking for a topic, reading a topic or an Idea and what's around it, and asking for a fill |
 | Gates | `application/apis/atlas-api/src/domains/topics/gates.rs` | Normalize and classify what a user asks for, and screen out nonsense |
 | Topic resolver | `application/apis/atlas-shared/src/topics/resolver.rs` | Decides whether a topic name is the same as, a subtopic of, or broader than existing topics, and creates stubs. It's in the crate the API and atlas-jobs share (see `ADRs/atlas_shared_crate.md`) |
@@ -43,6 +43,7 @@ All routes are under `/api/topics`. Asking, filling and placing yourself on a to
 
 | Route | What it does |
 |---|---|
+| `GET /map` | Every topic, with its `id`, `name`, `status` and the ids of the `broader` topics it's a subtopic of, for the map in Topics Explained |
 | `GET /search?q=` | The closest topics, by name and alias through the `topic_names` full-text index (every word has to match) and by meaning through `topic_vector` (scoring at least 0.6), combined by reciprocal rank fusion, each with the broader topics it's a subtopic of |
 | `POST /` `{query}` | Asks for a topic we don't have: runs the gates and the resolver, and returns an `outcome` of `not_a_topic` (with the `kind` it is), `rejected` (with a `reason`), `existing` (the topic it means) or `created` (the new stub) |
 | `GET /{id}` | A topic with its six levels, its Ideas (each with its `type` and the Ideas it `requires`), and its `broader` and `narrower` topics |
@@ -85,14 +86,41 @@ each topic goes, and the graph keeps nothing that ties a topic to ESCO. ESCO's k
 and subjects such as religions, philosophies and hobbies come in through users and through skills.
 
 ## What the user sees
-The Topics page (`/topics`) has three views: the Topics Explorer, My Knowledge (the topics the user has placed
-themselves on), and Topics Explained, which walks
-through the six Bloom levels with one topic, chess opening theory, and the four kinds of Idea.
+The Topics page (`/topics`) has three views. Topics Explained opens first: it says why what you know matters over a
+map of every topic, then walks through the six Bloom levels with one topic, chess opening theory, and the four kinds of Idea. Then come the
+Topics Explorer, the board of every topic, and My Knowledge (the topics the user has placed themselves on).
 
-### Searching
-The explorer's search works as the skills search does: topics by name and meaning, each with the broader topics it's
-part of. When nothing fits, the user can ask for it, and a request that isn't a topic links to the module it belongs
-to.
+### Exploring
+The Topics Explorer is one board of every topic (`TopicGraph` in `src/topics/graph.tsx`, on the shared `GraphBoard`;
+see `ADRs/graph_board.md`). `GET /map` gives every topic with the ids of its broader topics, fetched once a visit
+(`useMap` in `src/shared_components/use_map.ts`).
+
+- **Zoomed out** it's a map: a flower for each broadest topic, its field, with every topic under it as a dot, filled
+  when ready and paler for a stub. The field's name sits over its flower, and clicking the name zooms to it.
+- **Zoomed in**, the dots become topics with their names and "Part of" lines to their broader topics.
+- **Searching** in the board's corner finds topics by name and meaning, each with the broader topics it's part of, and
+  picking one glides to it and selects it. When nothing fits, the user can ask for it there, and a request that isn't a
+  topic links to the module it belongs to. A new topic joins the map straight away.
+- **Selecting** a topic reads it with `GET /{id}/neighbors`, which never fills it, and the panel beside the board shows
+  its description and how many of each kind of link it has. "Open topic" goes to its page.
+- **Expanding** a topic, by double-clicking it, brings on its Ideas, the topics around it and the skills that need it.
+  Expanding an Idea brings on the topics it's in and the Ideas linked to it. Topics already on the map are linked where
+  they are. Ideas (pale blue diamonds) and skills (pale red, which open in Skills) float beside what brought them and
+  can be dragged. A kind of link with more than the first page can bring on the next. Hide takes back what a node
+  brought on, and Clear takes back everything.
+
+The board draws six kinds of link, each turned on and off from the legend:
+
+- **Part of:** a solid line with an arrow to the broader topic.
+- **Includes:** a dotted line from a topic to its Idea.
+- **Needs first:** a dashed line with an arrow to the Idea needed.
+- **Analogous:** a dotted blue line between Ideas.
+- **Similar:** a dotted pale line between topics.
+- **Needs knowledge:** a solid red line with an arrow from a skill to the topic, thicker for a stronger link.
+
+Topics Explained has a smaller board of the same map at the top. Clicking a topic or a field there opens the Explorer
+selected on it. "See it on the map" on a topic's or an Idea's page does the same; an Idea floats beside the first topic
+it's in. The Topics page keeps the Explorer's board, so it's still there after a look at a page or at Topics Explained.
 
 ### Opening a topic
 A topic opens at `/topics/<id>`, and the topics and Ideas hopped through stay as a trail above the page.
@@ -124,23 +152,6 @@ shows the same topics with their levels and evidence, to whoever can see the pro
 An Idea opens at `/topics/ideas/<id>`, with its type and what that type means, its description, and the topics it's in,
 the Ideas it needs first, the Ideas it leads to, and the Ideas analogous to it. Following an Idea into another topic
 that includes it is how the shared Ideas between topics show.
-
-### Exploring the graph
-The Graph view uses the same board as Skills (`GraphBoard`, see `ADRs/graph_board.md`). Searching puts a topic on the
-board, and "See it in the graph" on a topic or an Idea puts that on an empty board, expanded. Topics are blobs, filled
-when ready and dashed for a stub, Ideas are pale blue diamonds, and skills are pale red blobs. Double-clicking a topic
-brings on its Ideas, the topics around it and the skills that need it, and double-clicking an Idea brings on the topics
-it's in and the Ideas linked to it. A skill opens in Skills. The board draws six kinds of link, each turned on and off
-from the legend:
-
-- **Part of:** a solid line with an arrow to the broader topic.
-- **Includes:** a dotted line from a topic to its Idea.
-- **Needs first:** a dashed line with an arrow to the Idea needed.
-- **Analogous:** a dotted blue line between Ideas.
-- **Similar:** a dotted pale line between topics.
-- **Needs knowledge:** a solid red line with an arrow from a skill to the topic, thicker for a stronger link.
-
-Leaving the Graph view, by opening a page or switching to Search, clears the board.
 
 ## Topic identity
 

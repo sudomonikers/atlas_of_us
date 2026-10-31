@@ -1,4 +1,8 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { getSkillMap, type SkillRef } from './api';
+import { useMap } from '../shared_components/use_map';
+import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
+import { BoardLayout } from '../shared_components/board_layout';
 import { Disclosure } from '../shared_components/disclosure';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -84,10 +88,44 @@ const IN_THE_ATLAS = [
   },
 ];
 
-//the Skills Explained view: what the Dreyfus model is, each of its levels, then how the Atlas uses it
-export default function Explained() {
+
+//the Skills Explained view: why what you can do matters, over a map of every skill, what the Dreyfus model is, each of its levels, then how the Atlas uses it
+//how the map draws a skill's link to the broader skill it's a kind of, as the explorer's board does
+const KIND_OF: LinkKind[] = [{ id: 'kind_of', label: 'A kind of', line: 'solid', arrow: true, colour: gunmetal, length: 90 }];
+
+interface ExplainedProps {
+  onExplore: (skill: SkillRef) => void; //a skill or a field on the map was clicked, to explore from it
+}
+
+export default function Explained({ onExplore }: ExplainedProps) {
+  const map = useMap(getSkillMap);
+  const [layout] = useState(() => new BoardLayout());
   return (
     <div style={styles.column}>
+      <header style={styles.why}>
+        <span className="comic-stamp" style={{ ...styles.stamp, color: cinnamon }}>
+          Why it matters
+        </span>
+        <h2 style={styles.heading}>What you can do is part of who you are.</h2>
+      </header>
+      {map.nodes ? (
+        <GraphBoard
+          preview
+          label="Every skill in the Atlas"
+          noun="skills"
+          items={map.items}
+          kinds={KIND_OF}
+          hierarchy="kind_of"
+          layout={layout}
+          onSelect={(id) => {
+            const skill = id ? map.byId.get(id) : undefined;
+            if (skill) onExplore({ id: skill.id, name: skill.name, status: skill.status });
+          }}
+        />
+      ) : (
+        <MapWaiting error={map.error} preview />
+      )}
+
       <section style={{ ...styles.panel, ...styles.intro }} className="comic-panel comic-pop">
         <div style={styles.introColumn}>
           <span className="comic-stamp" style={{ ...styles.stamp, color: brownRed }}>
@@ -181,6 +219,14 @@ const styles: Record<string, CSSProperties> = {
     boxSizing: 'border-box',
     background: '#fff',
     borderRadius: 'var(--wobbly)',
+  },
+  //why it matters, over the map
+  why: {
+    marginBottom: 16,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '8px 16px',
   },
   //what the model is on the left, what changes on the right; they stack on narrow screens
   intro: {
