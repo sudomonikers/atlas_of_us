@@ -1,6 +1,7 @@
 //Skills Graph: Skill nodes with 5 Dreyfus levels linked by HAS_LEVEL / NEXT_LEVEL. How skills are searched for, asked
 //for and filled is described in documentation/architecture/skills.md
 mod achievement;
+mod personality_fits;
 mod gates;
 
 use std::collections::HashMap;
@@ -35,6 +36,7 @@ pub fn router() -> Router<AppState> {
         .route("/{id}/neighbors/{group}", get(get_neighbor_page))
         .route("/{id}/fill", post(request_fill))
         .merge(achievement::router())
+        .merge(personality_fits::router())
 }
 
 /// Healthcheck for the skills router.

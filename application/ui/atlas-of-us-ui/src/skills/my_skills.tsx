@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievements, getNextSteps, getSuggestions, doesNotHave, monthYear, setAchievement, type AchievedSkill, type NextStep, type SuggestedBy, type Suggestion } from './api';
+import { LEVEL_NAMES, getAchievements, getNextSteps, getPersonalityFits, getSuggestions, doesNotHave, monthYear, setAchievement, type AchievedSkill, type Fit, type Fits, type NextStep, type SuggestedBy, type Suggestion } from './api';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -16,11 +16,13 @@ const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
 //the My Skills view: the skills the user has placed themselves on, grouped by level from Expert down, each opening its
-//skill page and showing what it takes to reach its next level, then the skills they probably have but haven't added
+//skill page and showing what it takes to reach its next level. Then the skills they probably have but haven't added, the
+//skills that suit their personality, and the ones they got good at against its pull
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
   const [steps, setSteps] = useState<Map<string, NextStep>>();
   const [suggestions, setSuggestions] = useState<Suggestion[]>();
+  const [fits, setFits] = useState<Fits>();
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
@@ -34,6 +36,7 @@ export default function MySkills() {
     //the list is still worth reading without them
     getNextSteps().then((loaded) => live && setSteps(new Map(loaded.map((step) => [step.skill_id, step]))), () => {});
     getSuggestions().then((loaded) => live && setSuggestions(loaded), () => {});
+    getPersonalityFits().then((loaded) => live && setFits(loaded), () => {});
     return () => {
       live = false;
     };
@@ -102,6 +105,23 @@ export default function MySkills() {
           onDismissed={(id) => setSuggestions((all) => all?.filter((s) => s.skill.id !== id))}
         />
       )}
+      {fits && !fits.measured && (
+        <section style={styles.group} aria-label="Natural fits">
+          <h3 style={styles.groupHeading}>Natural fits</h3>
+          <p style={styles.text}>
+            Once we know your personality, this shows the skills that suit it.{' '}
+            <button className="comic-lift" style={styles.link} onClick={() => navigate('/personality')}>
+              Play the personality scenes
+            </button>
+          </p>
+        </section>
+      )}
+      {!!fits?.natural.length && (
+        <FitList label="Natural fits" intro="Skills you haven't added whose personality matches yours most closely." fits={fits.natural} />
+      )}
+      {!!fits?.against.length && (
+        <FitList label="Against the grain" intro="Skills you got good at even though they pull against your personality." fits={fits.against} />
+      )}
     </section>
   );
 }
@@ -152,6 +172,39 @@ function Suggestions({ suggestions, onAdded, onDismissed }: { suggestions: Sugge
                 Not me
               </button>
             </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+//skills with how well the user's personality suits them, each opening its skill page, with the traits that say the most
+//about that, the user's score on each beside where the skill pulls
+function FitList({ label, intro, fits }: { label: string; intro: string; fits: Fit[] }) {
+  return (
+    <section style={styles.group} aria-label={label}>
+      <h3 style={styles.groupHeading}>{label}</h3>
+      <p style={styles.text}>{intro} Each bar is your score, and the red line is where the skill pulls.</p>
+      <ul style={styles.list}>
+        {fits.map(({ skill, fit, traits }) => (
+          <li key={skill.id} style={styles.row}>
+            <div style={styles.rowHead}>
+              <button className="comic-lift" style={styles.name} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
+                {skill.name}
+              </button>
+              <span style={styles.detail}>Fits you {Math.round(fit * 100)}%</span>
+            </div>
+            <ul style={styles.checks}>
+              {traits.map(({ name, level, yours }) => (
+                <li key={name} style={styles.checkHead}>
+                  <span style={styles.traitName}>
+                    {level >= 0.5 ? 'High' : 'Low'} {name}
+                  </span>
+                  <Score yours={yours} level={level} name={name} />
+                </li>
+              ))}
+            </ul>
           </li>
         ))}
       </ul>
@@ -478,6 +531,10 @@ const styles: Record<string, CSSProperties> = {
   },
   where: {
     color: blue,
+  },
+  traitName: {
+    minWidth: 190,
+    fontSize: 15,
   },
   score: {
     position: 'relative',

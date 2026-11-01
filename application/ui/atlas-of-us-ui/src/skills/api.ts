@@ -234,3 +234,26 @@ export const getSuggestions = () => request<Suggestion[]>('GET', '/skills/sugges
 
 //says the logged in user doesn't have a skill, so it isn't suggested again. Placing themselves on it takes this back
 export const doesNotHave = (id: string) => request<void>('PUT', `/skills/${encodeURIComponent(id)}/does-not-have`);
+
+//a trait a skill's levels take, where the level pulls on it, and the logged in user's score on it, 0 to 1
+export interface FitTrait {
+  name: string;
+  level: number;
+  yours: number;
+}
+
+//a skill and how well the logged in user's personality suits it, 0 to 1, with the traits that say the most about that
+export interface Fit {
+  skill: SkillRef;
+  fit: number;
+  traits: FitTrait[];
+}
+
+export interface Fits {
+  measured: boolean; //whether the user has any trait scores yet
+  natural: Fit[]; //skills they haven't added that suit them best, best first
+  against: Fit[]; //skills they're at Competent or above in that suit them least, least first
+}
+
+//how well the logged in user's personality suits skills
+export const getPersonalityFits = () => request<Fits>('GET', '/skills/personality-fits');
