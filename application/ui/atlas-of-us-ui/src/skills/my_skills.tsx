@@ -14,7 +14,8 @@ const paleCinnamon = 'var(--pale-cinnamon)';
 const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
-//the My Skills view: the skills the user has placed themselves on, highest level first, each opening its skill page
+//the My Skills view: the skills the user has placed themselves on, grouped by level from Expert down, each opening its
+//skill page
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
   const [error, setError] = useState<string>();
@@ -33,29 +34,39 @@ export default function MySkills() {
   return (
     <section style={styles.panel} className="comic-panel comic-pop">
       <h2 style={styles.heading}>My Skills</h2>
-      <p style={styles.text}>The skills you have, and the level you have them at.</p>
+      <p style={styles.text}>The skills you have, grouped by the level you have them at.</p>
       {error && <AtlasError message={error} />}
       {!error && !skills && <Thinking label="Gathering what you can do" />}
       {skills && !skills.length && <p style={styles.text}>Nothing here yet. Open a skill in the Skills Explorer and add yourself to it.</p>}
-      {!!skills?.length && (
-        <ul style={styles.list}>
-          {skills.map(({ skill, rank, achieved_on, evidence }) => (
-            <li key={skill.id}>
-              <button className="comic-lift" style={styles.row} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
-                <span style={styles.name}>{skill.name}</span>
-                <span style={styles.level}>
+      {LEVEL_NAMES.map((name, i) => ({ name, rank: i + 1 }))
+        .reverse()
+        .map(({ name, rank }) => {
+          const at = skills?.filter((s) => s.rank === rank) ?? [];
+          return (
+            !!at.length && (
+              <section key={rank} style={styles.group} aria-label={name}>
+                <h3 style={styles.groupHeading}>
                   <LevelSteps rank={rank} total={LEVEL_NAMES.length} />
-                  {LEVEL_NAMES[rank - 1]}
-                </span>
-                <span style={styles.detail}>
-                  {achieved_on && `Since ${monthYear(achieved_on)}. `}
-                  {evidence.length ? `${evidence.length} piece${evidence.length === 1 ? '' : 's'} of evidence` : 'No evidence yet'}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                  {name}
+                  <span style={styles.count}>{at.length}</span>
+                </h3>
+                <ul style={styles.list}>
+                  {at.map(({ skill, achieved_on, evidence }) => (
+                    <li key={skill.id}>
+                      <button className="comic-lift" style={styles.row} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
+                        <span style={styles.name}>{skill.name}</span>
+                        <span style={styles.detail}>
+                          {achieved_on && `Since ${monthYear(achieved_on)}. `}
+                          {evidence.length ? `${evidence.length} piece${evidence.length === 1 ? '' : 's'} of evidence` : 'No evidence yet'}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          );
+        })}
     </section>
   );
 }
@@ -87,8 +98,37 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 17,
     lineHeight: 1.5,
   },
+  group: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    marginTop: 8,
+  },
+  groupHeading: {
+    margin: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 24,
+    letterSpacing: 1,
+    color: brownRed,
+  },
+  count: {
+    minWidth: 28,
+    padding: '0 8px',
+    boxSizing: 'border-box',
+    background: ivory,
+    color: gunmetal,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 999,
+    fontFamily: 'inherit',
+    fontSize: 16,
+    textAlign: 'center',
+  },
   list: {
-    margin: '6px 0 0',
+    margin: 0,
     padding: 0,
     listStyle: 'none',
     display: 'flex',
@@ -117,14 +157,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 22,
     letterSpacing: 1,
     overflowWrap: 'anywhere',
-  },
-  level: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    minWidth: 190,
-    fontSize: 17,
-    color: brownRed,
   },
   detail: {
     fontSize: 15,

@@ -2,7 +2,7 @@
 
 **Status:** Accepted, 15 Oct 2026
 **Updated by:** `personality_ipip_scenes.md`, 21 Oct 2026. Personas now play the 18 IPIP-NEO scenes and target the 30 facets, and there are 13 of them.
-**Where it lives:** `application/ui/atlas-of-us-ui/src/personality/testing/`
+**Where it lives:** `application/ui/atlas-of-us-ui/testing/`, with the personality module in `testing/personality/`
 
 ## Context
 The personality track scores 43 traits from free-text answers to 15 game-style scenes, using an LLM (see
@@ -20,9 +20,23 @@ against the last, and to exercise the real pipeline end to end.
 We test with **scripted personas played through the real API**, and measure the scores against **targets set from the
 persona's answers**.
 
+### Modules
+The harness tests more than one module. `testing/` holds what they share, and each module is a folder beside it:
+
+- `regression.mjs` is the entry point. Each module is picked by a flag of its folder's name, so `--personality` runs the
+  personality module and `--skills` would run a `testing/skills/` module. Several flags run each module in turn.
+  Anything after the flags that isn't a flag names the personas to run, and the other flags go to the module, such as
+  `--check`. With no module flag it lists the modules and their options.
+- `harness.mjs` holds what every module uses: calling the local API, logging a persona in (creating its account the
+  first time), and saving a run to the module's `results/` and reading back the last one.
+- `personas/` holds the test personas, shared by every module.
+- A module is a folder with a `regression.mjs` whose default export is `{ about, options, run({ personas, options,
+  results }) }`. `run` resolves to whether the run passed, and gets only the personas that have the module's key.
+
 ### Personas
-- Each persona is one file in `personas/`. It holds a test account, a one-line personality, a target from 0 to 1 for every
-  trait, and a scripted answer to every prompt of every scene.
+- Each persona is one file in `personas/`. It holds a test account and a one-line personality, and a key for each module
+  it takes part in. Its `personality` holds a target from 0 to 1 for every trait and a scripted answer to every prompt
+  of every scene.
 - There are ten, chosen to cover the extremes and the middle of most traits:
 
   | Persona | Personality |
@@ -41,7 +55,7 @@ persona's answers**.
 - **Answers come before targets.** A persona's answers are written in character first. Its targets are then set trait by trait from what those answers actually show. Picturing the persona instead of reading the answers was the biggest source of error in every early round.
 - The targets were checked by **blind raters**: ten independent subagents scored anonymised answer sheets without seeing the targets. They agreed with the targets to within 4.6 points on average.
 
-### The run (`regression.mjs`)
+### The personality run (`personality/regression.mjs`)
 For every persona at once:
 1. Log in, creating the account the first time.
 2. Call `DELETE /api/personality/answers` to clear its answers and scores, so every run starts like a new player.
@@ -49,7 +63,7 @@ For every persona at once:
    to, and send the same context, choices offered, facets and clock with each answer.
 4. Wait for scoring between scenes, as the UI does. Scoring runs on every 5th finished scene; if the last scene didn't
    trigger it, call `POST /api/personality/rescore`.
-5. Read back the scores, compare them with the targets and with the previous run, and save the run to `results/` as JSON
+5. Read back the scores, compare them with the targets and with the previous run, and save the run to `personality/results/` as JSON
    (which the next run compares against) and as a markdown report.
 
 `--check` checks every persona offline, without the API: every prompt on its path has an answer, every answer is used,
@@ -58,10 +72,10 @@ and every trait has a target. It is run after any change to a scene's prompts.
 ### The measure
 - The headline number is the **average gap** between score and target across all 430 persona-trait pairs, on the 0 to 1 scale.
 - Alongside it: the share within 10 points, the number more than 25 points off, the bias (whether scores run high or low), and the gap at the low, middle and high ends of the scale, which catches scores being pulled to the middle.
-- After a run we read the scorer's evidence behind the biggest misses (`GET /api/personality/people/{id}/evidence`) and decide whether the scorer misread the answer, the trait's criteria were unclear, the trait had too little evidence, or the target was wrong. We write up findings before changing anything. The write-ups are `personality_round_1.md` to `personality_round_5.md`, and the current state is `scoring_capabilities.md`.
+- After a run we read the scorer's evidence behind the biggest misses (`GET /api/personality/people/{id}/evidence`) and decide whether the scorer misread the answer, the trait's criteria were unclear, the trait had too little evidence, or the target was wrong. We write up findings before changing anything. The write-ups are `personality/personality_round_1.md` to `personality_round_5.md`, and the current state is `personality/scoring_capabilities.md`.
 
 ### How it's run
-- It runs by hand, from the UI folder, against the local API: `node src/personality/testing/regression.mjs [persona...]`.
+- It runs by hand, from the UI folder, against the local API: `node testing/regression.mjs --personality [persona...]`.
 - Scoring happens in the deployed atlas-jobs Lambda, so a change to the scorer is deployed (`apis/atlas-jobs/deploy.sh`) before the run that tests it.
 - A full run takes 5 to 7 minutes and costs about $7 of Bedrock calls.
 - It is not part of CI.

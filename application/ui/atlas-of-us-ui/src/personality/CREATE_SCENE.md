@@ -18,9 +18,9 @@ Every scene is written to a set of IPIP-NEO items (see `README.md`). When creati
 5. Add the scenario and its questions to atlas_of_us/application/database/personality_scenarios_seed.cypher, with its `order` from `scene_grouping.md` and `real_life: true` on the real-life question
 6. Register the scene in personality.tsx: add it to `SCENARIOS` in play order, and to `PLAYABLE` lazily with `lazy(() => import(...))` like the others so it gets its own chunk
 7. Add the scene to the regression harness in `testing/`:
-   - add it to `SCENES` in `regression.mjs`, in play order
-   - give every persona in `testing/personas/` an answer to every prompt on the path its choices take, written in character and in line with its targets (one-liners stay one-liners)
-   - run `node src/personality/testing/regression.mjs --check` from the ui folder. It only checks every prompt on each path has an answer and every answer is used; it doesn't play anything
+   - add it to `SCENES` in `testing/personality/regression.mjs`, in play order
+   - give every persona in `testing/personas/` an answer, under its `personality.answers`, to every prompt on the path its choices take, written in character and in line with its targets (one-liners stay one-liners)
+   - run `node testing/regression.mjs --personality --check` from the ui folder. It only checks every prompt on each path has an answer and every answer is used; it doesn't play anything
 
 
 Remember that we just want to focus on the build. Don't touch git or attempt to run any tests. You can check the ui and api compiles but thats it. Dont attempt to actually run any db inserts either. Keep changes as clean and tight as possible. We aim for brevity and readability over reusability.

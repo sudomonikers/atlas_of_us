@@ -232,7 +232,7 @@ they reached that level, which they can skip, then saves it as their one `ACHIEV
 `version`. They can then back it up with up to five pieces of evidence, notes or files, the same as for a topic.
 
 Their level then shows as a "You" mark on its rung of the level picker. My Skills lists every skill they've placed
-themselves on, highest level first, and their profile's Skills tab shows the same to whoever can see the profile.
+themselves on, grouped by level from Expert down with a count for each level, and their profile's Skills tab shows the same to whoever can see the profile.
 
 ### Asking for a skill we don't have
 If nothing matches, the user can ask for it. The API runs **the gates** before anything is written. The first three are

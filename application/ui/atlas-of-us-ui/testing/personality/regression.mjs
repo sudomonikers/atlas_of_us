@@ -1,39 +1,12 @@
-// Personality regression test (see documentation/architecture/ADRs/personality_testing_harness.md). Every persona in personas/ is a test account with a personality,
-// target scores and scripted answers. For each one, all at once: log in (creating the account the first time), play
-// every scene through the local api the way the ui's ScriptPlayer does, wait for scoring, then read back the scores.
-// Each account's answers are cleared first, so every run starts from nothing, like a new player.
+// The personality module (see documentation/architecture/ADRs/personality_testing_harness.md). Every persona with a
+// `personality` has target scores and scripted answers. For each one, all at once: log in (creating the account the first
+// time), play every scene through the local api the way the ui's ScriptPlayer does, wait for scoring, then read back the
+// scores. Each account's answers are cleared first, so every run starts from nothing, like a new player.
 // Prints each persona's scores against its targets and the previous run, and saves the run to results/.
-//   node src/personality/testing/regression.mjs            every persona
-//   node src/personality/testing/regression.mjs ruth jules only these (persona file names)
-//   node src/personality/testing/regression.mjs --check    check every persona's answers and targets, without playing
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { call, lastRun, login, saveRun, sleep } from '../harness.mjs';
 
-const dir = import.meta.dirname; //this testing folder
-const scenes = `${dir}/..`;
-const RESULTS = `${dir}/results`;
-const API = 'http://localhost:3000/api';
+const scenes = `${import.meta.dirname}/../../src/personality`;
 const SCENES = ['the_story_game', 'the_night_class', 'the_big_party', 'the_time_study', 'the_night_market', 'the_bad_day', 'the_dare', 'the_shoplifter', 'the_committee', 'the_houseguest', 'the_promotion', 'the_festival', 'the_free_weekend', 'the_stranger', 'the_emergency', 'the_feud', 'the_cabin', 'the_portrait']; //every scene, in play order
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function call(method, path, body, token) {
-  const headers = { 'content-type': 'application/json', ...(token && { 'x-atlas-token': token }) };
-  //a minute is far longer than any call should take, so a hung api fails the persona instead of the whole run
-  const r = await fetch(API + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(60000) }).catch((e) => {
-    throw new Error(`${method} ${path}: ${e.name === 'TimeoutError' ? 'no response after 60s' : e.message}`);
-  });
-  if (!r.ok) throw Object.assign(new Error(`${method} ${path}: ${r.status} ${await r.text()}`), { status: r.status });
-  return r.status === 202 || r.status === 204 ? null : r.json();
-}
-
-//logs in, or creates the account if it doesn't exist yet
-async function login({ account }) {
-  try {
-    return (await call('POST', '/auth/login', { phone: account.phone, password: account.password })).token;
-  } catch (e) {
-    if (e.status !== 401 && e.status !== 404) throw e;
-    return (await call('POST', '/auth/create-user', account)).token;
-  }
-}
 
 //walks one scene the way the ui's ScriptPlayer does, yielding each prompt with the persona's answer and the context the
 //ui would send. A { choice, text } answer picks a choice with text as the reasoning, left is the clock's seconds
@@ -95,17 +68,17 @@ function check(persona, traits) {
   for (const scene of SCENES) {
     const used = new Set();
     try {
-      for (const { key } of walk(scene, scripts[scene], persona.answers[scene] ?? {})) used.add(key);
+      for (const { key } of walk(scene, scripts[scene], persona.personality.answers[scene] ?? {})) used.add(key);
     } catch (e) {
       problems.push(e.message);
     }
-    const unused = Object.keys(persona.answers[scene] ?? {}).filter((k) => !used.has(k));
+    const unused = Object.keys(persona.personality.answers[scene] ?? {}).filter((k) => !used.has(k));
     if (unused.length) problems.push(`${scene}: unused answers ${unused.join(', ')}`);
   }
-  const unknown = Object.keys(persona.answers).filter((s) => !SCENES.includes(s));
+  const unknown = Object.keys(persona.personality.answers).filter((s) => !SCENES.includes(s));
   if (unknown.length) problems.push(`answers for scenes that don't exist: ${unknown.join(', ')}`);
-  const missing = traits.filter((t) => !(t in persona.targets));
-  const extra = Object.keys(persona.targets).filter((t) => !traits.includes(t));
+  const missing = traits.filter((t) => !(t in persona.personality.targets));
+  const extra = Object.keys(persona.personality.targets).filter((t) => !traits.includes(t));
   if (missing.length) problems.push(`no target for ${missing.join(', ')}`);
   if (extra.length) problems.push(`targets for traits that don't exist: ${extra.join(', ')}`);
   return problems;
@@ -117,8 +90,8 @@ async function run(persona) {
   await call('DELETE', '/personality/answers', undefined, token);
   let scored = false;
   for (const scene of SCENES) {
-    if (!persona.answers[scene]) throw new Error(`${persona.name}: no answers for ${scene}`);
-    scored = await playScene(scene, persona.answers[scene], token);
+    if (!persona.personality.answers[scene]) throw new Error(`${persona.name}: no answers for ${scene}`);
+    scored = await playScene(scene, persona.personality.answers[scene], token);
     process.stdout.write(`  ${persona.name}: ${scene}\n`);
   }
   //scoring only runs every few scenes, so unless the last one just scored, score once more from everything
@@ -150,61 +123,58 @@ function report(personas, now, previous) {
       lines.push(`\n## ${p.name}: FAILED: ${scores.error}`);
       continue;
     }
+    const { targets } = p.personality;
     const prev = previous?.[p.file];
     const usablePrev = prev && !prev.error ? prev : undefined;
-    lines.push(`\n## ${p.name} (${p.file}): error ${f(mae(scores, p.targets))}${usablePrev ? `, was ${f(mae(usablePrev, p.targets))}` : ''}`);
+    lines.push(`\n## ${p.name} (${p.file}): error ${f(mae(scores, targets))}${usablePrev ? `, was ${f(mae(usablePrev, targets))}` : ''}`);
     lines.push('| Trait | Target | Now | Off by | Conf | Previous | Change |', '|---|---|---|---|---|---|---|');
-    const traits = Object.keys(p.targets).sort((a, b) => Math.abs((scores[b]?.value ?? UNMEASURED) - p.targets[b]) - Math.abs((scores[a]?.value ?? UNMEASURED) - p.targets[a]));
+    const traits = Object.keys(targets).sort((a, b) => Math.abs((scores[b]?.value ?? UNMEASURED) - targets[b]) - Math.abs((scores[a]?.value ?? UNMEASURED) - targets[a]));
     for (const t of traits) {
       const v = scores[t]?.value;
       const was = usablePrev?.[t]?.value;
-      lines.push(`| ${t} | ${f(p.targets[t])} | ${v === undefined ? 'none' : f(v)} | ${signed((v ?? UNMEASURED) - p.targets[t])} | ${f(scores[t]?.confidence)} | ${f(was)} | ${v !== undefined && was !== undefined ? signed(v - was) : '  -  '} |`);
+      lines.push(`| ${t} | ${f(targets[t])} | ${v === undefined ? 'none' : f(v)} | ${signed((v ?? UNMEASURED) - targets[t])} | ${f(scores[t]?.confidence)} | ${f(was)} | ${v !== undefined && was !== undefined ? signed(v - was) : '  -  '} |`);
     }
   }
   const summary = ['| Persona | Error now | Previous | Change |', '|---|---|---|---|'];
   for (const p of personas) {
     const s = now[p.file];
     const prev = previous?.[p.file];
-    const a = s.error ? undefined : mae(s, p.targets);
-    const b = prev && !prev.error ? mae(prev, p.targets) : undefined;
+    const a = s.error ? undefined : mae(s, p.personality.targets);
+    const b = prev && !prev.error ? mae(prev, p.personality.targets) : undefined;
     summary.push(`| ${p.name} | ${s.error ? 'FAILED' : f(a)} | ${f(b)} | ${a !== undefined && b !== undefined ? signed(a - b) : '  -  '} |`);
   }
   const ok = personas.filter((p) => !now[p.file].error);
-  const mean = ok.length ? ok.reduce((sum, p) => sum + mae(now[p.file], p.targets), 0) / ok.length : undefined;
+  const mean = ok.length ? ok.reduce((sum, p) => sum + mae(now[p.file], p.personality.targets), 0) / ok.length : undefined;
   return `# Regression run ${new Date().toISOString()}\n\nAverage error ${f(mean)} (the mean gap between score and target)\n\n${summary.join('\n')}\n${lines.join('\n')}\n`;
 }
 
-// ---------------------------------------------------------------------------
+export default {
+  about: 'plays every scene as each persona and scores its personality against its targets',
+  options: '--check  checks every persona\'s answers and targets, without playing',
+  async run({ personas, options, results }) {
+    if (options.includes('--check')) {
+      const traits = (await call('GET', '/personality/traits')).map((t) => t.name);
+      let ok = true;
+      for (const p of personas) {
+        const problems = check(p, traits);
+        ok &&= !problems.length;
+        console.log(`${p.file}: ${problems.length ? '\n  ' + problems.join('\n  ') : 'ok'}`);
+      }
+      return ok;
+    }
 
-const only = process.argv.slice(2).filter((a) => a !== '--check');
-const files = readdirSync(`${dir}/personas`).filter((f) => f.endsWith('.mjs')).map((f) => f.slice(0, -4)).filter((f) => !only.length || only.includes(f));
-const personas = await Promise.all(files.map(async (file) => ({ file, ...(await import(`${dir}/personas/${file}.mjs`)).default })));
+    const previous = lastRun(results);
+    console.log(`Playing ${personas.length} personas in parallel...`);
+    const started = Date.now();
+    const scores = await Promise.all(personas.map((p) => run(p).catch((e) => ({ error: e.message }))));
+    const now = Object.fromEntries(personas.map((p, i) => [p.file, scores[i]]));
+    //personas left out or failed keep their last good result, so the next run still has something to compare against
+    const saved = { ...previous, ...Object.fromEntries(Object.entries(now).filter(([, r]) => !r.error)) };
 
-if (process.argv.includes('--check')) {
-  const traits = (await call('GET', '/personality/traits')).map((t) => t.name);
-  let ok = true;
-  for (const p of personas) {
-    const problems = check(p, traits);
-    ok &&= !problems.length;
-    console.log(`${p.file}: ${problems.length ? '\n  ' + problems.join('\n  ') : 'ok'}`);
-  }
-  process.exit(ok ? 0 : 1);
-}
-
-mkdirSync(RESULTS, { recursive: true });
-const runs = readdirSync(RESULTS).filter((f) => f.endsWith('.json')).sort();
-const previous = runs.length ? JSON.parse(readFileSync(`${RESULTS}/${runs[runs.length - 1]}`, 'utf8')) : undefined;
-
-console.log(`Playing ${personas.length} personas in parallel...`);
-const started = Date.now();
-const results = await Promise.all(personas.map((p) => run(p).catch((e) => ({ error: e.message }))));
-const now = Object.fromEntries(personas.map((p, i) => [p.file, results[i]]));
-//personas left out or failed keep their last good result, so the next run still has something to compare against
-const saved = { ...previous, ...Object.fromEntries(Object.entries(now).filter(([, r]) => !r.error)) };
-
-const text = report(personas, now, previous);
-const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-writeFileSync(`${RESULTS}/${stamp}.json`, JSON.stringify(saved, null, 1));
-writeFileSync(`${RESULTS}/${stamp}.md`, text);
-console.log(text);
-console.log(`Done in ${Math.round((Date.now() - started) / 1000)}s. Saved to ${RESULTS}/${stamp}.md`);
+    const text = report(personas, now, previous);
+    const path = saveRun(results, saved, text);
+    console.log(text);
+    console.log(`Done in ${Math.round((Date.now() - started) / 1000)}s. Saved to ${path}`);
+    return scores.every((s) => !s.error);
+  },
+};
