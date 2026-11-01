@@ -20,17 +20,56 @@ const time = (date: string) => {
   return new Date(y, m - 1, d).getTime();
 };
 
+const DAY = 24 * 60 * 60 * 1000;
+//the axis covers at least a day, so a timeline that started today still has room
+const MIN_SPAN = DAY;
+//room before the first step, as a share of the span, so it doesn't sit on the edge
+const LEAD_IN = 0.04;
+//about how many marks the axis gets at most
+const MARKS = 8;
+
+//a mark on the time axis: where it falls and what it says
+interface Tick {
+  time: number;
+  label: string;
+}
+
+//marks from `start` to `end` in years, months or days, whichever suits how long it is, at most about MARKS of them
+function ticks(start: number, end: number): Tick[] {
+  const span = end - start;
+  const from = new Date(start);
+  const marks: Tick[] = [];
+  if (span > 3 * 365 * DAY) {
+    const years = new Date(end).getFullYear() - from.getFullYear();
+    const every = Math.ceil(years / MARKS);
+    for (let year = from.getFullYear() + 1; year <= new Date(end).getFullYear(); year += every) {
+      marks.push({ time: new Date(year, 0, 1).getTime(), label: String(year) });
+    }
+  } else if (span > 90 * DAY) {
+    const every = Math.ceil(span / (30 * DAY) / MARKS);
+    for (let month = new Date(from.getFullYear(), from.getMonth() + 1, 1); month.getTime() <= end; month.setMonth(month.getMonth() + every)) {
+      const first = !marks.length || month.getMonth() < every;
+      marks.push({ time: month.getTime(), label: month.toLocaleDateString(undefined, first ? { month: 'short', year: 'numeric' } : { month: 'short' }) });
+    }
+  } else {
+    const every = Math.ceil(span / DAY / MARKS);
+    for (let day = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 1); day.getTime() <= end; day.setDate(day.getDate() + every)) {
+      marks.push({ time: day.getTime(), label: day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) });
+    }
+  }
+  return marks;
+}
+
 //the user's skills over time: a lane for each skill, split into the levels they've reached in it, each lasting until the
-//next or until now, on one time axis of years
+//next or until now, on one time axis from their first step to now
 export default function Timeline({ skills }: { skills: TimelineSkill[] }) {
   const [hover, setHover] = useState<{ skill: string; step: number }>();
   const [now] = useState(() => Date.now()); //the right end of the axis, fixed when the timeline first shows
-  const firstYear = new Date(Math.min(...skills.flatMap(({ steps }) => steps.map(({ on }) => time(on))))).getFullYear();
-  const start = new Date(firstYear, 0, 1).getTime();
+  const first = Math.min(...skills.flatMap(({ steps }) => steps.map(({ on }) => time(on))));
+  const span = Math.max(now - first, MIN_SPAN);
+  const start = now - span * (1 + LEAD_IN);
   const at = (t: number) => ((t - start) / (now - start)) * 100;
-  const years = new Date(now).getFullYear() - firstYear + 1;
-  const every = Math.ceil(years / 8); //at most about eight year marks
-  const ticks = Array.from({ length: years }, (_, i) => firstYear + i).filter((year) => (year - firstYear) % every === 0);
+  const marks = ticks(start, now);
 
   return (
     <section style={styles.group} aria-label="Timeline">
@@ -48,9 +87,9 @@ export default function Timeline({ skills }: { skills: TimelineSkill[] }) {
         <div style={styles.lane} aria-hidden="true">
           <span style={styles.label} />
           <div style={styles.axis}>
-            {ticks.map((year) => (
-              <span key={year} style={{ ...styles.tick, left: `${at(new Date(year, 0, 1).getTime())}%` }}>
-                {year}
+            {marks.map(({ time, label }) => (
+              <span key={time} style={{ ...styles.tick, left: `${at(time)}%` }}>
+                {label}
               </span>
             ))}
           </div>
@@ -61,8 +100,8 @@ export default function Timeline({ skills }: { skills: TimelineSkill[] }) {
               {skill.name}
             </button>
             <div style={styles.track}>
-              {ticks.map((year) => (
-                <span key={year} style={{ ...styles.grid, left: `${at(new Date(year, 0, 1).getTime())}%` }} />
+              {marks.map(({ time }) => (
+                <span key={time} style={{ ...styles.grid, left: `${at(time)}%` }} />
               ))}
               {steps.map(({ rank, on }, i) => {
                 const until = steps[i + 1]?.on;
