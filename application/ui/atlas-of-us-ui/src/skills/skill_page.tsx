@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { LEVEL_NAMES, getNeighborPage, getAchievement, getNeighbors, getSkill, requestFill, type Achievement, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AchievementCard } from './achievement_card';
 import { AchievementWalkthrough } from './achievement_walkthrough';
@@ -27,14 +27,16 @@ const BLOOM_NAMES = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', '
 
 interface SkillPageProps {
   id: string;
-  onLoaded: (skill: SkillRef) => void;
+  onLoaded?: (skill: SkillRef) => void;
   onOpen: (skill: SkillRef) => void;
-  onShowInGraph: (skill: SkillRef) => void;
+  onShowInGraph?: (skill: SkillRef) => void;
+  actions?: ReactNode; //what can be done with it where it's shown, beside its name
+  askToFill?: boolean; //a stub waits for someone to ask for its levels, rather than having them written on opening
 }
 
 //one skill: its five levels, and every skill linked to it to hop to next. A stub is filled the first time it's opened,
-//and the page waits on it. Keyed by the skill's id, so each skill starts fresh
-export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProps) {
+//or when asked for, and the page waits on it. Keyed by the skill's id, so each skill starts fresh
+export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToFill }: SkillPageProps) {
   const [skill, setSkill] = useState<Skill>();
   const [neighbors, setNeighbors] = useState<Neighbors>();
   const [error, setError] = useState<string>();
@@ -47,9 +49,9 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
     getSkill(id).then(
       async (loaded) => {
         if (!live) return;
-        onLoaded({ id: loaded.id, name: loaded.name, status: loaded.status });
-        //opening a stub is what fills it
-        if (loaded.status === 'stub') {
+        onLoaded?.({ id: loaded.id, name: loaded.name, status: loaded.status });
+        //opening a stub is what fills it, unless it waits to be asked
+        if (loaded.status === 'stub' && !askToFill) {
           const { status } = await requestFill(id);
           loaded = { ...loaded, status };
         }
@@ -61,7 +63,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
     return () => {
       live = false;
     };
-  }, [id, onLoaded]);
+  }, [id, onLoaded, askToFill]);
 
   //checks on a filling skill until it's ready or has failed, then fetches what's around it again
   const status = skill?.status;
@@ -109,9 +111,12 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
                 Add yourself
               </button>
             )}
-            <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
-              See it on the map
-            </button>
+            {actions}
+            {onShowInGraph && (
+              <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
+                See it on the map
+              </button>
+            )}
           </div>
         </div>
         {skill.description && <p style={styles.description}>{skill.description}</p>}
@@ -129,7 +134,18 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph }: SkillPageProp
           <Levels levels={skill.levels} rank={rank} mine={achievement?.rank ?? null} onRank={setRank} onOpen={onOpen} />
         </>
       )}
-      {(skill.status === 'filling' || skill.status === 'stub') && (
+      {skill.status === 'stub' && askToFill && (
+        <div style={styles.waiting}>
+          <Mascot />
+          <div style={styles.bubble} className="comic-bubble comic-pop">
+            <p style={styles.bubbleText}>Nobody has asked about {skill.name} before, so its five levels aren't written yet.</p>
+            <button className="comic-lift" style={styles.button} onClick={retry}>
+              Write its levels
+            </button>
+          </div>
+        </div>
+      )}
+      {(skill.status === 'filling' || (skill.status === 'stub' && !askToFill)) && (
         <div style={styles.waiting}>
           <Mascot />
           <p style={styles.bubble} className="comic-bubble comic-pop">

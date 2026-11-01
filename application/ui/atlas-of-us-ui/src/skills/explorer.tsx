@@ -26,8 +26,8 @@ export default function Explorer({ skillId, board, onBoard }: ExplorerProps) {
   const at = trail.findIndex((s) => s.id === skillId);
   const shown = at >= 0 ? trail.slice(0, at + 1) : trail;
 
-  const open = (skill: SkillRef, from: 'board' | 'skill') => {
-    setTrail(from === 'skill' ? [...shown, skill] : [skill]);
+  const open = (skill: SkillRef) => {
+    setTrail([...shown, skill]);
     navigate(`/skills/${encodeURIComponent(skill.id)}`);
   };
   //selects a skill on the board and goes back to it
@@ -38,7 +38,7 @@ export default function Explorer({ skillId, board, onBoard }: ExplorerProps) {
   //a skill opened straight from its url starts a trail of its own
   const loaded = useCallback((skill: SkillRef) => setTrail((t) => (t.some((s) => s.id === skill.id) ? t : [skill])), []);
 
-  if (!skillId) return <SkillGraph board={board} onBoard={onBoard} onOpen={(skill) => open(skill, 'board')} />;
+  if (!skillId) return <SkillGraph board={board} onBoard={onBoard} />;
 
   return (
     <>
@@ -63,7 +63,7 @@ export default function Explorer({ skillId, board, onBoard }: ExplorerProps) {
           </span>
         ))}
       </nav>
-      <SkillPage key={skillId} id={skillId} onLoaded={loaded} onOpen={(skill) => open(skill, 'skill')} onShowInGraph={showInGraph} />
+      <SkillPage key={skillId} id={skillId} onLoaded={loaded} onOpen={open} onShowInGraph={showInGraph} />
     </>
   );
 }

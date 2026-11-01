@@ -152,9 +152,8 @@ ask for the same new skill at the same moment, the second `MERGE` finds the firs
 another, and only the first publishes `SkillCreated`.
 
 ## What the user sees
-The Skills page (`/skills`) has two views. The Skills Explorer opens first: a line on what the page is and how to use it, the
-board of every skill, and under it the five Dreyfus levels walked through with one skill, cooking (`src/skills/explained.tsx`).
-Then comes My Skills.
+The Skills page (`/skills`) has two views. The Skills Explorer opens first: a line on what the page is and how to use it,
+the board of every skill, and under it the selected skill's page. Then comes My Skills.
 
 ### Exploring
 The Skills Explorer is one board of every skill (`SkillGraph` in `src/skills/graph.tsx`, on the shared `GraphBoard`
@@ -168,8 +167,11 @@ gives every skill with the ids of its broader skills, fetched once a visit (`use
 - **Searching** in the board's corner shows the closest skills with the broader skills they're a kind of, so someone
   searching "pastry lamination" can see "Baking" too, and picking one glides to it and selects it. When nothing fits,
   the user can ask for it there (see "Asking for a skill we don't have"), and a new skill joins the map straight away.
-- **Selecting** a skill reads it with `GET /{id}/neighbors`, which never fills it, and the panel beside the board shows
-  its description and how many of each kind of link it has. "Open skill" goes to its page, where a stub gets filled.
+- **Selecting** a skill reads it with `GET /{id}/neighbors`, which never fills it, and shows its page under the board
+  (see "Opening a skill"), with Expand, Hide and, once it's expanded, "More" for each way it links that has more skills
+  than the board shows, beside its name. There a stub isn't filled until someone presses "Write its levels". A skill
+  the page links to is selected on the board. Selecting a trait or a topic shows its description and how many skills
+  take or need it in a panel under the board.
 - **Expanding** a skill, by double-clicking it, turns the board into a close-up of the skill and every skill linked to
   it, every personality trait it takes and every topic it needs, laid out around it; traits are pale blue diamonds and
   topics pale red, and anything can be dragged. Expanding something else in the close-up adds what it links to.
@@ -179,14 +181,17 @@ gives every skill with the ids of its broader skills, fetched once a visit (`use
   of link with more than the first page can bring on the next. Hide takes back what a node brought on, Back undoes the last
   expand, hide or clear (Ctrl+Z too), and Back to the map leaves the close-up.
 
-The board draws five kinds of link, and a legend turns each on and off. Turning a kind off also hides the floating
-traits and topics whose links are all of kinds that are off, other than the selected one:
+The board draws five kinds of link. The legend has a button for each kind with links on the board, which turns it on
+and off. Turning a kind off also hides the floating traits and topics whose links are all of kinds that are off, other
+than the selected one:
 
-- **A kind of:** a solid line with an arrow to the broader skill.
-- **Needs:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES_SKILL` link.
-- **Similar:** a dotted line.
-- **Takes:** a solid red line with an arrow from a skill to a personality trait, thicker for a stronger `REQUIRES_TRAIT`.
-- **Knows:** a solid blue line with an arrow from a skill to a topic, thicker for a stronger `REQUIRES_KNOWLEDGE`.
+- **Kinds of skills:** a solid line with an arrow to the broader skill.
+- **Skills needed:** a dashed line with an arrow to the skill that's needed, thicker for a stronger `REQUIRES_SKILL` link.
+- **Similar skills:** a dotted line.
+- **Traits needed:** a solid red line with an arrow from a skill to a personality trait, thicker for a stronger
+  `REQUIRES_TRAIT`.
+- **Knowledge needed:** a solid blue line with an arrow from a skill to a topic, thicker for a stronger
+  `REQUIRES_KNOWLEDGE`.
 
 The board's search matches names and aliases through a full-text index (every word has to match, as a prefix or with one typo once
 it's four letters long) and does a vector search that keeps skills scoring at least 0.6, and combines the two lists by reciprocal rank fusion, so a skill near the top of
@@ -198,7 +203,7 @@ alone.
 Explorer's board, so it's still there after a look at a skill or at My Skills.
 
 ### Opening a skill
-A skill opens at `/skills/<id>`, with its five levels and, under them, the skills linked to it: the skills it's a kind
+A skill opens under the board when it's selected, and on its own at `/skills/<id>`, with its five levels and, under them, the skills linked to it: the skills it's a kind
 of, the kinds of it, what it needs, what it leads to, and similar skills, twelve of each at a time. Each one opens in
 turn, and the skills hopped through stay as a trail above the page.
 
@@ -207,8 +212,8 @@ turn, and the skills hopped through stay as a trail above the page.
   requirement from that level and the ones below it, strongest first, with how much it matters and why, and the level a carried-up one comes
   from. Each skill it takes names the level of it needed, opens that skill, and is marked when it isn't filled in yet.
   Each topic it needs names the Bloom level of it needed, and opens that topic in Topics.
-- **A `stub`** shows its name and description and a loading screen while it fills. Opening it is what triggers the fill
-  (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
+- **A `stub`** shows its name and description and a loading screen while it fills. Opening it at `/skills/<id>`, or
+  pressing "Write its levels" under the board, is what triggers the fill (see below): the UI calls `POST /{id}/fill`, which leaves a skill that is already `filling` or `ready` as it is, so
   it's safe to call on every open. The UI polls `GET /{id}` until it's `ready`.
 
 ### Placing yourself on a skill

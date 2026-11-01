@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import { getSkillMap, type GroupName, type PagedGroup, type SkillRef, type SkillStatus, type SkillSummary } from './api';
+import { getSkillMap, type GroupName, type PagedGroup, type SkillStatus, type SkillSummary } from './api';
 import { useMap } from '../shared_components/use_map';
 import { AskForSkill, PLACEHOLDER } from './search';
+import { SkillPage } from './skill_page';
 import { emptyBoard, expandSkill, expandTopic, expandTrait, hide as hideNode, moreKnowers, moreOf, moreTakers, place, readThen, readTopicThen, readTraitThen, type BoardSkill, type BoardTopic, type BoardTrait, type SkillBoard } from './skill_board';
 import { useSkillSearch, type SearchState } from './use_skill_search';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -25,23 +26,23 @@ const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 const RESULTS = 6;
 
 //the three ways skills link, and how a skill links to the personality traits it takes and the topics it needs, as the
-//board draws them. "A kind of" points to the broader skill, "Needs" to the skill that's needed, "Takes" to the trait,
-//and "Knows" to the topic
+//board draws them. "Kinds of skills" points to the broader skill, "Skills needed" to the skill that's needed, "Traits
+//needed" to the trait, and "Knowledge needed" to the topic
 const KINDS: LinkKind[] = [
-  { id: 'kind_of', label: 'A kind of', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
-  { id: 'needs', label: 'Needs', line: 'dashed', arrow: true, colour: cinnamon, length: 130 },
-  { id: 'similar', label: 'Similar', line: 'dotted', arrow: false, colour: blue, length: 150 },
-  { id: 'takes', label: 'Takes', line: 'solid', arrow: true, colour: brownRed, length: 120 },
-  { id: 'knows', label: 'Knows', line: 'solid', arrow: true, colour: blue, length: 120 },
+  { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
+  { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, colour: cinnamon, length: 130 },
+  { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, colour: blue, length: 150 },
+  { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, colour: brownRed, length: 120 },
+  { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, colour: blue, length: 120 },
 ];
 
 //the ways a skill links, as the inspector counts them
 const GROUP_LABELS: [GroupName, string][] = [
-  ['broader', 'A kind of'],
-  ['narrower', 'Kinds of it'],
-  ['needs', 'Needs'],
-  ['leads_to', 'Leads to'],
-  ['similar', 'Similar'],
+  ['broader', 'Broader skills'],
+  ['narrower', 'Narrower skills'],
+  ['needs', 'Skills needed'],
+  ['leads_to', 'Skills it leads to'],
+  ['similar', 'Similar skills'],
 ];
 
 const STATUS: Record<SkillStatus, string> = {
@@ -54,13 +55,12 @@ const STATUS: Record<SkillStatus, string> = {
 interface SkillGraphProps {
   board: SkillBoard;
   onBoard: Dispatch<SetStateAction<SkillBoard>>;
-  onOpen: (skill: SkillRef) => void;
 }
 
 //every skill on one board to explore, in the style of Neo4j Bloom. Zoomed out it's the map of every skill; search or
 //zoom in to find one, select it to read about it here, and expand it to bring in everything it links to. Reading a
 //skill never fills it; only opening it does
-export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
+export function SkillGraph({ board, onBoard }: SkillGraphProps) {
   const map = useMap(getSkillMap);
   const [search, setSearch] = useState<SearchState>({ query: '' });
   const searchError = useSkillSearch(search, setSearch);
@@ -197,10 +197,21 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
         )}
       </div>
 
+      {/* the selected skill's page, under the board; a skill it links to is selected on the board */}
+      {chosen ? (
+        <>
+          {error && <AtlasError message={error} />}
+          <SkillPage
+            key={chosen.skill.id}
+            id={chosen.skill.id}
+            askToFill
+            onOpen={(skill) => onBoard((b) => place(b, skill))}
+            actions={<SkillActions on={chosen} busy={busy} onExpand={grow} onMore={more} onHide={hide} />}
+          />
+        </>
+      ) : (
       <aside style={styles.inspector} className="comic-panel" aria-live="polite">
-        {chosen ? (
-          <Inspector on={chosen} busy={busy} onExpand={grow} onMore={more} onOpen={onOpen} onHide={hide} />
-        ) : chosenTrait ? (
+        {chosenTrait ? (
           <TraitInspector on={chosenTrait} busy={busy} onExpand={grow} onMore={(id) => more(id, 'takers')} onHide={hide} />
         ) : chosenTopic ? (
           <TopicInspector on={chosenTopic} busy={busy} onExpand={grow} onMore={(id) => more(id, 'knowers')} onHide={hide} />
@@ -210,79 +221,46 @@ export function SkillGraph({ board, onBoard, onOpen }: SkillGraphProps) {
             <ul style={styles.tips}>
               <li style={styles.tip}>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it. Paler dots and dashed outlines are skills whose levels aren't written yet.</li>
               <li style={styles.tip}>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
-              <li style={styles.tip}>Click a skill to read about it here, under the board, or search for one.</li>
+              <li style={styles.tip}>Click a skill to read all about it under the board, or search for one.</li>
               <li style={styles.tip}>Double-click one to see just it and everything it links to: skills, the personality traits it takes, and the topics it needs. Drag any of them where you want them.</li>
               <li style={styles.tip}>Double-click anything there to add what it links to. A trait (the pale diamonds) brings the skills that take it, and a topic (the pale red ones) the skills that need it.</li>
               <li style={styles.tip}>Back undoes the last step, or press Ctrl+Z. Hide takes back what one skill brought in, and Back to the map leaves the close-up.</li>
-              <li style={styles.tip}>The buttons along the bottom turn each kind of link on and off.</li>
+              <li style={styles.tip}>Once something's expanded, the buttons along the bottom show and hide each kind of link on the board.</li>
             </ul>
           </>
         )}
         {error && <AtlasError message={error} />}
       </aside>
+      )}
     </div>
   );
 }
 
-//the selected skill: what it is, how many skills it links to each way, and what can be done with it. Once it's
-//expanded, a way with more skills than are on the board can bring the next page of them on
-function Inspector({ on, busy, onExpand, onMore, onOpen, onHide }: {
+//what can be done with the selected skill on the board, beside its name on its page: expand it, take back what it brought
+//on, and once it's expanded, bring on the next page of a way it links that has more skills than the board shows
+function SkillActions({ on, busy, onExpand, onMore, onHide }: {
   on: BoardSkill;
   busy?: string;
   onExpand: (id: string) => void;
   onMore: (id: string, group: PagedGroup) => void;
-  onOpen: (skill: SkillRef) => void;
   onHide: (id: string) => void;
 }) {
   const { skill, neighbors } = on;
   const expanding = busy === skill.id;
+  const more = on.expanded && neighbors ? GROUP_LABELS.filter((entry): entry is [PagedGroup, string] => entry[0] !== 'similar' && neighbors[entry[0]].total > neighbors[entry[0]].skills.length) : [];
   return (
     <>
-      <h3 style={styles.name}>{skill.name}</h3>
-      <span className="comic-chip" style={styles.status}>
-        {STATUS[skill.status]}
-      </span>
-      {neighbors ? neighbors.skill.description && <p style={styles.description}>{neighbors.skill.description}</p> : <Thinking label="Reading it" style={styles.description} />}
-      {neighbors && (
-        <dl style={styles.counts}>
-          {GROUP_LABELS.map(([group, label]) => {
-            const { skills, total } = neighbors[group];
-            const left = total - skills.length;
-            return (
-              <div key={group} style={styles.count}>
-                <dt>{label}</dt>
-                <dd style={styles.countNumber}>
-                  {on.expanded && left > 0 && group !== 'similar' && (
-                    <button className="comic-lift" style={styles.more} disabled={busy === `${skill.id}:${group}`} onClick={() => onMore(skill.id, group)}>
-                      {busy === `${skill.id}:${group}` ? <>Adding<Dots /></> : 'Add more'}
-                    </button>
-                  )}
-                  {total}
-                </dd>
-              </div>
-            );
-          })}
-          <div style={styles.count}>
-            <dt>Takes</dt>
-            <dd style={styles.countNumber}>{neighbors.traits.length}</dd>
-          </div>
-          <div style={styles.count}>
-            <dt>Knows</dt>
-            <dd style={styles.countNumber}>{neighbors.topics.length}</dd>
-          </div>
-        </dl>
-      )}
-      <div style={styles.actions}>
-        <button className="comic-lift" style={styles.primary} disabled={on.expanded || expanding} onClick={() => onExpand(skill.id)}>
-          {expanding ? <>Expanding<Dots /></> : on.expanded ? 'Expanded' : 'Expand'}
+      <button className="comic-lift" style={styles.primary} disabled={on.expanded || expanding} onClick={() => onExpand(skill.id)}>
+        {expanding ? <>Expanding<Dots /></> : on.expanded ? 'Expanded' : 'Expand'}
+      </button>
+      {more.map(([group, label]) => (
+        <button key={group} className="comic-lift" style={styles.button} disabled={busy === `${skill.id}:${group}`} onClick={() => onMore(skill.id, group)}>
+          {busy === `${skill.id}:${group}` ? <>Adding<Dots /></> : `More ${label.toLowerCase()}`}
         </button>
-        <button className="comic-lift" style={styles.button} onClick={() => onOpen(skill)}>
-          Open skill
-        </button>
-        <button className="comic-lift" style={styles.button} onClick={() => onHide(skill.id)}>
-          Hide
-        </button>
-      </div>
+      ))}
+      <button className="comic-lift" style={styles.button} onClick={() => onHide(skill.id)}>
+        Hide
+      </button>
     </>
   );
 }

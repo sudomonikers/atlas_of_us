@@ -55,7 +55,7 @@ The board is one canvas, so thousands of nodes stay smooth.
 |---|---|
 | `items` | The map: every node, with `{id, name, broader, filled}` |
 | `visitors` | Nodes that aren't on the map, `{id, label, look, shape?, from?}`, such as traits on the skills board or Ideas on the topics board. They float beside `from` and can be dragged |
-| `links`, `kinds` | The links expanding brought on, and each kind's label, line, arrow, colour and how long it likes to be. The legend turns each kind on and off |
+| `links`, `kinds` | The links expanding brought on, and each kind's label, line, arrow, colour and how long it likes to be. The legend has a button for each kind on the board, which turns it on and off |
 | `hierarchy` | The kind the map's own broader links are drawn as |
 | `layout` | A `BoardLayout`: the view and where the visitors are. The owner keeps it, so the board comes back as it was left |
 | `selected`, `focus`, `opened` | The selected node, a node to glide to (once for each new focus, even one passed before the board has a size), and the expanded nodes, marked with a dot |
@@ -88,7 +88,8 @@ The Skills Explorer shows the split:
 - **Selecting and expanding.**
   - Selecting reads the node (`GET /api/skills/{id}/neighbors`, `GET /api/personality/traits/{id}/skills` or
     `GET /api/topics/{id}/neighbors`), whether it was selected on the board or from a skill's page.
-  - Expanding adds what was read as links, and the inspector beside the board brings on the next page of a kind.
+  - Expanding adds what was read as links, and the selected skill's page under the board brings on the next page of a
+    kind.
   - `hide` takes back what a node brought on.
   - **Going back.** Each expand, hide and clear keeps the board as it was in `back`, so the board holds the chain of
     earlier boards. Back restores the last one. The boards share what didn't change, so the chain costs little.

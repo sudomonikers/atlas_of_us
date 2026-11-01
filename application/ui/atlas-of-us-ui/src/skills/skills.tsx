@@ -3,7 +3,6 @@ import { navigate, usePath } from '../router';
 import Explorer from './explorer';
 import { emptyBoard, type SkillBoard } from './skill_board';
 import MySkills from './my_skills';
-import Explained, { HowToExplore } from './explained';
 import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
@@ -66,11 +65,14 @@ function Skills() {
           ))}
         </div>
 
-        {/* the board of every skill, with how to use it over it and how they're measured under it. An open skill's
-            page takes its place */}
-        {view === 'explorer' && !skillId && <HowToExplore />}
+        {/* the board of every skill, with how to use it over it. An open skill's page takes its place */}
+        {view === 'explorer' && !skillId && (
+          <p style={dash.how}>
+            This is every skill in the Atlas, grouped under the broad skills they're kinds of. Search for one or zoom in to
+            find it, click it to read all about it below, and double-click it to see everything it connects to.
+          </p>
+        )}
         {view === 'explorer' && <Explorer skillId={skillId} board={board} onBoard={setBoard} />}
-        {view === 'explorer' && !skillId && <Explained />}
         {view === 'mine' && <MySkills />}
         <Footer />
       </div>
@@ -130,6 +132,12 @@ const dash: Record<string, CSSProperties> = {
   viewButtonActive: {
     background: brownRed,
     color: ivory,
+  },
+  how: {
+    maxWidth: 1100,
+    margin: '0 auto 16px',
+    fontSize: 17,
+    lineHeight: 1.5,
   },
 };
 
