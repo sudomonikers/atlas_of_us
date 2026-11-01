@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievements, getNextSteps, getPersonalityFits, getSuggestions, doesNotHave, monthYear, setAchievement, type AchievedSkill, type Fit, type Fits, type NextStep, type SuggestedBy, type Suggestion } from './api';
+import { LEVEL_NAMES, getAchievements, getNextSteps, getPersonalityFits, getSuggestions, getTimeline, doesNotHave, monthYear, setAchievement, type AchievedSkill, type Fit, type Fits, type NextStep, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import Timeline from './timeline';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -16,13 +17,15 @@ const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
 //the My Skills view: the skills the user has placed themselves on, grouped by level from Expert down, each opening its
-//skill page and showing what it takes to reach its next level. Then the skills they probably have but haven't added, the
+//skill page and showing what it takes to reach its next level. Then when they reached each level, the skills they
+//probably have but haven't added, the
 //skills that suit their personality, and the ones they got good at against its pull
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
   const [steps, setSteps] = useState<Map<string, NextStep>>();
   const [suggestions, setSuggestions] = useState<Suggestion[]>();
   const [fits, setFits] = useState<Fits>();
+  const [timeline, setTimeline] = useState<TimelineSkill[]>();
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
@@ -37,6 +40,7 @@ export default function MySkills() {
     getNextSteps().then((loaded) => live && setSteps(new Map(loaded.map((step) => [step.skill_id, step]))), () => {});
     getSuggestions().then((loaded) => live && setSuggestions(loaded), () => {});
     getPersonalityFits().then((loaded) => live && setFits(loaded), () => {});
+    getTimeline().then((loaded) => live && setTimeline(loaded), () => {});
     return () => {
       live = false;
     };
@@ -98,6 +102,7 @@ export default function MySkills() {
             )
           );
         })}
+      {!!timeline?.length && <Timeline skills={timeline} />}
       {!!suggestions?.length && (
         <Suggestions
           suggestions={suggestions}

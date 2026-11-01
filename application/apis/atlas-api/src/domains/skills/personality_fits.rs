@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthUser, state::AppState};
 
-use super::{SkillRef, internal};
+use super::{SkillRef, current, internal};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/personality-fits", get(personality_fits))
@@ -83,7 +83,7 @@ async fn personality_fits(State(state): State<AppState>, user: AuthUser) -> Resu
     ")).param("personId", user.person_id.as_str()).param("limit", NATURAL);
     let against = query(&format!("
         MATCH (p:Person {{id: $personId}})-[:ACHIEVED]->(at:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)
-        WHERE at.rank >= 3
+        WHERE at.rank >= 3 AND {current}
         MATCH (s)-[:HAS_LEVEL]->(l:DreyfusLevel)-[r:REQUIRES_TRAIT]->(t:PersonalityTrait)
         WHERE l.rank <= at.rank
         {FIT}
@@ -92,7 +92,7 @@ async fn personality_fits(State(state): State<AppState>, user: AuthUser) -> Resu
                COLLECT {{ UNWIND measured AS m RETURN {{name: m.name, level: m.level, yours: m.yours}} ORDER BY m.weight * (1 - m.match) DESC LIMIT 3 }} AS traits
         ORDER BY fit, s.name
         LIMIT $limit
-    ")).param("personId", user.person_id.as_str()).param("below", AGAINST_THE_GRAIN).param("limit", AGAINST);
+    ", current = current("p", "at", "s"))).param("personId", user.person_id.as_str()).param("below", AGAINST_THE_GRAIN).param("limit", AGAINST);
 
     let mut found = Vec::new();
     for q in [natural, against] {

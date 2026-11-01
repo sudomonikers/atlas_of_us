@@ -2,6 +2,7 @@
 //for and filled is described in documentation/architecture/skills.md
 mod achievement;
 mod personality_fits;
+mod timeline;
 mod gates;
 
 use std::collections::HashMap;
@@ -25,6 +26,12 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 pub use achievement::{PersonSkill, person_skills};
 
+//a Cypher predicate that `level` is the highest level `person` has achieved in `skill`: their level in it now. They have
+//an ACHIEVED to each level they've reached, and are taken to have every level below the highest
+fn current(person: &str, level: &str, skill: &str) -> String {
+    format!("NOT EXISTS {{ ({person})-[:ACHIEVED]->(higher:DreyfusLevel)<-[:HAS_LEVEL]-({skill}) WHERE higher.rank > {level}.rank }}")
+}
+
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -37,6 +44,7 @@ pub fn router() -> Router<AppState> {
         .route("/{id}/fill", post(request_fill))
         .merge(achievement::router())
         .merge(personality_fits::router())
+        .merge(timeline::router())
 }
 
 /// Healthcheck for the skills router.

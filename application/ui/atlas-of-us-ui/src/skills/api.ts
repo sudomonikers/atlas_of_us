@@ -257,3 +257,18 @@ export interface Fits {
 
 //how well the logged in user's personality suits skills
 export const getPersonalityFits = () => request<Fits>('GET', '/skills/personality-fits');
+
+//a level someone reached in a skill, and when
+export interface TimelineStep {
+  rank: number;
+  on: string; //YYYY-MM-DD
+}
+
+//a skill the logged in user is on, and the levels they've reached in it, earliest first
+export interface TimelineSkill {
+  skill: SkillRef;
+  steps: TimelineStep[];
+}
+
+//the logged in user's timeline, the skill they started earliest first
+export const getTimeline = () => request<TimelineSkill[]>('GET', '/skills/timeline');

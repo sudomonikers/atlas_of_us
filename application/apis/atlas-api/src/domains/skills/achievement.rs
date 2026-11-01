@@ -1,5 +1,5 @@
-//placing yourself on a skill: the one Dreyfus level you've reached in it (ACHIEVED), when you got there, and the evidence
-//you give for it once you're on it. See "Placing yourself on a skill" in documentation/architecture/skills.md
+//placing yourself on a skill: the Dreyfus levels you've reached in it (an ACHIEVED to each, the highest being your level
+//now), when you got there, and the evidence you give for it once you're on it. See "Placing yourself on a skill" in documentation/architecture/skills.md
 use axum::{
     Json, Router,
     extract::{Path, State},
@@ -16,7 +16,7 @@ use crate::{
     state::AppState,
 };
 
-use super::{SkillRef, internal, not_found};
+use super::{SkillRef, current, internal, not_found};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -58,8 +58,9 @@ async fn get_achievement(State(state): State<AppState>, user: AuthUser, Path(id)
     let mut rows = state.graph.execute(query(&format!("
         MATCH (s:Skill {{id: $id}}), (p:Person {{id: $personId}})
         OPTIONAL MATCH (p)-[r:ACHIEVED]->(l:DreyfusLevel)<-[:HAS_LEVEL]-(s)
+        WHERE {}
         RETURN l.rank AS rank, toString(r.achievedOn) AS achieved_on, {} AS evidence
-    ", evidence::collect("p", "s"))).param("id", id).param("personId", user.person_id)).await.map_err(internal)?;
+    ", current("p", "l", "s"), evidence::collect("p", "s"))).param("id", id).param("personId", user.person_id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Achievement>().map_err(internal)?))
 }
@@ -70,8 +71,7 @@ struct LevelRequest {
     achieved_on: Option<String>, //YYYY-MM-DD
 }
 
-//places the logged in user at one of a ready skill's levels, in place of any level they were at before, with when they
-//reached it if they say
+//places the logged in user at one of a ready skill's levels, with when they reached it if they say
 async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<LevelRequest>) -> Result<StatusCode, (StatusCode, String)> {
     let bad_request = |message: &str| (StatusCode::BAD_REQUEST, message.to_string());
     if !(1..=5).contains(&req.rank) {
@@ -96,19 +96,20 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
         return Err(bad_request("That skill's levels aren't written yet."));
     }
 
-    //keeps when they first placed themselves on the skill, and the version of the level they read. Saying they have it
-    //takes back any time they said they didn't
+    //the level joins the ones they've reached, with the version of it they read. A move down corrects their level, so the
+    //levels above it come off. Saying they have the skill takes back any time they said they didn't
     state.graph.run(query("
         MATCH (p:Person {id: $personId}), (s:Skill {id: $id})-[:HAS_LEVEL]->(l:DreyfusLevel {rank: $rank})
-        OPTIONAL MATCH (p)-[old:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)
         OPTIONAL MATCH (p)-[lacks:DOES_NOT_HAVE]->(s)
-        WITH p, l, lacks, collect(old) AS olds, min(old.since) AS since
-        FOREACH (o IN olds | DELETE o)
-        FOREACH (x IN CASE WHEN lacks IS NULL THEN [] ELSE [lacks] END | DELETE x)
-        CREATE (p)-[:ACHIEVED {
-            since: coalesce(since, datetime()), updatedAt: datetime(), levelVersion: l.version,
-            achievedOn: CASE WHEN $achievedOn IS NULL THEN null ELSE date($achievedOn) END
-        }]->(l)
+        DELETE lacks
+        WITH p, s, l
+        OPTIONAL MATCH (p)-[above:ACHIEVED]->(al:DreyfusLevel)<-[:HAS_LEVEL]-(s)
+        WHERE al.rank > l.rank
+        DELETE above
+        WITH DISTINCT p, l
+        MERGE (p)-[a:ACHIEVED]->(l)
+        ON CREATE SET a.recordedAt = datetime()
+        SET a.levelVersion = l.version, a.achievedOn = CASE WHEN $achievedOn IS NULL THEN null ELSE date($achievedOn) END
     ")
         .param("personId", user.person_id.as_str())
         .param("id", id.as_str())
@@ -119,7 +120,7 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
     Ok(StatusCode::NO_CONTENT)
 }
 
-//takes the logged in user off a skill, with all their evidence for it
+//takes the logged in user off a skill, with every level they reached in it and all their evidence for it
 async fn remove_achievement(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<StatusCode, (StatusCode, String)> {
     state.graph.run(query("
         MATCH (:Person {id: $personId})-[r:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(:Skill {id: $id})
@@ -164,10 +165,11 @@ async fn add_file(State(state): State<AppState>, user: AuthUser, Path(id): Path<
 pub async fn person_skills(graph: &Graph, person_id: &str) -> Result<Vec<PersonSkill>, (StatusCode, String)> {
     let mut rows = graph.execute(query(&format!("
         MATCH (p:Person {{id: $personId}})-[r:ACHIEVED]->(l:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)
+        WHERE {}
         RETURN {{id: s.id, name: s.name, status: s.status}} AS skill, l.rank AS rank, toString(r.achievedOn) AS achieved_on,
-               toString(r.updatedAt) AS updated_at, {} AS evidence
+               toString(r.recordedAt) AS updated_at, {} AS evidence
         ORDER BY rank DESC, s.name
-    ", evidence::collect("p", "s"))).param("personId", person_id)).await.map_err(internal)?;
+    ", current("p", "l", "s"), evidence::collect("p", "s"))).param("personId", person_id)).await.map_err(internal)?;
     let mut skills = Vec::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
         skills.push(row.to::<PersonSkill>().map_err(internal)?);
@@ -246,7 +248,8 @@ async fn next_steps(State(state): State<AppState>, user: AuthUser) -> Result<Jso
         "(tl:DreyfusLevel)<-[:HAS_LEVEL]-(t:Skill)",
         "tl.rank",
         "OPTIONAL MATCH (p)-[:ACHIEVED]->(yl:DreyfusLevel)<-[:HAS_LEVEL]-(t)
-        RETURN {id: t.id, name: t.name, status: t.status, rank: top.rank, strength: top.r.strength, reason: top.r.reason, yours: yl.rank}",
+        WITH t, top, max(yl.rank) AS yours
+        RETURN {id: t.id, name: t.name, status: t.status, rank: top.rank, strength: top.r.strength, reason: top.r.reason, yours: yours}",
     );
     let topics = carried_up(
         "REQUIRES_KNOWLEDGE",
@@ -264,12 +267,12 @@ async fn next_steps(State(state): State<AppState>, user: AuthUser) -> Result<Jso
     );
     let mut rows = state.graph.execute(query(&format!("
         MATCH (p:Person {{id: $personId}})-[:ACHIEVED]->(at:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill {{status: 'ready'}})
-        WHERE at.rank < 5
+        WHERE at.rank < 5 AND {current}
         MATCH (s)-[:HAS_LEVEL]->(next:DreyfusLevel {{rank: at.rank + 1}})
         OPTIONAL MATCH (at)-[n:NEXT_LEVEL]->(next)
         RETURN s.id AS skill_id, next.rank AS rank, n.description AS next_level,
                {skills} AS skills, {topics} AS topics, {traits} AS traits
-    ")).param("personId", user.person_id)).await.map_err(internal)?;
+    ", current = current("p", "at", "s"))).param("personId", user.person_id)).await.map_err(internal)?;
     let mut steps = Vec::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
         steps.push(row.to::<NextStep>().map_err(internal)?);
@@ -316,26 +319,26 @@ const SUGGESTIONS: i64 = 20;
 //on it and the levels below it, each at the level of it written on the highest of those. Skills they've placed
 //themselves on, or said they don't have, aren't suggested
 async fn suggestions(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<Suggestion>>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {id: $personId})
-        CALL (p) {
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (p:Person {{id: $personId}})
+        CALL (p) {{
             MATCH (p)-[:ACHIEVED]->(at:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)-[:HAS_LEVEL]->(l:DreyfusLevel)
                   -[r:REQUIRES_SKILL]->(tl:DreyfusLevel)<-[:HAS_LEVEL]-(t:Skill)
-            WHERE l.rank <= at.rank
+            WHERE l.rank <= at.rank AND {current}
             WITH s, at, t, tl, r ORDER BY l.rank DESC
-            WITH s, at, t, head(collect({rank: tl.rank, strength: r.strength})) AS top
-            RETURN t, top.rank AS rank, top.strength AS strength, {id: s.id, name: s.name, rank: at.rank} AS need, null AS kind
+            WITH s, at, t, head(collect({{rank: tl.rank, strength: r.strength}})) AS top
+            RETURN t, top.rank AS rank, top.strength AS strength, {{id: s.id, name: s.name, rank: at.rank}} AS need, null AS kind
             UNION
             MATCH (p)-[:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)-[:SPECIALIZATION_OF]->(t:Skill)
-            RETURN t, null AS rank, null AS strength, null AS need, {id: s.id, name: s.name} AS kind
-        }
+            RETURN t, null AS rank, null AS strength, null AS need, {{id: s.id, name: s.name}} AS kind
+        }}
         WITH p, t, rank, strength, need, kind
-        WHERE NOT EXISTS { (p)-[:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(t) } AND NOT EXISTS { (p)-[:DOES_NOT_HAVE]->(t) }
+        WHERE NOT EXISTS {{ (p)-[:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(t) }} AND NOT EXISTS {{ (p)-[:DOES_NOT_HAVE]->(t) }}
         WITH t, max(rank) AS rank, max(strength) AS strength, collect(need) AS needed_by, collect(kind) AS kind_of
-        RETURN {id: t.id, name: t.name, status: t.status} AS skill, rank, needed_by, kind_of
+        RETURN {{id: t.id, name: t.name, status: t.status}} AS skill, rank, needed_by, kind_of
         ORDER BY coalesce(strength, -1.0) DESC, size(needed_by) + size(kind_of) DESC, t.name
         LIMIT $limit
-    ").param("personId", user.person_id).param("limit", SUGGESTIONS)).await.map_err(internal)?;
+    ", current = current("p", "at", "s"))).param("personId", user.person_id).param("limit", SUGGESTIONS)).await.map_err(internal)?;
     let mut suggestions = Vec::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
         suggestions.push(row.to::<Suggestion>().map_err(internal)?);
