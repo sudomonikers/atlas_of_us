@@ -49,12 +49,7 @@ text <<'EOF'
 This is the big one. Most of the app is inside the data. The core idea is that this is a graph database with a huge monstrous-level graph database containing many sub graphs. All that a human can be in contained within this data, as well as all that many many different people are. Because all the data is so interwoven, this is a monolithic database. The rest of this document is broken up into explanations of the various sub graphs and their individual business rules. After each sub graph explanation will be a section on how the various subgraphs interact.
 
 ## Ids
-Every node or relationship whose id is used outside the database (in a login token, by the UI, in a URL, on the jobs queue or in an event) has an `id` property: a uuid set with `randomUUID()` when it's created, with a uniqueness constraint on its label. Code always matches on that `id`, with the label, so the constraint's index is used:
-```cypher
-MATCH (p:Person {id: $personId})
-```
-
-Seeded nodes, such as PersonalityTraits and scenarios, are MERGEd on their natural key (a trait's `name`, a question's `key`), and get their `id` with `ON CREATE SET n.id = randomUUID()`, so re-running a seed never changes them. Today Person, PersonalityTrait, PersonalityScenario, PersonalityScenarioQuestion, JobRunning and the ANSWERED relationship carry ids, and every new label that's referred to from outside the database gets one from the start.
+Every node or relationship referred to from outside the database (in a login token, the UI, a URL, a job or an event) has an `id`: a uuid set when it's created, unique for its label. Seeded nodes are matched on their natural key, such as a trait's `name`, and keep their `id` when the seed is re-run.
 EOF
 
 text <<'EOF'

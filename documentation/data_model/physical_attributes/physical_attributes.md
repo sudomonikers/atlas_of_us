@@ -1,21 +1,29 @@
 # Physical Attributes Graph
-A person's physical body is an important part about who they are. It affects their capabilities in terms of Skills they can have and Ideas they can understand, as well as influences their PersonalityTraits. The Physical Attributes graph is more than just skin, muscle, and bone. It is the entirety of you from your nervous system to your limbic sytem to more abstract things like 'reaction time' and other diseases you may have. This particular graph is interesting in that it is extremely large and complex, but also mostly known and seeded. While it does change it doesn't change much over time. The following are covered:
+A person's body is an important part of who they are. It affects the Skills they can have and the Ideas they can
+understand, and influences their PersonalityTraits. The graph is more than skin, muscle and bone: it's everything from
+the nervous system to abstract things like reaction time, and the conditions a person may have. It's very large but
+mostly known, so most of it is seeded, and it changes little over time. It covers:
 
-1. Body Structure - seeded from Uberon
-2. Measurements - custom developed
-3. Conditions - seeded from Mondo/HPO
+1. **Body structure,** seeded from Uberon.
+2. **Conditions,** seeded from Mondo and HPO, and linked to the structures they affect.
+3. **Measurements,** compiled by hand and linked to structures and conditions. These are what most people will care
+   about.
 
-For Body Structure, we have gone ahead and seeded an entire human body's physical makeup into the database as graph. A huge mapping of human conditions (diseases and the like) have also been seeded and linked to the different structures they affect. Finally, the measurements are the actual interesting thing that most Persons will be interested in. That list has been compiled together by hand, and linked to various structures and conditions also by hand.
+## Nodes
 
-The shape of each Measurement looks like this:
+| Label | Key properties | What it is |
+|---|---|---|
+| PhysicalMeasurement | `name`, `description`, `vector` | Something about a body that can be measured, such as hand-eye coordination |
+
+## Relationships
+
+| Relationship | From → To | Properties | Meaning |
+|---|---|---|---|
+| HAS_MEASUREMENT | Person → PhysicalMeasurement | `amount` | How much of it they have, from 0 (essentially none) to 1 (extremely high) |
+
+How people relate to body structures and conditions, and the labels for those, are still to be defined.
+
+## Example
 ```cypher
-(hec:PhysicalMeasurement {name: "Hand-Eye Coordination", description: "The ability to use your eyes to process visual information and guide your hands to perform a precise task", vector: [1, 2, 3]})
+(a:Person)-[:HAS_MEASUREMENT {amount: 0.9}]->(:PhysicalMeasurement {name: "Hand-Eye Coordination", description: "Using what you see to guide your hands through a precise task"})
 ```
-
-Most of the interesting information here is contained in the Persons relationship with the Measurement. For example:
-```cypher
-(a:Person)-[:HAS_MEASUREMENT {amount: 0.9}]-(hec:PhysicalMeasurement);
-```
-Here the amount is a float between 0 and 1 with 1 being extremely high and 0 being essentially no hand eye coordination at all.
-
-How Persons interact with the Body Structure and Conditions nodes will be filled out later.

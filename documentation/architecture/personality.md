@@ -1,6 +1,6 @@
 # How the Personality Module Works
 
-This explains the personality module end to end: what the player sees, what gets stored, and how answers become trait
+This explains the personality module end to end: what the player does, what gets stored, and how answers become trait
 scores. For why we measure personality through scenes built from the IPIP-NEO rather than a questionnaire, read the
 module's README (`application/ui/atlas-of-us-ui/src/personality/README.md`) and `ADRs/personality_ipip_scenes.md`. For
 the graph itself, read `../data_model/personality/personality.md`.
@@ -9,263 +9,89 @@ the graph itself, read `../data_model/personality/personality.md`.
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/personality/` | The scenes, the scenario list, My Personality and the Explore tab |
-| API | `application/apis/atlas-api/src/domains/personality/mod.rs` | Saves answers, decides when to score, queues scoring and contest jobs, serves scores and evidence |
-| Scoring job | `application/apis/atlas-jobs/src/jobs/personality_scoring.rs` | A Lambda job that reads a person's answers with Bedrock and writes their traits |
-| Contest job | `application/apis/atlas-jobs/src/jobs/personality_contest.rs` | A Lambda job that reviews one piece of evidence the person contested |
-| Report | `application/apis/atlas-jobs/src/jobs/personality_report.rs` | Writes a fully scored person's report, called by both jobs |
-| Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/personality.rs` | Links a filled skill's levels to the traits they take, on `SkillFilled` |
-| Queue and Lambda | `application/infrastructure/jobs_lambda.tf` | The SQS queue between the API and the job, and the job's Lambda, model and timeout |
-| Seeds | `application/database/personality_*.cypher` | The traits, the scenarios and their questions, and the Explore reading material |
+| UI | `application/ui/atlas-of-us-ui/src/personality/` | The scenes, My Personality and Explore |
+| API | `application/apis/atlas-api/src/domains/personality/` | Saves answers, decides when to score, queues scoring and contests, serves scores and evidence |
+| Jobs | `application/apis/atlas-jobs/src/jobs/` | Scoring, reviewing contests and writing the report, with Bedrock |
+| Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/` | Links a filled skill's levels to the traits they take |
+| Queue | `application/infrastructure/jobs_lambda.tf` | The queue between the API and the jobs |
+| Seeds | `application/database/` | The traits, the scenarios and their questions, and the reading material for Explore |
 
 ## What we measure
-- **The 30 facets of the Big Five,** six per domain, as defined by the IPIP-NEO.
-- **Each facet is a `PersonalityTrait` node,** linked from its `PersonalityDomain` by `HAS_FACET`. A person's score is a
-  `HAS_PERSONALITY_TRAIT` relationship to it, with:
-  - `value` from 0 to 1, where 0.5 is typical;
-  - `confidence` from 0 to 1, for how much the answers say about it.
+The 30 facets of the Big Five, as defined by the IPIP-NEO. A person's score on each facet has a **value** from 0 to 1,
+where 0.5 is typical, and a **confidence** for how much their answers say about it.
 
 ## The scenes
-There are 18 scenes, each a folder in the personality UI. Each is written to a set of IPIP-NEO items: 150 in all, 5 per
-facet, with each item in exactly one scene. Which items are in which scene is in `scene_grouping.md`, in the same folder.
+There are 18 scenes. Each is written to a set of IPIP-NEO items, five per facet across the game, with each item in
+exactly one scene (see `scene_grouping.md` in the personality UI folder).
 
-Each scene has:
-- a `script.ts`, its story;
-- its own art;
-- its own sounds.
+- **A scene is a script** of narration, dialogue and prompts. A prompt asks for free text, or offers choices and asks
+  why, and choices branch the story.
+- **Each prompt names the facets** it was written to test. The scorer gets them as a hint, not a limit.
+- **Scenes come in three modes:** a **story** with choices, a **live** scene that watches what the player actually does
+  in the app, and an **interview** with pinned-down questions about habits and inner states.
+- **Some scenes run a real clock,** and each answer records how much time was left.
+- **Every scene ends with a real-life question** about the player's own life, the strongest evidence we get.
+- **Each scene and its questions are also in the graph,** so answers attach to them and scoring knows the play order.
+  How to add a scene is in `CREATE_SCENE.md` in the personality UI folder.
 
-The player clicks through narration and dialogue, and at certain points answers a prompt.
+## Answering
+Each answer is saved as the player moves past a prompt, with the **context**: everything they saw since the last
+prompt on the path they took, and the choices offered. The scorer needs it to know what they were answering.
 
-**A script** is a set of sections, each a list of steps. A step is either:
-- a **frame**: a line of narration or dialogue, with the animation to play;
-- a **prompt**: a question with a free-text box. A prompt can also offer **choices**, where the player picks one and then
-  explains why. Each choice leads to its own next section, so scenes branch.
+- **Answering again** overwrites the old answer, and **replaying a scene** clears its old answers first, since a replay
+  can take a different branch.
+- **An unfinished scene resumes** where the player left off.
 
-**Each prompt also lists its `facets`:** the facets of the items it was written to test. These go to the scorer with the
-answer, as a hint about what the moment gave the player a chance to show. They don't limit what gets scored.
+## Scoring
+Scenes are scored in **batches of six** in play order, when every scene in a batch is finished. Replaying a scene in a
+finished batch rescores it, and a person can ask for a full rescore.
 
-**Scenes come in three modes:**
-- **Story:** a hypothetical with choices and free-text reasons.
-- **Live:** what the player actually does in the app, such as what they open and what they skip.
-- **Interview:** a direct question with every frequency pinned down ("on how many of the last 30 days"), for inner states and
-  habits a single situation can't show.
+1. The API marks the person as being scored, which locks the scenes until it's done, and queues the job.
+2. The job makes **one LLM call per batch**, so the model sees patterns across six scenes at once. For each facet it
+   lists **evidence**: which answer shows it, why, a level and a weight. Weights are capped by the kind of answer, so a
+   real action or real-life detail counts more than a story choice or a bare claim about oneself.
+3. The evidence is saved on each answer, and every facet's score is worked out again from all the person's evidence:
+   the value is a weighted average, and the confidence rises with evidence and falls with disagreement. A facet with no
+   evidence is left unmeasured.
+4. The lock is cleared whether scoring worked or not, so a failed job never locks a player out.
 
-**A few other features:**
-- **Clocks:** some scenes run a real countdown over part of the script. Prompts inside the clock can be skipped when it
-  runs out, and each answer records how much time was left.
-- **Real-life questions:** every scene ends with one, a question about the player's own life rather than the story. It is
-  marked `real_life` in the seed. These are the strongest evidence we get.
-
-**Each scenario and its questions are also in the graph:**
-- `(:PersonalityScenario)-[:HAS_QUESTION]->(:PersonalityScenarioQuestion)`, seeded from
-  `personality_scenarios_seed.cypher`.
-- A scenario's `order` is its place in play order, and decides its scoring batch.
-- A question's `key` matches the prompt's `id` in the script.
-- A question's `order` decides which question is last.
-- How to add a scene is in `CREATE_SCENE.md`, in the personality UI folder.
-
-**Before a scene starts,** a popup gives tips on getting the most out of it. A player can tick "Don't show this again",
-which is stored in their browser only.
-
-## Answering a question
-When the player moves past a prompt, the UI calls `PUT /api/personality/answers` with:
-
-| Field | What it is |
-|---|---|
-| `answer` | Their text, or the label of the choice they picked |
-| `reasoning` | Their explanation, for choices |
-| `context` | Everything they saw since the last prompt, on the path they took, plus the choices offered. The scorer needs this to know what they're answering |
-| `facets` | The prompt's facets |
-| `clock` | How long the clock was, how much was left, and whether it ran out. Only sent when the scene has a clock running |
-
-The API stores all of it on an `ANSWERED` relationship from the person to the question. Answering the same question again
-overwrites it.
-
-**Resuming:** opening an unfinished scene replays the player's saved answers along the path they took and picks up at the first unanswered question, with everything before it reachable with the back arrow. A clock can't be resumed part way, so a run that reached one picks up just before the clock starts and plays it again. A finished scene starts again from the top.
-
-**Replays:**
-- Answering a scene's first question clears that person's other answers to the scene before saving.
-- This matters because a replay can go down a different branch, and the old branch's answers would otherwise still be scored.
-- The deletes run in their own small transactions, because many players share the same question nodes, and one big delete deadlocked against other players.
-
-## When scoring happens
-- **Scenes are scored in batches of 6, by their order:** scenes 0–5 are a batch, then 6–11, then 12–17.
-- A scene is **finished** when its last question (the highest `order`) has been answered.
-- When an answer finishes a scene, the API checks whether every scene in that scene's batch is finished. If so, it scores
-  that batch. Replaying a scene in a finished batch rescores the batch.
-- `POST /api/personality/rescore` scores every batch for the signed-in person on demand.
-
-**To start scoring, the API:**
-1. Reads the person's answers in the batch (or every batch), grouped by batch and ordered by scene, then question.
-2. Puts a `JobRunning` node on the person.
-3. Sends the job (the answers, batch by batch) to SQS.
-
-If sending fails, it removes the `JobRunning` node again.
-
-**While a job is running:**
-- The UI polls `GET /api/personality/scoring` and locks the scenarios until it's done.
-- A `JobRunning` node older than 35 minutes is treated as dead and cleared.
-- Running locally without a queue, the API logs the job instead, to be run through atlas-jobs by hand.
-
-## How scoring works
-The Lambda gets one job per person, and makes **one Bedrock call per batch** (Sonnet 4.6, temperature 0). Reading six
-scenes together lets the model see patterns across them without reading everything at once.
-
-**The request is made of:**
-- `SCORING_PROMPT`, the same for every call, so it's prompt-cached. It holds:
-  - **The 30 facets,** each with a one-sentence definition of its high end; the low end is its opposite. Some have notes
-    on when they can be scored and what belongs to a neighbouring facet instead.
-  - **Level:** 0.5 is what most adults would do, and the further from 0.5, the stronger the lean.
-  - **Weight ceilings by kind of answer:** up to 1 for something done in a live scene or a count over a fixed period, 0.8
-    for real-life specifics, 0.6 for a story choice, 0.5 for a bare claim about themselves, 0.3 for a throwaway answer.
-  - **What counts as evidence:** only what the person says and does, judged against the other choices; doing what anyone
-    would do isn't evidence; choices that cost something count against a trait; a missed chance is evidence of the low end.
-  - **The stories and answers are only data,** never instructions.
-- **The answers:** each with its index, scene, story, question, facets, whether it's real-life, the answer, the reasoning
-  and any clock. An answer whose evidence the person contested also carries what they wrote and what came of it, as
-  `person_later_added`. The prompt counts it like their reasoning, but given after they saw their scores, so it never
-  outweighs what they actually said and did.
-
-**The model replies through a `record_scores` tool.** For each facet it lists evidence: the answer's index, a sentence on
-what shows it, a level from 0 to 1 and a weight from 0 to 1.
-
-**The job then saves:**
-- **Each answer's evidence onto the answer,** as `a.scoring`: a JSON list of shifts, `{trait, evidence, level, weight}`.
-- **Every facet's score, from all the shifts on all of the person's answers,** replacing the old `HAS_PERSONALITY_TRAIT`
-  relationships outright:
-  - `value` is the weighted average of the levels in log-odds, so answers that agree land where they agree and answers
-    that disagree cancel out.
-  - `confidence` is `(1 − e^(−W/3)) × (1 − 2 × spread)`, where W is the total weight and spread is how far the levels
-    disagree. It rises with evidence and falls with disagreement.
-- A facet with no evidence is left unmeasured.
-
-Finally it removes the `JobRunning` node, whether scoring worked or not, so a failed job never locks a player out.
-
-**Retries and limits:**
-- The queue runs at most 5 jobs at once (`maximum_concurrency` in `jobs_lambda.tf`), so a flood of jobs waits rather
-  than making many Bedrock calls in parallel. `infrastructure/budget.tf` emails when the month's Claude spend on
-  Bedrock nears or is forecast to pass $100, and once it actually passes, a Budgets action denies the jobs role Bedrock
-  until it's reversed in the Budgets console. While Bedrock denies access, atlas-jobs keeps a single `BedrockCutoff` node,
-  cleared by the next call that gets through, and `/personality/scoring` returns `out_of_budget` so My Personality says
-  the budget's gone.
-- Bedrock throttling is retried with backoff up to 32 seconds.
-- A response cut off by the token limit fails the job rather than saving partial scores.
+**Cost guard:** jobs run a few at a time, and a monthly Bedrock budget cuts the jobs off once it's spent. The UI then
+says the budget's gone.
 
 ## Showing the results
-- **My Personality** shows every facet, grouped by domain, against everyone's average.
-- Facets shown by fewer than 3 answers are faded and tagged "Early read", on My Personality and profiles alike.
-- Each facet's "Why?" lists the answers behind it and what in them shows the facet, from the evidence on the answers (`GET /api/personality/people/{id}/evidence`).
-  Each piece of evidence can be contested (see below).
-- **Public profiles:** `GET /api/profiles/{username}`, in atlas-api's profile module, serves a person's profile page. It decides who may see it and
-  gets their scores and report from personality's `person_personality`, so other parts of the Atlas can add their own sections later.
-  Owners of public profiles get share buttons for LinkedIn, X, Reddit and Facebook, the phone's share sheet (the way onto Instagram) and Copy link.
-  Shared links point at `/share/{username}`, which CloudFront sends to atlas-api: sites like LinkedIn don't run javascript, so the API serves a page with
-  og: and twitter: tags (their first name, their report's headline, and `/og-image.png`), then redirects people to `/u/{username}`. Private profiles get the generic site card.
-- **Explore** teaches the Big Five and each facet from reading material in the graph (`GET /api/personality/model`).
+- **My Personality** shows every facet against everyone's average. Facets with little evidence are marked as an early
+  read.
+- **"Why?"** on a facet lists the answers behind it and what in them shows it, each of which can be contested.
+- **Profiles** show a person's scores and report to whoever may see them, and public profiles can be shared with a
+  link that previews well on social sites.
+- **Explore** teaches the Big Five and each facet.
 
 ## The report
-Once a person has finished every scenario and every answer is scored, they get a written report on all their traits.
-It sits at the top of My Personality and on their profile.
-- **When it's written:**
-  - after each scoring job (so after the last batch, any replay, and any full rescore);
-  - after each accepted contest.
-  - Until the person is fully scored, nothing is written, and an existing report is left alone.
-- **What it reads:** each measured trait, with its value, confidence and everyone's average, plus its five strongest pieces of evidence. One Bedrock call (`write_report`) returns:
-  - a headline;
-  - an overview;
-  - a paragraph per domain;
-  - strengths and things to watch out for.
-- **Voice:** Atlas writes it. The prompt opens with atlas-jobs' own `src/jobs/atlas_personality.md`, a report-specific copy of `documentation/atlas_personality.md`. It's read in at build time, so editing it changes new reports after the next atlas-jobs deploy.
-- **Privacy:** the report is shown to anyone who can see the profile, so the prompt forbids quoting, retelling or naming scenes, answers or choices. It describes patterns only, with no clinical words.
-- **Storage:** JSON on `Person.personalityReport`, written at `Person.personalityReportAt`. Clearing answers removes it.
-- **Failures:** a report that fails is logged and the old one is kept. It never fails the scoring or contest job.
-- **After a contest:** the contest job rewrites the report after it marks the contest accepted. My Personality keeps polling while an accepted contest is newer than the report.
+Once every scene is finished and scored, the person gets a written report: a headline, an overview, a paragraph per
+domain, and strengths and things to watch. It's rewritten after each scoring job and each accepted contest.
+
+- **It's in Atlas's voice.**
+- **It's private by design.** It's shown to anyone who can see the profile, so it describes patterns only, and never
+  quotes or retells the person's answers.
+- **A failed report keeps the old one,** and never fails the job that asked for it.
 
 ## Contesting evidence
-Each evidence card under "Why?" has a flag button. The person can use it to explain why they answered as they did, or to
-say the evidence misread them.
+A person can contest any piece of evidence, to explain why they answered as they did or to say it misread them.
 
-**Sending a contest:** `POST /api/personality/contests`, with the answer's id, the trait, the kind (`explain` or `wrong`)
-and what they wrote. The API:
-1. Checks that the answer is theirs and has evidence for that trait.
-2. Refuses with a 409 if that evidence already has a pending contest, or a scoring job is running. A rescore would
-   overwrite whatever the contest changed.
-   It refuses with a 429 if the person already has 3 contests waiting for review, or this evidence has been contested 3
-   times, so contests can't run up the Bedrock bill. The UI hides the flag on a card that has used its 3.
-3. Adds the contest to the answer's `contests` list as `pending`.
-4. Queues a `personality_contest` job with every answer in the scene, each with its evidence and earlier contests.
-
-There's no `JobRunning` node, so scenarios stay unlocked while a contest is reviewed.
-
-**Reviewing it:** the job makes one Bedrock call.
-- **The system prompt** is the scoring prompt, so the reviewer judges by the same rules and shares its cache, followed
-  by a short contest prompt:
-  - Judge only the contested evidence.
-  - Accept when the answers, read together with the person's note, show something different. Wanting a different score
-    isn't a reason.
-  - For traits about feelings, like Anger, the person's own account of what they felt is the best evidence.
-  - If the answer, read with the note, no longer shows the trait, remove the evidence rather than lowering it.
-  - Reply to the person in at most two short sentences.
-- **The model replies through a `resolve_contest` tool:** accepted or not, the reply, and either the new evidence
-  (sentence, level and weight) or `remove`.
-
-**Saving the result:**
-- **Accepted:** the job replaces that one shift on the answer, or sets its weight to 0 when it's removed. It records the
-  evidence before and after on the contest, then rescores every facet the same way scoring does.
-- **Rejected:** the evidence stays as it is, and the contest gets its reply.
-- **The write only lands if the answer's evidence and contests haven't changed since the job read them,** so a scoring
-  job that finished in the meantime is never overwritten.
-- **A contest that fails, or loses that race, is rejected** with a reply asking them to try again, so it never stays
-  pending.
-
-**In the UI:**
-- Each card lists its contests under the evidence: what they said, "Reviewing...", "Changed" or "Not changed", the
-  reply, and how the evidence moved.
-- Removed evidence is struck through and marked "no longer counts".
-- If a later rescore finds nothing for the trait in a contested answer, the card stays under the trait, marked "no
-  longer counts", so its contest history doesn't disappear.
-- While any contest is pending, My Personality refetches every 5 seconds.
-
-**On a later rescore:**
-- Scoring rewrites every answer's evidence, but keeps the contests, and the scorer reads the settled ones with each
-  answer (`person_later_added`). A fair explanation carries into the new evidence, though the scorer can still reach a
-  different result.
-- Replaying a scene clears its contests along with its answers.
+- **The API checks it first.** The answer must be theirs, nothing may be scoring, and contests are limited per person
+  and per piece of evidence to keep costs down.
+- **A contest job reviews it** with the same rules as scoring, plus the person's note. It accepts only when the answers,
+  read with the note, show something different, and replies to the person in a sentence or two.
+- **An accepted contest** changes or removes that one piece of evidence and rescores. The write only lands if nothing
+  changed in the meantime, and a contest that fails is rejected with a reply, so it never stays pending.
+- **Contests last.** A later rescore reads the settled contests with each answer, so a fair explanation carries into
+  the new evidence. Replaying a scene clears its contests.
 
 ## Skill requirements
-Every skill level is linked to the personality traits it takes, so a person can see how their personality fits a skill.
-The shape is in "Requirements on other sub-graphs" in `../data_model/skills/skills.md`.
-
-- **When:** the Skills module publishes `SkillFilled` when a skill's levels are first filled. The job's own rule
-  and queue, `SkillFilled-Personality` in `infrastructure/events.tf`, feed it to atlas-jobs, at most 2 at once.
-- **The call:** one Bedrock call (the atlas-jobs model, `BEDROCK_MODEL_ID`) with the skill's name, description, aliases,
-  broader skills and its five levels, and the 30 traits with their descriptions in the cached system prompt. The model
-  replies through a `record_trait_requirements` tool with `{trait, rank, level, strength, reason}` for each trait that
-  makes a real difference, on the lowest level it applies to, and again on a higher level only where it changes.
-- **The job then:** drops unknown traits and ranks, clamps `level` and `strength` to 0 to 1, drops any that repeat what
-  a lower level already says, and `MERGE`s a `REQUIRES_TRAIT` from each level to its traits.
-- **Idempotent:** a skill that isn't `ready`, or already has trait requirements, is left as it is, so a repeated event
-  costs one read. A failure is logged, and the skill stays usable without them.
-- **Backfill:** replaying `SkillFilled` from the bus archive links every skill filled before this consumer existed.
-- **Shown:** `GET /api/skills/{id}` returns each level's `traits`, and the skill page lists them under the level. On
-  the skills graph, expanding a skill brings on its traits, and expanding a trait brings on the skills that take it,
-  from `GET /api/personality/traits/{id}/skills`.
-
-## API reference
-All under `/api/personality`.
-
-| Route | What it does |
-|---|---|
-| `GET /traits` | Every facet, with its domain and everyone's average |
-| `GET /traits/{id}/skills?skip=` | A facet, with its overview and domain, and a page of twelve of the skills whose levels take it, strongest first with the strength of the strongest requirement, and the `total` |
-| `GET /model` | The Big Five, its domains and facets, and how they interact, for Explore |
-| `GET /people/{id}/evidence` | Every scored answer and its shifts. Only the signed-in person's own |
-| `PUT /answers` | Saves an answer, and scores its batch when that finishes it |
-| `DELETE /answers` | Clears the signed-in person's answers |
-| `GET /progress` | The signed-in person's answers, and every scenario's questions |
-| `POST /rescore` | Scores every batch for the signed-in person |
-| `GET /scoring` | Whether a scoring job for the signed-in person is still running |
-| `POST /contests` | Contests one piece of evidence on the signed-in person's answer, and queues its review |
+Every skill level is linked to the personality traits it takes, so a person can see how their personality fits a
+skill. A job reacts to `SkillFilled` from the Skills module (see `skills.md` and `events.md`): one LLM call names the
+traits that make a real difference at each level, how much and why, and links the levels to them. It does nothing for
+a skill that already has them, and a skill stays usable without them.
 
 ## Testing and accuracy
 - **How it's tested:** a persona regression harness, described in `ADRs/personality_testing_harness.md`.

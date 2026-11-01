@@ -97,7 +97,7 @@ The Skills Explorer shows the split:
   glides to it.
 
 The Topics Explorer does the same with its own data: Ideas are pale diamonds and the skills that need a topic are
-warm blobs, both visitors, with six kinds of link of its own (see "Exploring" in `../topics.md`).
+warm blobs, both visitors, with six kinds of link of its own (see "What the user sees" in `../topics.md`).
 
 ## Evidence
 We rendered the boards with sample data in the development build, in headless Chrome:
