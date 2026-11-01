@@ -222,7 +222,7 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
               <li>Click a topic to read about it here, or search for one.</li>
               <li>Double-click a topic to see just it, its Ideas, the topics around it, and the skills that need it. Drag any of them where you want them.</li>
               <li>Double-click anything there to add what it links to. An Idea (the pale diamonds) brings what it needs first, what builds on it, and the other topics it's in. Skills that need a topic are the pale red ones, and open in Skills.</li>
-              <li>Back undoes the last step, or press Ctrl+Z. Hide takes back what one topic or Idea brought in, and Back to the map leaves the close-up.</li>
+              <li>Back undoes the last step, or press Ctrl+Z. Hide takes back what one topic or Idea brought in, and Back to the atlas leaves the close-up.</li>
               <li>Once something's expanded, the buttons along the bottom show and hide each kind of link on the board.</li>
             </ul>
           </>

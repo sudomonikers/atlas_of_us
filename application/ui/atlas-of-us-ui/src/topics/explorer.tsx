@@ -60,7 +60,7 @@ export default function Explorer({ opened, board, onBoard }: ExplorerProps) {
     <>
       <nav style={styles.trail} aria-label="Topics and Ideas you've opened">
         <button className="comic-lift" style={styles.crumb} onClick={() => navigate('/topics')}>
-          The map
+          The atlas
         </button>
         {shown.map((placed) => (
           <span key={idOf(placed)} style={styles.step}>

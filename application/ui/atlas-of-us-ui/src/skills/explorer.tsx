@@ -44,7 +44,7 @@ export default function Explorer({ skillId, board, onBoard }: ExplorerProps) {
     <>
       <nav style={styles.trail} aria-label="Skills you've opened">
         <button className="comic-lift" style={styles.crumb} onClick={() => navigate('/skills')}>
-          The map
+          The atlas
         </button>
         {shown.map((skill) => (
           <span key={skill.id} style={styles.step}>

@@ -59,7 +59,7 @@ The board is one canvas, so thousands of nodes stay smooth.
 | `hierarchy` | The kind the map's own broader links are drawn as |
 | `layout` | A `BoardLayout`: the view and where the visitors are. The owner keeps it, so the board comes back as it was left |
 | `selected`, `focus`, `opened` | The selected node, a node to glide to (once for each new focus, even one passed before the board has a size), and the expanded nodes, marked with a dot |
-| `onSelect`, `onExpand`, `onClear` | Called on a tap, a double tap (or Shift+Enter) and the Clear button, which reads "Back to the map" in a close-up |
+| `onSelect`, `onExpand`, `onClear` | Called on a tap, a double tap (or Shift+Enter) and the Clear button, which reads "Back to the atlas" in a close-up |
 | `onBack` | Goes back a step, from the Back button or Ctrl+Z (Cmd+Z), when the owner has a step to go back to |
 | `describe` | A node's name for screen readers |
 | `preview` | A smaller board with no legend or Clear, whose taps the owner turns into somewhere to go |

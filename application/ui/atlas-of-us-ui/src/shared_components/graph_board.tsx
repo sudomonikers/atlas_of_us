@@ -115,6 +115,7 @@ interface GraphBoardProps {
   onBack?: () => void; //goes back a step, when there's one to go back to
   preview?: boolean; //a smaller board with no legend or tools, whose taps the owner turns into somewhere to go
   children?: ReactNode; //sits over the board's top left corner, such as a search box
+  title?: ReactNode; //sits over the board's top right corner, such as the selected node's name
 }
 
 //one board for a whole module's nodes. Zoomed out it's a map of every node at once, a flower for each broadest node
@@ -143,6 +144,7 @@ export function GraphBoard(props: GraphBoardProps) {
     onBack,
     preview,
     children,
+    title,
   } = props;
   const { seeds, fields } = useMemo(() => bloom(items), [items]);
   const seedOf = useMemo(() => new Map(seeds.map((s) => [s.id, s])), [seeds]);
@@ -1187,7 +1189,12 @@ export function GraphBoard(props: GraphBoardProps) {
         </ul>
       </div>
 
-      {children && <div style={styles.corner}>{children}</div>}
+      {(children || title) && (
+        <div style={styles.top}>
+          {children && <div style={styles.corner}>{children}</div>}
+          {title && <div style={styles.title}>{title}</div>}
+        </div>
+      )}
       {preview && (
         <p style={styles.count}>
           {items.length.toLocaleString()} {noun} in {fieldCount} fields
@@ -1266,7 +1273,7 @@ export function GraphBoard(props: GraphBoardProps) {
               onClick={onClear}
               disabled={!links.length && !visitors.length && !selected}
             >
-              {closeUp ? "Back to the map" : "Clear"}
+              {closeUp ? "Back to the atlas" : "Clear"}
             </button>
           )}
         </div>
@@ -1293,7 +1300,7 @@ export function MapWaiting({
       {error ? (
         <AtlasError message={error} />
       ) : (
-        <Thinking label="Drawing the map" />
+        <Thinking label="Drawing the atlas" />
       )}
     </div>
   );
@@ -1322,13 +1329,28 @@ const styles: Record<string, CSSProperties> = {
     touchAction: "none",
     userSelect: "none",
   },
-  //above the board, so search results drop down over it
-  corner: {
+  //above the board, so search results drop down over it. The title wraps under the corner where there's no room beside it
+  top: {
     position: "absolute",
     top: 12,
     left: 12,
+    right: 12,
     zIndex: 1,
-    width: "min(380px, calc(100% - 24px))",
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+    pointerEvents: "none",
+  },
+  corner: {
+    width: "min(380px, 100%)",
+    pointerEvents: "auto",
+  },
+  title: {
+    marginLeft: "auto",
+    maxWidth: "100%",
+    pointerEvents: "auto",
   },
   count: {
     position: "absolute",

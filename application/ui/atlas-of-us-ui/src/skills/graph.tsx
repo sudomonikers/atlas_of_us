@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type S
 import { getSkillMap, type GroupName, type PagedGroup, type SkillStatus, type SkillSummary } from './api';
 import { useMap } from '../shared_components/use_map';
 import { AskForSkill, PLACEHOLDER } from './search';
-import { SkillPage } from './skill_page';
+import { Ladder, SkillPage, type LevelNeeds } from './skill_page';
 import { emptyBoard, expandSkill, expandTopic, expandTrait, hide as hideNode, moreKnowers, moreOf, moreTakers, place, readThen, readTopicThen, readTraitThen, type BoardSkill, type BoardTopic, type BoardTrait, type SkillBoard } from './skill_board';
 import { useSkillSearch, type SearchState } from './use_skill_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import { SearchField } from '../shared_components/search_field';
 import type { BoardNode } from '../shared_components/board_layout';
-import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
+import { GraphBoard, MapWaiting, type BoardLink, type LinkKind } from '../shared_components/graph_board';
 import { navigate } from '../router';
 import { Dots, Thinking } from '../shared_components/thinking';
 
@@ -66,13 +66,18 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
   const searchError = useSkillSearch(search, setSearch);
   const [busy, setBusy] = useState<string>(); //the skill, trait or topic being expanded, or `<id>:<group>` while more of a group is read
   const [error, setError] = useState<string>();
+  const [rank, setRank] = useState(1); //the level picked, kept from one selected skill to the next
+  const [level, setLevel] = useState<LevelNeeds>(); //what that level needs, once the skill's page has read its levels
+
+  //every skill is drawn the same, whether its levels are written or not
+  const items = useMemo(() => map.items.map((item) => ({ ...item, filled: false })), [map.items]);
 
   //what floats beside the map: skills that aren't on it, the traits skills take and the topics they need
   const visitors = useMemo<BoardNode[]>(
     () => [
       ...Object.values(board.skills)
         .filter(({ skill }) => !map.byId.has(skill.id))
-        .map(({ skill, from }): BoardNode => ({ id: skill.id, label: skill.name, look: skill.status === 'ready' ? 'filled' : 'hollow', from })),
+        .map(({ skill, from }): BoardNode => ({ id: skill.id, label: skill.name, look: 'hollow', from })),
       ...Object.values(board.traits).map(({ trait, from }): BoardNode => ({ id: trait.id, label: trait.name, look: 'pale', shape: 'diamond', from })),
       ...Object.values(board.topics).map(({ topic, from }): BoardNode => ({ id: topic.id, label: topic.name, look: 'warm', from })),
     ],
@@ -82,6 +87,15 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
     () => new Set([...Object.values(board.skills), ...Object.values(board.traits), ...Object.values(board.topics)].filter((on) => on.expanded).map((on) => ('skill' in on ? on.skill.id : 'trait' in on ? on.trait.id : on.topic.id))),
     [board.skills, board.traits, board.topics],
   );
+
+  //the selected skill's links to the skills, traits and topics it needs are only the ones its picked level needs
+  const links = useMemo(() => {
+    if (!level || level.id !== board.selected) return board.links;
+    const needed = (l: BoardLink) =>
+      l.from !== level.id ||
+      (l.kind === 'needs' ? level.skills.has(l.to) : l.kind === 'knows' ? level.topics.has(l.to) : l.kind === 'takes' ? level.traits.has(board.traits[l.to]?.trait.name) : true);
+    return board.links.filter(needed);
+  }, [board.links, board.traits, board.selected, level]);
 
   //a skill on the map gets a place on the board's records the first time it's selected
   const known = (b: SkillBoard, id: string): SkillBoard => {
@@ -131,6 +145,8 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
 
   const hide = (id: string) => onBoard((b) => ({ ...hideNode(b, id, (other) => map.byId.has(other)), back: b }));
 
+  const ladder = level && level.id === board.selected ? level : undefined; //a ready skill is selected
+
   const results = search.query.trim() ? search.results?.slice(0, RESULTS) : undefined;
   const chosen = board.selected ? board.skills[board.selected] : undefined;
   const chosenTrait = board.selected ? board.traits[board.selected] : undefined;
@@ -143,9 +159,9 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
           <GraphBoard
             label="Every skill, and how the ones you've expanded link"
             noun="skills"
-            items={map.items}
+            items={items}
             visitors={visitors}
-            links={board.links}
+            links={links}
             kinds={KINDS}
             hierarchy="kind_of"
             layout={board.layout}
@@ -163,6 +179,17 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
             onExpand={grow}
             onClear={() => onBoard((b) => ({ ...emptyBoard(), layout: b.layout, back: b }))}
             onBack={board.back && !busy ? () => onBoard((b) => b.back ?? b) : undefined}
+            title={
+              chosen && (
+                <div style={styles.title}>
+                  <h2 style={styles.titleName}>{chosen.skill.name}</h2>
+                  {chosen.neighbors?.skill.description && <p style={styles.titleText}>{chosen.neighbors.skill.description}</p>}
+                  <div style={styles.titleActions}>
+                    <SkillActions on={chosen} busy={busy} onExpand={grow} onMore={more} onHide={hide} />
+                  </div>
+                </div>
+              )
+            }
           >
           <SearchField id="graph-search" query={search.query} onQuery={(query) => setSearch({ query })} placeholder={PLACEHOLDER} compact />
           {results && (
@@ -186,6 +213,11 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
             </div>
           )}
           {searchError && <AtlasError message={searchError} />}
+          {ladder && (
+            <div style={styles.ladder}>
+              <Ladder rank={rank} mine={ladder.mine} onRank={setRank} compact />
+            </div>
+          )}
           {busy && (
             <div style={styles.working}>
               <Thinking label="Bringing them onto the board" />
@@ -205,8 +237,10 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
             key={chosen.skill.id}
             id={chosen.skill.id}
             askToFill
+            bare
+            rank={rank}
+            onLevel={setLevel}
             onOpen={(skill) => onBoard((b) => place(b, skill))}
-            actions={<SkillActions on={chosen} busy={busy} onExpand={grow} onMore={more} onHide={hide} />}
           />
         </>
       ) : (
@@ -219,12 +253,12 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
           <>
             <h3 style={styles.heading}>How the board works</h3>
             <ul style={styles.tips}>
-              <li style={styles.tip}>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it. Paler dots and dashed outlines are skills whose levels aren't written yet.</li>
+              <li style={styles.tip}>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it.</li>
               <li style={styles.tip}>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
               <li style={styles.tip}>Click a skill to read all about it under the board, or search for one.</li>
               <li style={styles.tip}>Double-click one to see just it and everything it links to: skills, the personality traits it takes, and the topics it needs. Drag any of them where you want them.</li>
               <li style={styles.tip}>Double-click anything there to add what it links to. A trait (the pale diamonds) brings the skills that take it, and a topic (the pale red ones) the skills that need it.</li>
-              <li style={styles.tip}>Back undoes the last step, or press Ctrl+Z. Hide takes back what one skill brought in, and Back to the map leaves the close-up.</li>
+              <li style={styles.tip}>Back undoes the last step, or press Ctrl+Z. Hide takes back what one skill brought in, and Back to the atlas leaves the close-up.</li>
               <li style={styles.tip}>Once something's expanded, the buttons along the bottom show and hide each kind of link on the board.</li>
             </ul>
           </>
@@ -236,7 +270,7 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
   );
 }
 
-//what can be done with the selected skill on the board, beside its name on its page: expand it, take back what it brought
+//what can be done with the selected skill, under its name on the board: expand it, take back what it brought
 //on, and once it's expanded, bring on the next page of a way it links that has more skills than the board shows
 function SkillActions({ on, busy, onExpand, onMore, onHide }: {
   on: BoardSkill;
@@ -366,6 +400,44 @@ const styles: Record<string, CSSProperties> = {
   //asking for a skill that isn't in the results, at the bottom of them
   asking: {
     padding: '4px 4px 2px',
+  },
+  //the selected skill's name, description and what can be done with it, right over the board's top right corner, with a
+  //glow the board's colour so the links under it don't muddle it
+  title: {
+    maxWidth: 360,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 6,
+    textAlign: 'right',
+    textShadow: '0 0 4px #fff, 0 0 8px #fff, 0 0 12px #fff',
+  },
+  titleText: {
+    margin: 0,
+    fontSize: 16,
+    lineHeight: 1.4,
+  },
+  titleActions: {
+    marginTop: 4,
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 8,
+    textShadow: 'none',
+  },
+  titleName: {
+    margin: 0,
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 28,
+    letterSpacing: 1,
+    lineHeight: 1.1,
+    color: brownRed,
+    overflowWrap: 'anywhere',
+  },
+  //the selected skill's level picker, under the board's search box
+  ladder: {
+    marginTop: 8,
   },
   //what's being fetched, under the board's search box
   working: {

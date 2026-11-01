@@ -1,18 +1,16 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { LEVEL_NAMES, getNeighborPage, getAchievement, getNeighbors, getSkill, requestFill, type Achievement, type GroupName, type Level, type Neighbors, type PagedGroup, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
-import { AchievementCard } from './achievement_card';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { LEVEL_NAMES, getAchievement, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AchievementWalkthrough } from './achievement_walkthrough';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
-import { Dots, Thinking } from '../shared_components/thinking';
+import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
 const cinnamon = 'var(--cinnamon-wood)';
 const brownRed = 'var(--brown-red)';
 const gunmetal = 'var(--gunmetal-black)';
-const paleBlue = 'var(--pale-blue)';
 const paleCinnamon = 'var(--pale-cinnamon)';
 const paleRed = 'var(--pale-red)';
 const ivory = 'var(--ivory-white)';
@@ -30,17 +28,28 @@ interface SkillPageProps {
   onLoaded?: (skill: SkillRef) => void;
   onOpen: (skill: SkillRef) => void;
   onShowInGraph?: (skill: SkillRef) => void;
-  actions?: ReactNode; //what can be done with it where it's shown, beside its name
   askToFill?: boolean; //a stub waits for someone to ask for its levels, rather than having them written on opening
+  bare?: boolean; //its name and description are shown somewhere else, such as on the board, so the page leaves out its header
+  rank?: number; //the level to read, when it's picked somewhere else, such as on the board; otherwise the page has its own picker
+  onLevel?: (level: LevelNeeds) => void; //told what the picked level needs, each time a level is picked
+}
+
+//what a ready skill's picked level needs, its own and carried up from the levels below it
+export interface LevelNeeds {
+  id: string; //the skill
+  mine: number | null; //the level the user is at
+  skills: Set<string>; //ids
+  topics: Set<string>; //ids
+  traits: Set<string>; //names
 }
 
 //one skill: its five levels, and every skill linked to it to hop to next. A stub is filled the first time it's opened,
 //or when asked for, and the page waits on it. Keyed by the skill's id, so each skill starts fresh
-export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToFill }: SkillPageProps) {
+export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare, rank: picked, onLevel }: SkillPageProps) {
   const [skill, setSkill] = useState<Skill>();
-  const [neighbors, setNeighbors] = useState<Neighbors>();
   const [error, setError] = useState<string>();
-  const [rank, setRank] = useState(1); //the level being read
+  const [own, setRank] = useState(1); //the level being read, when it's picked here
+  const rank = picked ?? own;
   const [achievement, setAchievement] = useState<Achievement>(); //where the user is with it, once it's ready
   const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
 
@@ -59,13 +68,12 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
       },
       (e) => live && setError(e instanceof Error ? e.message : String(e)),
     ).catch((e) => live && setError(e instanceof Error ? e.message : String(e)));
-    getNeighbors(id).then((n) => live && setNeighbors(n), () => {}); //the levels are still worth showing without them
     return () => {
       live = false;
     };
   }, [id, onLoaded, askToFill]);
 
-  //checks on a filling skill until it's ready or has failed, then fetches what's around it again
+  //checks on a filling skill until it's ready or has failed
   const status = skill?.status;
   useEffect(() => {
     if (status !== 'filling') return;
@@ -74,7 +82,6 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
         getSkill(id).then((loaded) => {
           if (loaded.status === 'filling') return;
           setSkill(loaded);
-          getNeighbors(id).then(setNeighbors, () => {});
         }, () => {}), //a failed check just waits for the next one
       FILL_POLL_MS,
     );
@@ -91,6 +98,20 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
     };
   }, [id, status]);
 
+  useEffect(() => {
+    if (!onLevel || skill?.status !== 'ready') return;
+    const { levels } = skill;
+    const ids = <T extends { strength: number }>(written: (level: Level) => T[], key: (requirement: T) => string) =>
+      new Set(carriedUp(levels, rank, written, key).map(({ requirement }) => key(requirement)));
+    onLevel({
+      id: skill.id,
+      mine: achievement?.rank ?? null,
+      skills: ids((level) => level.skills, (r) => r.id),
+      topics: ids((level) => level.topics, (r) => r.id),
+      traits: ids((level) => level.traits, (r) => r.name),
+    });
+  }, [skill, rank, achievement, onLevel]);
+
   const retry = () =>
     requestFill(id).then(
       ({ status }) => setSkill((s) => s && { ...s, status }),
@@ -102,6 +123,15 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
 
   return (
     <article style={styles.column}>
+      {bare ? (
+        achievement?.rank === null && (
+          <div style={styles.bareButtons}>
+            <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
+              Add yourself
+            </button>
+          </div>
+        )
+      ) : (
       <header style={styles.header} className="comic-panel comic-pop">
         <div style={styles.nameRow}>
           <h2 style={styles.name}>{skill.name}</h2>
@@ -111,10 +141,9 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
                 Add yourself
               </button>
             )}
-            {actions}
             {onShowInGraph && (
               <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
-                See it on the map
+                See it on the atlas
               </button>
             )}
           </div>
@@ -122,16 +151,14 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
         {skill.description && <p style={styles.description}>{skill.description}</p>}
         {skill.aliases.length > 0 && <p style={styles.aliases}>Also known as {skill.aliases.join(', ')}</p>}
       </header>
+      )}
 
       {skill.status === 'ready' && (
         <>
-          {achievement && achievement.rank !== null && (
-            <AchievementCard skill={skill} rank={achievement.rank} achievement={achievement} onChange={setAchievement} onWalk={() => setWalking(true)} />
-          )}
           {achievement && walking && (
             <AchievementWalkthrough skill={skill} achievement={achievement} onChange={setAchievement} onClose={() => setWalking(false)} />
           )}
-          <Levels levels={skill.levels} rank={rank} mine={achievement?.rank ?? null} onRank={setRank} onOpen={onOpen} />
+          <Levels levels={skill.levels} rank={rank} mine={achievement?.rank ?? null} onRank={picked === undefined ? setRank : undefined} onOpen={onOpen} />
         </>
       )}
       {skill.status === 'stub' && askToFill && (
@@ -165,39 +192,53 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, actions, askToF
         </div>
       )}
 
-      {neighbors && <Connections name={skill.name} neighbors={neighbors} onNeighbors={setNeighbors} onOpen={onOpen} />}
     </article>
   );
 }
 
-//the level picker, as a ladder, and what the picked level says
+//the level picker, as rising steps. Compact, each step is just its number, with the picked level's name after them
+export function Ladder({ rank, mine, onRank, compact }: {
+  rank: number;
+  mine: number | null; //the level the user is at, marked on its rung
+  onRank: (rank: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div style={styles.ladder} role="tablist" aria-label="Levels">
+      {LEVEL_NAMES.map((name, i) => (
+        <button
+          key={name}
+          role="tab"
+          aria-selected={rank === i + 1}
+          aria-label={compact ? name : undefined}
+          title={compact ? name : undefined}
+          className="comic-lift"
+          style={{ ...styles.rung, ...(compact ? styles.rungCompact : {}), ...(rank === i + 1 ? styles.rungActive : {}) }}
+          onClick={() => onRank(i + 1)}
+        >
+          <span style={styles.rungNumber}>{i + 1}</span>
+          {!compact && name}
+          {mine === i + 1 && <span className="comic-chip" style={styles.you}>You</span>}
+        </button>
+      ))}
+      {compact && <span style={styles.rungName}>{LEVEL_NAMES[rank - 1]}</span>}
+    </div>
+  );
+}
+
+//the level picker, unless the level is picked somewhere else, and what the picked level says
 function Levels({ levels, rank, mine, onRank, onOpen }: {
   levels: Level[];
   rank: number;
   mine: number | null; //the level the user is at, marked on its rung
-  onRank: (rank: number) => void;
+  onRank?: (rank: number) => void;
   onOpen: (skill: SkillRef) => void;
 }) {
   const level = levels.find((l) => l.rank === rank);
   const next = LEVEL_NAMES[rank]; //missing on Expert
   return (
     <section style={styles.levels}>
-      <div style={styles.ladder} role="tablist" aria-label="Levels">
-        {LEVEL_NAMES.map((name, i) => (
-          <button
-            key={name}
-            role="tab"
-            aria-selected={rank === i + 1}
-            className="comic-lift"
-            style={{ ...styles.rung, ...(rank === i + 1 ? styles.rungActive : {}) }}
-            onClick={() => onRank(i + 1)}
-          >
-            <span style={styles.rungNumber}>{i + 1}</span>
-            {name}
-            {mine === i + 1 && <span className="comic-chip" style={styles.you}>You</span>}
-          </button>
-        ))}
-      </div>
+      {onRank && <Ladder rank={rank} mine={mine} onRank={onRank} />}
 
       {level && (
         <div key={rank} role="tabpanel" style={styles.level} className="comic-panel comic-pop">
@@ -340,66 +381,6 @@ function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
   );
 }
 
-//the skills linked to this one, grouped by how, a page at a time. Each opens that skill
-function Connections({ name, neighbors, onNeighbors, onOpen }: {
-  name: string;
-  neighbors: Neighbors;
-  onNeighbors: (update: (n?: Neighbors) => Neighbors | undefined) => void;
-  onOpen: (skill: SkillRef) => void;
-}) {
-  const [reading, setReading] = useState<PagedGroup>(); //the group whose next page is being read
-  const groups: { group: GroupName; title: string; note: string; fill: string }[] = [
-    { group: 'broader', title: 'A kind of', note: `${name} is a more specific form of these`, fill: paleBlue },
-    { group: 'narrower', title: 'Kinds of it', note: `More specific forms of ${name}`, fill: paleBlue },
-    { group: 'needs', title: 'Needs', note: `Getting good at ${name} takes these`, fill: paleCinnamon },
-    { group: 'leads_to', title: 'Leads to', note: `${name} helps you get good at these`, fill: paleCinnamon },
-    { group: 'similar', title: 'Similar', note: `Close to ${name} in what they're about`, fill: paleRed },
-  ];
-  const shown = groups.filter(({ group }) => neighbors[group].total > 0);
-  if (shown.length === 0) return null;
-
-  const more = (group: PagedGroup) => {
-    setReading(group);
-    getNeighborPage(neighbors.skill.id, group, neighbors[group].skills.length)
-      .then(
-        (page) => onNeighbors((n) => n && { ...n, [group]: { skills: [...n[group].skills, ...page.skills], total: page.total } }),
-        () => {}, //the button stays, to try again
-      )
-      .finally(() => setReading(undefined));
-  };
-
-  return (
-    <section style={styles.connections}>
-      <h3 style={styles.connectionsHeading}>Where to next</h3>
-      <div style={styles.groups}>
-        {shown.map(({ group, title, note, fill }) => {
-          const { skills, total } = neighbors[group];
-          return (
-            <div key={group} style={{ ...styles.group, '--panel-fill': fill } as CSSProperties} className="comic-panel">
-              <h4 style={styles.groupTitle}>{title}</h4>
-              <p style={styles.groupNote}>{note}</p>
-              <ul style={styles.chips}>
-                {skills.map((linked) => (
-                  <li key={linked.id}>
-                    <button className="comic-lift" style={styles.link} onClick={() => onOpen(linked)}>
-                      {linked.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {group !== 'similar' && skills.length < total && (
-                <button className="comic-lift" style={styles.moreLinks} disabled={reading === group} onClick={() => more(group)}>
-                  {reading === group ? <>Reading<Dots /></> : `Show more (${total - skills.length} left)`}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 const styles: Record<string, CSSProperties> = {
   column: {
     maxWidth: 1100,
@@ -423,6 +404,11 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '8px 16px',
+  },
+  //"Add yourself", on its own over the levels when the header is shown somewhere else
+  bareButtons: {
+    marginBottom: 18,
+    display: 'flex',
   },
   headerButtons: {
     display: 'flex',
@@ -517,6 +503,18 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 19,
     letterSpacing: 1,
+  },
+  rungCompact: {
+    gap: 4,
+    padding: 3,
+  },
+  //the picked level's name, after a compact ladder
+  rungName: {
+    alignSelf: 'center',
+    fontFamily: comic,
+    fontSize: 19,
+    letterSpacing: 1,
+    color: brownRed,
   },
   rungActive: {
     background: brownRed,
@@ -621,64 +619,6 @@ const styles: Record<string, CSSProperties> = {
   next: {
     paddingTop: 14,
     borderTop: `3px dashed ${gunmetal}`,
-  },
-  connections: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14,
-  },
-  connectionsHeading: {
-    margin: 0,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 34,
-    letterSpacing: 1,
-    color: gunmetal,
-  },
-  groups: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
-    gap: 22,
-  },
-  group: {
-    padding: '16px 20px',
-    boxSizing: 'border-box',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    background: '#fff',
-    borderRadius: 'var(--wobbly)',
-  },
-  groupTitle: {
-    margin: 0,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 24,
-    letterSpacing: 1,
-    color: brownRed,
-  },
-  groupNote: {
-    margin: 0,
-    fontSize: 15,
-  },
-  chips: {
-    margin: '6px 0 0',
-    padding: 0,
-    listStyle: 'none',
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  moreLinks: {
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    padding: '1px 12px',
-    background: 'transparent',
-    color: gunmetal,
-    border: `2px dashed ${gunmetal}`,
-    borderRadius: corners,
-    font: 'inherit',
-    fontSize: 15,
   },
   link: {
     padding: '3px 12px',

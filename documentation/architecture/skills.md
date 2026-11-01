@@ -160,17 +160,20 @@ The Skills Explorer is one board of every skill (`SkillGraph` in `src/skills/gra
 in `src/shared_components/graph_board.tsx`, which knows nothing about skills; see `ADRs/graph_board.md`). `GET /map`
 gives every skill with the ids of its broader skills, fetched once a visit (`useMap` in `src/shared_components/use_map.ts`).
 
-- **Zoomed out** it's a map: a flower for each broadest skill, its field, with every skill under it as a dot, filled
-  when ready and paler for a stub. The field's name sits over its flower, and clicking the name zooms to it.
-- **Zoomed in**, the dots become skills with their names and "A kind of" lines to their broader skills. Ready skills are
-  filled in the field's colour, and stubs have a dashed outline.
+- **Zoomed out** it's a map: a flower for each broadest skill, its field, with every skill under it as a pale dot, drawn
+  the same whether its levels are written or not. The field's name sits over its flower, and clicking the name zooms to it.
+- **Zoomed in**, the dots become skills with their names and "A kind of" lines to their broader skills. Every skill is drawn
+  the same, an ivory node with a dashed outline.
 - **Searching** in the board's corner shows the closest skills with the broader skills they're a kind of, so someone
   searching "pastry lamination" can see "Baking" too, and picking one glides to it and selects it. When nothing fits,
   the user can ask for it there (see "Asking for a skill we don't have"), and a new skill joins the map straight away.
 - **Selecting** a skill reads it with `GET /{id}/neighbors`, which never fills it, and shows its page under the board
-  (see "Opening a skill"), with Expand, Hide and, once it's expanded, "More" for each way it links that has more skills
-  than the board shows, beside its name. There a stub isn't filled until someone presses "Write its levels". A skill
-  the page links to is selected on the board. Selecting a trait or a topic shows its description and how many skills
+  (see "Opening a skill"). Its name and description sit over the board's top right corner, with Expand, Hide
+  and, once it's expanded, "More" for each way it links that has more skills than the board shows. There a stub isn't filled until someone presses "Write its levels". A skill
+  the page links to is selected on the board. A ready skill's level picker sits on the board, under the search box,
+  and the page under the board reads the level picked there. The picked level stays as other skills are selected. That level decides which of the selected skill's
+  "Skills needed", "Traits needed" and "Knowledge needed" links the board draws: only what that level needs, its own
+  and carried up from the levels below it. Selecting a trait or a topic shows its description and how many skills
   take or need it in a panel under the board.
 - **Expanding** a skill, by double-clicking it, turns the board into a close-up of the skill and every skill linked to
   it, every personality trait it takes and every topic it needs, laid out around it; traits are pale blue diamonds and
@@ -179,7 +182,7 @@ gives every skill with the ids of its broader skills, fetched once a visit (`use
   on the skills that take it, strongest first, read with `GET /api/personality/traits/{id}/skills`, and expanding a
   topic brings on the skills that need it, read with `GET /api/topics/{id}/neighbors`; a topic opens in Topics. A kind
   of link with more than the first page can bring on the next. Hide takes back what a node brought on, Back undoes the last
-  expand, hide or clear (Ctrl+Z too), and Back to the map leaves the close-up.
+  expand, hide or clear (Ctrl+Z too), and Back to the atlas leaves the close-up.
 
 The board draws five kinds of link. The legend has a button for each kind with links on the board, which turns it on
 and off. Turning a kind off also hides the floating traits and topics whose links are all of kinds that are off, other
@@ -199,15 +202,16 @@ either ranks high and one in both ranks higher. It shows the ten closest skills 
 of, so someone searching "pastry lamination" can see "Baking" too. When the search can't be embedded, it searches by name
 alone.
 
-"See it on the map" on a skill's page goes back to the board selected on the skill. The Skills page keeps the
+"See it on the atlas" on a skill's page goes back to the board selected on the skill. The Skills page keeps the
 Explorer's board, so it's still there after a look at a skill or at My Skills.
 
 ### Opening a skill
-A skill opens under the board when it's selected, and on its own at `/skills/<id>`, with its five levels and, under them, the skills linked to it: the skills it's a kind
-of, the kinds of it, what it needs, what it leads to, and similar skills, twelve of each at a time. Each one opens in
-turn, and the skills hopped through stay as a trail above the page.
+A skill opens under the board when it's selected, and on its own at `/skills/<id>`, with its five levels. The skills
+linked to it are on the board, by expanding it. On its own page, the skills its levels take open in turn, and the
+skills hopped through stay as a trail above the page.
 
-- **A `ready` skill** opens straight to its levels, with "Add yourself" beside its name (see "Placing yourself on a
+- **A `ready` skill** opens straight to its levels, with "Add yourself" beside its name (under the board, its name
+  and description are on the board, and "Add yourself" sits over its levels) (see "Placing yourself on a
   skill"). Each level shows the skills it takes, the knowledge it takes and the personality it takes: every
   requirement from that level and the ones below it, strongest first, with how much it matters and why, and the level a carried-up one comes
   from. Each skill it takes names the level of it needed, opens that skill, and is marked when it isn't filled in yet.
@@ -222,8 +226,7 @@ description and signs. "I'm past this" climbs to the next level, "Back" steps do
 they reached that level, which they can skip, then saves it as their one `ACHIEVED` to the skill, with the level's
 `version`. They can then back it up with up to five pieces of evidence, notes or files, the same as for a topic.
 
-Their level then shows on the skill's page, with when they reached it, a "You" mark on its rung, their evidence, and
-ways to add evidence, walk through again or take themselves off the skill. My Skills lists every skill they've placed
+Their level then shows as a "You" mark on its rung of the level picker. My Skills lists every skill they've placed
 themselves on, highest level first, and their profile's Skills tab shows the same to whoever can see the profile.
 
 ### Asking for a skill we don't have

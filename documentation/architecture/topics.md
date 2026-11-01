@@ -25,7 +25,7 @@ Every meaningful change is published as an **event**.
 | Skill requirements job | `application/apis/atlas-jobs/src/events/skill_filled/topics.rs` | Links a filled skill's levels to the topics they need |
 | Event bus | `application/infrastructure/events.tf` | The `TopicFillRequested-Topics` and `SkillFilled-Topics` rules and queues (see `events.md`) |
 | Placing yourself | `application/apis/atlas-api/src/domains/topics/engagement.rs` | The level a user is at in a topic (`ENGAGES_TOPIC`), and the routes for their evidence about it once they're on it |
-| Evidence | `application/apis/atlas-api/src/evidence/mod.rs` | Notes and files a person gives about a node, for any module to call with the node, and `/api/evidence` for removing and downloading them. The UI's evidence list and form, `FileUpload`, `Stepper` and `LevelSteps` are in `src/shared_components/`. Each module builds its own walkthrough, card and list on them (`topics/engagement_walkthrough.tsx` and `engagement_card.tsx`, `skills/achievement_walkthrough.tsx` and `achievement_card.tsx`) |
+| Evidence | `application/apis/atlas-api/src/evidence/mod.rs` | Notes and files a person gives about a node, for any module to call with the node, and `/api/evidence` for removing and downloading them. The UI's evidence list and form, `FileUpload`, `Stepper` and `LevelSteps` are in `src/shared_components/`. Each module builds its own walkthrough, card and list on them (`topics/engagement_walkthrough.tsx` and `engagement_card.tsx`, `skills/achievement_walkthrough.tsx`) |
 | Evidence bucket | `application/infrastructure/evidence.tf` | The private `atlas-of-us-evidence` bucket for files given as evidence, its CORS rule for the site, and the API's access to it (`EVIDENCE_BUCKET`) |
 | Migrations | `application/database/migrations/003_topics_indexes.cypher`, `004_evidence.cypher` | The constraints, the full-text index and the vector indexes, and the Evidence id constraint |
 | Taxonomy import | `application/database/topics_import/` | Asks the API for each ESCO field and knowledge entry, broader ones first |
@@ -108,7 +108,7 @@ see `ADRs/graph_board.md`). `GET /map` gives every topic with the ids of its bro
   links to, and expanding an Idea brings on the topics it's in and the Ideas linked to it. Ideas are pale blue
   diamonds and skills pale red (they open in Skills), and anything can be dragged. A kind of link with more than the
   first page can bring on the next. Hide takes back what a node brought on, Back undoes the last expand, hide or clear
-  (Ctrl+Z too), and Back to the map leaves the close-up.
+  (Ctrl+Z too), and Back to the atlas leaves the close-up.
 
 The board draws six kinds of link, each turned on and off from the legend:
 
@@ -120,7 +120,7 @@ The board draws six kinds of link, each turned on and off from the legend:
 - **Needs knowledge:** a solid red line with an arrow from a skill to the topic, thicker for a stronger link.
 
 Topics Explained has a smaller board of the same map at the top. Clicking a topic or a field there opens the Explorer
-selected on it. "See it on the map" on a topic's or an Idea's page does the same; an Idea floats beside the first topic
+selected on it. "See it on the atlas" on a topic's or an Idea's page does the same; an Idea floats beside the first topic
 it's in. The Topics page keeps the Explorer's board, so it's still there after a look at a page or at Topics Explained.
 
 ### Opening a topic
