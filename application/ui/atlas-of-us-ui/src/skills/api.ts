@@ -198,3 +198,17 @@ export function monthYear(date: string) {
   const [y, m, d] = date.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 }
+
+//what it takes to reach the next level of a skill the logged in user is on, and where they are with each requirement.
+//Each requirement carries up from the highest level at or below the next one that names it, strongest first
+export interface NextStep {
+  skill_id: string;
+  rank: number; //the next level
+  next_level: string | null; //what it takes to get there, from the level they're at
+  skills: (SkillRequirement & { yours: number | null })[]; //yours: the level they've reached in it
+  topics: (TopicRequirement & { yours: number | null })[]; //yours: the Bloom level they've reached in it
+  traits: (TraitRequirement & { yours: number | null })[]; //yours: their score on it, 0 to 1, if they've been measured
+}
+
+//the next level of every ready skill the logged in user is on below Expert
+export const getNextSteps = () => request<NextStep[]>('GET', '/skills/next-steps');

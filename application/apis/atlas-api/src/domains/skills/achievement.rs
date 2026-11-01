@@ -21,6 +21,7 @@ use super::{SkillRef, internal, not_found};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/achievements", get(list_achievements))
+        .route("/next-steps", get(next_steps))
         .route("/{id}/achievement", get(get_achievement).put(set_level).delete(remove_achievement))
         .route("/{id}/evidence", post(add_note))
         .route("/{id}/evidence/uploads", post(start_upload))
@@ -172,4 +173,101 @@ pub async fn person_skills(graph: &Graph, person_id: &str) -> Result<Vec<PersonS
 //the skills the logged in user has placed themselves on, for My Skills
 async fn list_achievements(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<PersonSkill>>, (StatusCode, String)> {
     Ok(Json(person_skills(&state.graph, &user.person_id).await?))
+}
+
+//a level of another skill the next level needs, and the rank the logged in user has reached in it, if any
+#[derive(Serialize, Deserialize)]
+pub struct SkillStep {
+    id: String,
+    name: String,
+    status: String,
+    rank: i64, //the level of it that's needed
+    strength: f64, //how essential it is, 0 to 1
+    reason: String,
+    yours: Option<i64>,
+}
+
+//a level of a topic the next level needs knowledge of, and the Bloom rank the logged in user has reached in it, if any
+#[derive(Serialize, Deserialize)]
+pub struct TopicStep {
+    id: String,
+    name: String,
+    status: String,
+    rank: i64, //the Bloom level of it that's needed, 1 (Remember) to 6 (Create)
+    strength: f64, //how essential it is, 0 to 1
+    reason: String,
+    yours: Option<i64>,
+}
+
+//a personality trait the next level takes, and the logged in user's score on it, if they've been measured
+#[derive(Serialize, Deserialize)]
+pub struct TraitStep {
+    name: String,
+    level: f64, //where on the trait it pulls, above 0.5 for more of it
+    strength: f64, //how much it matters, 0 to 1
+    reason: String,
+    yours: Option<f64>,
+}
+
+//what it takes to reach the next level of a skill the logged in user is on, and where they are with each requirement
+#[derive(Serialize, Deserialize)]
+pub struct NextStep {
+    skill_id: String,
+    rank: i64, //the next level
+    next_level: Option<String>, //what it takes to get there, from the level they're at
+    skills: Vec<SkillStep>,
+    topics: Vec<TopicStep>,
+    traits: Vec<TraitStep>,
+}
+
+//the requirements of a skill's level `next` of one kind, as a COLLECT expression. Each comes from the highest level at
+//or below `next` that names its target `t`, since a requirement carries up until a higher level changes it, strongest
+//first. `rank` is the rank of the target's level that's needed, and `step` returns one, from `top` and the person `p`
+fn carried_up(requirement: &str, target: &str, rank: &str, step: &str) -> String {
+    format!("COLLECT {{
+        MATCH (s)-[:HAS_LEVEL]->(l:DreyfusLevel)-[r:{requirement}]->{target}
+        WHERE l.rank <= next.rank
+        WITH p, t, r, {rank} AS rank ORDER BY l.rank DESC
+        WITH p, t, head(collect({{r: r, rank: rank}})) AS top
+        {step}
+        ORDER BY top.r.strength DESC
+    }}")
+}
+
+//the next level of every ready skill the logged in user is on below Expert, for My Skills
+async fn next_steps(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<NextStep>>, (StatusCode, String)> {
+    let skills = carried_up(
+        "REQUIRES_SKILL",
+        "(tl:DreyfusLevel)<-[:HAS_LEVEL]-(t:Skill)",
+        "tl.rank",
+        "OPTIONAL MATCH (p)-[:ACHIEVED]->(yl:DreyfusLevel)<-[:HAS_LEVEL]-(t)
+        RETURN {id: t.id, name: t.name, status: t.status, rank: top.rank, strength: top.r.strength, reason: top.r.reason, yours: yl.rank}",
+    );
+    let topics = carried_up(
+        "REQUIRES_KNOWLEDGE",
+        "(tl:BloomLevel)<-[:HAS_LEVEL]-(t:Topic)",
+        "tl.rank",
+        "OPTIONAL MATCH (p)-[:ENGAGES_TOPIC]->(yl:BloomLevel)<-[:HAS_LEVEL]-(t)
+        RETURN {id: t.id, name: t.name, status: t.status, rank: top.rank, strength: top.r.strength, reason: top.r.reason, yours: yl.rank}",
+    );
+    let traits = carried_up(
+        "REQUIRES_TRAIT",
+        "(t:PersonalityTrait)",
+        "null",
+        "OPTIONAL MATCH (p)-[y:HAS_PERSONALITY_TRAIT]->(t)
+        RETURN {name: t.name, level: top.r.level, strength: top.r.strength, reason: top.r.reason, yours: y.value}",
+    );
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (p:Person {{id: $personId}})-[:ACHIEVED]->(at:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill {{status: 'ready'}})
+        WHERE at.rank < 5
+        MATCH (s)-[:HAS_LEVEL]->(next:DreyfusLevel {{rank: at.rank + 1}})
+        OPTIONAL MATCH (at)-[n:NEXT_LEVEL]->(next)
+        RETURN s.id AS skill_id, next.rank AS rank, n.description AS next_level,
+               {skills} AS skills, {topics} AS topics, {traits} AS traits
+    ")).param("personId", user.person_id)).await.map_err(internal)?;
+    let mut steps = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        steps.push(row.to::<NextStep>().map_err(internal)?);
+    }
+    Ok(Json(steps))
 }

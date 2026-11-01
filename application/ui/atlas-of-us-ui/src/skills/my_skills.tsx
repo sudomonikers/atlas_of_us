@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievements, monthYear, type AchievedSkill } from './api';
+import { LEVEL_NAMES, getAchievements, getNextSteps, monthYear, type AchievedSkill, type NextStep } from './api';
+import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
 import { LevelSteps } from '../shared_components/level_steps';
@@ -15,9 +16,11 @@ const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
 //the My Skills view: the skills the user has placed themselves on, grouped by level from Expert down, each opening its
-//skill page
+//skill page and showing what it takes to reach its next level
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
+  const [steps, setSteps] = useState<Map<string, NextStep>>();
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -26,6 +29,8 @@ export default function MySkills() {
       (loaded) => live && setSkills(loaded),
       (e) => live && setError(e instanceof Error ? e.message : String(e)),
     );
+    //the list is still worth reading without them
+    getNextSteps().then((loaded) => live && setSteps(new Map(loaded.map((step) => [step.skill_id, step]))), () => {});
     return () => {
       live = false;
     };
@@ -51,23 +56,158 @@ export default function MySkills() {
                   <span style={styles.count}>{at.length}</span>
                 </h3>
                 <ul style={styles.list}>
-                  {at.map(({ skill, achieved_on, evidence }) => (
-                    <li key={skill.id}>
-                      <button className="comic-lift" style={styles.row} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
-                        <span style={styles.name}>{skill.name}</span>
-                        <span style={styles.detail}>
-                          {achieved_on && `Since ${monthYear(achieved_on)}. `}
-                          {evidence.length ? `${evidence.length} piece${evidence.length === 1 ? '' : 's'} of evidence` : 'No evidence yet'}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                  {at.map(({ skill, achieved_on, evidence }) => {
+                    const step = steps?.get(skill.id);
+                    const expanded = open.has(skill.id);
+                    const toggle = () =>
+                      setOpen((o) => {
+                        const next = new Set(o);
+                        if (!next.delete(skill.id)) next.add(skill.id);
+                        return next;
+                      });
+                    return (
+                      <li key={skill.id} style={styles.row}>
+                        <div style={styles.rowHead}>
+                          <button className="comic-lift" style={styles.name} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
+                            {skill.name}
+                          </button>
+                          <span style={styles.detail}>
+                            {achieved_on && `Since ${monthYear(achieved_on)}. `}
+                            {evidence.length ? `${evidence.length} piece${evidence.length === 1 ? '' : 's'} of evidence` : 'No evidence yet'}
+                          </span>
+                          {rank === LEVEL_NAMES.length && <span style={styles.top}>Top level</span>}
+                          {step && (
+                            <button className="comic-lift" style={styles.toggle} aria-expanded={expanded} onClick={toggle}>
+                              {summary(step)}
+                              <Chevron open={expanded} />
+                            </button>
+                          )}
+                        </div>
+                        {step && expanded && <NextLevel step={step} />}
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             )
           );
         })}
     </section>
+  );
+}
+
+//the toggle's one line: the next level, and how many of the skills and knowledge it takes the user already has
+function summary({ rank, skills, topics }: NextStep) {
+  const checks = [...skills, ...topics];
+  const met = checks.filter(({ rank, yours }) => yours !== null && yours >= rank).length;
+  return `Next: ${LEVEL_NAMES[rank - 1]}${checks.length ? `, ${met} of ${checks.length} met` : ''}`;
+}
+
+//what reaching the next level of a skill takes: the skills and knowledge, each marked met or not yet, and the
+//personality, shown beside the user's own score
+function NextLevel({ step }: { step: NextStep }) {
+  const { rank, next_level, skills, topics, traits } = step;
+  return (
+    <div style={styles.next}>
+      <h4 style={styles.subheading}>Getting to {LEVEL_NAMES[rank - 1]}</h4>
+      {next_level && <p style={styles.text}>{next_level}</p>}
+      {!skills.length && !topics.length && !traits.length && <p style={styles.text}>This level doesn't name any other skills, knowledge or personality.</p>}
+      {!!skills.length && (
+        <div>
+          <h5 style={styles.minorHeading}>Skills it takes</h5>
+          <ul style={styles.checks}>
+            {skills.map(({ id, name, rank, reason, yours }) => (
+              <Check
+                key={id}
+                met={yours !== null && yours >= rank}
+                label={`${name} at ${LEVEL_NAMES[rank - 1]}`}
+                where={yours === null ? 'Not on it yet' : `You're at ${LEVEL_NAMES[yours - 1]}`}
+                reason={reason}
+                onOpen={() => navigate(`/skills/${encodeURIComponent(id)}`)}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+      {!!topics.length && (
+        <div>
+          <h5 style={styles.minorHeading}>Knowledge it takes</h5>
+          <ul style={styles.checks}>
+            {topics.map(({ id, name, rank, reason, yours }) => (
+              <Check
+                key={id}
+                met={yours !== null && yours >= rank}
+                label={`${name} at ${BLOOM_NAMES[rank - 1]}`}
+                where={yours === null ? 'Not on it yet' : `You're at ${BLOOM_NAMES[yours - 1]}`}
+                reason={reason}
+                onOpen={() => navigate(`/topics/${encodeURIComponent(id)}`)}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+      {!!traits.length && (
+        <div>
+          <h5 style={styles.minorHeading}>Personality it takes</h5>
+          <ul style={styles.checks}>
+            {traits.map(({ name, level, reason, yours }) => (
+              <li key={name} style={styles.check}>
+                <div style={styles.checkHead}>
+                  <strong>{level >= 0.5 ? 'High' : 'Low'} {name}</strong>
+                  {yours === null ? <span style={styles.where}>Not measured yet</span> : <Score yours={yours} level={level} name={name} />}
+                </div>
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+//a skill or topic the next level takes, marked met or not yet, opening its page
+function Check({ met, label, where, reason, onOpen }: { met: boolean; label: string; where: string; reason: string; onOpen: () => void }) {
+  return (
+    <li style={styles.check}>
+      <div style={styles.checkHead}>
+        <Mark met={met} />
+        <button className="comic-lift" style={styles.link} onClick={onOpen}>
+          {label}
+        </button>
+        <span style={styles.where}>{where}</span>
+      </div>
+      <span>{reason}</span>
+    </li>
+  );
+}
+
+//a drawn tick when it's met, an empty ring when it isn't yet
+function Mark({ met }: { met: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" role="img" aria-label={met ? 'Met' : 'Not yet'} style={styles.mark}>
+      <circle cx="11" cy="11" r="9" fill={met ? paleCinnamon : ivory} stroke={gunmetal} strokeWidth="2.5" />
+      {met && <path d="M6.5 11.5 L9.8 14.6 L15.6 7.6" fill="none" stroke={gunmetal} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />}
+    </svg>
+  );
+}
+
+//the user's score on a trait as a bar, with a notch where the level pulls
+function Score({ yours, level, name }: { yours: number; level: number; name: string }) {
+  return (
+    <span style={styles.score} role="meter" aria-label={`Your ${name}`} aria-valuemin={0} aria-valuemax={1} aria-valuenow={yours}>
+      <span style={{ ...styles.scoreFill, width: `${Math.round(yours * 100)}%` }} />
+      <span style={{ ...styles.notch, left: `${Math.round(level * 100)}%` }} />
+    </span>
+  );
+}
+
+//points down when the next step is closed and up when it's open
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" style={{ transform: open ? 'rotate(180deg)' : undefined }}>
+      <path d="M2.5 5 L7 9.5 L11.5 5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -136,30 +276,141 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
   },
   row: {
-    width: '100%',
     display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: '6px 18px',
+    flexDirection: 'column',
+    gap: 12,
     padding: '10px 16px',
     background: ivory,
     color: gunmetal,
     border: `3px solid ${gunmetal}`,
     borderRadius: corners,
     boxShadow: `3px 3px 0 ${gunmetal}`,
-    font: 'inherit',
-    textAlign: 'left',
-    cursor: 'pointer',
+  },
+  rowHead: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '6px 18px',
   },
   name: {
     flex: '1 1 220px',
+    padding: 0,
+    background: 'none',
+    border: 'none',
+    color: gunmetal,
     fontFamily: comic,
     fontSize: 22,
     letterSpacing: 1,
+    textAlign: 'left',
     overflowWrap: 'anywhere',
+    cursor: 'pointer',
   },
   detail: {
     fontSize: 15,
     color: blue,
+  },
+  top: {
+    fontSize: 15,
+    color: brownRed,
+  },
+  toggle: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '4px 12px',
+    background: '#fff',
+    color: gunmetal,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 999,
+    font: 'inherit',
+    fontSize: 15,
+    cursor: 'pointer',
+  },
+  next: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    paddingTop: 12,
+    borderTop: `2px dashed ${gunmetal}`,
+  },
+  subheading: {
+    margin: 0,
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 20,
+    letterSpacing: 1,
+    color: brownRed,
+  },
+  minorHeading: {
+    margin: '0 0 8px',
+    fontSize: 15,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: blue,
+  },
+  checks: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  check: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    fontSize: 15,
+    lineHeight: 1.45,
+  },
+  checkHead: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '4px 10px',
+  },
+  mark: {
+    flexShrink: 0,
+  },
+  link: {
+    padding: 0,
+    background: 'none',
+    border: 'none',
+    color: gunmetal,
+    font: 'inherit',
+    fontWeight: 700,
+    textAlign: 'left',
+    textDecoration: 'underline',
+    textUnderlineOffset: 3,
+    cursor: 'pointer',
+  },
+  where: {
+    color: blue,
+  },
+  score: {
+    position: 'relative',
+    width: 120,
+    height: 12,
+    background: '#fff',
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 999,
+    overflow: 'visible',
+  },
+  scoreFill: {
+    position: 'absolute',
+    inset: 0,
+    right: 'auto',
+    background: blue,
+    borderRadius: 999,
+  },
+  notch: {
+    position: 'absolute',
+    top: -5,
+    bottom: -5,
+    width: 3,
+    marginLeft: -1.5,
+    background: brownRed,
+    borderRadius: 2,
   },
 };
