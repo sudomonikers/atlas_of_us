@@ -34,6 +34,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
 | LIKES, DISLIKES, BORED_BY, INTIMIDATED_BY | Person → Skill | `intensity`, `reason`, `timestamp` | How they feel about it. These stack: someone can like and dislike a skill for different reasons |
 | PRACTICES | Person → Skill | `hoursPerWeek` | How much they do it |
+| DOES_NOT_HAVE | Person → Skill | `date` | They've said they don't have it, so it isn't suggested to them. Placing themselves on it takes this back |
 | ENDORSES | Person → DreyfusLevel or SkillProposal | `version`, `date` | They think a level's content, or a proposal, is right. On a level it records the version endorsed |
 | OPPOSES | Person → SkillProposal | `date`, `reason` | They think a proposal is wrong |
 | PROPOSED | Person → SkillProposal | | Who wrote a proposal |

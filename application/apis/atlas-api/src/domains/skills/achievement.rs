@@ -4,7 +4,7 @@ use axum::{
     Json, Router,
     extract::{Path, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::{get, post, put},
 };
 use chrono::{NaiveDate, Utc};
 use neo4rs::{Graph, query};
@@ -22,6 +22,8 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/achievements", get(list_achievements))
         .route("/next-steps", get(next_steps))
+        .route("/suggestions", get(suggestions))
+        .route("/{id}/does-not-have", put(does_not_have))
         .route("/{id}/achievement", get(get_achievement).put(set_level).delete(remove_achievement))
         .route("/{id}/evidence", post(add_note))
         .route("/{id}/evidence/uploads", post(start_upload))
@@ -94,12 +96,15 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
         return Err(bad_request("That skill's levels aren't written yet."));
     }
 
-    //keeps when they first placed themselves on the skill, and the version of the level they read
+    //keeps when they first placed themselves on the skill, and the version of the level they read. Saying they have it
+    //takes back any time they said they didn't
     state.graph.run(query("
         MATCH (p:Person {id: $personId}), (s:Skill {id: $id})-[:HAS_LEVEL]->(l:DreyfusLevel {rank: $rank})
         OPTIONAL MATCH (p)-[old:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)
-        WITH p, l, collect(old) AS olds, min(old.since) AS since
+        OPTIONAL MATCH (p)-[lacks:DOES_NOT_HAVE]->(s)
+        WITH p, l, lacks, collect(old) AS olds, min(old.since) AS since
         FOREACH (o IN olds | DELETE o)
+        FOREACH (x IN CASE WHEN lacks IS NULL THEN [] ELSE [lacks] END | DELETE x)
         CREATE (p)-[:ACHIEVED {
             since: coalesce(since, datetime()), updatedAt: datetime(), levelVersion: l.version,
             achievedOn: CASE WHEN $achievedOn IS NULL THEN null ELSE date($achievedOn) END
@@ -270,4 +275,70 @@ async fn next_steps(State(state): State<AppState>, user: AuthUser) -> Result<Jso
         steps.push(row.to::<NextStep>().map_err(internal)?);
     }
     Ok(Json(steps))
+}
+
+//a skill the logged in user has said they don't have, so it isn't suggested to them again. Placing themselves on it
+//takes this back
+async fn does_not_have(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<StatusCode, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person {id: $personId}), (s:Skill {id: $id})
+        MERGE (p)-[d:DOES_NOT_HAVE]->(s)
+        SET d.date = datetime()
+        RETURN s.id AS id
+    ").param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
+    rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+//a skill of the logged in user's that a suggestion comes from
+#[derive(Serialize, Deserialize)]
+pub struct SuggestedBy {
+    id: String,
+    name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rank: Option<i64>, //the level they're at in it, when one of its levels needs the suggested skill
+}
+
+//a skill the logged in user probably has but hasn't placed themselves on: one their skills' levels need, or one their
+//skills are a kind of
+#[derive(Serialize, Deserialize)]
+pub struct Suggestion {
+    skill: SkillRef,
+    rank: Option<i64>, //the highest level of it their skills need. None when it's only a broader skill
+    needed_by: Vec<SuggestedBy>, //their skills whose levels need it, with the level they're at
+    kind_of: Vec<SuggestedBy>, //their skills that are a kind of it
+}
+
+//how many suggestions come at once
+const SUGGESTIONS: i64 = 20;
+
+//the skills the logged in user probably has, most essential first. A level they're at needs every requirement written
+//on it and the levels below it, each at the level of it written on the highest of those. Skills they've placed
+//themselves on, or said they don't have, aren't suggested
+async fn suggestions(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<Suggestion>>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person {id: $personId})
+        CALL (p) {
+            MATCH (p)-[:ACHIEVED]->(at:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)-[:HAS_LEVEL]->(l:DreyfusLevel)
+                  -[r:REQUIRES_SKILL]->(tl:DreyfusLevel)<-[:HAS_LEVEL]-(t:Skill)
+            WHERE l.rank <= at.rank
+            WITH s, at, t, tl, r ORDER BY l.rank DESC
+            WITH s, at, t, head(collect({rank: tl.rank, strength: r.strength})) AS top
+            RETURN t, top.rank AS rank, top.strength AS strength, {id: s.id, name: s.name, rank: at.rank} AS need, null AS kind
+            UNION
+            MATCH (p)-[:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)-[:SPECIALIZATION_OF]->(t:Skill)
+            RETURN t, null AS rank, null AS strength, null AS need, {id: s.id, name: s.name} AS kind
+        }
+        WITH p, t, rank, strength, need, kind
+        WHERE NOT EXISTS { (p)-[:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(t) } AND NOT EXISTS { (p)-[:DOES_NOT_HAVE]->(t) }
+        WITH t, max(rank) AS rank, max(strength) AS strength, collect(need) AS needed_by, collect(kind) AS kind_of
+        RETURN {id: t.id, name: t.name, status: t.status} AS skill, rank, needed_by, kind_of
+        ORDER BY coalesce(strength, -1.0) DESC, size(needed_by) + size(kind_of) DESC, t.name
+        LIMIT $limit
+    ").param("personId", user.person_id).param("limit", SUGGESTIONS)).await.map_err(internal)?;
+    let mut suggestions = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        suggestions.push(row.to::<Suggestion>().map_err(internal)?);
+    }
+    Ok(Json(suggestions))
 }

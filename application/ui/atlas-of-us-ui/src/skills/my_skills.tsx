@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievements, getNextSteps, monthYear, type AchievedSkill, type NextStep } from './api';
+import { LEVEL_NAMES, getAchievements, getNextSteps, getSuggestions, doesNotHave, monthYear, setAchievement, type AchievedSkill, type NextStep, type SuggestedBy, type Suggestion } from './api';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -16,12 +16,14 @@ const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
 //the My Skills view: the skills the user has placed themselves on, grouped by level from Expert down, each opening its
-//skill page and showing what it takes to reach its next level
+//skill page and showing what it takes to reach its next level, then the skills they probably have but haven't added
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
   const [steps, setSteps] = useState<Map<string, NextStep>>();
+  const [suggestions, setSuggestions] = useState<Suggestion[]>();
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>();
+  const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
 
   useEffect(() => {
     let live = true;
@@ -31,10 +33,11 @@ export default function MySkills() {
     );
     //the list is still worth reading without them
     getNextSteps().then((loaded) => live && setSteps(new Map(loaded.map((step) => [step.skill_id, step]))), () => {});
+    getSuggestions().then((loaded) => live && setSuggestions(loaded), () => {});
     return () => {
       live = false;
     };
-  }, []);
+  }, [loads]);
 
   return (
     <section style={styles.panel} className="comic-panel comic-pop">
@@ -92,8 +95,81 @@ export default function MySkills() {
             )
           );
         })}
+      {!!suggestions?.length && (
+        <Suggestions
+          suggestions={suggestions}
+          onAdded={() => setLoads((n) => n + 1)}
+          onDismissed={(id) => setSuggestions((all) => all?.filter((s) => s.skill.id !== id))}
+        />
+      )}
     </section>
   );
+}
+
+//the skills the user probably has: ones their skills' levels need, and ones their skills are a kind of. Each can be
+//added at the level their skills need, opened to read its levels first, or dismissed for good
+function Suggestions({ suggestions, onAdded, onDismissed }: { suggestions: Suggestion[]; onAdded: () => void; onDismissed: (id: string) => void }) {
+  const [busy, setBusy] = useState<string>();
+  const [error, setError] = useState<string>();
+  const act = (id: string, action: () => Promise<void>, then: () => void) => {
+    setBusy(id);
+    setError(undefined);
+    action().then(
+      () => {
+        setBusy(undefined);
+        then();
+      },
+      (e) => {
+        setBusy(undefined);
+        setError(e instanceof Error ? e.message : String(e));
+      },
+    );
+  };
+  return (
+    <section style={styles.group} aria-label="Skills you probably have">
+      <h3 style={styles.groupHeading}>Skills you probably have</h3>
+      <p style={styles.text}>Your skills need these, or are a kind of them. Add the ones you have, and say which you don't.</p>
+      {error && <AtlasError message={error} />}
+      <ul style={styles.list}>
+        {suggestions.map(({ skill, rank, needed_by, kind_of }) => (
+          <li key={skill.id} style={styles.row}>
+            <div style={styles.rowHead}>
+              <button className="comic-lift" style={styles.name} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
+                {skill.name}
+              </button>
+              <span style={styles.detail}>{why(needed_by, kind_of)}</span>
+            </div>
+            <div style={styles.actions}>
+              {rank !== null && skill.status === 'ready' && (
+                <button className="comic-lift" style={styles.add} disabled={!!busy} onClick={() => act(skill.id, () => setAchievement(skill.id, rank, null), onAdded)}>
+                  Add me at {LEVEL_NAMES[rank - 1]}
+                </button>
+              )}
+              <button className="comic-lift" style={styles.toggle} disabled={!!busy} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
+                Read the levels
+              </button>
+              <button className="comic-lift" style={styles.toggle} disabled={!!busy} onClick={() => act(skill.id, () => doesNotHave(skill.id), () => onDismissed(skill.id))}>
+                Not me
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+//why a skill is suggested: which of the user's skills need it, at the level they're at, and which are a kind of it
+function why(neededBy: SuggestedBy[], kindOf: SuggestedBy[]) {
+  const reasons = [];
+  if (neededBy.length) reasons.push(`Needed for your ${and(neededBy.map(({ name, rank }) => (rank ? `${name} at ${LEVEL_NAMES[rank - 1]}` : name)))}.`);
+  if (kindOf.length) reasons.push(`Your ${and(kindOf.map(({ name }) => name))} ${kindOf.length === 1 ? 'is a kind' : 'are kinds'} of it.`);
+  return reasons.join(' ');
+}
+
+//a list in words: "a", "a and b", "a, b and c"
+function and(items: string[]) {
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
 //the toggle's one line: the next level, and how many of the skills and knowledge it takes the user already has
@@ -320,6 +396,21 @@ const styles: Record<string, CSSProperties> = {
     padding: '4px 12px',
     background: '#fff',
     color: gunmetal,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 999,
+    font: 'inherit',
+    fontSize: 15,
+    cursor: 'pointer',
+  },
+  actions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  add: {
+    padding: '4px 14px',
+    background: brownRed,
+    color: ivory,
     border: `2px solid ${gunmetal}`,
     borderRadius: 999,
     font: 'inherit',

@@ -212,3 +212,25 @@ export interface NextStep {
 
 //the next level of every ready skill the logged in user is on below Expert
 export const getNextSteps = () => request<NextStep[]>('GET', '/skills/next-steps');
+
+//a skill of the logged in user's that a suggestion comes from, with the level they're at when it needs the suggestion
+export interface SuggestedBy {
+  id: string;
+  name: string;
+  rank?: number;
+}
+
+//a skill the logged in user probably has but hasn't placed themselves on: one their skills' levels need, or one their
+//skills are a kind of
+export interface Suggestion {
+  skill: SkillRef;
+  rank: number | null; //the highest level of it their skills need. Null when it's only a broader skill
+  needed_by: SuggestedBy[];
+  kind_of: SuggestedBy[];
+}
+
+//the skills the logged in user probably has, most essential first
+export const getSuggestions = () => request<Suggestion[]>('GET', '/skills/suggestions');
+
+//says the logged in user doesn't have a skill, so it isn't suggested again. Placing themselves on it takes this back
+export const doesNotHave = (id: string) => request<void>('PUT', `/skills/${encodeURIComponent(id)}/does-not-have`);
