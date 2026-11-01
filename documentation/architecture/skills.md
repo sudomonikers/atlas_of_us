@@ -155,6 +155,11 @@ another, and only the first publishes `SkillCreated`.
 The Skills page (`/skills`) has two views. The Skills Explorer opens first: a line on what the page is and how to use it,
 the board of every skill, and under it the selected skill's page. Then comes My Skills.
 
+A "?" at the right end of the row of views opens a guide to the module (`SkillsGuide` in `src/skills/skills_guide.tsx`),
+a stepper in a modal on the shared `Stepper`: what a skill is in the Atlas, the five levels, finding a skill on the
+board, what a skill takes, and adding yourself. The last three each play a short looping clip of a test user doing
+what the step describes (`src/assets/skills_guide/`), or wait to be played when the browser asks for reduced motion.
+
 ### Exploring
 The Skills Explorer is one board of every skill (`SkillGraph` in `src/skills/graph.tsx`, on the shared `GraphBoard`
 in `src/shared_components/graph_board.tsx`, which knows nothing about skills; see `ADRs/graph_board.md`). `GET /map`

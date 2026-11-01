@@ -253,7 +253,7 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
           <>
             <h3 style={styles.heading}>How the board works</h3>
             <ul style={styles.tips}>
-              <li style={styles.tip}>Every dot is a skill. Each flower is a broad skill, with the kinds of it around it.</li>
+              <li style={styles.tip}>Every dot is a skill. They are grouped by related skills into a sort of flower shape.</li>
               <li style={styles.tip}>Drag the background to look around. Scroll or pinch to zoom in, and the dots become skills with their names. Click a field's name to zoom to it, and Fit to see everything again.</li>
               <li style={styles.tip}>Click a skill to read all about it under the board, or search for one.</li>
               <li style={styles.tip}>Double-click one to see just it and everything it links to: skills, the personality traits it takes, and the topics it needs. Drag any of them where you want them.</li>

@@ -241,7 +241,7 @@ function Levels({ levels, rank, mine, onRank, onOpen }: {
       {onRank && <Ladder rank={rank} mine={mine} onRank={onRank} />}
 
       {level && (
-        <div key={rank} role="tabpanel" style={styles.level} className="comic-panel comic-pop">
+        <div key={rank} role="tabpanel" style={styles.level} className="comic-panel comic-settle">
           <div style={styles.levelHead}>
             <h3 style={styles.levelName}>{LEVEL_NAMES[rank - 1]}</h3>
             {level.trust === 'provisional' && (

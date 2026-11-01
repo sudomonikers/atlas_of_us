@@ -3,6 +3,7 @@ import { navigate, usePath } from '../router';
 import Explorer from './explorer';
 import { emptyBoard, type SkillBoard } from './skill_board';
 import MySkills from './my_skills';
+import { SkillsGuide } from './skills_guide';
 import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
@@ -28,6 +29,7 @@ function Skills() {
   const [chosen, setView] = useState<View>('explorer');
   //the explorer's board, kept here so it's still there after a look at My Skills
   const [board, setBoard] = useState<SkillBoard>(emptyBoard);
+  const [guide, setGuide] = useState(false);
   const view = skillId ? 'explorer' : chosen;
   const current = VIEWS.find((v) => v.id === view)!;
   const choose = (next: View) => {
@@ -63,7 +65,11 @@ function Skills() {
               {v.label}
             </button>
           ))}
+          <button className="comic-lift" style={dash.help} aria-label="How skills work" title="How skills work" onClick={() => setGuide(true)}>
+            ?
+          </button>
         </div>
+        {guide && <SkillsGuide onClose={() => setGuide(false)} />}
 
         {/* the board of every skill, with how to use it over it. An open skill's page takes its place */}
         {view === 'explorer' && !skillId && (
@@ -132,6 +138,21 @@ const dash: Record<string, CSSProperties> = {
   viewButtonActive: {
     background: brownRed,
     color: ivory,
+  },
+  //opens the guide to the module, at the far right of the row
+  help: {
+    marginLeft: 'auto',
+    width: 44,
+    height: 44,
+    padding: 0,
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '50%',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 26,
+    lineHeight: 1,
   },
   how: {
     maxWidth: 1100,

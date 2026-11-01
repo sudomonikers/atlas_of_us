@@ -201,6 +201,10 @@ body {
 .comic-pop {
   animation: comic-pop 520ms var(--bounce) both;
 }
+/* fades in with a slight rise, for something that swaps in place often, like a skill's level */
+.comic-settle {
+  animation: comic-settle 200ms ease-out both;
+}
 /* slams down onto the page like a stamp */
 .comic-slam {
   animation: comic-slam 380ms var(--bounce) both;
@@ -317,6 +321,10 @@ body {
   60% { opacity: 1; transform: rotate(var(--tilt, 0deg)) scale(1.06) translateY(-4px); }
   80% { transform: rotate(var(--tilt, 0deg)) scale(0.98); }
   100% { opacity: 1; transform: rotate(var(--tilt, 0deg)) scale(1); }
+}
+@keyframes comic-settle {
+  0% { opacity: 0.4; transform: translateY(4px); }
+  100% { opacity: 1; transform: none; }
 }
 @keyframes comic-slam {
   0% { opacity: 0; transform: rotate(-8deg) scale(2.6); }
@@ -441,7 +449,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .comic-pop, .comic-slam, .comic-blink, .comic-meter-fill, .comic-flash {
+  .comic-pop, .comic-settle, .comic-slam, .comic-blink, .comic-meter-fill, .comic-flash {
     animation: none;
   }
   .comic-dots span {
