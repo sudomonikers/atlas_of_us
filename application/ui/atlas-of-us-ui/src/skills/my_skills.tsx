@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { LEVEL_NAMES, clearGoal, getAchievements, getGoals, getNextSteps, getPersonalityFits, getPractice, getSuggestions, getTimeline, doesNotHave, hoursAWeek, monthYear, practiceLabel, setAchievement, type AchievedSkill, type Fit, type Fits, type Goal, type NextStep, type Practice, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import { LEVEL_NAMES, clearGoal, feelingsLabel, getAchievements, getFeelings, getGoals, getNextSteps, getPersonalityFits, getPractice, getSuggestions, getTimeline, doesNotHave, hoursAWeek, monthYear, practiceLabel, setAchievement, type AchievedSkill, type Fit, type Feeling, type Fits, type Goal, type NextStep, type Practice, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import { FeelingsForm } from './feelings_form';
 import { GoalForm } from './goal_form';
 import { PracticeForm } from './practice_form';
 import Timeline from './timeline';
@@ -30,9 +31,11 @@ export default function MySkills() {
   const [timeline, setTimeline] = useState<TimelineSkill[]>();
   const [goals, setGoals] = useState<Goal[]>();
   const [practice, setPractice] = useState<Practice[]>();
+  const [feelings, setFeelings] = useState<Map<string, Feeling[]>>();
   const [open, setOpen] = useState<Set<string>>(new Set()); //the rows whose requirements are showing, by key
   const [setting, setSetting] = useState<string>(); //the skill a goal is being set for
   const [practising, setPractising] = useState<string>(); //the skill whose practice is being set
+  const [feeling, setFeeling] = useState<string>(); //the skill whose feelings are being set
   const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
 
@@ -49,6 +52,7 @@ export default function MySkills() {
     getTimeline().then((loaded) => live && setTimeline(loaded), () => {});
     getGoals().then((loaded) => live && setGoals(loaded), () => {});
     getPractice().then((loaded) => live && setPractice(loaded), () => {});
+    getFeelings().then((loaded) => live && setFeelings(new Map(loaded.map((s) => [s.skill_id, s.feelings]))), () => {});
     return () => {
       live = false;
     };
@@ -57,6 +61,7 @@ export default function MySkills() {
   const reload = () => {
     setSetting(undefined);
     setPractising(undefined);
+    setFeeling(undefined);
     setLoads((n) => n + 1);
   };
   const toggle = (key: string) =>
@@ -125,10 +130,18 @@ export default function MySkills() {
                               {practiceLabel(hours.get(skill.id) ?? null)}
                             </button>
                           )}
+                          {feelings && (
+                            <button className="comic-lift" style={styles.toggle} aria-expanded={feeling === skill.id} onClick={() => setFeeling(feeling === skill.id ? undefined : skill.id)}>
+                              {feelingsLabel(feelings.get(skill.id) ?? [])}
+                            </button>
+                          )}
                         </div>
                         {goalForm(skill.id, rank)}
                         {practising === skill.id && (
                           <PracticeForm skillId={skill.id} hours={hours.get(skill.id) ?? null} onSaved={reload} onCancel={() => setPractising(undefined)} />
+                        )}
+                        {feeling === skill.id && (
+                          <FeelingsForm skillId={skill.id} feelings={feelings?.get(skill.id) ?? []} onSaved={reload} onCancel={() => setFeeling(undefined)} />
                         )}
                         {step && expanded && <LevelRequirements heading={`Getting to ${LEVEL_NAMES[step.rank - 1]}`} text={step.next_level} requirements={step} />}
                       </li>

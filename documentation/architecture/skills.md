@@ -126,19 +126,24 @@ The Skills page has two views:
   each with what the level takes and the knowledge to learn for it. Then it lists the skills the user has placed
   themselves on, grouped by level. Each one shows what its next level takes, and which of those skills and knowledge
   the user already has. A learning path lists the topics those next levels and goals need that the user doesn't know
-  deeply enough yet, each after the topics whose Ideas its own Ideas build on. A timeline shows
-  when they reached each level of each skill. Under them are the skills the user probably has: ones their skills need,
-  or are a kind of. They can add each one, or say it isn't theirs. Last come the skills whose personality suits the
-  user's own, and the ones they got good at against its pull, from how the traits a skill takes compare with the
-  user's scores.
+  deeply enough yet, each after the topics whose Ideas its own Ideas build on. The user can say how many hours a week
+  they practice each skill, and My Skills shows where that time goes. It flags skills at Proficient or above that get
+  no practice as getting rusty, and skills that get a lot of practice with no new level for a year as on a plateau. A
+  timeline shows when they reached each level of each skill. Under them are the skills the user probably has: ones
+  their skills need, or are a kind of. They can add each one, or say it isn't theirs. Last come the skills whose
+  personality suits the user's own, and the ones they got good at against its pull, from how the traits a skill takes
+  compare with the user's scores.
 
 A guide on the page walks through what skills are, the five levels and how to use the Explorer.
 
 ### Placing yourself on a skill
 On a `ready` skill, the user reads the levels from Novice up and says which one is them, and optionally when they got
-there. That's an `ACHIEVED` to that level, and the highest they've reached is their level in the skill. They can back
-it up with evidence, notes or files, which works the same as for a topic (see `topics.md`). Their level shows on the
-skill, in My Skills, and on their profile.
+there. That's an `ACHIEVED` to that level, and the highest they've reached is their level in the skill. They can say
+how many hours a week they practice it and how they feel about it: liking it, disliking it, being bored by it or
+intimidated by it, each as strongly as they say and with a reason if they want. They can back the level up with
+evidence, notes or files, which works the same as for a topic (see `topics.md`). Their level shows on the skill, in My
+Skills, and on their profile. Practice and feelings can be changed from the skill's page and from My Skills, and
+feelings can be given for any skill, whether they're on it or not.
 
 ## Community review
 Level content is shared by everyone placed on that skill. If one user could rewrite "Competent", everyone else's claim

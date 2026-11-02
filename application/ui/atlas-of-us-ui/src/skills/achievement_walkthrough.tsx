@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { LEVEL_NAMES, MAX_PRACTICE_HOURS, setAchievement, setPractice, skillEvidence, type Achievement, type Skill } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { DatePicker, type DateMessages } from '../shared_components/date-picker';
+import { FeelingsForm } from './feelings_form';
 import { EvidenceForm, EvidenceList } from '../shared_components/evidence';
 import { Stepper } from '../shared_components/stepper';
 import { Dots } from '../shared_components/thinking';
@@ -29,12 +30,12 @@ interface AchievementWalkthroughProps {
 }
 
 //where the walkthrough is: climbing the levels, saying when they reached the one they picked and how much they practice
-//it, or giving evidence for it
-type Stage = 'levels' | 'date' | 'evidence';
+//it, saying how they feel about it, or giving evidence for it
+type Stage = 'levels' | 'date' | 'feelings' | 'evidence';
 
 //places the user on a skill: they climb its Dreyfus levels from Novice, saying at each one whether it's them exactly or
 //they're past it, and step back when they've gone too far. Then they say when they got there and how many hours a week
-//they practice it, if they want, and can give evidence for the level they're at
+//they practice it, and how they feel about it, if they want, and can give evidence for the level they're at
 export function AchievementWalkthrough({ skill, achievement, onChange, onClose }: AchievementWalkthroughProps) {
   const [rank, setRank] = useState(1); //the level being read
   const [stage, setStage] = useState<Stage>('levels');
@@ -55,7 +56,7 @@ export function AchievementWalkthrough({ skill, achievement, onChange, onClose }
       .then(() => (practice === null ? undefined : setPractice(skill.id, practice)))
       .then(() => {
         onChange({ ...achievement, rank, achieved_on: achievedOn, hours_per_week: practice ?? achievement.hours_per_week });
-        setStage('evidence');
+        setStage('feelings');
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setSaving(false));
@@ -144,6 +145,18 @@ export function AchievementWalkthrough({ skill, achievement, onChange, onClose }
               </button>
             </div>
           </>
+        )}
+        {stage === 'feelings' && (
+          <FeelingsForm
+            skillId={skill.id}
+            feelings={achievement.feelings}
+            onSaved={(feelings) => {
+              onChange({ ...achievement, feelings });
+              setStage('evidence');
+            }}
+            onCancel={() => setStage('evidence')}
+            cancelLabel="Skip"
+          />
         )}
         {stage === 'evidence' && (
           <>

@@ -1,7 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievement, monthYear, practiceLabel, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
+import { LEVEL_NAMES, feelingsLabel, getAchievement, monthYear, practiceLabel, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AchievementWalkthrough } from './achievement_walkthrough';
 import { GoalForm } from './goal_form';
+import { FeelingsForm } from './feelings_form';
 import { PracticeForm } from './practice_form';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
@@ -56,6 +57,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
   const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
   const [settingGoal, setSettingGoal] = useState(false); //picking the level they want to reach
   const [settingPractice, setSettingPractice] = useState(false); //saying how much they practice it
+  const [settingFeelings, setSettingFeelings] = useState(false); //saying how they feel about it
 
   useEffect(() => {
     let live = true;
@@ -142,11 +144,17 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
       {practiceLabel(achievement.hours_per_week)}
     </button>
   );
+  //says how they feel about it, whether they're on it or not
+  const feelingsButton = skill.status === 'ready' && achievement && (
+    <button className="comic-lift" style={styles.goalButton} aria-expanded={settingFeelings} onClick={() => setSettingFeelings((open) => !open)}>
+      {feelingsLabel(achievement.feelings)}
+    </button>
+  );
 
   return (
     <article style={styles.column}>
       {bare ? (
-        (achievement?.rank === null || goalButton || practiceButton) && (
+        (achievement?.rank === null || goalButton || practiceButton || feelingsButton) && (
           <div style={styles.bareButtons}>
             {achievement?.rank === null && (
               <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
@@ -155,6 +163,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
             )}
             {goalButton}
             {practiceButton}
+            {feelingsButton}
           </div>
         )
       ) : (
@@ -169,6 +178,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
             )}
             {goalButton}
             {practiceButton}
+            {feelingsButton}
             {onShowInGraph && (
               <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
                 See it on the atlas
@@ -207,6 +217,19 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
                   setSettingPractice(false);
                 }}
                 onCancel={() => setSettingPractice(false)}
+              />
+            </div>
+          )}
+          {achievement && settingFeelings && (
+            <div style={styles.goalForm}>
+              <FeelingsForm
+                skillId={skill.id}
+                feelings={achievement.feelings}
+                onSaved={(feelings) => {
+                  setAchievement({ ...achievement, feelings });
+                  setSettingFeelings(false);
+                }}
+                onCancel={() => setSettingFeelings(false)}
               />
             </div>
           )}

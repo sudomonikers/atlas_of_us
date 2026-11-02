@@ -16,7 +16,11 @@ use crate::{
     state::AppState,
 };
 
-use super::{SkillRef, current, internal, not_found};
+use super::{
+    SkillRef, current,
+    feelings::{self, Feeling},
+    internal, not_found,
+};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -35,8 +39,8 @@ fn about(id: &str) -> About<'_> {
 }
 
 //where the logged in user is with a skill: the rank of the level they've reached, if they've placed themselves on it,
-//when they reached it if they said, the level they want to reach, if they've set a goal, and how many hours a week they
-//practice it, if they've said
+//when they reached it if they said, the level they want to reach, if they've set a goal, how many hours a week they
+//practice it, if they've said, and how they feel about it
 #[derive(Serialize, Deserialize)]
 pub struct Achievement {
     rank: Option<i64>,
@@ -44,6 +48,7 @@ pub struct Achievement {
     evidence: Vec<Evidence>, //oldest first
     goal: Option<GoalLevel>,
     hours_per_week: Option<f64>,
+    feelings: Vec<Feeling>,
 }
 
 //the level of a skill someone wants to reach, and when by if they said
@@ -73,8 +78,8 @@ async fn get_achievement(State(state): State<AppState>, user: AuthUser, Path(id)
         OPTIONAL MATCH (p)-[pr:PRACTICES]->(s)
         RETURN l.rank AS rank, toString(r.achievedOn) AS achieved_on, {} AS evidence,
                CASE WHEN g IS NULL THEN null ELSE {{rank: gl.rank, by: toString(g.by)}} END AS goal,
-               pr.hoursPerWeek AS hours_per_week
-    ", current("p", "l", "s"), evidence::collect("p", "s"))).param("id", id).param("personId", user.person_id)).await.map_err(internal)?;
+               pr.hoursPerWeek AS hours_per_week, {} AS feelings
+    ", current("p", "l", "s"), evidence::collect("p", "s"), feelings::collect("p", "s"))).param("id", id).param("personId", user.person_id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Achievement>().map_err(internal)?))
 }

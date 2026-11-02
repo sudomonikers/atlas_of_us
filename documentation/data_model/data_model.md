@@ -189,8 +189,8 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
 | ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
-| LIKES, DISLIKES, BORED_BY, INTIMIDATED_BY | Person → Skill | `intensity`, `reason`, `timestamp` | How they feel about it. These stack: someone can like and dislike a skill for different reasons |
-| PRACTICES | Person → Skill | `hoursPerWeek` | How much they do it |
+| LIKES, DISLIKES, BORED_BY, INTIMIDATED_BY | Person → Skill | `intensity`, `reason`, `timestamp` | How they feel about it, at most one of each. `intensity` is how strongly, above 0 up to 1, and `timestamp` when they first said it. These stack: someone can like and dislike a skill for different reasons. They don't need to be on the skill |
+| PRACTICES | Person → Skill | `hoursPerWeek`, `updatedAt` | How many hours a week they practice a skill they're on. 0 says they don't practice it now. It comes off with their levels |
 | WANTS_TO_REACH | Person → DreyfusLevel | `setAt`, `by` | A level they want to reach, one per skill, and the date they want it by. It's reached once they have an ACHIEVED to it or a level above, and stays until they clear it |
 | DOES_NOT_HAVE | Person → Skill | `date` | They've said they don't have it, so it isn't suggested to them. Placing themselves on it takes this back |
 | ENDORSES | Person → DreyfusLevel or SkillProposal | `version`, `date` | They think a level's content, or a proposal, is right. On a level it records the version endorsed |

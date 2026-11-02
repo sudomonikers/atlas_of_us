@@ -166,6 +166,7 @@ export interface Achievement {
   evidence: Evidence[]; //oldest first
   goal: GoalLevel | null; //the level they want to reach, if they've set a goal
   hours_per_week: number | null; //how much they practice it, if they've said
+  feelings: Feeling[]; //how they feel about it
 }
 
 //the level of a skill someone wants to reach, and when by if they said
@@ -335,4 +336,46 @@ export function hoursAWeek(hours: number) {
 //a skill's practice button: how much the user practices it, or a question until they've said
 export function practiceLabel(hours: number | null) {
   return hours === null ? 'How much do you practice?' : `Practice: ${hours ? hoursAWeek(hours) : 'none right now'}`;
+}
+
+//the ways someone can feel about a skill. They stack, so someone can like and dislike a skill for different reasons
+export type FeelingKind = 'likes' | 'dislikes' | 'bored_by' | 'intimidated_by';
+
+//each feeling as the user picks it, and as a short word for a summary
+export const FEELINGS: { kind: FeelingKind; label: string; short: string }[] = [
+  { kind: 'likes', label: 'I like it', short: 'Like' },
+  { kind: 'dislikes', label: 'I dislike it', short: 'Dislike' },
+  { kind: 'bored_by', label: 'It bores me', short: 'Bored' },
+  { kind: 'intimidated_by', label: 'It intimidates me', short: 'Intimidated' },
+];
+
+//how strongly someone feels something, from a little to a lot
+export const INTENSITIES = [
+  { label: 'A little', value: 1 / 3 },
+  { label: 'Quite a bit', value: 2 / 3 },
+  { label: 'A lot', value: 1 },
+];
+
+//a way someone feels about a skill, how strongly, above 0 up to 1, and why if they said
+export interface Feeling {
+  kind: FeelingKind;
+  intensity: number;
+  reason: string | null;
+}
+
+//how someone feels about a skill, in the order of FEELINGS
+export interface SkillFeelings {
+  skill_id: string;
+  feelings: Feeling[];
+}
+
+//every skill the logged in user has feelings about
+export const getFeelings = () => request<SkillFeelings[]>('GET', '/skills/feelings');
+
+//sets every way the logged in user feels about a skill, in place of what they felt before. An empty list clears them
+export const setFeelings = (id: string, feelings: Feeling[]) => request<void>('PUT', `/skills/${encodeURIComponent(id)}/feelings`, feelings);
+
+//a skill's feelings button: the feelings in short, or a question until they've said any
+export function feelingsLabel(feelings: Feeling[]) {
+  return feelings.length ? `Feelings: ${feelings.map(({ kind }) => FEELINGS.find((f) => f.kind === kind)?.short).join(', ')}` : 'How do you feel about it?';
 }
