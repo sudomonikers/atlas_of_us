@@ -1,6 +1,8 @@
 // Noor: a 34-year-old research physicist: analytical, curious, unconventional and independent, cool rather than warm,
 // blunt and honest, and quick to change her mind on evidence. Prefers a book to a party, and questions every rule.
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Noor",
   account: { phone: "+15555550108", password: "qa-test-noor-2026", first_name: "Noor", last_name: "Haddad", birthday: "1991-04-30", email: "qa.noor@example.com", username: "qa_noor" },
@@ -225,4 +227,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

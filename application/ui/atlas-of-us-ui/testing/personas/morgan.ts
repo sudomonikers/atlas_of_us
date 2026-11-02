@@ -1,6 +1,8 @@
 // Morgan: Blunt, sceptical, traditional operations manager: competitive, organised, unsentimental and truly stubborn.
 // Written for QA round 4; the full write-up, findings and history are in ../personality/personality_round_4.md
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Morgan",
   account: { phone: "+15555550104", password: "qa-test-morgan-2026", first_name: "Morgan", last_name: "Hale", birthday: "1968-11-03", email: "qa.morgan@example.com", username: "qa_morgan" },
@@ -224,4 +226,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

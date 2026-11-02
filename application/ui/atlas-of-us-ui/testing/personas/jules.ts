@@ -1,6 +1,8 @@
 // Jules: Low, stuck, impulsive 24-year-old dropout: self-deprecating, warm underneath, gives up easily.
 // Written for QA round 5; the full write-up, findings and history are in ../personality/personality_round_5.md
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Jules",
   account: { phone: "+15555550105", password: "qa-test-jules-2026", first_name: "Jules", last_name: "Fontaine", birthday: "2002-01-27", email: "qa.jules@example.com", username: "qa_jules" },
@@ -223,4 +225,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

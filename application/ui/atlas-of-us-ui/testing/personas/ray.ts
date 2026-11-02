@@ -1,6 +1,8 @@
 // Ray: a 46-year-old long-haul trucker, divorced: short-fused, suspicious, impulsive and stubborn, drinks too much,
 // keeps people at arm's length, and is low and worried underneath the bluster. A soft spot for kids.
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Ray",
   account: { phone: "+15555550110", password: "qa-test-ray-2026", first_name: "Ray", last_name: "Dempsey", birthday: "1979-02-25", email: "qa.ray@example.com", username: "qa_ray" },
@@ -224,4 +226,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

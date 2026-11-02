@@ -2,6 +2,8 @@
 // careful, and no thrill-seeker. An "average with a few standouts" check: Anxiety, Orderliness, Cautiousness and low
 // Excitement-Seeking should show, while Depression and Vulnerability stay near the middle. Targets
 // were corrected after the first run to what the answers show: she also came out kind, conscientious and self-conscious.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Tanya",
   account: { phone: "+15555550111", password: "qa-test-tanya-2026", first_name: "Tanya", last_name: "Reyes", birthday: "1989-02-11", email: "qa.tanya@example.com", username: "qa_tanya" },
@@ -227,4 +229,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

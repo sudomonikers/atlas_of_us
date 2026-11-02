@@ -1,6 +1,8 @@
 // Dev: Loud, warm, competitive salesperson: bold and impulsive, but a secret worrier, in one-line answers.
 // Written for QA round 2; the full write-up, findings and history are in ../personality/personality_round_2.md
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Dev",
   account: { phone: "+15555550102", password: "qa-test-dev-2026", first_name: "Dev", last_name: "Malhotra", birthday: "1997-07-02", email: "qa.dev@example.com", username: "qa_dev" },
@@ -225,4 +227,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

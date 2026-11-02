@@ -2,6 +2,8 @@
 // highly, overindulges and lives in chaos. An "average with a few standouts" check: Assertiveness, Immoderation, low
 // Orderliness and low Modesty should show, while Anger and Cooperation stay near the middle. Targets
 // were corrected after the first run to what the answers show: he also came out unflappable, sociable and loose with the truth.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Marcus",
   account: { phone: "+15555550112", password: "qa-test-marcus-2026", first_name: "Marcus", last_name: "Bell", birthday: "1977-08-04", email: "qa.marcus@example.com", username: "qa_marcus" },
@@ -227,4 +229,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

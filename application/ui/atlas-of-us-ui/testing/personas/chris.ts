@@ -1,6 +1,8 @@
 // Chris: an ordinary middle-of-the-road 41-year-old in IT support, married with two kids: sensible, mildly sociable, mostly follows the rules.
 // The "average person" check: most traits should stay near the middle, and none should be pushed to the ends.
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Chris",
   account: { phone: "+15555550106", password: "qa-test-chris-2026", first_name: "Chris", last_name: "Novak", birthday: "1985-09-09", email: "qa.chris@example.com", username: "qa_chris" },
@@ -227,4 +229,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

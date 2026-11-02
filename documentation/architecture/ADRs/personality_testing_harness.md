@@ -17,21 +17,20 @@ We needed a repeatable way to measure how close the scores are to what the answe
 against the last, and to exercise the real pipeline end to end.
 
 ## Decision
-We test with **scripted personas played through the real API**, and measure the scores against **targets set from the
+We test with **scripted personas played through the real UI in a browser**, and measure the scores against **targets set from the
 persona's answers**.
 
 ### Modules
 The harness tests more than one module. `testing/` holds what they share, and each module is a folder beside it:
 
-- `regression.mjs` is the entry point. Each module is picked by a flag of its folder's name, so `--personality` runs the
-  personality module and `--skills` would run a `testing/skills/` module. Several flags run each module in turn.
-  Anything after the flags that isn't a flag names the personas to run, and the other flags go to the module, such as
-  `--check`. With no module flag it lists the modules and their options.
-- `harness.mjs` holds what every module uses: calling the local API, logging a persona in (creating its account the
+- The tests are TypeScript, run by Playwright Test. `playwright.config.ts` in the UI folder makes each module a project,
+  so `--project=personality` runs the personality module and a `testing/skills/` module would be a `skills` project.
+  Every persona in a module is its own test, titled by its file name, so `-g ruth` runs only Ruth.
+- `harness.ts` holds what every module uses: calling the local API, logging a persona in (creating its account the
   first time), and saving a run to the module's `results/` and reading back the last one.
-- `personas/` holds the test personas, shared by every module.
-- A module is a folder with a `regression.mjs` whose default export is `{ about, options, run({ personas, options,
-  results }) }`. `run` resolves to whether the run passed, and gets only the personas that have the module's key.
+- `personas/` holds the test personas, shared by every module, with their type in `persona.ts` and all of them listed
+  in `index.ts`.
+- A module is a folder of `*.test.ts` files, with a reporter when its run needs a report beyond pass and fail.
 
 ### Personas
 - Each persona is one file in `personas/`. It holds a test account and a one-line personality, and a key for each module
@@ -55,19 +54,24 @@ The harness tests more than one module. `testing/` holds what they share, and ea
 - **Answers come before targets.** A persona's answers are written in character first. Its targets are then set trait by trait from what those answers actually show. Picturing the persona instead of reading the answers was the biggest source of error in every early round.
 - The targets were checked by **blind raters**: ten independent subagents scored anonymised answer sheets without seeing the targets. They agreed with the targets to within 4.6 points on average.
 
-### The personality run (`personality/regression.mjs`)
-For every persona at once:
-1. Log in, creating the account the first time.
+### The personality run (`personality/personality.test.ts`)
+Every persona is a test, and they all run at once:
+1. Make sure its account exists, creating it through the API the first time.
 2. Call `DELETE /api/personality/answers` to clear its answers and scores, so every run starts like a new player.
-3. Play all 15 scenes through the local API exactly as the UI's `ScriptPlayer` does: follow the branches its choices lead
-   to, and send the same context, choices offered, facets and clock with each answer.
-4. Wait for scoring between scenes, as the UI does. Scoring runs on every 5th finished scene; if the last scene didn't
-   trigger it, call `POST /api/personality/rescore`.
-5. Read back the scores, compare them with the targets and with the previous run, and save the run to `personality/results/` as JSON
-   (which the next run compares against) and as a markdown report.
+3. Open its own Playwright browser context and log in through the UI's login form.
+4. Play every scene in the UI as a player does: open its card, click through the text, pick the persona's choices and
+   type its answers. The UI builds the context, choices offered, facets and clock it sends with each answer. While a
+   scene's clock runs, the page's clock is paused and moved on so each timed answer is given with the seconds left the
+   persona has for it, and a persona that runs out moves the clock past the end.
+5. Wait for scoring between scenes, as a player does: the next scene's card stays locked until the rescore finishes. If
+   the last scene didn't trigger scoring, call `POST /api/personality/rescore`.
+6. Read back the scores and attach them to the test. A test passes when its persona plays through.
+7. `personality/reporter.ts` compares the scores with the targets and with the previous run, and saves the run to
+   `personality/results/` as JSON (which the next run compares against) and as a markdown report.
 
-`--check` checks every persona offline, without the API: every prompt on its path has an answer, every answer is used,
-and every trait has a target. It is run after any change to a scene's prompts.
+The `personality-check` project (`personality/check.test.ts`) checks every persona without playing: every prompt on its
+path has an answer, every answer is used, any clock it runs out is running, and every trait has a target. It is run
+after any change to a scene's prompts.
 
 ### The measure
 - The headline number is the **average gap** between score and target across all 430 persona-trait pairs, on the 0 to 1 scale.
@@ -75,7 +79,9 @@ and every trait has a target. It is run after any change to a scene's prompts.
 - After a run we read the scorer's evidence behind the biggest misses (`GET /api/personality/people/{id}/evidence`) and decide whether the scorer misread the answer, the trait's criteria were unclear, the trait had too little evidence, or the target was wrong. We write up findings before changing anything. The write-ups are `personality/personality_round_1.md` to `personality_round_5.md`, and the current state is `personality/scoring_capabilities.md`.
 
 ### How it's run
-- It runs by hand, from the UI folder, against the local API: `node testing/regression.mjs --personality [persona...]`.
+- It runs by hand, from the UI folder, against the local API: `npm run test:personality` for every persona, with
+  `-- -g <persona>` for some, and `npm run test:personality:check` for the check. Playwright starts the Vite dev server
+  on port 5173, or uses the one already running, and plays in headless Chromium. `-- --headed` shows the browsers.
 - Scoring happens in the deployed atlas-jobs Lambda, so a change to the scorer is deployed (`apis/atlas-jobs/deploy.sh`) before the run that tests it.
 - A full run takes 5 to 7 minutes and costs about $7 of Bedrock calls.
 - It is not part of CI.
@@ -96,5 +102,5 @@ and every trait has a target. It is run after any change to a scene's prompts.
 ## Alternatives considered
 - **Unit tests on the scorer with fixed expected scores.** Rejected: the model isn't repeatable to the point, and a fixed
   answer for one answer doesn't say whether the whole profile is right.
-- **Calling the scorer directly, skipping the API and UI flow.** Cheaper, but it would have missed the context the UI builds, the when-to-score logic, and both bugs the harness found. Playing through the API keeps the test honest to what players actually send.
+- **Calling the scorer directly, skipping the API and UI flow.** Cheaper, but it would have missed the context the UI builds, the when-to-score logic, and both bugs the harness found. Playing through the UI keeps the test honest to what players actually see and send.
 - **Real people with a validated questionnaire.** This is the real test, and it's the recommended next step: 10 to 20 people play all 15 scenes and also take the IPIP-NEO-120, which covers the same 30 Big Five facets. It couldn't be done before launch, and it can't be rerun after every change, so the persona harness stays as the fast loop alongside it.

@@ -1,6 +1,8 @@
 // Ruth: Anxious, rule-bound, kind introvert: a payroll clerk who plans, worries and hates the spotlight.
 // Written for QA round 1; the full write-up, findings and history are in ../personality/personality_round_1.md
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Ruth",
   account: { phone: "+15555550101", password: "qa-test-ruth-2026", first_name: "Ruth", last_name: "Ashworth", birthday: "1988-03-14", email: "qa.ruth@example.com", username: "qa_ruth" },
@@ -204,7 +206,7 @@ export default {
         next_year: { choice: 3, text: "I'd say it sounds fun, because I wouldn't want to upset Jun. But inside I'd be hoping it was forgotten. I like knowing what the weekend will be." },
         the_faith: { choice: 0, text: "I'd say yes, quietly. I was brought up that way. But I'd go red, I'd hate everyone looking at me." },
         the_wait: { choice: 1, text: "I'd ring the store at the bottom, then the highway patrol, then the hospitals. I'd be picturing the worst, his car in a ditch, blue lights.", left: 120 },
-        the_feeling: { choice: 0, text: "It's huge. My chest is so tight I can hardly breathe, my hands won't keep still, and I feel sick. I'd be pacing by the window.", left: 3, ran_out: true },
+        the_feeling: { choice: 0, text: "It's huge. My chest is so tight I can hardly breathe, my hands won't keep still, and I feel sick. I'd be pacing by the window.", left: 3 },
         the_tears: { choice: 1, text: "Hold her hand. I'd be crying too, really. I know exactly how she feels, I'd been thinking the same thing all night." },
         the_night: "Everything. Being ill. Losing my job. Mum dying. Fires. Making a mistake at work. Almost every night something keeps me awake.",
         looking_back: "The wait for Cal. I still feel sick thinking about it. I wish I could have been calmer, but I don't think I could.",
@@ -225,4 +227,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

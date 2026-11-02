@@ -1,6 +1,8 @@
 // Grace: a 63-year-old retired nurse, grandmother, church choir and community organiser: warm, generous, sociable and
 // busy, traditional and dutiful, calm in a crisis, and quietly certain things will turn out all right.
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Grace",
   account: { phone: "+15555550109", password: "qa-test-grace-2026", first_name: "Grace", last_name: "Adeyemi", birthday: "1963-06-18", email: "qa.grace@example.com", username: "qa_grace" },
@@ -227,4 +229,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

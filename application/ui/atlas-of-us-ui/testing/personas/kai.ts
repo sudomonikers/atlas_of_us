@@ -1,6 +1,8 @@
 // Kai: a 26-year-old surf instructor and bartender: carefree, thrill-seeking, impulsive and endlessly cheerful, trusting
 // and kind but allergic to plans, rules and deadlines. Never worries.
 // Targets were refreshed against the answers on 21 Oct 2026, wherever the answers put a trait 10 or more points away.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Kai",
   account: { phone: "+15555550107", password: "qa-test-kai-2026", first_name: "Kai", last_name: "Moana", birthday: "1999-12-12", email: "qa.kai@example.com", username: "qa_kai" },
@@ -225,4 +227,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;

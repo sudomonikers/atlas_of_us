@@ -3,6 +3,8 @@
 // Imagination, Trust, low Gregariousness and low Self-Discipline should show, while Intellect, Friendliness and
 // Self-Consciousness stay near the middle. Targets were corrected after the first run to what the
 // answers show: she also came out principled, kind, artistic and messy.
+import type { Persona } from './persona.ts';
+
 export default {
   name: "Holly",
   account: { phone: "+15555550113", password: "qa-test-holly-2026", first_name: "Holly", last_name: "Brennan", birthday: "1995-05-19", email: "qa.holly@example.com", username: "qa_holly" },
@@ -229,4 +231,4 @@ export default {
       },
     },
   },
-};
+} satisfies Persona;
