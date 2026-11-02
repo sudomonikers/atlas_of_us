@@ -8,6 +8,7 @@ import { personas } from './testing/personas/index.ts';
 //   npm run test:personality:check      checks every persona's answers and targets, without playing
 export default defineConfig({
   testDir: './testing',
+  outputDir: './testing/test-results', //traces, screenshots and the last run's state
   fullyParallel: true,
   workers: Object.keys(personas).length, //every persona plays at once, like that many players
   retries: 0, //a run costs real money, and a flaky failure is worth seeing
