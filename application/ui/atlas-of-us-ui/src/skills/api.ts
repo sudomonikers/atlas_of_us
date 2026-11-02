@@ -164,6 +164,13 @@ export interface Achievement {
   rank: number | null; //1 (Novice) to 5 (Expert)
   achieved_on: string | null; //YYYY-MM-DD
   evidence: Evidence[]; //oldest first
+  goal: GoalLevel | null; //the level they want to reach, if they've set a goal
+}
+
+//the level of a skill someone wants to reach, and when by if they said
+export interface GoalLevel {
+  rank: number;
+  by: string | null; //YYYY-MM-DD
 }
 
 //a skill someone has placed themselves on, with the level they've reached, when, and their evidence
@@ -199,15 +206,19 @@ export function monthYear(date: string) {
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 }
 
-//what it takes to reach the next level of a skill the logged in user is on, and where they are with each requirement.
-//Each requirement carries up from the highest level at or below the next one that names it, strongest first
-export interface NextStep {
-  skill_id: string;
-  rank: number; //the next level
-  next_level: string | null; //what it takes to get there, from the level they're at
+//what a level of a skill takes, and where the logged in user is with each requirement. Each requirement carries up from
+//the highest level at or below it that names it, strongest first
+export interface Requirements {
   skills: (SkillRequirement & { yours: number | null })[]; //yours: the level they've reached in it
   topics: (TopicRequirement & { yours: number | null })[]; //yours: the Bloom level they've reached in it
   traits: (TraitRequirement & { yours: number | null })[]; //yours: their score on it, 0 to 1, if they've been measured
+}
+
+//what it takes to reach the next level of a skill the logged in user is on
+export interface NextStep extends Requirements {
+  skill_id: string;
+  rank: number; //the next level
+  next_level: string | null; //what it takes to get there, from the level they're at
 }
 
 //the next level of every ready skill the logged in user is on below Expert
@@ -272,3 +283,25 @@ export interface TimelineSkill {
 
 //the logged in user's timeline, the skill they started earliest first
 export const getTimeline = () => request<TimelineSkill[]>('GET', '/skills/timeline');
+
+//a level of a skill the logged in user wants to reach, where they are now, and what the level takes
+export interface Goal extends Requirements {
+  skill: SkillRef;
+  rank: number; //the level they want to reach
+  by: string | null; //YYYY-MM-DD
+  set_at: string;
+  current: number | null; //the level they're at now, if they've placed themselves on the skill
+  reached_on: string | null; //YYYY-MM-DD, when they first reached it or a level above, once they have
+  description: string | null; //what the level is
+}
+
+//the logged in user's goals: the ones still to reach first, soonest date first, then the ones they've reached
+export const getGoals = () => request<Goal[]>('GET', '/skills/goals');
+
+const goalPath = (id: string) => `/skills/${encodeURIComponent(id)}/goal`;
+
+//sets the level of a skill the logged in user wants to reach, above the one they're at, and when by if they say
+export const setGoal = (id: string, rank: number, by: string | null) => request<void>('PUT', goalPath(id), { rank, by });
+
+//clears the logged in user's goal for a skill
+export const clearGoal = (id: string) => request<void>('DELETE', goalPath(id));

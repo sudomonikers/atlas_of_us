@@ -4,11 +4,20 @@ interface DatePickerProps {
   value: string; //YYYY-MM-DD, or '' until a whole, real date is entered
   onChange: (value: string) => void;
   labelId: string; //id of the visible label
+  messages: DateMessages; //what it says about a date it can't take, in the words of what the date is for
+  autoComplete?: string; //what the browser can fill it with, such as bday
+  opensYearsBack?: number; //how many years back the calendar opens when nothing's picked, from this month
 }
 
-//a MM/DD/YYYY box that can be typed in, with a calendar to pick from instead. Stands in for
+//what the picker says when a whole date is typed that it can't take: one after today, or one before MIN_YEAR
+export interface DateMessages {
+  future: string;
+  tooEarly: (minYear: number) => string;
+}
+
+//a MM/DD/YYYY box that can be typed in, with a calendar to pick from instead, for a date up to today. Stands in for
 //<input type="date">, whose picker is drawn by the browser and can't be styled
-export function DatePicker({ value, onChange, labelId }: DatePickerProps) {
+export function DatePicker({ value, onChange, labelId, messages, autoComplete = 'off', opensYearsBack = 0 }: DatePickerProps) {
   const [text, setText] = useState(() => (value ? toTyped(fromIso(value)) : ''));
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -16,14 +25,14 @@ export function DatePicker({ value, onChange, labelId }: DatePickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   useDismiss(rootRef, open, () => setOpen(false));
 
-  const problem = dateProblem(text);
+  const problem = dateProblem(text, messages);
   //stops the form submitting, and is what the browser says when it does
   useEffect(() => inputRef.current?.setCustomValidity(problem), [problem]);
 
   const type = (raw: string) => {
     const next = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? toTyped(fromIso(raw)) : formatTyped(raw); //autofill can hand us YYYY-MM-DD
     setText(next);
-    onChange(dateProblem(next) ? '' : toIso(parseTyped(next)!));
+    onChange(dateProblem(next, messages) ? '' : toIso(parseTyped(next)!));
   };
   const pick = (date: Date) => {
     setText(toTyped(date));
@@ -42,7 +51,7 @@ export function DatePicker({ value, onChange, labelId }: DatePickerProps) {
         ref={inputRef}
         style={styles.dateText}
         inputMode="numeric"
-        autoComplete="bday"
+        autoComplete={autoComplete}
         placeholder="MM/DD/YYYY"
         aria-labelledby={labelId}
         aria-invalid={!!problem && text.length === 10}
@@ -62,19 +71,23 @@ export function DatePicker({ value, onChange, labelId }: DatePickerProps) {
       >
         <CalendarIcon />
       </button>
-      {open && <Calendar selected={parseTyped(text)} onPick={pick} onClose={close} />}
+      {open && (
+        <div style={styles.calendarLine}>
+          <Calendar selected={parseTyped(text)} yearsBack={opensYearsBack} onPick={pick} onClose={close} />
+        </div>
+      )}
       {/* only once it's all typed, so it doesn't nag halfway through */}
       {problem && text.length === 10 && <span style={styles.dateError}>{problem}</span>}
     </div>
   );
 }
 
-//a month of days to pick from, with month and year dropdowns since birthdays are usually decades back.
+//a month of days to pick from, with month and year dropdowns for dates decades back.
 //Keyboard: arrows move a day/week, Home/End the start/end of the week, Page Up/Down a month
 //(+ Shift for a year), Enter picks, Escape closes
-function Calendar({ selected, onPick, onClose }: { selected?: Date; onPick: (date: Date) => void; onClose: () => void }) {
+function Calendar({ selected, yearsBack, onPick, onClose }: { selected?: Date; yearsBack: number; onPick: (date: Date) => void; onClose: () => void }) {
   const today = startOfToday();
-  const [cursor, setCursor] = useState(() => clampDate(selected ?? new Date(today.getFullYear() - 25, today.getMonth(), 1)));
+  const [cursor, setCursor] = useState(() => clampDate(selected ?? new Date(today.getFullYear() - yearsBack, today.getMonth(), 1)));
   const focusCursor = useRef(true); //move focus to the cursor's day after it changes, unless a dropdown moved it
   const gridRef = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -258,12 +271,12 @@ function parseTyped(text: string) {
 }
 
 //what's wrong with a typed date, or '' if nothing. Empty is left to required
-function dateProblem(text: string) {
+function dateProblem(text: string, messages: DateMessages) {
   if (!text) return '';
   const date = parseTyped(text);
   if (!date) return "That's not a date I recognize. Try MM/DD/YYYY, like 04/27/1994.";
-  if (date > startOfToday()) return "Born in the future? Bold. Try a date that's already happened.";
-  if (date.getFullYear() < MIN_YEAR) return `Your birthday has to be after ${MIN_YEAR}.`;
+  if (date > startOfToday()) return messages.future;
+  if (date.getFullYear() < MIN_YEAR) return messages.tooEarly(MIN_YEAR);
   return '';
 }
 
@@ -303,7 +316,6 @@ const box: CSSProperties = {
 
 const styles: Record<string, CSSProperties> = {
   dateRow: {
-    position: 'relative',
     display: 'flex',
     flexWrap: 'wrap',
     gap: 8,
@@ -329,13 +341,17 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 15,
     color: brownRed,
   },
+  //the calendar's own line under the box, so it opens in the flow and pushes what's below it down rather than floating
+  //over it, where a container that scrolls would clip it. It hangs down from the calendar button, on the right
+  calendarLine: {
+    flexBasis: '100%',
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
   calendar: {
     ...box,
-    position: 'absolute',
-    top: 'calc(100% + 6px)',
-    right: 0,
-    zIndex: 20,
-    width: 'min(320px, calc(100vw - 48px))',
+    boxSizing: 'border-box',
+    width: 'min(320px, 100%)',
     padding: 10,
     background: '#fff',
     boxShadow: `4px 5px 0 ${gunmetal}`,

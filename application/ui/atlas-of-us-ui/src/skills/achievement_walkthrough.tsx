@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { LEVEL_NAMES, setAchievement, skillEvidence, type Achievement, type Skill } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
-import { DatePicker } from '../shared_components/date-picker';
+import { DatePicker, type DateMessages } from '../shared_components/date-picker';
 import { EvidenceForm, EvidenceList } from '../shared_components/evidence';
 import { Stepper } from '../shared_components/stepper';
 import { Dots } from '../shared_components/thinking';
@@ -14,6 +14,12 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
+
+//what the box for when they reached a level says about a date it can't take
+const REACHED_MESSAGES: DateMessages = {
+  future: "That's still to come. Pick the day you got there, or skip it.",
+  tooEarly: (year) => `That's a long time ago. Try a date after ${year}.`,
+};
 
 interface AchievementWalkthroughProps {
   skill: Skill;
@@ -94,7 +100,7 @@ export function AchievementWalkthrough({ skill, achievement, onChange, onClose }
           <>
             <h2 style={styles.title} id="reached-on">When did you reach {LEVEL_NAMES[rank - 1]}?</h2>
             <p style={styles.text}>Roughly is fine. You can skip it if you're not sure.</p>
-            <DatePicker value={date} onChange={setDate} labelId="reached-on" />
+            <DatePicker value={date} onChange={setDate} labelId="reached-on" messages={REACHED_MESSAGES} />
             {saving && <p style={styles.question}>Saving<Dots /></p>}
             <div style={styles.footer}>
               <button className="comic-lift" style={styles.back} disabled={saving} onClick={() => setStage('levels')}>

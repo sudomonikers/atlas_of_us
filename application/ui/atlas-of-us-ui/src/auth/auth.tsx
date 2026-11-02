@@ -1,7 +1,7 @@
 import { useId, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 
 import { navigate } from '../router';
-import { DatePicker } from '../shared_components/date-picker';
+import { DatePicker, type DateMessages } from '../shared_components/date-picker';
 import { Nav } from '../shared_components/nav';
 import { PhoneNumberInput } from '../shared_components/phone-number-input';
 import { createUser, login } from './api';
@@ -93,7 +93,16 @@ function CreateUser({ onAuthenticated, onSwitch }: PageProps) {
           <input style={styles.input} type="email" autoComplete="email" required value={form.email} onChange={set('email')} />
         </Field>
         <Field label="Birthday" group>
-          {(labelId) => <DatePicker value={form.birthday} onChange={(birthday) => setForm((f) => ({ ...f, birthday }))} labelId={labelId} />}
+          {(labelId) => (
+            <DatePicker
+              value={form.birthday}
+              onChange={(birthday) => setForm((f) => ({ ...f, birthday }))}
+              labelId={labelId}
+              messages={BIRTHDAY_MESSAGES}
+              autoComplete="bday"
+              opensYearsBack={25}
+            />
+          )}
         </Field>
         <div style={styles.row}>
           <Field label="Password" hint="At least 8 characters">
@@ -181,6 +190,12 @@ function Field({ label, hint, error, group, children }: FieldProps) {
     </label>
   );
 }
+
+//what the birthday box says about a date it can't take
+const BIRTHDAY_MESSAGES: DateMessages = {
+  future: "Born in the future? Bold. Try a date that's already happened.",
+  tooEarly: (year) => `Your birthday has to be after ${year}.`,
+};
 
 /* ---------------------------------------------------------------------------------------------
  * styles

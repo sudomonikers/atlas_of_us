@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievement, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
+import { LEVEL_NAMES, getAchievement, monthYear, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AchievementWalkthrough } from './achievement_walkthrough';
+import { GoalForm } from './goal_form';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
@@ -52,6 +53,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
   const rank = picked ?? own;
   const [achievement, setAchievement] = useState<Achievement>(); //where the user is with it, once it's ready
   const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
+  const [settingGoal, setSettingGoal] = useState(false); //picking the level they want to reach
 
   useEffect(() => {
     let live = true;
@@ -121,14 +123,29 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
   if (error) return <AtlasError message={error} style={styles.column} />;
   if (!skill) return <Thinking label="Finding that skill" mascot style={styles.column} />;
 
+  //sets or changes the level the user wants to reach, once they've a level left to reach or a goal to change
+  const goal = achievement?.goal;
+  const goalButton = skill.status === 'ready' && achievement && (goal || (achievement.rank ?? 0) < LEVEL_NAMES.length) && (
+    <button className="comic-lift" style={styles.goalButton} aria-expanded={settingGoal} onClick={() => setSettingGoal((open) => !open)}>
+      {!goal
+        ? 'Set a goal'
+        : (achievement.rank ?? 0) >= goal.rank
+          ? `Goal reached: ${LEVEL_NAMES[goal.rank - 1]}`
+          : `Goal: ${LEVEL_NAMES[goal.rank - 1]}${goal.by ? ` by ${monthYear(goal.by)}` : ''}`}
+    </button>
+  );
+
   return (
     <article style={styles.column}>
       {bare ? (
-        achievement?.rank === null && (
+        (achievement?.rank === null || goalButton) && (
           <div style={styles.bareButtons}>
-            <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
-              Add yourself
-            </button>
+            {achievement?.rank === null && (
+              <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
+                Add yourself
+              </button>
+            )}
+            {goalButton}
           </div>
         )
       ) : (
@@ -141,6 +158,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
                 Add yourself
               </button>
             )}
+            {goalButton}
             {onShowInGraph && (
               <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
                 See it on the atlas
@@ -155,6 +173,20 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
 
       {skill.status === 'ready' && (
         <>
+          {achievement && settingGoal && (
+            <div style={styles.goalForm}>
+              <GoalForm
+                skillId={skill.id}
+                current={achievement.rank}
+                goal={achievement.goal}
+                onSaved={(goal) => {
+                  setAchievement({ ...achievement, goal });
+                  setSettingGoal(false);
+                }}
+                onCancel={() => setSettingGoal(false)}
+              />
+            </div>
+          )}
           {achievement && walking && (
             <AchievementWalkthrough skill={skill} achievement={achievement} onChange={setAchievement} onClose={() => setWalking(false)} />
           )}
@@ -409,6 +441,8 @@ const styles: Record<string, CSSProperties> = {
   bareButtons: {
     marginBottom: 18,
     display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   headerButtons: {
     display: 'flex',
@@ -420,6 +454,21 @@ const styles: Record<string, CSSProperties> = {
     background: ivory,
     color: gunmetal,
     fontSize: 13,
+  },
+  goalButton: {
+    padding: '2px 14px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: corners,
+    boxShadow: `3px 3px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 18,
+    letterSpacing: 1,
+    cursor: 'pointer',
+  },
+  goalForm: {
+    marginBottom: 28,
   },
   graphButton: {
     padding: '2px 14px',

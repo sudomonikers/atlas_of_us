@@ -1,5 +1,6 @@
-import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievements, getNextSteps, getPersonalityFits, getSuggestions, getTimeline, doesNotHave, monthYear, setAchievement, type AchievedSkill, type Fit, type Fits, type NextStep, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { LEVEL_NAMES, clearGoal, getAchievements, getGoals, getNextSteps, getPersonalityFits, getSuggestions, getTimeline, doesNotHave, monthYear, setAchievement, type AchievedSkill, type Fit, type Fits, type Goal, type NextStep, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import { GoalForm } from './goal_form';
 import Timeline from './timeline';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
@@ -16,17 +17,19 @@ const paleCinnamon = 'var(--pale-cinnamon)';
 const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
-//the My Skills view: the skills the user has placed themselves on, grouped by level from Expert down, each opening its
-//skill page and showing what it takes to reach its next level. Then when they reached each level, the skills they
-//probably have but haven't added, the
-//skills that suit their personality, and the ones they got good at against its pull
+//the My Skills view: the user's goals, then the skills they've placed themselves on, grouped by level from Expert down,
+//each opening its skill page and showing what it takes to reach its next level. Then when they reached each level, the
+//skills they probably have but haven't added, the skills that suit their personality, and the ones they got good at
+//against its pull
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
   const [steps, setSteps] = useState<Map<string, NextStep>>();
   const [suggestions, setSuggestions] = useState<Suggestion[]>();
   const [fits, setFits] = useState<Fits>();
   const [timeline, setTimeline] = useState<TimelineSkill[]>();
-  const [open, setOpen] = useState<Set<string>>(new Set());
+  const [goals, setGoals] = useState<Goal[]>();
+  const [open, setOpen] = useState<Set<string>>(new Set()); //the rows whose requirements are showing, by key
+  const [setting, setSetting] = useState<string>(); //the skill a goal is being set for
   const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
 
@@ -41,10 +44,31 @@ export default function MySkills() {
     getSuggestions().then((loaded) => live && setSuggestions(loaded), () => {});
     getPersonalityFits().then((loaded) => live && setFits(loaded), () => {});
     getTimeline().then((loaded) => live && setTimeline(loaded), () => {});
+    getGoals().then((loaded) => live && setGoals(loaded), () => {});
     return () => {
       live = false;
     };
   }, [loads]);
+
+  const reload = () => {
+    setSetting(undefined);
+    setLoads((n) => n + 1);
+  };
+  const toggle = (key: string) =>
+    setOpen((o) => {
+      const next = new Set(o);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  const hasGoal = new Set(goals?.map(({ skill }) => skill.id));
+  //sets a goal for a skill, under its row
+  const goalForm = (id: string, current: number | null) =>
+    setting === id && <GoalForm skillId={id} current={current} goal={null} onSaved={reload} onCancel={() => setSetting(undefined)} />;
+  const goalButton = (id: string) => (
+    <button className="comic-lift" style={styles.toggle} aria-expanded={setting === id} onClick={() => setSetting(setting === id ? undefined : id)}>
+      Set a goal
+    </button>
+  );
 
   return (
     <section style={styles.panel} className="comic-panel comic-pop">
@@ -53,6 +77,7 @@ export default function MySkills() {
       {error && <AtlasError message={error} />}
       {!error && !skills && <Thinking label="Gathering what you can do" />}
       {skills && !skills.length && <p style={styles.text}>Nothing here yet. Open a skill in the Skills Explorer and add yourself to it.</p>}
+      {!!goals?.length && <Goals goals={goals} open={open} onToggle={toggle} onChanged={reload} />}
       {LEVEL_NAMES.map((name, i) => ({ name, rank: i + 1 }))
         .reverse()
         .map(({ name, rank }) => {
@@ -69,12 +94,6 @@ export default function MySkills() {
                   {at.map(({ skill, achieved_on, evidence }) => {
                     const step = steps?.get(skill.id);
                     const expanded = open.has(skill.id);
-                    const toggle = () =>
-                      setOpen((o) => {
-                        const next = new Set(o);
-                        if (!next.delete(skill.id)) next.add(skill.id);
-                        return next;
-                      });
                     return (
                       <li key={skill.id} style={styles.row}>
                         <div style={styles.rowHead}>
@@ -87,13 +106,16 @@ export default function MySkills() {
                           </span>
                           {rank === LEVEL_NAMES.length && <span style={styles.top}>Top level</span>}
                           {step && (
-                            <button className="comic-lift" style={styles.toggle} aria-expanded={expanded} onClick={toggle}>
-                              {summary(step)}
+                            <button className="comic-lift" style={styles.toggle} aria-expanded={expanded} onClick={() => toggle(skill.id)}>
+                              Next: {LEVEL_NAMES[step.rank - 1]}
+                              {metOf(step)}
                               <Chevron open={expanded} />
                             </button>
                           )}
+                          {rank < LEVEL_NAMES.length && skill.status === 'ready' && !hasGoal.has(skill.id) && goalButton(skill.id)}
                         </div>
-                        {step && expanded && <NextLevel step={step} />}
+                        {goalForm(skill.id, rank)}
+                        {step && expanded && <LevelRequirements heading={`Getting to ${LEVEL_NAMES[step.rank - 1]}`} text={step.next_level} requirements={step} />}
                       </li>
                     );
                   })}
@@ -106,7 +128,9 @@ export default function MySkills() {
       {!!suggestions?.length && (
         <Suggestions
           suggestions={suggestions}
-          onAdded={() => setLoads((n) => n + 1)}
+          goalButton={(id) => !hasGoal.has(id) && goalButton(id)}
+          goalForm={(id) => goalForm(id, null)}
+          onAdded={reload}
           onDismissed={(id) => setSuggestions((all) => all?.filter((s) => s.skill.id !== id))}
         />
       )}
@@ -133,7 +157,13 @@ export default function MySkills() {
 
 //the skills the user probably has: ones their skills' levels need, and ones their skills are a kind of. Each can be
 //added at the level their skills need, opened to read its levels first, or dismissed for good
-function Suggestions({ suggestions, onAdded, onDismissed }: { suggestions: Suggestion[]; onAdded: () => void; onDismissed: (id: string) => void }) {
+function Suggestions({ suggestions, goalButton, goalForm, onAdded, onDismissed }: {
+  suggestions: Suggestion[];
+  goalButton: (id: string) => ReactNode; //sets a goal for a suggested skill
+  goalForm: (id: string) => ReactNode; //the form for it, when it's open
+  onAdded: () => void;
+  onDismissed: (id: string) => void;
+}) {
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const act = (id: string, action: () => Promise<void>, then: () => void) => {
@@ -176,7 +206,9 @@ function Suggestions({ suggestions, onAdded, onDismissed }: { suggestions: Sugge
               <button className="comic-lift" style={styles.toggle} disabled={!!busy} onClick={() => act(skill.id, () => doesNotHave(skill.id), () => onDismissed(skill.id))}>
                 Not me
               </button>
+              {skill.status === 'ready' && goalButton(skill.id)}
             </div>
+            {goalForm(skill.id)}
           </li>
         ))}
       </ul>
@@ -230,21 +262,87 @@ function and(items: string[]) {
   return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-//the toggle's one line: the next level, and how many of the skills and knowledge it takes the user already has
-function summary({ rank, skills, topics }: NextStep) {
+//how many of the skills and knowledge a level takes the user already has, for a toggle's line, e.g. ", 3 of 5 met"
+function metOf({ skills, topics }: Requirements) {
   const checks = [...skills, ...topics];
   const met = checks.filter(({ rank, yours }) => yours !== null && yours >= rank).length;
-  return `Next: ${LEVEL_NAMES[rank - 1]}${checks.length ? `, ${met} of ${checks.length} met` : ''}`;
+  return checks.length ? `, ${met} of ${checks.length} met` : '';
 }
 
-//what reaching the next level of a skill takes: the skills and knowledge, each marked met or not yet, and the
-//personality, shown beside the user's own score
-function NextLevel({ step }: { step: NextStep }) {
-  const { rank, next_level, skills, topics, traits } = step;
+//the user's goals, each with where they are, and once open what the level takes. Reached goals stay until cleared
+function Goals({ goals, open, onToggle, onChanged }: { goals: Goal[]; open: Set<string>; onToggle: (key: string) => void; onChanged: () => void }) {
+  const [changing, setChanging] = useState<string>();
+  const [error, setError] = useState<string>();
+  const today = new Date().toLocaleDateString('en-CA'); //YYYY-MM-DD, in the user's own time zone
+  const clear = (id: string) =>
+    clearGoal(id).then(onChanged, (e) => setError(e instanceof Error ? e.message : String(e)));
+  return (
+    <section style={styles.group} aria-label="Goals">
+      <h3 style={styles.groupHeading}>Goals</h3>
+      {error && <AtlasError message={error} />}
+      <ul style={styles.list}>
+        {goals.map((goal) => {
+          const { skill, rank, by, current, reached_on, description } = goal;
+          const key = `goal:${skill.id}`;
+          const expanded = open.has(key);
+          const level = LEVEL_NAMES[rank - 1];
+          return (
+            <li key={skill.id} style={reached_on ? { ...styles.row, ...styles.reached } : styles.row}>
+              <div style={styles.rowHead}>
+                <button className="comic-lift" style={styles.name} onClick={() => navigate(`/skills/${encodeURIComponent(skill.id)}`)}>
+                  {skill.name}
+                </button>
+                <span style={styles.detail}>
+                  {reached_on
+                    ? `Reached ${level} in ${monthYear(reached_on)}.`
+                    : `${level}${by ? ` by ${monthYear(by)}` : ''}${by && by < today ? ', and that date has passed' : ''}. ${current ? `You're at ${LEVEL_NAMES[current - 1]}.` : 'Not on it yet.'}`}
+                </span>
+              </div>
+              <div style={styles.actions}>
+                {!reached_on && (
+                  <button className="comic-lift" style={styles.toggle} aria-expanded={expanded} onClick={() => onToggle(key)}>
+                    What {level} takes{metOf(goal)}
+                    <Chevron open={expanded} />
+                  </button>
+                )}
+                <button className="comic-lift" style={styles.toggle} aria-expanded={changing === skill.id} onClick={() => setChanging(changing === skill.id ? undefined : skill.id)}>
+                  {reached_on ? 'Set a new goal' : 'Change goal'}
+                </button>
+                {reached_on && (
+                  <button className="comic-lift" style={styles.toggle} onClick={() => clear(skill.id)}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              {changing === skill.id && (
+                <GoalForm
+                  skillId={skill.id}
+                  current={current}
+                  goal={reached_on ? null : { rank, by }}
+                  onSaved={() => {
+                    setChanging(undefined);
+                    onChanged();
+                  }}
+                  onCancel={() => setChanging(undefined)}
+                />
+              )}
+              {!reached_on && expanded && <LevelRequirements heading={`Getting to ${level}`} text={description} requirements={goal} />}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+//what reaching a level of a skill takes: the skills and knowledge, each marked met or not yet, and the personality,
+//shown beside the user's own score
+function LevelRequirements({ heading, text, requirements }: { heading: string; text: string | null; requirements: Requirements }) {
+  const { skills, topics, traits } = requirements;
   return (
     <div style={styles.next}>
-      <h4 style={styles.subheading}>Getting to {LEVEL_NAMES[rank - 1]}</h4>
-      {next_level && <p style={styles.text}>{next_level}</p>}
+      <h4 style={styles.subheading}>{heading}</h4>
+      {text && <p style={styles.text}>{text}</p>}
       {!skills.length && !topics.length && !traits.length && <p style={styles.text}>This level doesn't name any other skills, knowledge or personality.</p>}
       {!!skills.length && (
         <div>
@@ -300,7 +398,7 @@ function NextLevel({ step }: { step: NextStep }) {
   );
 }
 
-//a skill or topic the next level takes, marked met or not yet, opening its page
+//a skill or topic a level takes, marked met or not yet, opening its page
 function Check({ met, label, where, reason, onOpen }: { met: boolean; label: string; where: string; reason: string; onOpen: () => void }) {
   return (
     <li style={styles.check}>
@@ -446,6 +544,9 @@ const styles: Record<string, CSSProperties> = {
   top: {
     fontSize: 15,
     color: brownRed,
+  },
+  reached: {
+    background: paleCinnamon,
   },
   toggle: {
     display: 'inline-flex',
