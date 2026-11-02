@@ -54,6 +54,13 @@ personality.
 
 ### 2. Population norms
 
+(Seeded) `database/physical_norms_import/` works out survey-weighted percentiles from NHANES and writes
+`database/physical_norms_seed.cypher`: 15 measurements (body size, vitals, grip strength, VO2 max, body fat, hearing,
+visual acuity) with norms by sex and age band. A person's percentile is worked out on read from their raw reading, their
+age on the day and their `normSex`. The Physical Traits page (`ui/.../src/physical/`, api in `domains/physical/`) records
+readings, shows each one's percentile, and sets `normSex`. Still to build: setting HAS_ABILITY from the measurements
+that show an ability, and ANSUR II for body dimensions beyond NHANES's.
+
 - **NHANES** (public domain): US distributions by age and sex for height, weight, grip strength, blood pressure,
   resting heart rate and more.
 - **ANSUR II** (public domain): 93 body measurements from about 6,000 people.
@@ -125,6 +132,11 @@ Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15
 
 - **Cognitive abilities** are in Physical, with a second label, Cognitive.
 - **Abilities are a percentile** like personality, not graded levels. O\*NET's anchors are examples along the scale.
+- **Measurements are their own nodes.** PhysicalMeasurement with NHANES norms (MeasurementNorm per sex and age
+  band), a person's readings as HAS_MEASUREMENT {value, measuredOn}, one per reading, and the percentile worked out on
+  read. `better` (higher, lower or neither) covers neutral ones like height. Conditions will be modelled separately.
+- **Sex for norms.** An optional `normSex` on Person, used only to pick a norm. Without it a person is compared with
+  everyone.
 - **Abilities and skills.** An ability is a capacity of the body or mind that makes things easier or harder to learn,
   and a skill is something you get better at by learning how. O\*NET's verbal abilities (oral and written comprehension
   and expression) and quantitative abilities (mathematical reasoning, number facility) are skills, so they're left out
@@ -133,6 +145,4 @@ Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15
 
 ## Open questions
 
-- **Kinds of measurement.** Split HAS_MEASUREMENT by kind: ability (percentile), dimension (raw value and percentile,
-  neutral) and condition (presence and severity)?
 - **Conditions and privacy.** Model health conditions only once a privacy and visibility model exists?

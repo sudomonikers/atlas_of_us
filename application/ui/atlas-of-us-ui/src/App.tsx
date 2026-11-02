@@ -8,6 +8,7 @@ import { usePath } from './router'
 const About = lazy(() => import('./about/about'))
 const Admin = lazy(() => import('./admin/admin'))
 const Blog = lazy(() => import('./blog/blog'))
+const Physical = lazy(() => import('./physical/physical'))
 const Personality = lazy(() => import('./personality/personality'))
 const Profile = lazy(() => import('./profile/profile'))
 const Roadmap = lazy(() => import('./roadmap/roadmap'))
@@ -25,6 +26,7 @@ function Page({ path }: { path: string }) {
   if (path === '/personality') return <Personality />
   if (path === '/skills' || path.startsWith('/skills/')) return <Skills />
   if (path === '/topics' || path.startsWith('/topics/')) return <Topics />
+  if (path === '/physical') return <Physical />
   return <Home />
 }
 

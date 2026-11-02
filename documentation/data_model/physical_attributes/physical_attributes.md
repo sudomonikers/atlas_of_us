@@ -10,7 +10,7 @@ mostly known, so most of it is seeded, and it changes little over time. It cover
 3. **Conditions,** linked to the abilities and structures they affect.
 4. **Body structure,** the organ systems and major regions everything else hangs on.
 
-Measurements, conditions and body structure are still to be defined.
+Conditions and body structure are still to be defined.
 
 ## Abilities
 An ability is a capacity of a person's body or mind that makes things easier or harder to learn, such as strength,
@@ -30,11 +30,29 @@ There are 46 abilities, from O\*NET (the Fleishman taxonomy), in four categories
 The cognitive abilities carry a second label, `Cognitive`. A person's place on an ability is a percentile, as with
 personality traits. O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown.
 
+## Measurements
+A measurement is something about a body with a number and a unit, such as height, grip strength or resting heart rate.
+There are 15, seeded from NHANES, the US national health survey: body size (height, weight, BMI, waist and hip
+circumference, upper arm and leg length), vitals (resting heart rate, blood pressure), strength and fitness (grip
+strength, VO2 max, body fat) and the senses (hearing threshold, visual acuity).
+
+Each measurement has **norms**: the value at each percentile of the US population, for a sex (male, female or all) and
+an age band. A person records the raw value, and their percentile is worked out when it's read, against the norm for
+their sex for norms and their age on the day they measured it. Someone who hasn't given a sex for norms is compared
+with everyone. `better` says which way is good: `higher` (grip strength), `lower` (resting heart rate) or `neither`
+(height, where a percentile only says where someone sits).
+
+A measurement that shows an ability links to it: grip strength shows Static Strength, and VO2 max shows Stamina.
+
 ## Nodes
 
 | Label | Key properties | What it is |
 |---|---|---|
 | Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot. Cognitive abilities have a second label, `Cognitive` |
+| PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description` | One of the 15 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness` or `Senses`, and `min` and `max` are the lowest and highest readings that can be recorded |
+| MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists |
+
+A Person carries `normSex`, `male` or `female`, when they've given it: the sex whose norms they're compared with.
 
 ## Relationships
 
@@ -42,6 +60,9 @@ personality traits. O\*NET's data is CC BY 4.0, and asks for credit wherever it'
 |---|---|---|---|
 | HAS_ABILITY | Person → Ability | `value`, `confidence` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it. No relationship means unmeasured, not average |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability (see the Skills graph) |
+| HAS_NORM | PhysicalMeasurement → MeasurementNorm | | A measurement's norms |
+| MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
+| HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value |
 
 ## Example
 ```cypher
@@ -56,4 +77,12 @@ personality traits. O\*NET's data is CC BY 4.0, and asks for credit wherever it'
 
 // every level of Cooking takes a fairly steady pair of hands
 (:DreyfusLevel:Novice {name: "Cooking Novice"})-[:REQUIRES_ABILITY {level: 0.6, strength: 0.4, reason: "Chops and pours without spilling"}]->(:Ability {name: "Arm-Hand Steadiness"})
+
+// grip strength shows Static Strength, and its norm for men in their twenties puts the median at 48.1 kg
+(g:PhysicalMeasurement {name: "Grip Strength", unit: "kg", better: "higher"})-[:MEASURES]->(s)
+(g)-[:HAS_NORM]->(:MeasurementNorm {sex: "male", ageFrom: 18, ageTo: 29,
+  percentiles: [1, 3, 5, ..., 50, ..., 97, 99], values: [29.0, 32.7, 34.3, ..., 48.1, ..., 67.2, 73.5]})
+
+// Andrew squeezed 55 kg at 27, which is about the 76th percentile for men his age
+(andrew {normSex: "male"})-[:HAS_MEASUREMENT {value: 55.0, measuredOn: date("2026-10-30")}]->(g)
 ```
