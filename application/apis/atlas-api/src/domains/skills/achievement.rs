@@ -35,13 +35,15 @@ fn about(id: &str) -> About<'_> {
 }
 
 //where the logged in user is with a skill: the rank of the level they've reached, if they've placed themselves on it,
-//when they reached it if they said, and the level they want to reach, if they've set a goal
+//when they reached it if they said, the level they want to reach, if they've set a goal, and how many hours a week they
+//practice it, if they've said
 #[derive(Serialize, Deserialize)]
 pub struct Achievement {
     rank: Option<i64>,
     achieved_on: Option<String>, //YYYY-MM-DD
     evidence: Vec<Evidence>, //oldest first
     goal: Option<GoalLevel>,
+    hours_per_week: Option<f64>,
 }
 
 //the level of a skill someone wants to reach, and when by if they said
@@ -68,8 +70,10 @@ async fn get_achievement(State(state): State<AppState>, user: AuthUser, Path(id)
         OPTIONAL MATCH (p)-[r:ACHIEVED]->(l:DreyfusLevel)<-[:HAS_LEVEL]-(s)
         WHERE {}
         OPTIONAL MATCH (p)-[g:WANTS_TO_REACH]->(gl:DreyfusLevel)<-[:HAS_LEVEL]-(s)
+        OPTIONAL MATCH (p)-[pr:PRACTICES]->(s)
         RETURN l.rank AS rank, toString(r.achievedOn) AS achieved_on, {} AS evidence,
-               CASE WHEN g IS NULL THEN null ELSE {{rank: gl.rank, by: toString(g.by)}} END AS goal
+               CASE WHEN g IS NULL THEN null ELSE {{rank: gl.rank, by: toString(g.by)}} END AS goal,
+               pr.hoursPerWeek AS hours_per_week
     ", current("p", "l", "s"), evidence::collect("p", "s"))).param("id", id).param("personId", user.person_id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     Ok(Json(row.to::<Achievement>().map_err(internal)?))
@@ -130,11 +134,16 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
     Ok(StatusCode::NO_CONTENT)
 }
 
-//takes the logged in user off a skill, with every level they reached in it and all their evidence for it
+//takes the logged in user off a skill, with every level they reached in it, how much they practice it, and all their
+//evidence for it
 async fn remove_achievement(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<StatusCode, (StatusCode, String)> {
     state.graph.run(query("
-        MATCH (:Person {id: $personId})-[r:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(:Skill {id: $id})
+        MATCH (p:Person {id: $personId}), (s:Skill {id: $id})
+        OPTIONAL MATCH (p)-[r:ACHIEVED]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s)
         DELETE r
+        WITH DISTINCT p, s
+        OPTIONAL MATCH (p)-[pr:PRACTICES]->(s)
+        DELETE pr
     ").param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
     evidence::remove_all(&state, &user.person_id, about(&id)).await?;
     Ok(StatusCode::NO_CONTENT)

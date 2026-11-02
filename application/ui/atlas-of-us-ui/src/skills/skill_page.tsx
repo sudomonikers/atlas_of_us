@@ -1,7 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, getAchievement, monthYear, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
+import { LEVEL_NAMES, getAchievement, monthYear, practiceLabel, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
 import { AchievementWalkthrough } from './achievement_walkthrough';
 import { GoalForm } from './goal_form';
+import { PracticeForm } from './practice_form';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
@@ -54,6 +55,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
   const [achievement, setAchievement] = useState<Achievement>(); //where the user is with it, once it's ready
   const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
   const [settingGoal, setSettingGoal] = useState(false); //picking the level they want to reach
+  const [settingPractice, setSettingPractice] = useState(false); //saying how much they practice it
 
   useEffect(() => {
     let live = true;
@@ -134,11 +136,17 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
           : `Goal: ${LEVEL_NAMES[goal.rank - 1]}${goal.by ? ` by ${monthYear(goal.by)}` : ''}`}
     </button>
   );
+  //says how much they practice it, once they're on it
+  const practiceButton = skill.status === 'ready' && achievement && achievement.rank !== null && (
+    <button className="comic-lift" style={styles.goalButton} aria-expanded={settingPractice} onClick={() => setSettingPractice((open) => !open)}>
+      {practiceLabel(achievement.hours_per_week)}
+    </button>
+  );
 
   return (
     <article style={styles.column}>
       {bare ? (
-        (achievement?.rank === null || goalButton) && (
+        (achievement?.rank === null || goalButton || practiceButton) && (
           <div style={styles.bareButtons}>
             {achievement?.rank === null && (
               <button className="comic-lift" style={styles.button} onClick={() => setWalking(true)}>
@@ -146,6 +154,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
               </button>
             )}
             {goalButton}
+            {practiceButton}
           </div>
         )
       ) : (
@@ -159,6 +168,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
               </button>
             )}
             {goalButton}
+            {practiceButton}
             {onShowInGraph && (
               <button className="comic-lift" style={styles.graphButton} onClick={() => onShowInGraph({ id: skill.id, name: skill.name, status: skill.status })}>
                 See it on the atlas
@@ -184,6 +194,19 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
                   setSettingGoal(false);
                 }}
                 onCancel={() => setSettingGoal(false)}
+              />
+            </div>
+          )}
+          {achievement && settingPractice && (
+            <div style={styles.goalForm}>
+              <PracticeForm
+                skillId={skill.id}
+                hours={achievement.hours_per_week}
+                onSaved={(hours) => {
+                  setAchievement({ ...achievement, hours_per_week: hours });
+                  setSettingPractice(false);
+                }}
+                onCancel={() => setSettingPractice(false)}
               />
             </div>
           )}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { LEVEL_NAMES, clearGoal, getAchievements, getGoals, getNextSteps, getPersonalityFits, getSuggestions, getTimeline, doesNotHave, monthYear, setAchievement, type AchievedSkill, type Fit, type Fits, type Goal, type NextStep, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import { LEVEL_NAMES, clearGoal, getAchievements, getGoals, getNextSteps, getPersonalityFits, getPractice, getSuggestions, getTimeline, doesNotHave, hoursAWeek, monthYear, practiceLabel, setAchievement, type AchievedSkill, type Fit, type Fits, type Goal, type NextStep, type Practice, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
 import { GoalForm } from './goal_form';
+import { PracticeForm } from './practice_form';
 import Timeline from './timeline';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
@@ -18,9 +19,9 @@ const comic = 'var(--font-comic)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 
 //the My Skills view: the user's goals, then the skills they've placed themselves on, grouped by level from Expert down,
-//each opening its skill page and showing what it takes to reach its next level. Then when they reached each level, the
-//skills they probably have but haven't added, the skills that suit their personality, and the ones they got good at
-//against its pull
+//each opening its skill page and showing what it takes to reach its next level. Then where their practice time goes,
+//when they reached each level, the skills they probably have but haven't added, the skills that suit their
+//personality, and the ones they got good at against its pull
 export default function MySkills() {
   const [skills, setSkills] = useState<AchievedSkill[]>();
   const [steps, setSteps] = useState<Map<string, NextStep>>();
@@ -28,8 +29,10 @@ export default function MySkills() {
   const [fits, setFits] = useState<Fits>();
   const [timeline, setTimeline] = useState<TimelineSkill[]>();
   const [goals, setGoals] = useState<Goal[]>();
+  const [practice, setPractice] = useState<Practice[]>();
   const [open, setOpen] = useState<Set<string>>(new Set()); //the rows whose requirements are showing, by key
   const [setting, setSetting] = useState<string>(); //the skill a goal is being set for
+  const [practising, setPractising] = useState<string>(); //the skill whose practice is being set
   const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
 
@@ -45,6 +48,7 @@ export default function MySkills() {
     getPersonalityFits().then((loaded) => live && setFits(loaded), () => {});
     getTimeline().then((loaded) => live && setTimeline(loaded), () => {});
     getGoals().then((loaded) => live && setGoals(loaded), () => {});
+    getPractice().then((loaded) => live && setPractice(loaded), () => {});
     return () => {
       live = false;
     };
@@ -52,6 +56,7 @@ export default function MySkills() {
 
   const reload = () => {
     setSetting(undefined);
+    setPractising(undefined);
     setLoads((n) => n + 1);
   };
   const toggle = (key: string) =>
@@ -69,6 +74,8 @@ export default function MySkills() {
       Set a goal
     </button>
   );
+
+  const hours = new Map(practice?.map((p) => [p.skill.id, p.hours_per_week]));
 
   return (
     <section style={styles.panel} className="comic-panel comic-pop">
@@ -113,8 +120,16 @@ export default function MySkills() {
                             </button>
                           )}
                           {rank < LEVEL_NAMES.length && skill.status === 'ready' && !hasGoal.has(skill.id) && goalButton(skill.id)}
+                          {practice && (
+                            <button className="comic-lift" style={styles.toggle} aria-expanded={practising === skill.id} onClick={() => setPractising(practising === skill.id ? undefined : skill.id)}>
+                              {practiceLabel(hours.get(skill.id) ?? null)}
+                            </button>
+                          )}
                         </div>
                         {goalForm(skill.id, rank)}
+                        {practising === skill.id && (
+                          <PracticeForm skillId={skill.id} hours={hours.get(skill.id) ?? null} onSaved={reload} onCancel={() => setPractising(undefined)} />
+                        )}
                         {step && expanded && <LevelRequirements heading={`Getting to ${LEVEL_NAMES[step.rank - 1]}`} text={step.next_level} requirements={step} />}
                       </li>
                     );
@@ -124,6 +139,7 @@ export default function MySkills() {
             )
           );
         })}
+      {!!practice?.length && <TimeSpent practice={practice} />}
       {!!timeline?.length && <Timeline skills={timeline} />}
       {!!suggestions?.length && (
         <Suggestions
@@ -245,6 +261,82 @@ function FitList({ label, intro, fits }: { label: string; intro: string; fits: F
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+//where the user's practice time goes, each skill's hours as a share of the most practiced one's, then the skills that
+//look rusty, with no practice at Proficient or above, or stuck, with lots of practice and no new level in a long time
+function TimeSpent({ practice }: { practice: Practice[] }) {
+  const practised = practice.filter(({ hours_per_week }) => !!hours_per_week);
+  const most = Math.max(...practised.map(({ hours_per_week }) => hours_per_week!));
+  const total = practised.reduce((sum, { hours_per_week }) => sum + hours_per_week!, 0);
+  const unsaid = practice.filter(({ hours_per_week }) => hours_per_week === null).length;
+  const rusty = practice.filter(({ flag }) => flag === 'rusty');
+  const plateaus = practice.filter(({ flag }) => flag === 'plateau');
+  const open = (id: string) => navigate(`/skills/${encodeURIComponent(id)}`);
+  return (
+    <section style={styles.group} aria-label="Where your time goes">
+      <h3 style={styles.groupHeading}>Where your time goes</h3>
+      {practised.length ? (
+        <p style={styles.text}>
+          {hoursAWeek(total)} across {practised.length} skill{practised.length === 1 ? '' : 's'}.
+        </p>
+      ) : (
+        <p style={styles.text}>Say how much you practice each of your skills above, and this shows where your time goes.</p>
+      )}
+      {!!practised.length && (
+        <ul style={styles.bars}>
+          {practised.map(({ skill, hours_per_week }) => (
+            <li key={skill.id} style={styles.barRow}>
+              <button className="comic-lift" style={{ ...styles.link, ...styles.barName }} onClick={() => open(skill.id)}>
+                {skill.name}
+              </button>
+              <span style={styles.bar} role="meter" aria-label={`${skill.name} practice`} aria-valuemin={0} aria-valuemax={most} aria-valuenow={hours_per_week!}>
+                <span style={{ ...styles.barFill, width: `${(hours_per_week! / most) * 100}%` }} />
+              </span>
+              <span style={styles.where}>{hours_per_week} h</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!!rusty.length && (
+        <div>
+          <h4 style={styles.minorHeading}>Getting rusty</h4>
+          <ul style={styles.checks}>
+            {rusty.map(({ skill, rank }) => (
+              <li key={skill.id} style={styles.check}>
+                <button className="comic-lift" style={styles.link} onClick={() => open(skill.id)}>
+                  {skill.name}
+                </button>
+                <span>You're at {LEVEL_NAMES[rank - 1]} and don't practice it right now. A little regular use keeps a skill like this from fading.</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!!plateaus.length && (
+        <div>
+          <h4 style={styles.minorHeading}>On a plateau</h4>
+          <ul style={styles.checks}>
+            {plateaus.map(({ skill, rank, hours_per_week, at_level_since }) => (
+              <li key={skill.id} style={styles.check}>
+                <button className="comic-lift" style={styles.link} onClick={() => open(skill.id)}>
+                  {skill.name}
+                </button>
+                <span>
+                  {hoursAWeek(hours_per_week!)}, and at {LEVEL_NAMES[rank - 1]} since {monthYear(at_level_since)}. Practicing what {LEVEL_NAMES[rank]} takes, rather than more of the same, can move it on.
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!!unsaid && unsaid < practice.length && (
+        <p style={styles.where}>
+          {unsaid} of your skills {unsaid === 1 ? "doesn't" : "don't"} say how much you practice {unsaid === 1 ? 'it' : 'them'} yet.
+        </p>
+      )}
     </section>
   );
 }
@@ -637,6 +729,40 @@ const styles: Record<string, CSSProperties> = {
   },
   where: {
     color: blue,
+  },
+  bars: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  barRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '4px 12px',
+    fontSize: 15,
+  },
+  barName: {
+    flex: '0 1 220px',
+    overflowWrap: 'anywhere',
+  },
+  bar: {
+    position: 'relative',
+    flex: '1 1 160px',
+    height: 16,
+    background: '#fff',
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  barFill: {
+    position: 'absolute',
+    inset: 0,
+    right: 'auto',
+    background: blue,
   },
   traitName: {
     minWidth: 190,

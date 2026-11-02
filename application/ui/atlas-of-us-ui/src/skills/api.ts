@@ -165,6 +165,7 @@ export interface Achievement {
   achieved_on: string | null; //YYYY-MM-DD
   evidence: Evidence[]; //oldest first
   goal: GoalLevel | null; //the level they want to reach, if they've set a goal
+  hours_per_week: number | null; //how much they practice it, if they've said
 }
 
 //the level of a skill someone wants to reach, and when by if they said
@@ -305,3 +306,33 @@ export const setGoal = (id: string, rank: number, by: string | null) => request<
 
 //clears the logged in user's goal for a skill
 export const clearGoal = (id: string) => request<void>('DELETE', goalPath(id));
+
+//a skill the logged in user is on, how much they practice it, and whether that makes it look rusty (Proficient or above
+//with no practice) or stuck on a plateau (lots of practice and no new level for a long time)
+export interface Practice {
+  skill: SkillRef;
+  rank: number; //the level they're at
+  hours_per_week: number | null; //null until they say
+  at_level_since: string; //YYYY-MM-DD, when they reached the level they're at
+  flag: 'rusty' | 'plateau' | null;
+}
+
+//every skill the logged in user is on with how much they practice it, the most practiced first
+export const getPractice = () => request<Practice[]>('GET', '/skills/practice');
+
+//the most hours a week anyone can say they practice a skill, as the api allows
+export const MAX_PRACTICE_HOURS = 100;
+
+//sets how many hours a week the logged in user practices a skill they're on. 0 says they don't practice it now
+export const setPractice = (id: string, hoursPerWeek: number) =>
+  request<void>('PUT', `/skills/${encodeURIComponent(id)}/practice`, { hours_per_week: hoursPerWeek });
+
+//hours a week in words, e.g. "1.5 hours a week"
+export function hoursAWeek(hours: number) {
+  return `${hours} hour${hours === 1 ? '' : 's'} a week`;
+}
+
+//a skill's practice button: how much the user practices it, or a question until they've said
+export function practiceLabel(hours: number | null) {
+  return hours === null ? 'How much do you practice?' : `Practice: ${hours ? hoursAWeek(hours) : 'none right now'}`;
+}

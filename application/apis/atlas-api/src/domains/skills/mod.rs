@@ -3,6 +3,7 @@
 mod achievement;
 mod goals;
 mod personality_fits;
+mod practice;
 mod timeline;
 mod gates;
 
@@ -46,6 +47,7 @@ pub fn router() -> Router<AppState> {
         .merge(achievement::router())
         .merge(goals::router())
         .merge(personality_fits::router())
+        .merge(practice::router())
         .merge(timeline::router())
 }
 

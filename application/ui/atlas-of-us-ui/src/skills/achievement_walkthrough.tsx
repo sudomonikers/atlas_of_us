@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, setAchievement, skillEvidence, type Achievement, type Skill } from './api';
+import { LEVEL_NAMES, MAX_PRACTICE_HOURS, setAchievement, setPractice, skillEvidence, type Achievement, type Skill } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { DatePicker, type DateMessages } from '../shared_components/date-picker';
 import { EvidenceForm, EvidenceList } from '../shared_components/evidence';
@@ -28,25 +28,33 @@ interface AchievementWalkthroughProps {
   onClose: () => void;
 }
 
-//where the walkthrough is: climbing the levels, saying when they reached the one they picked, or giving evidence for it
+//where the walkthrough is: climbing the levels, saying when they reached the one they picked and how much they practice
+//it, or giving evidence for it
 type Stage = 'levels' | 'date' | 'evidence';
 
 //places the user on a skill: they climb its Dreyfus levels from Novice, saying at each one whether it's them exactly or
-//they're past it, and step back when they've gone too far. Then they say when they got there, if they know, and can
-//give evidence for the level they're at
+//they're past it, and step back when they've gone too far. Then they say when they got there and how many hours a week
+//they practice it, if they want, and can give evidence for the level they're at
 export function AchievementWalkthrough({ skill, achievement, onChange, onClose }: AchievementWalkthroughProps) {
   const [rank, setRank] = useState(1); //the level being read
   const [stage, setStage] = useState<Stage>('levels');
   const [date, setDate] = useState(achievement.achieved_on ?? '');
+  const [hours, setHours] = useState(achievement.hours_per_week?.toString() ?? ''); //as typed
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
 
-  const save = (achievedOn: string | null) => {
+  //saves the level, then the practice once they're on the skill. Skipping leaves out both
+  const save = (achievedOn: string | null, practice: number | null) => {
+    if (practice !== null && !(practice >= 0 && practice <= MAX_PRACTICE_HOURS)) {
+      setError(`Pick between 0 and ${MAX_PRACTICE_HOURS} hours a week.`);
+      return;
+    }
     setSaving(true);
     setError(undefined);
     setAchievement(skill.id, rank, achievedOn)
+      .then(() => (practice === null ? undefined : setPractice(skill.id, practice)))
       .then(() => {
-        onChange({ ...achievement, rank, achieved_on: achievedOn });
+        onChange({ ...achievement, rank, achieved_on: achievedOn, hours_per_week: practice ?? achievement.hours_per_week });
         setStage('evidence');
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
@@ -99,17 +107,39 @@ export function AchievementWalkthrough({ skill, achievement, onChange, onClose }
         {stage === 'date' && (
           <>
             <h2 style={styles.title} id="reached-on">When did you reach {LEVEL_NAMES[rank - 1]}?</h2>
-            <p style={styles.text}>Roughly is fine. You can skip it if you're not sure.</p>
+            <p style={styles.text}>Roughly is fine. You can skip either question if you're not sure.</p>
             <DatePicker value={date} onChange={setDate} labelId="reached-on" messages={REACHED_MESSAGES} />
+            <label style={styles.subheading} htmlFor="practice-hours">
+              How many hours a week do you practice it?
+            </label>
+            <div style={styles.hours}>
+              <input
+                id="practice-hours"
+                style={styles.input}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={MAX_PRACTICE_HOURS}
+                step={0.5}
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+              />
+              <span style={styles.text}>hours a week. 0 if you don't right now.</span>
+            </div>
             {saving && <p style={styles.question}>Saving<Dots /></p>}
             <div style={styles.footer}>
               <button className="comic-lift" style={styles.back} disabled={saving} onClick={() => setStage('levels')}>
                 Back
               </button>
-              <button className="comic-lift" style={styles.secondary} disabled={saving} onClick={() => save(null)}>
+              <button className="comic-lift" style={styles.secondary} disabled={saving} onClick={() => save(null, null)}>
                 Skip
               </button>
-              <button className="comic-lift" style={{ ...styles.primary, ...(date ? {} : styles.disabled) }} disabled={saving || !date} onClick={() => save(date)}>
+              <button
+                className="comic-lift"
+                style={{ ...styles.primary, ...(date || hours ? {} : styles.disabled) }}
+                disabled={saving || !(date || hours)}
+                onClick={() => save(date || null, hours === '' ? null : Number(hours))}
+              >
                 Save
               </button>
             </div>
@@ -216,6 +246,22 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 24,
     letterSpacing: 1,
+  },
+  hours: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
+  input: {
+    width: 90,
+    padding: '6px 10px',
+    background: '#fff',
+    color: gunmetal,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 8,
+    font: 'inherit',
+    fontSize: 17,
   },
   footer: {
     display: 'flex',
