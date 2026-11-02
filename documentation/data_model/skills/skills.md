@@ -30,10 +30,11 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | REQUIRES_SKILL | DreyfusLevel → DreyfusLevel | `strength`, `reason` | A level needs a level of another skill |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A level takes a personality trait. `level` is where on the trait it pulls, above 0.5 for more of it |
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
-| ACHIEVED | Person → DreyfusLevel | `achievedOn`, `levelVersion`, `since`, `updatedAt` | The level they've reached, by their own account. `levelVersion` is the version they claimed against |
+| ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
 | LIKES, DISLIKES, BORED_BY, INTIMIDATED_BY | Person → Skill | `intensity`, `reason`, `timestamp` | How they feel about it. These stack: someone can like and dislike a skill for different reasons |
 | PRACTICES | Person → Skill | `hoursPerWeek` | How much they do it |
+| WANTS_TO_REACH | Person → DreyfusLevel | `setAt`, `by` | A level they want to reach, one per skill, and the date they want it by. It's reached once they have an ACHIEVED to it or a level above, and stays until they clear it |
 | DOES_NOT_HAVE | Person → Skill | `date` | They've said they don't have it, so it isn't suggested to them. Placing themselves on it takes this back |
 | ENDORSES | Person → DreyfusLevel or SkillProposal | `version`, `date` | They think a level's content, or a proposal, is right. On a level it records the version endorsed |
 | OPPOSES | Person → SkillProposal | `date`, `reason` | They think a proposal is wrong |
@@ -50,7 +51,8 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
   A higher level has its own requirement on the same node only when what it needs there changes.
 - **No loops.** SPECIALIZATION_OF points only at a skill's most specific broader skills, and neither it nor
   REQUIRES_SKILL ever leads back to where it started.
-- **One ACHIEVED per skill,** to the highest level the person has reached. They're taken to have every level below it.
+- **An ACHIEVED per level reached.** The highest is the person's level in the skill now, and they're taken to have every
+  level below it. Moving down a level corrects it, so the ACHIEVEDs above come off.
 - **Claims remember their version.** An ACHIEVED whose `levelVersion` is below the level's `version` was made against
   criteria that have since changed.
 

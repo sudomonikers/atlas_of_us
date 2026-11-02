@@ -122,14 +122,23 @@ The Skills page has two views:
   Zoomed out, skills cluster under their broadest field; zoomed in, they have names and links. Search combines name
   matching with embedding similarity. Selecting a skill shows its levels under the board, and expanding it shows what
   it links to: the skills, traits and topics it needs. A level picker narrows the links to what that level needs.
-- **My Skills** lists the skills the user has placed themselves on, grouped by level.
+- **My Skills** starts with the user's goals: levels they want to reach, set from a skill's page or from My Skills,
+  each with what the level takes and the knowledge to learn for it. Then it lists the skills the user has placed
+  themselves on, grouped by level. Each one shows what its next level takes, and which of those skills and knowledge
+  the user already has. A learning path lists the topics those next levels and goals need that the user doesn't know
+  deeply enough yet, each after the topics whose Ideas its own Ideas build on. A timeline shows
+  when they reached each level of each skill. Under them are the skills the user probably has: ones their skills need,
+  or are a kind of. They can add each one, or say it isn't theirs. Last come the skills whose personality suits the
+  user's own, and the ones they got good at against its pull, from how the traits a skill takes compare with the
+  user's scores.
 
 A guide on the page walks through what skills are, the five levels and how to use the Explorer.
 
 ### Placing yourself on a skill
 On a `ready` skill, the user reads the levels from Novice up and says which one is them, and optionally when they got
-there. That's their one `ACHIEVED` to the skill. They can back it up with evidence, notes or files, which works the same
-as for a topic (see `topics.md`). Their level shows on the skill, in My Skills, and on their profile.
+there. That's an `ACHIEVED` to that level, and the highest they've reached is their level in the skill. They can back
+it up with evidence, notes or files, which works the same as for a topic (see `topics.md`). Their level shows on the
+skill, in My Skills, and on their profile.
 
 ## Community review
 Level content is shared by everyone placed on that skill. If one user could rewrite "Competent", everyone else's claim
