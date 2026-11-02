@@ -45,7 +45,8 @@ of "a kind of". A subtopic is a part of a broader field, as Organic Chemistry is
 each other, or where one helps you understand the other, are separate topics with no link.
 
 **The gates** match the skills gates, with a topic being a subject a person knows about. Something a person does is a
-skill, how they tend to be is a personality trait, and what their body is like is a physical attribute. Beliefs,
+skill, how they tend to be is a personality trait, and what their body is like, or a capacity of their body or mind,
+is a physical attribute. Beliefs,
 religions, philosophies and theories are topics, whether they're true or not, and every real subject passes the
 screen.
 

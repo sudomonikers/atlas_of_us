@@ -33,7 +33,8 @@ of the others fits:
 values, religions, philosophies, theories and fields of study are all topics, true or not.
 - \"they can ...\": something they do, rather than a subject they know. A skill.
 - \"they are ...\": how they tend to be. A personality trait.
-- \"their body is ...\": part of the body or what it is like. A physical attribute.
+- \"their body is ...\": part of the body, what it is like, or a capacity of their body or mind that makes things \
+easier or harder to learn (strength, stamina, eyesight, reaction time, dexterity, memory). A physical attribute.
 Take the most plausible reading, the way a colleague would. A subject that is also something people do is a topic here \
 (\"Python\" is a topic as well as a skill). Your reasoning is about what it is, never about whether it's true, useful, \
 specific or worth adding. Then answer the rest from that reasoning.

@@ -77,8 +77,9 @@ skill has the same five levels:
 5. Expert: acts fluidly from deep, intuitive understanding, and can invent, adapt and teach.
 
 ## Which skills
-- Other skills: things a person can do and could learn to do better. Knowledge of a subject (\"French History\"), how \
-someone tends to be (\"Patience\") and what their body is like (\"Height\") are kept elsewhere, so leave them out.
+- Other skills: things a person can do and gets better at by learning how. Knowledge of a subject (\"French \
+History\"), how someone tends to be (\"Patience\"), what their body is like (\"Height\") and the capacities of their \
+body or mind (\"Manual Dexterity\", \"Stamina\") are kept elsewhere, so leave them out.
 - Direct prerequisites only. Leave out what a prerequisite already needs: Cooking needs Knife Skills, and Knife Skills \
 already needs whatever it needs.
 - Not the skill itself under another name, not the skills it's a kind of, and not kinds of it.

@@ -34,6 +34,7 @@ pub async fn handle(graph: &Graph, queue: &str, body: &str) {
         "SkillFillRequested-Skills" => skill_fill_requested::skills::run(graph, event.detail).await,
         "SkillFilled-Skills" => skill_filled::skills::run(graph, event.detail).await,
         "SkillFilled-Personality" => skill_filled::personality::run(graph, event.detail).await,
+        "SkillFilled-Physical" => skill_filled::physical::run(graph, event.detail).await,
         "SkillFilled-Topics" => skill_filled::topics::run(graph, event.detail).await,
         "TopicFillRequested-Topics" => topic_fill_requested::topics::run(graph, event.detail).await,
         _ => tracing::warn!(queue, source = event.source, detail_type = event.detail_type, detail = %event.detail, "no handler for queue"),

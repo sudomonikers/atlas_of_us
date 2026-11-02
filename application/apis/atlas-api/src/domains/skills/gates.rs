@@ -28,10 +28,11 @@ person does, worded any way at all.
 Start by reading it as describing a person. First write it as \"they can ...\", keeping what they typed as it is \
 (\"they can check train engines\", \"they can french history\"). Then reason in two or three short sentences about whether that \
 sentence describes something a person does. When it does, it's a skill. When it doesn't, find which of the others fits:
-- \"they can ...\": something they do, and could learn to do better. A skill.
+- \"they can ...\": something they do, and get better at by learning how. A skill.
 - \"they are ...\": how they tend to be. A personality trait.
 - \"they know about ...\": a subject they know, rather than something they do. A topic.
-- \"their body is ...\": part of the body or what it is like. A physical attribute.
+- \"their body is ...\": part of the body, what it is like, or a capacity of their body or mind that makes things \
+easier or harder to learn (strength, stamina, eyesight, reaction time, dexterity, memory). A physical attribute.
 Take the most plausible reading, the way a colleague would. Something worded as a task or an instruction is describing \
 what a person can do. Your reasoning is about what it is, never about whether it's useful, specific or worth adding. Then \
 answer the rest from that reasoning.
@@ -48,7 +49,9 @@ One plain sentence saying what the skill is.
 
 ## kind
 skill, personality, topic or physical_attribute, from your reasoning. When \"they can\" fits, it's a skill, even when it \
-involves a subject (Python is a skill). other is for nonsense, and for anything none of the four fits.
+involves a subject (Python is a skill). A capacity they have rather than learn is physical_attribute, even when \
+\"they can\" fits (\"Manual Dexterity\", \"Stamina\", \"Memorization\"). other is for nonsense, and for anything none \
+of the four fits.
 
 ## acceptable
 The screening keeps out abuse, not weak requests. false only for gibberish, a joke, a slur, or an attack on a group of \

@@ -78,7 +78,8 @@ skill has the same five levels:
 
 ## Which topics
 - Topics: subjects a person knows about and understands (\"Food Safety\", \"Thermodynamics\", \"Music Theory\"). What a \
-person can do (\"Knife Skills\"), how someone tends to be (\"Patience\") and what their body is like (\"Height\") are \
+person can do (\"Knife Skills\"), how someone tends to be (\"Patience\"), what their body is like (\"Height\") and the \
+capacities of their body or mind (\"Manual Dexterity\", \"Memorization\") are \
 kept elsewhere, so leave them out.
 - The knowledge the skill itself needs, not everything near it. Leave out what a topic already covers: Cooking needs \
 Food Safety, and Food Safety already covers what it covers.

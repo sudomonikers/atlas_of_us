@@ -12,6 +12,7 @@ locals {
     { event = "SkillFillRequested", source = "atlas.skills", module = "Skills", concurrency = 5 },
     { event = "SkillFilled", source = "atlas.skills", module = "Skills", concurrency = 2 },
     { event = "SkillFilled", source = "atlas.skills", module = "Personality", concurrency = 2 },
+    { event = "SkillFilled", source = "atlas.skills", module = "Physical", concurrency = 2 },
     { event = "SkillFilled", source = "atlas.skills", module = "Topics", concurrency = 2 },
     { event = "TopicFillRequested", source = "atlas.topics", module = "Topics", concurrency = 5 },
   ] : "${job.event}-${job.module}" => job }

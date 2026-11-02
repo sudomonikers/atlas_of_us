@@ -19,7 +19,7 @@ export const PLACEHOLDER = 'Physics, stoicism, wine tasting...';
 const ELSEWHERE: Record<Extract<AskOutcome, { outcome: 'not_a_topic' }>['kind'], { says: (name: string) => string; to?: [string, string] }> = {
   skill: { says: (name) => `"${name}" is something you do, more than something you know about. That lives in Skills.`, to: ['Go to Skills', '/skills'] },
   personality: { says: (name) => `"${name}" is how you are, more than something you know about. That lives in Personality.`, to: ['Go to Personality', '/personality'] },
-  physical_attribute: { says: (name) => `"${name}" is about your body, more than something you know about. That part of the Atlas is coming soon.` },
+  physical_attribute: { says: (name) => `"${name}" is about your body or mind, more than something you know about. That part of the Atlas is coming soon.` },
   other: { says: (name) => `I can't place "${name}" anywhere in the Atlas.` },
 };
 

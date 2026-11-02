@@ -1,4 +1,4 @@
-//Physical Attributes Graph: body structure (Uberon), conditions (Mondo/HPO) and PhysicalMeasurement nodes
+//Physical Attributes Graph: abilities (O*NET), measurements, conditions and body structure
 use axum::{Json, Router, response::IntoResponse, routing::get};
 use serde_json::json;
 

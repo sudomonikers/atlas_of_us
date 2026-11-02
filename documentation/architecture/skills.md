@@ -112,8 +112,8 @@ of each, how strongly and why. Each name goes through the resolver, so it links 
 link that would make a loop of prerequisites is taken out again.
 
 Requirements on anything other than skills are written by the modules that own them, reacting to the same
-`SkillFilled`: Personality links each level to the traits it takes (see `personality.md`) and Topics to the knowledge
-it needs (see `topics.md`).
+`SkillFilled`: Personality links each level to the traits it takes (see `personality.md`), Topics to the knowledge it
+needs (see `topics.md`) and Physical Attributes to the abilities it takes (see `physical.md`).
 
 ## What the user sees
 The Skills page has two views:
