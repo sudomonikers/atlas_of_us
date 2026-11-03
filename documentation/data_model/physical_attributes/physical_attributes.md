@@ -7,9 +7,12 @@ mostly known, so most of it is seeded, and it changes little over time. It cover
 1. **Abilities,** seeded from the O\*NET content model: what a body and mind can do, such as Static Strength, Reaction
    Time and Near Vision.
 2. **Measurements,** such as height and grip strength, with population norms and tests a person can do themselves.
-3. **Body functions and structures,** seeded from the WHO's ICF: what each part of the body does and what it's made
-   of, and the impairments a person has in them.
-4. **Conditions,** from Mondo and HPO, linked to the functions and structures they affect.
+3. **Body functions,** seeded from the WHO's ICF: what the body and mind do, such as memory or seeing.
+4. **Anatomy,** seeded from the Foundational Model of Anatomy (FMA) and BodyParts3D: every part of the body, with a 3D
+   model of it to explore.
+5. **Conditions,** from Mondo and HPO, linked to the functions and parts they affect.
+
+A person notes the impairments they have in functions and parts, and the conditions they have.
 
 ## Abilities
 An ability is a capacity of a person's body or mind that makes things easier or harder to learn, such as strength,
@@ -43,20 +46,37 @@ with everyone. `better` says which way is good: `higher` (grip strength), `lower
 
 A measurement that shows an ability links to it: grip strength shows Static Strength, and VO2 max shows Stamina.
 
-## Body functions and structures
+## Body functions
 The WHO's International Classification of Functioning, Disability and Health (ICF) names every body function, such as
-memory functions or visual acuity functions, and every body structure, such as the structure of the knee joint. There
-are 346 functions and 209 structures, each with a name, a description, what it includes and excludes, and the group
-it's in. Narrower ones are part of broader ones: Short-term memory is part of Memory functions.
-
-A person notes an **impairment** in a function or structure with how much: `mild`, `moderate`, `severe` or `complete`.
-An impairment in a structure can also say how it has changed: `total_absence`, `partial_absence`, `additional_part`,
-`aberrant_dimensions`, `discontinuity`, `deviating_position` or `qualitative_change`. No impairment means none noted.
-Impairments are private to the person.
+memory functions or visual acuity functions. There are 346, each with a name, a description, what it includes and
+excludes, and the group it's in. Narrower ones are part of broader ones: Short-term memory is part of Memory functions.
 
 Body functions underlie the abilities they're the basis of, so an impairment in visual acuity functions can hold back
 Near Vision and Far Vision, and measurements measure the function they're a reading of. The ICF is (c) World Health
 Organization, CC BY-ND 3.0 IGO: names stay as WHO wrote them, and WHO is credited wherever they're shown.
+
+## Anatomy
+Every part of the body BodyParts3D has a 3D model of, 3,432 of them from whole systems down to single muscles, bones,
+vessels and nerves, and the main parts it has no model of, such as the uterus, the thyroid gland and the knee joint, 56
+of them. Each has its name, definition and other names from the Foundational Model of Anatomy (FMA), the reference
+ontology of human anatomy, and the FMA id, which is its identity. A part belongs to the wholes it's part of (the left
+femur is part of the skeleton of the left lower limb) and is a kind of the broader parts it's a type of (the left femur
+is a femur, which is a long bone). Parts serve the body functions they carry out: the lung serves respiration
+functions. Measurements measure the parts they're a reading of: grip strength measures the hand.
+
+What's linked to a part counts for the parts it's made of and the parts it belongs to: asthma affects the lung, so it
+affects the left lung, and the lung's conditions show on the respiratory system too. Conditions, measurements and
+impairments also reach a part through the functions it serves.
+
+A part with a model is drawn with one or more meshes of the 3D body, and the meshes sit on layers: skin, skeleton,
+muscles, organs, nervous system, and heart and vessels. FMA is CC BY 3.0, and BodyParts3D is (c) The Database Center
+for Life Science, CC BY 4.0; both are credited wherever they're shown.
+
+## Impairments
+A person notes an **impairment** in a body function or part with how much: `mild`, `moderate`, `severe` or `complete`.
+An impairment in a part can also say how it has changed: `total_absence`, `partial_absence`, `additional_part`,
+`aberrant_dimensions`, `discontinuity`, `deviating_position` or `qualitative_change`. No impairment means none noted.
+Impairments are private to the person.
 
 ## Conditions
 A condition is something a person has that affects their body or mind: a disease from the Mondo Disease Ontology, such
@@ -66,8 +86,8 @@ identity. 262 common ones are seeded, and a person can add any other human disea
 from HPO, which is looked up in EBI's Ontology Lookup Service.
 
 A condition is a kind of the nearest broader conditions in the graph, as the ontology arranges them (Alzheimer disease
-is a kind of dementia), and affects the body functions and structures it acts on (asthma affects respiration functions
-and the lungs). The seeded conditions' links to the body are chosen by hand, and an LLM chooses them for the ones people
+is a kind of dementia), and affects the body functions and parts it acts on (asthma affects respiration functions
+and the lung). The seeded conditions' links to the body are chosen by hand, and an LLM chooses them for the ones people
 add.
 
 A person notes that they **have** a condition, optionally how much it affects them (`mild`, `moderate` or `severe`),
@@ -82,7 +102,7 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 | PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description` | One of the 15 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness` or `Senses`, and `min` and `max` are the lowest and highest readings that can be recorded |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
-| BodyStructure | the same as BodyFunction | One of the ICF's body structures |
+| BodyPart | `id`, `fmaId` (unique), `name`, `definition`, `synonyms`, `elements`, `major` | A part of the body. `fmaId` is its FMA id, such as `FMA7088`, and `elements` the meshes of the 3D body it's drawn with, empty for a part with no model. `major` marks the parts conditions are linked to: organs (which include bones, muscles, joints and named vessels), systems and regions, without the left and right copies of a part |
 | Condition | `id`, `sourceId` (unique), `source`, `name`, `description`, `synonyms`, `ancestors`, `sourceUri`, `addedAt` | A disease or feature. `sourceId` is the ontology's id, such as `MONDO:0004979` or `HP:0001382`, `source` is `Mondo` or `HPO`, and `sourceUri` is the ontology's permanent URI for it. `synonyms` are its other names, and `ancestors` the ids of every class above it in its ontology, which places it among the other conditions. `addedAt` is on the ones people have added |
 
 A Person carries `normSex`, `male` or `female`, when they've given it: the sex whose norms they're compared with.
@@ -97,12 +117,15 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 | MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
 | HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value |
 | SUBFUNCTION_OF | BodyFunction → BodyFunction | | A narrower function, a kind or part of a broader one (Short-term memory → Memory functions) |
-| SUBSTRUCTURE_OF | BodyStructure → BodyStructure | | A part of a larger structure (Structure of upper arm → Structure of upper extremity) |
+| SUBPART_OF | BodyPart → BodyPart | | A part of a larger whole (Left femur → Skeleton of left lower limb) |
+| PART_SUBTYPE_OF | BodyPart → BodyPart | | A kind of a broader part (Left femur → Femur → Long bone) |
 | UNDERLIES | BodyFunction → Ability | | An ability the function is the basis of |
 | MEASURES | PhysicalMeasurement → BodyFunction | | The function the measurement is a reading of |
-| HAS_IMPAIRMENT | Person → BodyFunction or BodyStructure | `extent`, `change`, `updatedAt` | An impairment they've noted. `extent` is how much, `mild` to `complete`, and `change`, on a structure only, how it has changed |
+| MEASURES | PhysicalMeasurement → BodyPart | | A part the measurement is a reading of (Grip Strength → Hand) |
+| HAS_IMPAIRMENT | Person → BodyFunction or BodyPart | `extent`, `change`, `updatedAt` | An impairment they've noted. `extent` is how much, `mild` to `complete`, and `change`, on a part only, how it has changed |
 | SUBTYPE_OF | Condition → Condition | | A condition that's a kind of a broader one (Alzheimer disease → dementia) |
-| AFFECTS | Condition → BodyFunction or BodyStructure | | A function or structure the condition acts on |
+| AFFECTS | Condition → BodyFunction or BodyPart | | A function or part the condition acts on |
+| SERVES | BodyPart → BodyFunction | | A function the part carries out (Lung → Respiration functions) |
 | HAS_CONDITION | Person → Condition | `severity`, `diagnosed`, `managed`, `updatedAt` | A condition they've noted. `severity` is `mild`, `moderate` or `severe` when they've said, `diagnosed` whether a professional diagnosed it, and `managed` whether it's under control |
 
 ## Example
@@ -133,8 +156,11 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 (:PhysicalMeasurement {name: "Visual Acuity"})-[:MEASURES]->(va)
 (lulu)-[:HAS_IMPAIRMENT {extent: "moderate"}]->(va)
 
-// myopia affects visual acuity functions. Lulu was diagnosed, and glasses keep it under control
+// myopia affects visual acuity functions and the eyeball. Lulu was diagnosed, and glasses keep it under control
 (my:Condition {sourceId: "MONDO:0001384", source: "Mondo", name: "myopia"})-[:AFFECTS]->(va)
+(my)-[:AFFECTS]->(eye:BodyPart {fmaId: "FMA12513", name: "Eyeball"})
+(:BodyPart {fmaId: "FMA58301", name: "Retina"})-[:SUBPART_OF]->(eye)
+(eye)-[:SERVES]->(:BodyFunction {code: "b210", name: "Seeing functions"})
 (lulu)-[:HAS_CONDITION {severity: "moderate", diagnosed: true, managed: true}]->(my)
 
 // Andrew is double-jointed

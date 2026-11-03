@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { SEVERITIES, clearMyCondition, conditionName, getConditions, type Condition, type Conditions as ConditionList, type MyCondition } from './api';
+import { SEVERITIES, clearMyCondition, conditionName, getConditions, partName, type Condition, type Conditions as ConditionList, type MyCondition } from './api';
 import { ConditionForm } from './condition_form';
 import { ConditionPicker } from './condition_picker';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -100,7 +100,7 @@ interface ConditionCardProps {
 function ConditionCard({ condition, mine, onEdit, onRemove }: ConditionCardProps) {
   const severity = SEVERITIES.find((s) => s.value === mine.severity);
   const notes = [mine.diagnosed ? 'Diagnosed' : 'Not diagnosed', ...(mine.managed ? ['Under control'] : [])];
-  const affects = [...condition.functions, ...condition.structures];
+  const affects = [...condition.functions.map((f) => ({ key: f.code, name: f.name })), ...condition.parts.map((p) => ({ key: p.id, name: partName(p.name) }))];
   return (
     <article style={styles.card}>
       <h3 style={styles.name}>{conditionName(condition.name)}</h3>
@@ -110,7 +110,7 @@ function ConditionCard({ condition, mine, onEdit, onRemove }: ConditionCardProps
       </p>
       {!!affects.length && (
         <div style={styles.chips}>
-          Affects {affects.map((a) => <span key={a.code} className="comic-chip">{a.name}</span>)}
+          Affects {affects.map((a) => <span key={a.key} className="comic-chip">{a.name}</span>)}
         </div>
       )}
       <div style={styles.buttons}>

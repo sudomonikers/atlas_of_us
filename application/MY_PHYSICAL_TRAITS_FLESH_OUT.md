@@ -25,7 +25,7 @@ Abilities first, anatomy last, in layers:
    population norms. This is what connects to the rest of the Atlas straight away: skills get physical requirements and
    users get percentiles that mean something.
 2. **Attach self-test protocols** to those nodes, so physical is the first area that's checked rather than self-reported.
-3. **Then** a slice of common conditions through a resolver, the functional framing of ICF, and a slim Uberon as the
+3. **Then** a slice of common conditions through a resolver, the functional framing of ICF, and the anatomy as the
    body map everything hangs on.
 
 ## The pieces
@@ -86,12 +86,12 @@ ruler-drop reaction test, a 1.5 mile run, a dead hang, a Snellen chart.
 
 ### 4. WHO ICF
 
-(Done) `database/icf_import/` reads the 2026-01 tabulation and each category's definition from the ICD-API, and writes
-`database/physical_body_seed.cypher`: 346 body functions and 209 body structures (BodyFunction, BodyStructure), nested with
-SUBFUNCTION_OF and SUBSTRUCTURE_OF, with functions linked to the abilities they UNDERLIE and the measurements that MEASURE them
-(`src/links.rs`, chosen by hand). People note impairments (HAS_IMPAIRMENT {extent mild to complete, change for
-structures}) on the Impairments view of Physical Traits, private to them. Activities (d) and environmental
-factors (e) are left out. The structures are the body map (6).
+(Done, functions only) `database/icf_import/` reads the 2026-01 tabulation and each function's definition from the
+ICD-API, and writes `database/physical_functions_seed.cypher`: 346 body functions (BodyFunction), nested with
+SUBFUNCTION_OF, linked to the abilities they UNDERLIE and the measurements that MEASURE them (`src/links.rs`, chosen by
+hand). People note impairments (HAS_IMPAIRMENT {extent mild to complete, change for parts}) in functions and body parts
+on the Impairments view of Physical Traits, private to them. ICF's body structures are replaced by the FMA anatomy (6),
+and activities (d) and environmental factors (e) are left out.
 
 About 1,400 categories across body functions, body structures and activities, hierarchical, with a 0 to 4 qualifier
 scale.
@@ -99,7 +99,6 @@ scale.
 - **Functional, not diagnostic.** "What can your body do" is friendlier than a diagnosis and closer to how skills
   think.
 - **Limitations, handled well.** "Who you could become" adapts paths to a disability rather than hiding them.
-- **Body structures** could stand in for Uberon at human scale.
 - **Costs:** the scale tops out at "no impairment", so it can't express exceptional ability. Its activities chapter
   overlaps Skills. The license needs checking for commercial use.
 
@@ -107,11 +106,11 @@ scale.
 
 (Done) `database/conditions_import/` reads Mondo and HPO and writes `database/physical_conditions_seed.cypher`: 262
 conditions chosen by hand in `src/picks.rs` (191 diseases from Mondo, 71 features from HPO), one Condition label with
-the ontology id as `sourceId`, nested with SUBTYPE_OF and linked to the body functions and structures they AFFECT.
+the ontology id as `sourceId`, nested with SUBTYPE_OF and linked to the body functions and parts they AFFECT.
 People note conditions (HAS_CONDITION {severity, diagnosed, managed}) on the Conditions view of Physical Traits, private
 to them, like impairments. Anything not seeded is looked up in EBI's Ontology Lookup Service and added as the ontology
 has it, placed above and below the conditions we have by their stored `ancestors`, and the `ConditionAdded-Physical`
-job links it to the body functions and structures it AFFECTS with one LLM call.
+job links it to the body functions and parts it AFFECTS with one LLM call.
 
 Seed a few hundred common, self-reportable conditions: HPO terms with lay synonyms, or a common-conditions list such as
 the Global Burden of Disease causes (asthma, ADHD, colour blindness, myopia, type 2 diabetes). Anything else becomes a
@@ -124,18 +123,20 @@ stub through a physical resolver, the same way skills and topics do, with the on
   the ADA and discrimination law apply. It needs its own privacy model (visibility per relationship, never used for
   matching by default) before any of it ships. HPO's license limits changing its terms.
 
-### 6. A slim Uberon as the body map
+### 6. The anatomy and a 3D body
 
-(Done, without Uberon) The ICF body structures are the body map, so there are no Uberon nodes to duplicate them. The
-Body map view of Physical Traits draws the body front and back, and `src/physical/body_regions.ts` puts each structure in
-a region by its code (the longest matching prefix wins, and what matches none is "All over"). Picking a region shows the
-impairments and conditions noted there and notes an impairment in one of its structures.
-
-Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15,000+ classes across species.
-
-- **The spine** measurements, abilities and conditions hang on: measurement → structure, condition → structure.
-- **A clickable body map** in the UI.
-- **Costs:** on its own it gives users nothing. Nobody places themselves on "pyloric antrum".
+(Done, with FMA and BodyParts3D instead of Uberon) Uberon spans many species and is thin on named human muscles, bones
+and vessels, so the anatomy is the Foundational Model of Anatomy (FMA, CC BY 3.0), cut to the parts BodyParts3D (CC BY
+4.0) has 3D models of. `database/anatomy_import/` writes `database/physical_anatomy_seed.cypher`: 3,488 BodyPart nodes
+(3,432 with models and 56 main parts without, such as the uterus and the knee joint), with FMA names, definitions and
+synonyms, nested with SUBPART_OF and PART_SUBTYPE_OF, and SERVES to the functions they carry out. It also turns the models
+into the 3D body in `ui/.../public/anatomy/`: six layers (skin, skeleton, muscles, organs, nervous system, heart and
+vessels), about 5 MB. The Body map view of Physical Traits renders it with three.js: turn and zoom it, click any part or
+find it by name to light it up and open its page (definition, wholes and parts, kinds, functions with their abilities and
+measurements, conditions that affect it, and what the user has noted), or pick a system to light it all up. Impairments
+and conditions attach to body parts, and measurements MEASURE parts too. A part's page gathers the conditions,
+measurements (with the user's latest reading) and impairments linked to it, to the parts it belongs to or is made of,
+and to the functions those serve.
 
 ## Summary
 
@@ -146,7 +147,7 @@ Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15
 | Self-tests | 20 to 40 | Indirect | High | Verification | Low |
 | ICF | about 1,400 | Medium | Medium | Accessibility | License |
 | Conditions slice | hundreds, then stubs | Medium | Medium | Shopping, school | High (privacy) |
-| Body map | 15 regions over the ICF structures | None | Medium | Body map UI | Low |
+| Anatomy and 3D body | 3,488 parts | None | High | Body map, learning | Low |
 
 ## Decided
 

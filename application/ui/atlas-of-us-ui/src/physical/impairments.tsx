@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { CHANGES, EXTENTS, clearImpairment, getImpairments, type BodyPart, type Impairment, type Impairments as ImpairmentList } from './api';
-import { ImpairmentForm } from './impairment_form';
+import { CHANGES, EXTENTS, clearImpairment, getAnatomy, getImpairments, partName, type Impairment, type Impairments as ImpairmentList, type PartSummary } from './api';
+import { ImpairmentForm, type Impairable } from './impairment_form';
 import { PartPicker } from './part_picker';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Thinking } from '../shared_components/thinking';
@@ -11,24 +11,35 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-//the user's impairments in body functions and structures, and a way to add more
+//something an impairment can be in, as the cards show it
+interface Found {
+  part: Impairable;
+  structure: boolean; //whether it's a body part rather than a function
+  group: string;
+  abilities: string[];
+}
+
+//the user's impairments in body functions and parts, and a way to add more
 export default function Impairments() {
   const [data, setData] = useState<ImpairmentList>();
+  const [anatomy, setAnatomy] = useState<PartSummary[]>();
   const [error, setError] = useState<string>();
   const [removeError, setRemoveError] = useState<string>();
-  const [editing, setEditing] = useState<string>(); //the id of the function or structure being changed or added
+  const [editing, setEditing] = useState<string>(); //the id of the function or part being changed or added
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    getImpairments().then(setData, (e) => setError(e instanceof Error ? e.message : String(e)));
+    const failed = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
+    getImpairments().then(setData, failed);
+    getAnatomy().then(setAnatomy, failed);
   }, []);
 
   if (error) return <AtlasError message={error} />;
-  if (!data) return <Thinking label="Looking over the body" />;
+  if (!data || !anatomy) return <Thinking label="Looking over the body" />;
 
-  const parts = new Map<string, { part: BodyPart; structure: boolean }>([
-    ...data.functions.map((part) => [part.id, { part, structure: false }] as const),
-    ...data.structures.map((part) => [part.id, { part, structure: true }] as const),
+  const parts = new Map<string, Found>([
+    ...data.functions.map((f): [string, Found] => [f.id, { part: f, structure: false, group: f.group, abilities: f.abilities }]),
+    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: partName(p.name) }, structure: true, group: 'Body part', abilities: [] }]),
   ]);
   const saved = (impairment: Impairment) => {
     setData({ ...data, impairments: [...data.impairments.filter((i) => i.id !== impairment.id), impairment] });
@@ -61,7 +72,7 @@ export default function Impairments() {
             return editing === i.id ? (
               <ImpairmentForm key={i.id} part={found.part} structure={found.structure} impairment={i} onSaved={saved} onCancel={() => setEditing(undefined)} />
             ) : (
-              <ImpairmentCard key={i.id} part={found.part} impairment={i} onEdit={() => setEditing(i.id)} onRemove={() => remove(i.id)} />
+              <ImpairmentCard key={i.id} found={found} impairment={i} onEdit={() => setEditing(i.id)} onRemove={() => remove(i.id)} />
             );
           })}
         </div>
@@ -72,44 +83,46 @@ export default function Impairments() {
         {picked ? (
           <ImpairmentForm part={picked.part} structure={picked.structure} impairment={null} onSaved={saved} onCancel={() => setEditing(undefined)} />
         ) : adding ? (
-          <PartPicker functions={data.functions} structures={data.structures} onPick={(p) => setEditing(p.id)} />
+          <PartPicker functions={data.functions} parts={anatomy} onPick={(p) => setEditing(p.item.id)} />
         ) : (
           <button className="comic-lift" style={styles.primary} onClick={() => setAdding(true)}>
-            Find a body function or structure
+            Find a body function or part
           </button>
         )}
       </section>
 
       <p style={styles.how}>
-        Body functions and structures come from the WHO's International Classification of Functioning, Disability and
-        Health (ICF), © World Health Organization, used under CC BY-ND 3.0 IGO.
+        Body functions come from the WHO's International Classification of Functioning, Disability and Health (ICF),
+        © World Health Organization, used under CC BY-ND 3.0 IGO. Body parts come from the Foundational Model of Anatomy,
+        used under CC BY 3.0.
       </p>
     </>
   );
 }
 
 interface ImpairmentCardProps {
-  part: BodyPart;
+  found: Found;
   impairment: Impairment;
   onEdit: () => void;
   onRemove: () => void;
 }
 
 //one impairment: what it's in, how much, and the abilities it holds back
-function ImpairmentCard({ part, impairment, onEdit, onRemove }: ImpairmentCardProps) {
+function ImpairmentCard({ found, impairment, onEdit, onRemove }: ImpairmentCardProps) {
+  const { part, group, abilities } = found;
   const extent = EXTENTS.find((e) => e.value === impairment.extent);
   const change = CHANGES.find((c) => c.value === impairment.change);
   return (
     <article style={styles.card}>
       <h3 style={styles.name}>{part.name}</h3>
-      <p style={styles.small}>{part.group}</p>
+      <p style={styles.small}>{group}</p>
       <p style={styles.extent}>
         {extent?.label}
         {change && <span style={styles.change}> · {change.label}</span>}
       </p>
-      {!!part.abilities.length && (
+      {!!abilities.length && (
         <div style={styles.chips}>
-          Can affect {part.abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
+          Can affect {abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
         </div>
       )}
       <div style={styles.buttons}>

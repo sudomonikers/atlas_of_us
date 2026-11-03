@@ -1,19 +1,10 @@
-import { useEffect, useState, type CSSProperties } from 'react';
-import {
-  EXTENTS,
-  SEVERITIES,
-  conditionName,
-  getConditions,
-  getImpairments,
-  type BodyPart,
-  type Conditions,
-  type Impairment,
-  type Impairments,
-} from './api';
-import { BodyFigure } from './body_figure';
-import { REGIONS, regionOf, type RegionId } from './body_regions';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { getAnatomy, getConditions, getImpairments, getMeasurements, getPart, partName, type Conditions, type Impairment, type Impairments, type Measurement, type Part, type PartSummary } from './api';
+import { LAYERS, getMeshIndex, type LayerId, type MeshIndex } from './anatomy_layers';
 import { ImpairmentForm } from './impairment_form';
+import { PartPanel } from './part_panel';
 import { AtlasError } from '../shared_components/atlas-error';
+import { SearchField } from '../shared_components/search_field';
 import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -22,123 +13,187 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-const LABELS = Object.fromEntries(REGIONS.map((r) => [r.id, r.label])) as Record<RegionId, string>;
+//the 3D body, loaded with three.js only when this view opens
+const AnatomyViewer = lazy(() => import('./anatomy_viewer').then((m) => ({ default: m.AnatomyViewer })));
 
-//the body, drawn: pick a region to see the impairments and conditions in it, and to note an impairment in one of its
-//structures
+//the most search results shown at once
+const MAX_RESULTS = 20;
+//FMA's whole body, whose parts are the systems and regions
+const HUMAN_BODY = 'FMA20394';
+
+//every part above a part, through the wholes it belongs to
+function above(id: string, byId: Map<string, PartSummary>): Set<string> {
+  const found = new Set<string>();
+  const todo = [...(byId.get(id)?.wholes ?? [])];
+  while (todo.length) {
+    const next = todo.pop()!;
+    if (found.has(next)) continue;
+    found.add(next);
+    todo.push(...(byId.get(next)?.wholes ?? []));
+  }
+  return found;
+}
+
+//a 3D body to explore and learn from: turn it, pick any part to light it up and read all about it, switch layers, or
+//pick a whole system
 export default function BodyMap() {
+  const [anatomy, setAnatomy] = useState<PartSummary[]>();
+  const [meshes, setMeshes] = useState<MeshIndex>();
   const [impairments, setImpairments] = useState<Impairments>();
   const [conditions, setConditions] = useState<Conditions>();
+  const [measurements, setMeasurements] = useState<Map<string, Measurement>>();
+  const [version, setVersion] = useState(0); //goes up when the user notes something, so the open part reloads
   const [error, setError] = useState<string>();
-  const [selected, setSelected] = useState<RegionId | null>(null);
-  const [editing, setEditing] = useState<string>(); //the id of the structure being noted
+  const [layers, setLayers] = useState<Set<LayerId>>(new Set(['skeleton', 'organs']));
+  const [selected, setSelected] = useState<string>(); //the id of the part picked
+  const [lit, setLit] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [noting, setNoting] = useState(false);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     const failed = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
+    getAnatomy().then(setAnatomy, failed);
+    getMeshIndex().then(setMeshes, failed);
     getImpairments().then(setImpairments, failed);
     getConditions().then(setConditions, failed);
+    getMeasurements().then((m) => setMeasurements(new Map(m.measurements.map((x) => [x.id, x]))), failed);
   }, []);
 
-  if (error) return <AtlasError message={error} />;
-  if (!impairments || !conditions) return <Thinking label="Drawing the body" />;
+  const byId = useMemo(() => new Map((anatomy ?? []).map((p) => [p.id, p])), [anatomy]);
+  const byFma = useMemo(() => new Map((anatomy ?? []).map((p) => [p.fma_id, p])), [anatomy]);
 
-  const structures = new Map(impairments.structures.map((s) => [s.id, s]));
+  //the meshes of every part the user has noted something in, or of any part within one
+  const noted = useMemo(() => {
+    const ids = new Set<string>([
+      ...(impairments?.impairments.map((i) => i.id) ?? []),
+      ...(conditions?.mine.flatMap((m) => conditions.conditions.find((c) => c.id === m.id)?.parts.map((p) => p.id) ?? []) ?? []),
+    ]);
+    if (!ids.size || !meshes) return new Set<string>();
+    return new Set(Object.entries(meshes).filter(([, [fma]]) => {
+      const part = byFma.get(fma);
+      return part && (ids.has(part.id) || [...above(part.id, byId)].some((a) => ids.has(a)));
+    }).map(([element]) => element));
+  }, [impairments, conditions, meshes, byId, byFma]);
+
+  //lights up the meshes a part is drawn with, or those of the nearest drawn part it belongs to, and shows their layers
+  const lightUp = useCallback((part: Part) => {
+    const show = (elements: string[]) => {
+      setLit(new Set(elements));
+      if (!meshes) return;
+      const needed = new Set(elements.map((e) => meshes[e]?.[1]).filter((l): l is LayerId => !!l));
+      setLayers((current) => ([...needed].some((l) => current.has(l)) ? current : new Set([...current, ...needed])));
+    };
+    if (part.elements.length) return show(part.elements);
+    const drawn = [...above(part.id, byId)].map((id) => byId.get(id)).find((p) => p?.drawn);
+    if (drawn) getPart(drawn.id).then((whole) => show(whole.elements), () => setLit(new Set()));
+    else setLit(new Set());
+  }, [meshes, byId]);
+
+  const pick = (id: string) => {
+    setSelected(id);
+    setNoting(false);
+  };
+  const pickMesh = (element: string) => {
+    const fma = meshes?.[element]?.[0];
+    const part = fma ? byFma.get(fma) : undefined;
+    if (part) pick(part.id);
+  };
+  const toggleLayer = (id: LayerId) =>
+    setLayers((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  if (error) return <AtlasError message={error} />;
+  if (!anatomy || !meshes || !impairments || !conditions || !measurements) return <Thinking label="Building the body" />;
+
+  const root = byFma.get(HUMAN_BODY);
+  const systems = anatomy.filter((p) => root && p.wholes.includes(root.id));
+  const picked = selected ? byId.get(selected) : undefined;
   const mine = new Map(impairments.impairments.map((i) => [i.id, i]));
-  const conditionsById = new Map(conditions.conditions.map((c) => [c.id, c]));
-  //what the user has noted in each region: impairments in its structures, and conditions affecting them
-  const inRegion = (region: RegionId) => ({
-    structures: impairments.structures.filter((s) => regionOf(s.code) === region),
-    impairments: impairments.impairments.filter((i) => {
-      const s = structures.get(i.id);
-      return s && regionOf(s.code) === region;
-    }),
-    conditions: conditions.mine.filter((m) => conditionsById.get(m.id)?.structures.some((s) => regionOf(s.code) === region)),
-  });
-  const noted = new Set(REGIONS.map((r) => r.id).filter((id) => {
-    const here = inRegion(id);
-    return here.impairments.length > 0 || here.conditions.length > 0;
-  }));
+  const myConditions = new Set(conditions.mine.map((m) => m.id));
   const saved = (impairment: Impairment) => {
     setImpairments({ ...impairments, impairments: [...impairments.impairments.filter((i) => i.id !== impairment.id), impairment] });
-    setEditing(undefined);
+    setNoting(false);
+    setVersion((v) => v + 1);
   };
-  const select = (region: RegionId) => {
-    setSelected(region);
-    setEditing(undefined);
-  };
-  const here = selected ? inRegion(selected) : null;
-  const editingPart = editing ? structures.get(editing) : undefined;
+
+  //every word of the search has to be in its name or another name for it
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const results = words.length
+    ? anatomy.filter((p) => {
+        const text = [p.name, ...p.synonyms].join(' ').toLowerCase();
+        return words.every((w) => text.includes(w));
+      })
+    : [];
 
   return (
     <>
       <section style={styles.panel} className="comic-panel comic-pop">
-        <h2 style={styles.heading}>Your body</h2>
+        <h2 style={styles.heading}>Explore the body</h2>
         <p style={styles.text}>
-          Pick a part of the body to see what you've noted there, or to note something new. Parts in red have something
-          noted. Functions like memory or balance aren't in one place, so they're under Impairments.
+          Drag to turn the body, scroll or pinch to zoom, and click any part to light it up and learn about it. Show the
+          layers you want, pick a whole system, or search for a part by name. Parts in pink have something you've noted.
         </p>
-        <BodyFigure labels={LABELS} noted={noted} selected={selected} onSelect={select} />
-        <div style={styles.regions} role="group" aria-label="Parts of the body">
-          {REGIONS.map((r) => (
+        <div style={styles.chips} role="group" aria-label="Layers">
+          {LAYERS.map((l) => (
             <button
-              key={r.id}
+              key={l.id}
               className="comic-lift"
-              style={{ ...styles.regionButton, ...(noted.has(r.id) ? styles.regionNoted : {}), ...(selected === r.id ? styles.regionPicked : {}) }}
-              aria-pressed={selected === r.id}
-              onClick={() => select(r.id)}
+              style={layers.has(l.id) ? { ...styles.chip, ...styles.chipOn } : styles.chip}
+              aria-pressed={layers.has(l.id)}
+              onClick={() => toggleLayer(l.id)}
             >
-              {r.label}
+              {l.label}
             </button>
           ))}
+          {loading && <span style={styles.small}>Loading...</span>}
+        </div>
+
+        <div style={styles.zone}>
+          <div style={styles.viewer}>
+            <Suspense fallback={<Thinking label="Building the body" />}>
+              <AnatomyViewer layers={layers} lit={lit} noted={noted} onPick={pickMesh} onLoading={setLoading} />
+            </Suspense>
+          </div>
+          <div style={styles.side}>
+            {picked ? (
+              noting ? (
+                <ImpairmentForm part={{ id: picked.id, name: partName(picked.name) }} structure impairment={mine.get(picked.id) ?? null} onSaved={saved} onCancel={() => setNoting(false)} />
+              ) : (
+                <PartPanel key={`${picked.id}-${version}`} id={picked.id} myConditions={myConditions} measurements={measurements} onLoaded={lightUp} onPick={pick} onNote={() => setNoting(true)} />
+              )
+            ) : (
+              <p style={styles.text}>Nothing picked yet. Try clicking the heart, or pick a system below.</p>
+            )}
+          </div>
         </div>
       </section>
 
-      {selected && here && (
-        <section style={styles.panel} className="comic-panel comic-pop" aria-live="polite">
-          <h2 style={styles.heading}>{LABELS[selected]}</h2>
-          {editingPart ? (
-            <ImpairmentForm part={editingPart} structure impairment={mine.get(editingPart.id) ?? null} onSaved={saved} onCancel={() => setEditing(undefined)} />
-          ) : (
-            <>
-              <h3 style={styles.subheading}>What you've noted</h3>
-              {!here.impairments.length && !here.conditions.length && <p style={styles.text}>Nothing here.</p>}
-              <ul style={styles.list}>
-                {here.impairments.map((i) => (
-                  <li key={i.id} style={styles.item}>
-                    <span style={styles.itemName}>{structures.get(i.id)!.name}</span>
-                    <span style={styles.itemNote}>{EXTENTS.find((e) => e.value === i.extent)?.label} impairment</span>
-                    <button className="comic-lift" style={styles.small} onClick={() => setEditing(i.id)}>
-                      Change
-                    </button>
-                  </li>
-                ))}
-                {here.conditions.map((m) => {
-                  const c = conditionsById.get(m.id)!;
-                  return (
-                    <li key={m.id} style={styles.item}>
-                      <span style={styles.itemName}>{conditionName(c.name)}</span>
-                      <span style={styles.itemNote}>{SEVERITIES.find((s) => s.value === m.severity)?.label ?? 'Noted'} condition</span>
-                    </li>
-                  );
-                })}
-              </ul>
-              <h3 style={styles.subheading}>Note an impairment</h3>
-              <div style={styles.parts}>
-                {here.structures.map((s: BodyPart) => (
-                  <button key={s.id} className="comic-lift" style={styles.part} onClick={() => setEditing(s.id)}>
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      <p style={styles.how}>
-        Body structures come from the WHO's International Classification of Functioning, Disability and Health (ICF),
-        © World Health Organization, used under CC BY-ND 3.0 IGO.
-      </p>
+      <section style={styles.panel} className="comic-panel comic-pop">
+        <h2 style={styles.heading}>Systems and regions</h2>
+        <div style={styles.chips}>
+          {systems.map((s) => (
+            <button key={s.id} className="comic-lift" style={selected === s.id ? { ...styles.chip, ...styles.chipOn } : styles.chip} onClick={() => pick(s.id)}>
+              {partName(s.name)}
+            </button>
+          ))}
+        </div>
+        <h2 style={styles.heading}>Find a part</h2>
+        <SearchField id="anatomy-search" query={query} onQuery={setQuery} placeholder="Femur, retina, biceps, vagus nerve..." />
+        {words.length > 0 && !results.length && <p style={styles.text}>Nothing by that name. Try another word.</p>}
+        <div style={styles.chips}>
+          {results.slice(0, MAX_RESULTS).map((p) => (
+            <button key={p.id} className="comic-lift" style={styles.part} onClick={() => pick(p.id)}>
+              {partName(p.name)}
+            </button>
+          ))}
+        </div>
+        {results.length > MAX_RESULTS && <p style={styles.small}>And {results.length - MAX_RESULTS} more. Add a word to narrow it down.</p>}
+      </section>
     </>
   );
 }
@@ -165,26 +220,22 @@ const styles: Record<string, CSSProperties> = {
     letterSpacing: 1,
     color: brownRed,
   },
-  subheading: {
-    margin: 0,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 20,
-    letterSpacing: 1,
-    color: brownRed,
-  },
   text: {
     margin: 0,
     fontSize: 16,
     lineHeight: 1.45,
   },
-  regions: {
+  small: {
+    margin: 0,
+    fontSize: 13,
+  },
+  chips: {
     display: 'flex',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    alignItems: 'center',
     gap: 8,
   },
-  regionButton: {
+  chip: {
     padding: '4px 12px',
     background: ivory,
     color: gunmetal,
@@ -194,50 +245,30 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 15,
     cursor: 'pointer',
   },
-  regionNoted: {
-    background: 'var(--pale-red)',
-  },
-  regionPicked: {
+  chipOn: {
     background: brownRed,
     color: ivory,
   },
-  list: {
-    margin: 0,
-    padding: 0,
-    listStyle: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  item: {
+  //the body beside what's picked; what's picked drops underneath on narrow screens
+  zone: {
     display: 'flex',
     flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: '4px 12px',
+    alignItems: 'flex-start',
+    gap: 24,
   },
-  itemName: {
-    fontFamily: comic,
-    fontSize: 19,
-    letterSpacing: 1,
-    color: brownRed,
+  viewer: {
+    flex: '1 1 380px',
+    minWidth: 0,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: 16,
+    background: 'radial-gradient(circle at 50% 40%, #fff, var(--pale-blue))',
+    overflow: 'hidden',
   },
-  itemNote: {
-    fontSize: 15,
-  },
-  small: {
-    padding: '2px 12px',
-    background: '#fff',
-    color: gunmetal,
-    border: `2px solid ${gunmetal}`,
-    borderRadius: 999,
-    font: 'inherit',
-    fontSize: 14,
-    cursor: 'pointer',
-  },
-  parts: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 6,
+  side: {
+    flex: '1 1 340px',
+    minWidth: 0,
+    maxHeight: 'min(70vh, 620px)',
+    overflowY: 'auto',
   },
   part: {
     padding: '2px 10px',
@@ -249,11 +280,5 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 14,
     textAlign: 'left',
     cursor: 'pointer',
-  },
-  how: {
-    maxWidth: 1100,
-    margin: '0 auto 16px',
-    fontSize: 15,
-    lineHeight: 1.5,
   },
 };

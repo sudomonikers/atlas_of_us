@@ -1,0 +1,15 @@
+[package]
+name = "anatomy-import"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Quoting strings for cypher, and the parts file the ui reads
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Reading the BodyParts3D meshes out of their zip
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+# Simplifying the meshes so the whole body loads in a browser
+meshopt = "0.7"

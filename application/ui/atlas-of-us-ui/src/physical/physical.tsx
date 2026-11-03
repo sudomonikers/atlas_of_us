@@ -25,7 +25,7 @@ const VIEWS: { id: View; label: string; bubble: string }[] = [
   {
     id: 'body',
     label: 'Body map',
-    bubble: "Point at the part that bothers you. Knees, eyes, lungs: tap it and tell me what's going on there.",
+    bubble: "Tap any part and I'll light it up and tell you all about it: what it does, what it's made of, and what can go wrong.",
   },
   {
     id: 'impairments',

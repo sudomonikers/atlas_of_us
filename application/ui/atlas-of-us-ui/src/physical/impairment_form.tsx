@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { CHANGES, EXTENTS, setImpairment, type BodyPart, type Change, type Extent, type Impairment } from './api';
+import { CHANGES, EXTENTS, setImpairment, type Change, type Extent, type Impairment } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
 
@@ -9,15 +9,24 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
+//a body function or part, as the form shows it
+export interface Impairable {
+  id: string;
+  name: string;
+  description?: string | null;
+  includes?: string[];
+  excludes?: string[];
+}
+
 interface ImpairmentFormProps {
-  part: BodyPart;
-  structure: boolean; //whether it's a body structure, which can say how it has changed
+  part: Impairable;
+  structure: boolean; //whether it's a body part, which can say how it has changed
   impairment: Impairment | null; //what they've said about it already, if anything
   onSaved: (impairment: Impairment) => void;
   onCancel: () => void;
 }
 
-//what a function or structure covers, and how much it's impaired, with how a structure has changed
+//what a function or part covers, and how much it's impaired, with how a part has changed
 export function ImpairmentForm({ part, structure, impairment, onSaved, onCancel }: ImpairmentFormProps) {
   const [extent, setExtent] = useState<Extent | null>(impairment?.extent ?? null);
   const [change, setChange] = useState<Change | ''>(impairment?.change ?? '');
@@ -48,10 +57,10 @@ export function ImpairmentForm({ part, structure, impairment, onSaved, onCancel 
     <div style={styles.form} role="group" aria-label={`Your ${part.name}`}>
       <p style={styles.title}>{part.name}</p>
       {part.description && <p style={styles.text}>{part.description}</p>}
-      {(!!part.includes.length || !!part.excludes.length) && (
+      {(!!part.includes?.length || !!part.excludes?.length) && (
         <Disclosure label="What it covers">
-          {!!part.includes.length && <p style={styles.small}>Includes: {part.includes.join('; ')}</p>}
-          {!!part.excludes.length && <p style={styles.small}>Doesn't include: {part.excludes.join('; ')}</p>}
+          {!!part.includes?.length && <p style={styles.small}>Includes: {part.includes.join('; ')}</p>}
+          {!!part.excludes?.length && <p style={styles.small}>Doesn't include: {part.excludes.join('; ')}</p>}
         </Disclosure>
       )}
       <p style={styles.question}>How much is it impaired?</p>

@@ -32,7 +32,7 @@ const ROOTS: [&str; 2] = ["MONDO:0700096", "HP:0000118"];
 //how many terms a lookup returns
 const LOOKUP_RESULTS: usize = 10;
 
-//a condition, with the body functions and structures it affects
+//a condition, with the body functions and parts it affects
 #[derive(Serialize, Deserialize)]
 pub struct Condition {
     id: String,
@@ -43,13 +43,20 @@ pub struct Condition {
     synonyms: Vec<String>,
     broader: Vec<String>, //the ids of the conditions it's a kind of
     functions: Vec<Affected>,
-    structures: Vec<Affected>,
+    parts: Vec<AffectedPart>,
 }
 
-//a body function or structure a condition affects
+//a body function a condition affects
 #[derive(Serialize, Deserialize)]
 pub struct Affected {
     code: String,
+    name: String,
+}
+
+//a body part a condition affects
+#[derive(Serialize, Deserialize)]
+pub struct AffectedPart {
+    id: String,
     name: String,
 }
 
@@ -77,7 +84,7 @@ async fn fetch(state: &AppState, ids: Option<Vec<String>>) -> Result<Vec<Conditi
                coalesce(c.synonyms, []) AS synonyms,
                COLLECT { MATCH (c)-[:SUBTYPE_OF]->(b:Condition) RETURN b.id } AS broader,
                COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyFunction) RETURN {code: p.code, name: p.name} ORDER BY p.code } AS functions,
-               COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyStructure) RETURN {code: p.code, name: p.name} ORDER BY p.code } AS structures
+               COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyPart) RETURN {id: p.id, name: p.name} ORDER BY p.name } AS parts
         ORDER BY toLower(c.name)
     ").param("ids", ids)).await.map_err(internal)?;
     let mut conditions = Vec::new();
@@ -192,7 +199,7 @@ struct AddRequest {
 
 //adds a Mondo or HPO term as a condition, as the ontology has it, and places it among the conditions we have: under the
 //nearest ones it's a kind of, and over the nearest ones that are kinds of it. Then ConditionAdded asks atlas-jobs to link
-//it to the body functions and structures it affects. One we have already comes back as it is
+//it to the body functions and parts it affects. One we have already comes back as it is
 async fn add_condition(State(state): State<AppState>, _user: AuthUser, Json(req): Json<AddRequest>) -> Result<Json<Condition>, (StatusCode, String)> {
     let source_id = req.source_id.trim();
     let ontology = ontology(source_id).ok_or_else(|| bad("That isn't a Mondo or HPO id."))?;

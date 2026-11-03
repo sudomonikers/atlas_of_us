@@ -49,3 +49,4 @@ pub const MEASURES: &[(&str, &str)] = &[
     ("Body Mass Index", "b530"),
     ("Body Fat", "b530"),
 ];
+

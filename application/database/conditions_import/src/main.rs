@@ -1,5 +1,5 @@
 //writes the conditions seed: the conditions chosen in picks.rs, with each one's name, definition and synonyms from Mondo
-//or HPO, the broader conditions in the seed each is a kind of, and the body functions and structures it affects. See
+//or HPO, the broader conditions in the seed each is a kind of, and the body functions and parts it affects. See
 //README.md
 mod obo;
 mod picks;
@@ -17,7 +17,7 @@ use obo::Term;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-const USAGE: &str = "usage: conditions-import <data-dir> <icf-tabulation> <seed-file>";
+const USAGE: &str = "usage: conditions-import <data-dir> <icf-tabulation> <anatomy-seed> <seed-file>";
 //the classes every condition has to be under: human diseases in Mondo, which also has diseases of other animals, and
 //phenotypic abnormalities in HPO, which also has modes of inheritance, onsets and frequencies
 const MONDO_ROOT: &str = "MONDO:0700096";
@@ -25,11 +25,11 @@ const HPO_ROOT: &str = "HP:0000118";
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
-    let [dir, icf, seed] = args.as_slice() else {
+    let [dir, icf, anatomy, seed] = args.as_slice() else {
         eprintln!("{USAGE}");
         return ExitCode::FAILURE;
     };
-    match run(Path::new(dir), Path::new(icf), Path::new(seed)) {
+    match run(Path::new(dir), Path::new(icf), Path::new(anatomy), Path::new(seed)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("{e}");
@@ -38,15 +38,16 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(dir: &Path, icf: &Path, seed: &Path) -> Result<(), BoxError> {
+fn run(dir: &Path, icf: &Path, anatomy: &Path, seed: &Path) -> Result<(), BoxError> {
     let mut terms = obo::terms(&dir.join("mondo.obo"))?;
     //Mondo's file carries the HPO classes it uses, so HPO's own file goes in last to win
     terms.extend(obo::terms(&dir.join("hp.obo"))?);
     let codes = icf_codes(icf)?;
+    let parts = fma_ids(anatomy)?;
 
     let mut seen = HashSet::new();
     let mut picked: Vec<&Term> = Vec::new();
-    for (id, affects) in picks::PICKS {
+    for (id, functions, body_parts) in picks::PICKS {
         if !seen.insert(*id) {
             return Err(format!("picks.rs has {id} twice").into());
         }
@@ -58,8 +59,11 @@ fn run(dir: &Path, icf: &Path, seed: &Path) -> Result<(), BoxError> {
         if !ancestors(&terms, id).contains(root) {
             return Err(format!("picks.rs names {id} ({}), which isn't under {root}", term.name).into());
         }
-        if let Some(code) = affects.iter().find(|c| !codes.contains(**c)) {
-            return Err(format!("picks.rs links {id} to {code}, which isn't a body function or structure").into());
+        if let Some(code) = functions.iter().find(|c| !codes.contains(**c)) {
+            return Err(format!("picks.rs links {id} to {code}, which isn't a body function").into());
+        }
+        if let Some(part) = body_parts.iter().find(|p| !parts.contains(**p)) {
+            return Err(format!("picks.rs links {id} to {part}, which isn't in the anatomy seed").into());
         }
         picked.push(term);
     }
@@ -72,8 +76,8 @@ fn run(dir: &Path, icf: &Path, seed: &Path) -> Result<(), BoxError> {
     Ok(())
 }
 
-//the codes of every body function and structure in WHO's tabulation that the body seed has, which leaves out the
-//residual "other specified" and "unspecified" ones
+//the codes of every body function in WHO's tabulation that the functions seed has, which leaves out the residual
+//"other specified" and "unspecified" ones
 fn icf_codes(path: &Path) -> Result<HashSet<String>, BoxError> {
     let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let mut lines = text.lines();
@@ -84,8 +88,14 @@ fn icf_codes(path: &Path) -> Result<HashSet<String>, BoxError> {
         .map(|l| l.split('\t').collect::<Vec<_>>())
         .filter(|row| row.get(residual) != Some(&"True"))
         .filter_map(|row| row.get(code).map(|c| c.to_string()))
-        .filter(|c| c.starts_with('b') || c.starts_with('s'))
+        .filter(|c| c.starts_with('b'))
         .collect())
+}
+
+//the FMA id of every part the anatomy seed has
+fn fma_ids(path: &Path) -> Result<HashSet<String>, BoxError> {
+    let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(text.split("fmaId: \"").skip(1).filter_map(|s| s.split('"').next()).map(str::to_string).collect())
 }
 
 //every class a term is a kind of, however far up
@@ -153,11 +163,12 @@ fn cypher(terms: &HashMap<String, Term>, picked: &[&Term], broader: &[(&str, &st
     let subtypes: Vec<String> = broader.iter()
         .map(|(n, b)| format!("  {{ sourceId: {}, broader: {} }}", quote(n), quote(b)))
         .collect();
-    let affects = |prefix: char| -> Vec<String> {
-        picks::PICKS.iter()
-            .flat_map(|(id, codes)| codes.iter().filter(move |c| c.starts_with(prefix)).map(move |c| format!("  {{ sourceId: {}, code: {} }}", quote(id), quote(c))))
-            .collect()
-    };
+    let functions: Vec<String> = picks::PICKS.iter()
+        .flat_map(|(id, codes, _)| codes.iter().map(move |c| format!("  {{ sourceId: {}, code: {} }}", quote(id), quote(c))))
+        .collect();
+    let parts: Vec<String> = picks::PICKS.iter()
+        .flat_map(|(id, _, parts)| parts.iter().map(move |p| format!("  {{ sourceId: {}, fmaId: {} }}", quote(id), quote(p))))
+        .collect();
 
     let mut out = String::new();
     let _ = write!(out, "\
@@ -174,8 +185,8 @@ fn cypher(terms: &HashMap<String, Term>, picked: &[&Term], broader: &[(&str, &st
 // id and `sourceUri` its permanent URI. `ancestors` are the ids of every class
 // above it in the ontology, which places conditions people add later. A
 // condition is a SUBTYPE_OF the nearest broader conditions in the seed, and
-// AFFECTS the body functions and structures it acts on, so run
-// physical_body_seed.cypher first.
+// AFFECTS the body functions and parts it acts on, so run
+// physical_functions_seed.cypher and physical_anatomy_seed.cypher first.
 //
 // Sources: Mondo Disease Ontology, CC BY 4.0. Human Phenotype Ontology, used
 // unaltered and credited wherever it's shown (hpo.jax.org).
@@ -220,7 +231,7 @@ MERGE (n)-[:SUBTYPE_OF]->(b);
 
 
 // -----------------------------------------------------------------------------
-// 2. Body functions and structures they affect
+// 2. Body functions and parts they affect
 // -----------------------------------------------------------------------------
 
 UNWIND [
@@ -232,8 +243,8 @@ MERGE (c)-[:AFFECTS]->(f);
 UNWIND [
 {}
 ] AS l
-MATCH (c:Condition {{sourceId: l.sourceId}}), (s:BodyStructure {{code: l.code}})
-MERGE (c)-[:AFFECTS]->(s);
-", rows.join(",\n"), subtypes.join(",\n"), affects('b').join(",\n"), affects('s').join(",\n"));
+MATCH (c:Condition {{sourceId: l.sourceId}}), (p:BodyPart {{fmaId: l.fmaId}})
+MERGE (c)-[:AFFECTS]->(p);
+", rows.join(",\n"), subtypes.join(",\n"), functions.join(",\n"), parts.join(",\n"));
     out
 }

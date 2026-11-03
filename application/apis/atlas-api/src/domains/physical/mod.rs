@@ -1,6 +1,7 @@
-//Physical Attributes Graph: abilities, measurements with their norms, body functions and structures, and conditions.
+//Physical Attributes Graph: abilities, measurements with their norms, body functions, the anatomy, and conditions.
 //People record readings of measurements, and each reading's percentile is worked out from the norms when it's read. See
 //documentation/architecture/physical.md
+mod anatomy;
 mod conditions;
 mod impairments;
 mod norms;
@@ -30,6 +31,7 @@ pub fn router() -> Router<AppState> {
         .route("/me", put(set_me))
         .merge(impairments::router())
         .merge(conditions::router())
+        .merge(anatomy::router())
 }
 
 /// Healthcheck for the physical router.

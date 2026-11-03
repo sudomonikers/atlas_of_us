@@ -10,7 +10,6 @@ pub const FILE: &str = "SimpleTabulation-ICF-en.txt";
 pub struct Category {
     pub code: String,
     pub title: String,
-    pub kind: &'static str, //function or structure
     pub uri: String,        //the foundation URI, which never changes between releases
     pub entity: String,     //the id the ICD-API knows it by in the ICF linearization
     pub parent: Option<String>, //the code of the category it's part of, if it's part of one rather than only a block
@@ -28,7 +27,7 @@ struct Row {
     linearization: String,
 }
 
-//the body functions (b) and body structures (s), leaving out the residual "other specified" and "unspecified" ones
+//the body functions (b), leaving out the residual "other specified" and "unspecified" ones
 pub fn categories(dir: &Path) -> Result<Vec<Category>, BoxError> {
     let path = dir.join(FILE);
     let mut reader = csv::ReaderBuilder::new()
@@ -69,12 +68,7 @@ pub fn categories(dir: &Path) -> Result<Vec<Category>, BoxError> {
     let mut categories = Vec::new();
     for key in order {
         let row = &rows[&key];
-        let kind = match row.code.chars().next() {
-            Some('b') => "function",
-            Some('s') => "structure",
-            _ => continue,
-        };
-        if row.kind != "category" || row.residual {
+        if !row.code.starts_with('b') || row.kind != "category" || row.residual {
             continue;
         }
         //the nearest category above it, and the blocks above that
@@ -96,7 +90,6 @@ pub fn categories(dir: &Path) -> Result<Vec<Category>, BoxError> {
         categories.push(Category {
             code: row.code.clone(),
             title: row.title.clone(),
-            kind,
             uri: key.clone(),
             entity: row.linearization.rsplit('/').next().unwrap_or_default().to_string(),
             parent,

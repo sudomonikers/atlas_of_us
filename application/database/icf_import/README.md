@@ -1,12 +1,12 @@
 # ICF Import
 
-Writes `../physical_body_seed.cypher`: the body functions and body structures of the WHO's International Classification of
-Functioning, Disability and Health (ICF), each with its definition, inclusions and exclusions, how they nest, and how
-functions link to abilities and measurements (`src/links.rs`). The seed is generated, so change this and run it again
-rather than editing it.
+Writes `../physical_functions_seed.cypher`: the body functions of the WHO's International Classification of Functioning,
+Disability and Health (ICF), each with its definition, inclusions and exclusions, how they nest, and how they link to
+abilities and measurements (`src/links.rs`). The seed is generated, so change this and run it again rather than editing
+it.
 
 ## Getting ICF
-The categories come from the WHO's simple tabulation of the ICF release. Download it into `data/`, which git ignores:
+The functions come from the WHO's simple tabulation of the ICF release. Download it into `data/`, which git ignores:
 
 ```sh
 mkdir -p data && curl -sfLo data/icf.zip https://icdcdn.who.int/static/releasefiles/2026-01/SimpleTabulation-ICF-en.zip \
@@ -23,17 +23,16 @@ and titles aren't changed and the WHO is credited wherever they're shown.
 Put the keys in `.env`, which git ignores, as `export ICD_CLIENT_ID=...` and `export ICD_CLIENT_SECRET=...`, then:
 
 ```sh
-source .env && cargo run --release -- data ../physical_body_seed.cypher
+source .env && cargo run --release -- data ../physical_functions_seed.cypher
 ```
 
 Then run the seed against the database, after `physical_abilities_seed.cypher` and `physical_norms_seed.cypher`, since
 functions link to abilities and measurements.
 
-- **What's in it:** the 346 body functions (b) and 209 body structures (s) of release 2026-01, leaving out the residual
-  "other specified" and "unspecified" categories. Activities and participation (d) overlap Skills, and environmental
-  factors (e) aren't part of the body, so they're left out.
-- **Definitions:** one request per category, five a second, so about two minutes for all of them. Each answer is
-  appended to `data/definitions.jsonl`, and categories already in it are skipped, so a rerun asks only for what's left
-  and needs no keys once it has them all.
+- **What's in it:** the 346 body functions (b) of release 2026-01, leaving out the residual "other specified" and
+  "unspecified" categories. The parts of the body come from the anatomy import, activities and participation (d)
+  overlap Skills, and environmental factors (e) aren't part of the body.
+- **Definitions:** one request per function, five a second. Each answer is appended to `data/definitions.jsonl`, and
+  functions already in it are skipped, so a rerun asks only for what's left and needs no keys once it has them all.
 - **Another release:** `--release YYYY-MM` asks the ICD-API for that release's definitions. Download the same release's
   tabulation, and delete `data/definitions.jsonl` so every definition is asked for again.

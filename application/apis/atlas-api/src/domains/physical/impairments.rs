@@ -1,4 +1,4 @@
-//impairments: a person's body functions and structures that don't work as they might, and how much. Only the person
+//impairments: a person's body functions and body parts that don't work as they might, and how much. Only the person
 //who noted them sees them
 use axum::{
     Json, Router,
@@ -19,22 +19,22 @@ pub fn router() -> Router<AppState> {
         .route("/impairments/{id}", put(set_impairment).delete(clear_impairment))
 }
 
-//how much a function or structure is impaired
+//how much a function or part is impaired
 const EXTENTS: [&str; 4] = ["mild", "moderate", "severe", "complete"];
-//how a structure has changed
+//how a part has changed
 const CHANGES: [&str; 7] = [
     "total_absence", "partial_absence", "additional_part", "aberrant_dimensions", "discontinuity", "deviating_position",
     "qualitative_change",
 ];
 
-//the body function or structure with an id, as `c`. Ids are unique within each label, so each side uses its index
-const FIND: &str = "CALL { MATCH (c:BodyFunction {id: $id}) RETURN c UNION MATCH (c:BodyStructure {id: $id}) RETURN c }";
+//the body function or part with an id, as `c`. Ids are unique within each label, so each side uses its index
+const FIND: &str = "CALL { MATCH (c:BodyFunction {id: $id}) RETURN c UNION MATCH (c:BodyPart {id: $id}) RETURN c }";
 
-//a body function or structure
+//a body function
 #[derive(Serialize, Deserialize)]
-pub struct BodyPart {
+pub struct BodyFunction {
     id: String,
-    code: String, //the ICF code, such as b2100 or s7502
+    code: String, //the ICF code, such as b2100
     name: String,
     group: String,
     subgroup: Option<String>,
@@ -45,62 +45,53 @@ pub struct BodyPart {
     abilities: Vec<String>, //the abilities it underlies
 }
 
-//one of the logged in user's impairments
+//one of the logged in user's impairments, in a body function or a body part
 #[derive(Serialize, Deserialize)]
 pub struct Impairment {
-    id: String,             //the function or structure it's in
+    id: String,             //the function or part it's in
     extent: String,         //mild, moderate, severe or complete
-    change: Option<String>, //how a structure has changed
+    change: Option<String>, //how a part has changed
 }
 
 #[derive(Serialize)]
 pub struct Impairments {
-    functions: Vec<BodyPart>,
-    structures: Vec<BodyPart>,
+    functions: Vec<BodyFunction>,
     impairments: Vec<Impairment>,
 }
 
-//every node with the label, broader ones before the narrower ones under them, with the relationship from a narrower one
-//to the broader one it's part of
-async fn parts(state: &AppState, label: &str, narrower: &str) -> Result<Vec<BodyPart>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query(&format!("
-        MATCH (c:{label})
-        OPTIONAL MATCH (c)-[:{narrower}]->(p:{label})
+//every body function, with the logged in user's impairments. The parts they can be in come from GET /anatomy
+async fn impairments(State(state): State<AppState>, user: AuthUser) -> Result<Json<Impairments>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (c:BodyFunction)
+        OPTIONAL MATCH (c)-[:SUBFUNCTION_OF]->(p:BodyFunction)
         RETURN c.id AS id, c.code AS code, c.name AS name, c.group AS group, c.subgroup AS subgroup, p.id AS parent,
                c.description AS description, coalesce(c.includes, []) AS includes, coalesce(c.excludes, []) AS excludes,
-               COLLECT {{ MATCH (c)-[:UNDERLIES]->(a:Ability) RETURN a.name ORDER BY a.name }} AS abilities
+               COLLECT { MATCH (c)-[:UNDERLIES]->(a:Ability) RETURN a.name ORDER BY a.name } AS abilities
         ORDER BY c.code
-    "))).await.map_err(internal)?;
-    let mut parts = Vec::new();
+    ")).await.map_err(internal)?;
+    let mut functions = Vec::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
-        parts.push(row.to::<BodyPart>().map_err(internal)?);
+        functions.push(row.to::<BodyFunction>().map_err(internal)?);
     }
-    Ok(parts)
-}
-
-//every body function and structure, with the logged in user's impairments
-async fn impairments(State(state): State<AppState>, user: AuthUser) -> Result<Json<Impairments>, (StatusCode, String)> {
-    let functions = parts(&state, "BodyFunction", "SUBFUNCTION_OF").await?;
-    let structures = parts(&state, "BodyStructure", "SUBSTRUCTURE_OF").await?;
     let mut rows = state.graph.execute(query("
         MATCH (:Person {id: $personId})-[i:HAS_IMPAIRMENT]->(c)
         RETURN c.id AS id, i.extent AS extent, i.change AS change
-        ORDER BY c.code
+        ORDER BY c.name
     ").param("personId", user.person_id.as_str())).await.map_err(internal)?;
     let mut impairments = Vec::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
         impairments.push(row.to::<Impairment>().map_err(internal)?);
     }
-    Ok(Json(Impairments { functions, structures, impairments }))
+    Ok(Json(Impairments { functions, impairments }))
 }
 
 #[derive(Deserialize)]
 struct ImpairmentRequest {
     extent: String,
-    change: Option<String>, //only kept on a structure
+    change: Option<String>, //only kept on a part
 }
 
-//notes or changes an impairment in a body function or structure for the logged in user
+//notes or changes an impairment in a body function or part for the logged in user
 async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<ImpairmentRequest>) -> Result<StatusCode, (StatusCode, String)> {
     if !EXTENTS.contains(&req.extent.as_str()) {
         return Err(bad("Pick mild, moderate, severe or complete."));
@@ -112,7 +103,7 @@ async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id):
         MATCH (p:Person {{id: $personId}})
         {FIND}
         MERGE (p)-[i:HAS_IMPAIRMENT]->(c)
-        SET i.extent = $extent, i.change = CASE WHEN c:BodyStructure THEN $change END, i.updatedAt = datetime()
+        SET i.extent = $extent, i.change = CASE WHEN c:BodyPart THEN $change END, i.updatedAt = datetime()
         RETURN count(i) AS set
     "))
         .param("personId", user.person_id.as_str())
@@ -122,7 +113,7 @@ async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id):
     ).await.map_err(internal)?;
     let set: i64 = rows.next().await.map_err(internal)?.map(|r| r.get("set")).transpose().map_err(internal)?.unwrap_or(0);
     if set == 0 {
-        return Err((StatusCode::NOT_FOUND, "That body function or structure doesn't exist.".to_string()));
+        return Err((StatusCode::NOT_FOUND, "That body function or part doesn't exist.".to_string()));
     }
     Ok(StatusCode::NO_CONTENT)
 }

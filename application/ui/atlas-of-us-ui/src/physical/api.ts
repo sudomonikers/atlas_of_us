@@ -85,10 +85,10 @@ export function withUnit(value: number, unit: string) {
   return unit === '%' ? `${v}%` : `${v} ${unit}`;
 }
 
-//a body function or structure
-export interface BodyPart {
+//a body function
+export interface BodyFunction {
   id: string;
-  code: string; //the ICF code, such as b2100 or s7502
+  code: string; //the ICF code, such as b2100
   name: string;
   group: string; //the group it's under, such as "Mental functions"
   subgroup: string | null; //the group under that, where there is one
@@ -109,20 +109,19 @@ export type Change =
   | 'deviating_position'
   | 'qualitative_change';
 
-//one of the user's impairments
+//one of the user's impairments, in a body function or a body part
 export interface Impairment {
-  id: string; //the function or structure it's in
+  id: string; //the function or part it's in
   extent: Extent;
-  change: Change | null; //how a structure has changed
+  change: Change | null; //how a part has changed
 }
 
 export interface Impairments {
-  functions: BodyPart[];
-  structures: BodyPart[];
+  functions: BodyFunction[];
   impairments: Impairment[];
 }
 
-//how much a function or structure is impaired
+//how much a function or part is impaired
 export const EXTENTS: { value: Extent; label: string; detail: string }[] = [
   { value: 'mild', label: 'Mild', detail: 'slight, low: 5 to 24%' },
   { value: 'moderate', label: 'Moderate', detail: 'medium, fair: 25 to 49%' },
@@ -130,7 +129,7 @@ export const EXTENTS: { value: Extent; label: string; detail: string }[] = [
   { value: 'complete', label: 'Complete', detail: 'total: 96 to 100%' },
 ];
 
-//how a structure has changed
+//how a part has changed
 export const CHANGES: { value: Change; label: string }[] = [
   { value: 'total_absence', label: 'Total absence' },
   { value: 'partial_absence', label: 'Partial absence' },
@@ -141,16 +140,16 @@ export const CHANGES: { value: Change; label: string }[] = [
   { value: 'qualitative_change', label: 'Qualitative changes in structure, including accumulation of fluid' },
 ];
 
-//every body function and structure, with the logged in user's impairments
+//every body function, with the logged in user's impairments. The parts come from getAnatomy
 export const getImpairments = () => request<Impairments>('GET', '/physical/impairments');
 
-//notes or changes an impairment. change only applies to structures
+//notes or changes an impairment. change only applies to parts
 export const setImpairment = (id: string, extent: Extent, change: Change | null) =>
   request<void>('PUT', `/physical/impairments/${encodeURIComponent(id)}`, { extent, change });
 
 export const clearImpairment = (id: string) => request<void>('DELETE', `/physical/impairments/${encodeURIComponent(id)}`);
 
-//a condition: a disease from Mondo or a feature from HPO, with the body functions and structures it affects
+//a condition: a disease from Mondo or a feature from HPO, with the body functions and parts it affects
 export interface Condition {
   id: string;
   source_id: string; //the ontology's id, such as MONDO:0004979
@@ -160,10 +159,10 @@ export interface Condition {
   synonyms: string[];
   broader: string[]; //the ids of the conditions it's a kind of
   functions: Affected[];
-  structures: Affected[];
+  parts: PartRef[];
 }
 
-//a body function or structure a condition affects
+//a body function a condition affects
 export interface Affected {
   code: string;
   name: string;
@@ -216,3 +215,78 @@ export const setMyCondition = (id: string, severity: Severity | null, diagnosed:
   request<void>('PUT', `/physical/conditions/${encodeURIComponent(id)}/mine`, { severity, diagnosed, managed });
 
 export const clearMyCondition = (id: string) => request<void>('DELETE', `/physical/conditions/${encodeURIComponent(id)}/mine`);
+
+//a part of the body, from FMA, as the 3D body and the search need it
+export interface PartSummary {
+  id: string;
+  fma_id: string;
+  name: string;
+  synonyms: string[];
+  wholes: string[]; //the ids of the parts it belongs to
+  drawn: boolean; //whether the 3D body has a model of it
+}
+
+//another part, as a link
+export interface PartRef {
+  id: string;
+  name: string;
+}
+
+//a function a part carries out, with the abilities it underlies. through names the part that carries it out when it's
+//one the part belongs to or is made of
+export interface Served {
+  id: string;
+  name: string;
+  description: string | null;
+  abilities: string[];
+  through: string | null;
+}
+
+//a condition that affects a part, a part it belongs to or is made of, or a function it carries out, which through names
+export interface Affecting {
+  id: string;
+  name: string;
+  description: string | null;
+  through: string | null;
+}
+
+//a measurement of a part, of a part it belongs to or is made of, or of a function it carries out
+export interface Measuring {
+  id: string;
+  name: string;
+  through: string | null;
+}
+
+//one of the user's impairments in a part, a part it belongs to or is made of, or a function it carries out
+export interface Impaired {
+  id: string; //the function or part it's in
+  name: string;
+  extent: Extent;
+  through: string | null;
+}
+
+//a part of the body and everything to learn about it
+export interface Part {
+  id: string;
+  fma_id: string;
+  name: string;
+  definition: string | null;
+  synonyms: string[];
+  elements: string[]; //the meshes of the 3D body it's drawn with
+  wholes: PartRef[]; //the parts it belongs to
+  parts: PartRef[]; //the parts it's made of
+  kinds: PartRef[]; //the kinds of part it is
+  subtypes: PartRef[]; //the more specific kinds of it
+  functions: Served[];
+  conditions: Affecting[];
+  measurements: Measuring[];
+  impairments: Impaired[];
+}
+
+//every part of the body
+export const getAnatomy = () => request<PartSummary[]>('GET', '/physical/anatomy');
+
+export const getPart = (id: string) => request<Part>('GET', `/physical/anatomy/${encodeURIComponent(id)}`);
+
+//a body part's name to show, with a capital first letter
+export const partName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
