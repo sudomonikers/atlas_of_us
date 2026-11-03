@@ -86,6 +86,13 @@ ruler-drop reaction test, a 1.5 mile run, a dead hang, a Snellen chart.
 
 ### 4. WHO ICF
 
+(Done) `database/icf_import/` reads the 2026-01 tabulation and each category's definition from the ICD-API, and writes
+`database/physical_body_seed.cypher`: 346 body functions and 209 body structures (BodyFunction, BodyStructure), nested with
+SUBFUNCTION_OF and SUBSTRUCTURE_OF, with functions linked to the abilities they UNDERLIE and the measurements that MEASURE them
+(`src/links.rs`, chosen by hand). People note impairments (HAS_IMPAIRMENT {extent mild to complete, change for
+structures}) on the Impairments view of Physical Traits, private to them. Activities (d) and environmental
+factors (e) are left out. The structures may stand in for a slim Uberon (6).
+
 About 1,400 categories across body functions, body structures and activities, hierarchical, with a 0 to 4 qualifier
 scale.
 

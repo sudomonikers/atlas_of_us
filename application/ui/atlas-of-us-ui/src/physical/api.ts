@@ -84,3 +84,67 @@ export function withUnit(value: number, unit: string) {
   if (unit === '20/x') return `20/${v}`;
   return unit === '%' ? `${v}%` : `${v} ${unit}`;
 }
+
+//a body function or structure
+export interface BodyPart {
+  id: string;
+  name: string;
+  group: string; //the group it's under, such as "Mental functions"
+  subgroup: string | null; //the group under that, where there is one
+  parent: string | null; //the id of the one it's part of
+  description: string | null;
+  includes: string[];
+  excludes: string[];
+  abilities: string[]; //the abilities it underlies
+}
+
+export type Extent = 'mild' | 'moderate' | 'severe' | 'complete';
+export type Change =
+  | 'total_absence'
+  | 'partial_absence'
+  | 'additional_part'
+  | 'aberrant_dimensions'
+  | 'discontinuity'
+  | 'deviating_position'
+  | 'qualitative_change';
+
+//one of the user's impairments
+export interface Impairment {
+  id: string; //the function or structure it's in
+  extent: Extent;
+  change: Change | null; //how a structure has changed
+}
+
+export interface Impairments {
+  functions: BodyPart[];
+  structures: BodyPart[];
+  impairments: Impairment[];
+}
+
+//how much a function or structure is impaired
+export const EXTENTS: { value: Extent; label: string; detail: string }[] = [
+  { value: 'mild', label: 'Mild', detail: 'slight, low: 5 to 24%' },
+  { value: 'moderate', label: 'Moderate', detail: 'medium, fair: 25 to 49%' },
+  { value: 'severe', label: 'Severe', detail: 'high, extreme: 50 to 95%' },
+  { value: 'complete', label: 'Complete', detail: 'total: 96 to 100%' },
+];
+
+//how a structure has changed
+export const CHANGES: { value: Change; label: string }[] = [
+  { value: 'total_absence', label: 'Total absence' },
+  { value: 'partial_absence', label: 'Partial absence' },
+  { value: 'additional_part', label: 'Additional part' },
+  { value: 'aberrant_dimensions', label: 'Aberrant dimensions' },
+  { value: 'discontinuity', label: 'Discontinuity' },
+  { value: 'deviating_position', label: 'Deviating position' },
+  { value: 'qualitative_change', label: 'Qualitative changes in structure, including accumulation of fluid' },
+];
+
+//every body function and structure, with the logged in user's impairments
+export const getImpairments = () => request<Impairments>('GET', '/physical/impairments');
+
+//notes or changes an impairment. change only applies to structures
+export const setImpairment = (id: string, extent: Extent, change: Change | null) =>
+  request<void>('PUT', `/physical/impairments/${encodeURIComponent(id)}`, { extent, change });
+
+export const clearImpairment = (id: string) => request<void>('DELETE', `/physical/impairments/${encodeURIComponent(id)}`);

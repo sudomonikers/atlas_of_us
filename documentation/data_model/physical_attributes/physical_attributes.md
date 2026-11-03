@@ -7,10 +7,11 @@ mostly known, so most of it is seeded, and it changes little over time. It cover
 1. **Abilities,** seeded from the O\*NET content model: what a body and mind can do, such as Static Strength, Reaction
    Time and Near Vision.
 2. **Measurements,** such as height and grip strength, with population norms and tests a person can do themselves.
-3. **Conditions,** linked to the abilities and structures they affect.
-4. **Body structure,** the organ systems and major regions everything else hangs on.
+3. **Body functions and structures,** seeded from the WHO's ICF: what each part of the body does and what it's made
+   of, and the impairments a person has in them.
+4. **Conditions,** linked to the functions and structures they affect.
 
-Conditions and body structure are still to be defined.
+Conditions are still to be defined.
 
 ## Abilities
 An ability is a capacity of a person's body or mind that makes things easier or harder to learn, such as strength,
@@ -44,6 +45,21 @@ with everyone. `better` says which way is good: `higher` (grip strength), `lower
 
 A measurement that shows an ability links to it: grip strength shows Static Strength, and VO2 max shows Stamina.
 
+## Body functions and structures
+The WHO's International Classification of Functioning, Disability and Health (ICF) names every body function, such as
+memory functions or visual acuity functions, and every body structure, such as the structure of the knee joint. There
+are 346 functions and 209 structures, each with a name, a description, what it includes and excludes, and the group
+it's in. Narrower ones are part of broader ones: Short-term memory is part of Memory functions.
+
+A person notes an **impairment** in a function or structure with how much: `mild`, `moderate`, `severe` or `complete`.
+An impairment in a structure can also say how it has changed: `total_absence`, `partial_absence`, `additional_part`,
+`aberrant_dimensions`, `discontinuity`, `deviating_position` or `qualitative_change`. No impairment means none noted.
+Impairments are private to the person.
+
+Body functions underlie the abilities they're the basis of, so an impairment in visual acuity functions can hold back
+Near Vision and Far Vision, and measurements measure the function they're a reading of. The ICF is (c) World Health
+Organization, CC BY-ND 3.0 IGO: names stay as WHO wrote them, and WHO is credited wherever they're shown.
+
 ## Nodes
 
 | Label | Key properties | What it is |
@@ -51,6 +67,8 @@ A measurement that shows an ability links to it: grip strength shows Static Stre
 | Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot. Cognitive abilities have a second label, `Cognitive` |
 | PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description` | One of the 15 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness` or `Senses`, and `min` and `max` are the lowest and highest readings that can be recorded |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists |
+| BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
+| BodyStructure | the same as BodyFunction | One of the ICF's body structures |
 
 A Person carries `normSex`, `male` or `female`, when they've given it: the sex whose norms they're compared with.
 
@@ -63,6 +81,11 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 | HAS_NORM | PhysicalMeasurement → MeasurementNorm | | A measurement's norms |
 | MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
 | HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value |
+| SUBFUNCTION_OF | BodyFunction → BodyFunction | | A narrower function, a kind or part of a broader one (Short-term memory → Memory functions) |
+| SUBSTRUCTURE_OF | BodyStructure → BodyStructure | | A part of a larger structure (Structure of upper arm → Structure of upper extremity) |
+| UNDERLIES | BodyFunction → Ability | | An ability the function is the basis of |
+| MEASURES | PhysicalMeasurement → BodyFunction | | The function the measurement is a reading of |
+| HAS_IMPAIRMENT | Person → BodyFunction or BodyStructure | `extent`, `change`, `updatedAt` | An impairment they've noted. `extent` is how much, `mild` to `complete`, and `change`, on a structure only, how it has changed |
 
 ## Example
 ```cypher
@@ -85,4 +108,10 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 
 // Andrew squeezed 55 kg at 27, which is about the 76th percentile for men his age
 (andrew {normSex: "male"})-[:HAS_MEASUREMENT {value: 55.0, measuredOn: date("2026-10-30")}]->(g)
+
+// visual acuity functions underlie Far Vision, and visual acuity is a reading of them. Lulu is moderately short-sighted
+(va:BodyFunction {code: "b2100", name: "Visual acuity functions", group: "Sensory functions and pain"})-[:UNDERLIES]->(:Ability {name: "Far Vision"})
+(va)-[:SUBFUNCTION_OF]->(:BodyFunction {code: "b210", name: "Seeing functions"})
+(:PhysicalMeasurement {name: "Visual Acuity"})-[:MEASURES]->(va)
+(lulu)-[:HAS_IMPAIRMENT {extent: "moderate"}]->(va)
 ```

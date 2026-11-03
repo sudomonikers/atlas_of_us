@@ -10,8 +10,9 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 | UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: recording measurements and seeing where they sit |
 | API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
-| Seeds | `application/database/physical_abilities_seed.cypher`, `physical_norms_seed.cypher` | The abilities, from O\*NET, and the measurements with their norms, from NHANES |
+| Seeds | `application/database/physical_abilities_seed.cypher`, `physical_norms_seed.cypher`, `physical_body_seed.cypher` | The abilities, from O\*NET, the measurements with their norms, from NHANES, and the body functions and structures, from the WHO's ICF |
 | Norms import | `application/database/physical_norms_import/` | Works out the norms from NHANES and writes the norms seed |
+| ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions and structures seed |
 
 ## What we measure
 The abilities of the O\*NET content model: capacities of the body and mind that make things easier or harder to learn,
@@ -23,11 +24,17 @@ national health survey: the value at each percentile, by sex and age band. A per
 it's read, from their reading, their age when they took it and their sex for norms, so better norms update everyone at
 once. Measurements that show an ability, such as grip strength for Static Strength, are linked to it.
 
+Body functions and structures are the WHO's ICF, the international standard for describing how a body works. A person
+notes an impairment in one, from mild to complete. Functions are linked to the abilities they
+underlie and the measurements that read them, so an impairment shows which abilities it can hold back.
+
 ## What the user sees
-Physical Traits lists every measurement, grouped into body size, vitals, strength and fitness, and the senses. A person
-records a reading and the day they took it, and sees their latest reading with where it sits among people of their sex
-and age, and their earlier readings. They choose whether they're compared with men, women or everyone. Measurements are
-private: they're only shown to the person who recorded them.
+Physical Traits has two views. Measurements lists every measurement, grouped into body size, vitals, strength and
+fitness, and the senses. A person records a reading and the day they took it, and sees their latest reading with where
+it sits among people of their sex and age, and their earlier readings. They choose whether they're compared with men,
+women or everyone. Impairments lists the ones they've noted, with the abilities each can affect, and finds a body
+function or structure to add by searching or browsing WHO's chapters. Measurements and impairments are private: they're
+only shown to the person who recorded them.
 
 ## Skill requirements
 Every skill level is linked to the abilities it takes, so a person can see how what they have to work with fits a
