@@ -244,9 +244,7 @@ mostly known, so most of it is seeded, and it changes little over time. It cover
 2. **Measurements,** such as height and grip strength, with population norms and tests a person can do themselves.
 3. **Body functions and structures,** seeded from the WHO's ICF: what each part of the body does and what it's made
    of, and the impairments a person has in them.
-4. **Conditions,** linked to the functions and structures they affect.
-
-Conditions are still to be defined.
+4. **Conditions,** from Mondo and HPO, linked to the functions and structures they affect.
 
 #### Abilities
 An ability is a capacity of a person's body or mind that makes things easier or harder to learn, such as strength,
@@ -295,6 +293,22 @@ Body functions underlie the abilities they're the basis of, so an impairment in 
 Near Vision and Far Vision, and measurements measure the function they're a reading of. The ICF is (c) World Health
 Organization, CC BY-ND 3.0 IGO: names stay as WHO wrote them, and WHO is credited wherever they're shown.
 
+#### Conditions
+A condition is something a person has that affects their body or mind: a disease from the Mondo Disease Ontology, such
+as asthma or type 2 diabetes, or a feature from the Human Phenotype Ontology (HPO), such as joint hypermobility or
+tinnitus. Each has its name, definition and other names as the ontology has them, and the ontology's id, which is its
+identity. 262 common ones are seeded, and a person can add any other human disease from Mondo or phenotypic abnormality
+from HPO, which is looked up in EBI's Ontology Lookup Service.
+
+A condition is a kind of the nearest broader conditions in the graph, as the ontology arranges them (Alzheimer disease
+is a kind of dementia), and affects the body functions and structures it acts on (asthma affects respiration functions
+and the lungs). The seeded conditions' links to the body are chosen by hand, and an LLM chooses them for the ones people
+add.
+
+A person notes that they **have** a condition, optionally how much it affects them (`mild`, `moderate` or `severe`),
+whether a professional diagnosed it, and whether it's under control. Conditions are private to the person. Mondo is
+CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever they're shown.
+
 #### Nodes
 
 | Label | Key properties | What it is |
@@ -304,6 +318,7 @@ Organization, CC BY-ND 3.0 IGO: names stay as WHO wrote them, and WHO is credite
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
 | BodyStructure | the same as BodyFunction | One of the ICF's body structures |
+| Condition | `id`, `sourceId` (unique), `source`, `name`, `description`, `synonyms`, `ancestors`, `sourceUri`, `addedAt` | A disease or feature. `sourceId` is the ontology's id, such as `MONDO:0004979` or `HP:0001382`, `source` is `Mondo` or `HPO`, and `sourceUri` is the ontology's permanent URI for it. `synonyms` are its other names, and `ancestors` the ids of every class above it in its ontology, which places it among the other conditions. `addedAt` is on the ones people have added |
 
 A Person carries `normSex`, `male` or `female`, when they've given it: the sex whose norms they're compared with.
 
@@ -321,6 +336,9 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 | UNDERLIES | BodyFunction → Ability | | An ability the function is the basis of |
 | MEASURES | PhysicalMeasurement → BodyFunction | | The function the measurement is a reading of |
 | HAS_IMPAIRMENT | Person → BodyFunction or BodyStructure | `extent`, `change`, `updatedAt` | An impairment they've noted. `extent` is how much, `mild` to `complete`, and `change`, on a structure only, how it has changed |
+| SUBTYPE_OF | Condition → Condition | | A condition that's a kind of a broader one (Alzheimer disease → dementia) |
+| AFFECTS | Condition → BodyFunction or BodyStructure | | A function or structure the condition acts on |
+| HAS_CONDITION | Person → Condition | `severity`, `diagnosed`, `managed`, `updatedAt` | A condition they've noted. `severity` is `mild`, `moderate` or `severe` when they've said, `diagnosed` whether a professional diagnosed it, and `managed` whether it's under control |
 
 #### Example
 ```cypher
@@ -349,6 +367,13 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 (va)-[:SUBFUNCTION_OF]->(:BodyFunction {code: "b210", name: "Seeing functions"})
 (:PhysicalMeasurement {name: "Visual Acuity"})-[:MEASURES]->(va)
 (lulu)-[:HAS_IMPAIRMENT {extent: "moderate"}]->(va)
+
+// myopia affects visual acuity functions. Lulu was diagnosed, and glasses keep it under control
+(my:Condition {sourceId: "MONDO:0001384", source: "Mondo", name: "myopia"})-[:AFFECTS]->(va)
+(lulu)-[:HAS_CONDITION {severity: "moderate", diagnosed: true, managed: true}]->(my)
+
+// Andrew is double-jointed
+(andrew)-[:HAS_CONDITION {diagnosed: false, managed: false}]->(:Condition {sourceId: "HP:0001382", source: "HPO", name: "Joint hypermobility"})
 ```
 
 # Beyond The Individual

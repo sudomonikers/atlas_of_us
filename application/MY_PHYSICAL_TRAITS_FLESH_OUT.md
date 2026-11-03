@@ -105,6 +105,14 @@ scale.
 
 ### 5. A slice of HPO and Mondo, through a resolver
 
+(Done) `database/conditions_import/` reads Mondo and HPO and writes `database/physical_conditions_seed.cypher`: 262
+conditions chosen by hand in `src/picks.rs` (191 diseases from Mondo, 71 features from HPO), one Condition label with
+the ontology id as `sourceId`, nested with SUBTYPE_OF and linked to the body functions and structures they AFFECT.
+People note conditions (HAS_CONDITION {severity, diagnosed, managed}) on the Conditions view of Physical Traits, private
+to them, like impairments. Anything not seeded is looked up in EBI's Ontology Lookup Service and added as the ontology
+has it, placed above and below the conditions we have by their stored `ancestors`, and the `ConditionAdded-Physical`
+job links it to the body functions and structures it AFFECTS with one LLM call.
+
 Seed a few hundred common, self-reportable conditions: HPO terms with lay synonyms, or a common-conditions list such as
 the Global Burden of Disease causes (asthma, ADHD, colour blindness, myopia, type 2 diabetes). Anything else becomes a
 stub through a physical resolver, the same way skills and topics do, with the ontology id as its identity.
@@ -141,7 +149,7 @@ Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15
 - **Abilities are a percentile** like personality, not graded levels. O\*NET's anchors are examples along the scale.
 - **Measurements are their own nodes.** PhysicalMeasurement with NHANES norms (MeasurementNorm per sex and age
   band), a person's readings as HAS_MEASUREMENT {value, measuredOn}, one per reading, and the percentile worked out on
-  read. `better` (higher, lower or neither) covers neutral ones like height. Conditions will be modelled separately.
+  read. `better` (higher, lower or neither) covers neutral ones like height. Conditions are their own nodes (5).
 - **Sex for norms.** An optional `normSex` on Person, used only to pick a norm. Without it a person is compared with
   everyone.
 - **Abilities and skills.** An ability is a capacity of the body or mind that makes things easier or harder to learn,
@@ -152,4 +160,5 @@ Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15
 
 ## Open questions
 
-- **Conditions and privacy.** Model health conditions only once a privacy and visibility model exists?
+- **Conditions and privacy.** Conditions are private to the person, like impairments. A visibility model per
+  relationship is still needed before anything else, such as matching, uses them.

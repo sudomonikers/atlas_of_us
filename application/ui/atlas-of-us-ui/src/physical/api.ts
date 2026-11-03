@@ -148,3 +148,64 @@ export const setImpairment = (id: string, extent: Extent, change: Change | null)
   request<void>('PUT', `/physical/impairments/${encodeURIComponent(id)}`, { extent, change });
 
 export const clearImpairment = (id: string) => request<void>('DELETE', `/physical/impairments/${encodeURIComponent(id)}`);
+
+//a condition: a disease from Mondo or a feature from HPO, with the body functions and structures it affects
+export interface Condition {
+  id: string;
+  source_id: string; //the ontology's id, such as MONDO:0004979
+  source: 'Mondo' | 'HPO';
+  name: string; //as the ontology has it, which for Mondo is lower case
+  description: string | null;
+  synonyms: string[];
+  broader: string[]; //the ids of the conditions it's a kind of
+  functions: string[];
+  structures: string[];
+}
+
+export type Severity = 'mild' | 'moderate' | 'severe';
+
+//one of the logged in user's conditions
+export interface MyCondition {
+  id: string; //the condition
+  severity: Severity | null;
+  diagnosed: boolean;
+  managed: boolean;
+}
+
+export interface Conditions {
+  conditions: Condition[];
+  mine: MyCondition[];
+}
+
+//a term from the ontology search, with the id of the condition it is when we have it
+export interface Candidate {
+  source_id: string;
+  source: 'Mondo' | 'HPO';
+  name: string;
+  description: string | null;
+  id: string | null;
+}
+
+export const SEVERITIES: { value: Severity; label: string }[] = [
+  { value: 'mild', label: 'Mild' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'severe', label: 'Severe' },
+];
+
+//a condition's name to show, with a capital first letter
+export const conditionName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+
+//every condition, with the logged in user's
+export const getConditions = () => request<Conditions>('GET', '/physical/conditions');
+
+//the Mondo and HPO terms closest to what was typed, for adding one we don't have
+export const lookupConditions = (q: string) => request<Candidate[]>('GET', `/physical/conditions/lookup?q=${encodeURIComponent(q)}`);
+
+//adds a Mondo or HPO term as a condition, or gives back the one we have
+export const addCondition = (sourceId: string) => request<Condition>('POST', '/physical/conditions', { source_id: sourceId });
+
+//notes that the user has a condition, or changes what they've said about it
+export const setMyCondition = (id: string, severity: Severity | null, diagnosed: boolean, managed: boolean) =>
+  request<void>('PUT', `/physical/conditions/${encodeURIComponent(id)}/mine`, { severity, diagnosed, managed });
+
+export const clearMyCondition = (id: string) => request<void>('DELETE', `/physical/conditions/${encodeURIComponent(id)}/mine`);

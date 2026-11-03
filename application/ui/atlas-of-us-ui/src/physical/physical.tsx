@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import Conditions from './conditions';
 import Impairments from './impairments';
 import Measurements from './measurements';
 import { RequireLogin } from '../auth/require-login';
@@ -12,7 +13,7 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-type View = 'measurements' | 'impairments';
+type View = 'measurements' | 'impairments' | 'conditions';
 
 const VIEWS: { id: View; label: string; bubble: string }[] = [
   {
@@ -25,9 +26,14 @@ const VIEWS: { id: View; label: string; bubble: string }[] = [
     label: 'Impairments',
     bubble: "Anything about your body or mind that doesn't work the way it might. Knowing it means I can show you paths that work for you, not around you.",
   },
+  {
+    id: 'conditions',
+    label: 'Conditions',
+    bubble: "Asthma, ADHD, a heart that skips: whatever you live with. It stays between us, and it helps me find what fits you.",
+  },
 ];
 
-//Physical Traits: the user's measurements and impairments
+//Physical Traits: the user's measurements, impairments and conditions
 function Physical() {
   const [view, setView] = useState<View>('measurements');
   const current = VIEWS.find((v) => v.id === view)!;
@@ -64,6 +70,7 @@ function Physical() {
 
         {view === 'measurements' && <Measurements />}
         {view === 'impairments' && <Impairments />}
+        {view === 'conditions' && <Conditions />}
         <Footer />
       </div>
     </RequireLogin>

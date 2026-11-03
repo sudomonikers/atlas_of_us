@@ -67,6 +67,7 @@ async fn main() {
         bus: env::var("EVENT_BUS_NAME").ok().map(|name| events::Bus::new(&aws, name)),
         bedrock: aws_sdk_bedrockruntime::Client::new(&aws),
         evidence_bucket: env::var("EVIDENCE_BUCKET").ok(),
+        http: reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build().unwrap(),
     };
 
     // build our application 
