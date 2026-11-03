@@ -110,7 +110,7 @@ function ConditionCard({ condition, mine, onEdit, onRemove }: ConditionCardProps
       </p>
       {!!affects.length && (
         <div style={styles.chips}>
-          Affects {affects.map((a) => <span key={a} className="comic-chip">{a}</span>)}
+          Affects {affects.map((a) => <span key={a.code} className="comic-chip">{a.name}</span>)}
         </div>
       )}
       <div style={styles.buttons}>

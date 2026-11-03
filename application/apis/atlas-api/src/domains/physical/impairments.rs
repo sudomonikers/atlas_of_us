@@ -34,6 +34,7 @@ const FIND: &str = "CALL { MATCH (c:BodyFunction {id: $id}) RETURN c UNION MATCH
 #[derive(Serialize, Deserialize)]
 pub struct BodyPart {
     id: String,
+    code: String, //the ICF code, such as b2100 or s7502
     name: String,
     group: String,
     subgroup: Option<String>,
@@ -65,7 +66,7 @@ async fn parts(state: &AppState, label: &str, narrower: &str) -> Result<Vec<Body
     let mut rows = state.graph.execute(query(&format!("
         MATCH (c:{label})
         OPTIONAL MATCH (c)-[:{narrower}]->(p:{label})
-        RETURN c.id AS id, c.name AS name, c.group AS group, c.subgroup AS subgroup, p.id AS parent,
+        RETURN c.id AS id, c.code AS code, c.name AS name, c.group AS group, c.subgroup AS subgroup, p.id AS parent,
                c.description AS description, coalesce(c.includes, []) AS includes, coalesce(c.excludes, []) AS excludes,
                COLLECT {{ MATCH (c)-[:UNDERLIES]->(a:Ability) RETURN a.name ORDER BY a.name }} AS abilities
         ORDER BY c.code

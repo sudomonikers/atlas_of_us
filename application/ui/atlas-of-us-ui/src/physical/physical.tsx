@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import BodyMap from './body_map';
 import Conditions from './conditions';
 import Impairments from './impairments';
 import Measurements from './measurements';
@@ -13,13 +14,18 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-type View = 'measurements' | 'impairments' | 'conditions';
+type View = 'measurements' | 'body' | 'impairments' | 'conditions';
 
 const VIEWS: { id: View; label: string; bubble: string }[] = [
   {
     id: 'measurements',
     label: 'Measurements',
     bubble: "Measure what you can, and I'll show you where you sit among people your age. Bigger isn't always better, and where it is, I'll say so.",
+  },
+  {
+    id: 'body',
+    label: 'Body map',
+    bubble: "Point at the part that bothers you. Knees, eyes, lungs: tap it and tell me what's going on there.",
   },
   {
     id: 'impairments',
@@ -33,7 +39,7 @@ const VIEWS: { id: View; label: string; bubble: string }[] = [
   },
 ];
 
-//Physical Traits: the user's measurements, impairments and conditions
+//Physical Traits: the user's measurements, a map of their body, and their impairments and conditions
 function Physical() {
   const [view, setView] = useState<View>('measurements');
   const current = VIEWS.find((v) => v.id === view)!;
@@ -69,6 +75,7 @@ function Physical() {
         </div>
 
         {view === 'measurements' && <Measurements />}
+        {view === 'body' && <BodyMap />}
         {view === 'impairments' && <Impairments />}
         {view === 'conditions' && <Conditions />}
         <Footer />

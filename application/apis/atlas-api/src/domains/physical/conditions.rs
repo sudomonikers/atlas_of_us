@@ -42,8 +42,15 @@ pub struct Condition {
     description: Option<String>,
     synonyms: Vec<String>,
     broader: Vec<String>, //the ids of the conditions it's a kind of
-    functions: Vec<String>,
-    structures: Vec<String>,
+    functions: Vec<Affected>,
+    structures: Vec<Affected>,
+}
+
+//a body function or structure a condition affects
+#[derive(Serialize, Deserialize)]
+pub struct Affected {
+    code: String,
+    name: String,
 }
 
 //one of the logged in user's conditions
@@ -69,8 +76,8 @@ async fn fetch(state: &AppState, ids: Option<Vec<String>>) -> Result<Vec<Conditi
         RETURN c.id AS id, c.sourceId AS source_id, c.source AS source, c.name AS name, c.description AS description,
                coalesce(c.synonyms, []) AS synonyms,
                COLLECT { MATCH (c)-[:SUBTYPE_OF]->(b:Condition) RETURN b.id } AS broader,
-               COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyFunction) RETURN p.name ORDER BY p.code } AS functions,
-               COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyStructure) RETURN p.name ORDER BY p.code } AS structures
+               COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyFunction) RETURN {code: p.code, name: p.name} ORDER BY p.code } AS functions,
+               COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyStructure) RETURN {code: p.code, name: p.name} ORDER BY p.code } AS structures
         ORDER BY toLower(c.name)
     ").param("ids", ids)).await.map_err(internal)?;
     let mut conditions = Vec::new();

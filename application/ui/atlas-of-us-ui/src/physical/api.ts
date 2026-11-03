@@ -88,6 +88,7 @@ export function withUnit(value: number, unit: string) {
 //a body function or structure
 export interface BodyPart {
   id: string;
+  code: string; //the ICF code, such as b2100 or s7502
   name: string;
   group: string; //the group it's under, such as "Mental functions"
   subgroup: string | null; //the group under that, where there is one
@@ -158,8 +159,14 @@ export interface Condition {
   description: string | null;
   synonyms: string[];
   broader: string[]; //the ids of the conditions it's a kind of
-  functions: string[];
-  structures: string[];
+  functions: Affected[];
+  structures: Affected[];
+}
+
+//a body function or structure a condition affects
+export interface Affected {
+  code: string;
+  name: string;
 }
 
 export type Severity = 'mild' | 'moderate' | 'severe';

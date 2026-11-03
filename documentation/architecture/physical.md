@@ -7,7 +7,7 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: recording measurements and seeing where they sit, and noting impairments and conditions |
+| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: recording measurements and seeing where they sit, a map of the body, and noting impairments and conditions |
 | API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; impairments; conditions, and adding ones from Mondo and HPO |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
 | Condition links | `application/apis/atlas-jobs/src/events/condition_added/physical.rs` | Links a condition a person added to the body functions and structures it affects |
@@ -40,10 +40,12 @@ one is placed among the ones we have from those alone: under the nearest conditi
 ones that are kinds of it.
 
 ## What the user sees
-Physical Traits has three views. Measurements lists every measurement, grouped into body size, vitals, strength and
+Physical Traits has four views. Measurements lists every measurement, grouped into body size, vitals, strength and
 fitness, and the senses. A person records a reading and the day they took it, and sees their latest reading with where
 it sits among people of their sex and age, and their earlier readings. They choose whether they're compared with men,
-women or everyone. Impairments lists the ones they've noted, with the abilities each can affect, and finds a body
+women or everyone. Body map draws the body from the front and the back, its regions made up of the body structures
+in them; picking one shows the impairments and conditions noted there, and notes an impairment in one of its
+structures. Impairments lists the ones they've noted, with the abilities each can affect, and finds a body
 function or structure to add by searching or browsing WHO's chapters. Conditions lists the ones they've noted, with how
 much each affects them, whether it was diagnosed, whether it's under control, and the parts of the body it affects; a
 search finds a condition by any of its names, and looks further in Mondo and HPO for one that isn't listed.

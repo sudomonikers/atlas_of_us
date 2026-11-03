@@ -91,7 +91,7 @@ ruler-drop reaction test, a 1.5 mile run, a dead hang, a Snellen chart.
 SUBFUNCTION_OF and SUBSTRUCTURE_OF, with functions linked to the abilities they UNDERLIE and the measurements that MEASURE them
 (`src/links.rs`, chosen by hand). People note impairments (HAS_IMPAIRMENT {extent mild to complete, change for
 structures}) on the Impairments view of Physical Traits, private to them. Activities (d) and environmental
-factors (e) are left out. The structures may stand in for a slim Uberon (6).
+factors (e) are left out. The structures are the body map (6).
 
 About 1,400 categories across body functions, body structures and activities, hierarchical, with a 0 to 4 qualifier
 scale.
@@ -126,6 +126,11 @@ stub through a physical resolver, the same way skills and topics do, with the on
 
 ### 6. A slim Uberon as the body map
 
+(Done, without Uberon) The ICF body structures are the body map, so there are no Uberon nodes to duplicate them. The
+Body map view of Physical Traits draws the body front and back, and `src/physical/body_regions.ts` puts each structure in
+a region by its code (the longest matching prefix wins, and what matches none is "All over"). Picking a region shows the
+impairments and conditions noted there and notes an impairment in one of its structures.
+
 Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15,000+ classes across species.
 
 - **The spine** measurements, abilities and conditions hang on: measurement → structure, condition → structure.
@@ -141,7 +146,7 @@ Organ systems and major regions only, about 200 to 300 nodes, out of Uberon's 15
 | Self-tests | 20 to 40 | Indirect | High | Verification | Low |
 | ICF | about 1,400 | Medium | Medium | Accessibility | License |
 | Conditions slice | hundreds, then stubs | Medium | Medium | Shopping, school | High (privacy) |
-| Uberon slim | about 300 | None | Low | Body map UI | Low |
+| Body map | 15 regions over the ICF structures | None | Medium | Body map UI | Low |
 
 ## Decided
 
