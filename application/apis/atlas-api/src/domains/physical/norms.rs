@@ -2,6 +2,9 @@
 //the value at each of a list of percentiles, and values in between are interpolated
 use serde::{Deserialize, Serialize};
 
+//the percentiles a norm gives values at, as in the norms seed (database/physical_norms_import)
+pub const PERCENTILES: [f64; 23] = [1., 3., 5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 97., 99.];
+
 //a measurement's norm for one sex and age band
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Norm {

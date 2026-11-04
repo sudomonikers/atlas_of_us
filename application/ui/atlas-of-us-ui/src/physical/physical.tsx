@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import Abilities from './abilities';
 import BodyMap from './body_map';
 import Conditions from './conditions';
 import Impairments from './impairments';
@@ -14,13 +15,18 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-type View = 'measurements' | 'body' | 'impairments' | 'conditions';
+type View = 'measurements' | 'abilities' | 'body' | 'impairments' | 'conditions';
 
 const VIEWS: { id: View; label: string; bubble: string }[] = [
   {
     id: 'measurements',
     label: 'Measurements',
     bubble: "Measure what you can, and I'll show you where you sit among people your age. Bigger isn't always better, and where it is, I'll say so.",
+  },
+  {
+    id: 'abilities',
+    label: 'Abilities',
+    bubble: "Strength, balance, quick reactions, memory: what makes things easier or harder to learn. Take a test or rate yourself, and I'll show where you stand.",
   },
   {
     id: 'body',
@@ -39,9 +45,15 @@ const VIEWS: { id: View; label: string; bubble: string }[] = [
   },
 ];
 
-//Physical Traits: the user's measurements, a map of their body, and their impairments and conditions
+//Physical Traits: the user's measurements and tests, their abilities, a map of their body, and their impairments and
+//conditions
 function Physical() {
   const [view, setView] = useState<View>('measurements');
+  const [focus, setFocus] = useState<string>(); //a measurement to scroll to when Measurements opens
+  const measure = (id: string) => {
+    setFocus(id);
+    setView('measurements');
+  };
   const current = VIEWS.find((v) => v.id === view)!;
 
   return (
@@ -67,14 +79,18 @@ function Physical() {
               className="comic-lift"
               style={{ ...styles.viewButton, ...(view === v.id ? styles.viewButtonActive : {}) }}
               aria-pressed={view === v.id}
-              onClick={() => setView(v.id)}
+              onClick={() => {
+                setFocus(undefined);
+                setView(v.id);
+              }}
             >
               {v.label}
             </button>
           ))}
         </div>
 
-        {view === 'measurements' && <Measurements />}
+        {view === 'measurements' && <Measurements focus={focus} />}
+        {view === 'abilities' && <Abilities onMeasure={measure} />}
         {view === 'body' && <BodyMap />}
         {view === 'impairments' && <Impairments />}
         {view === 'conditions' && <Conditions />}

@@ -267,6 +267,7 @@ pub struct Level {
     trust: Option<String>,
     next_level: Option<String>, //what it takes to reach the next level. Missing on Expert and on a stub's levels
     traits: Vec<TraitRequirement>, //the personality it takes, written on this level itself. Lower levels' carry up to it
+    abilities: Vec<AbilityRequirement>, //the abilities it takes, written on this level itself. Lower levels' carry up to it
     skills: Vec<SkillRequirement>, //the other skills it needs, written on this level itself. Lower levels' carry up to it
     topics: Vec<TopicRequirement>, //the levels of topics it needs knowledge of, written on this level itself. Lower levels' carry up to it
 }
@@ -274,6 +275,15 @@ pub struct Level {
 //a personality trait a level takes. `level` is where on the trait it pulls, above 0.5 for more of it and below for less
 #[derive(Serialize, Deserialize)]
 pub struct TraitRequirement {
+    name: String,
+    level: f64,
+    strength: f64, //how much it matters, 0 to 1
+    reason: String,
+}
+
+//an ability a level takes. `level` is the percentile of it the level takes, from 0.5 (a typical amount is enough) to 1
+#[derive(Serialize, Deserialize)]
+pub struct AbilityRequirement {
     name: String,
     level: f64,
     strength: f64, //how much it matters, 0 to 1
@@ -326,6 +336,10 @@ pub async fn get_skill(State(state): State<AppState>, Path(id): Path<String>) ->
                 traits: COLLECT {
                     MATCH (l)-[r:REQUIRES_TRAIT]->(t:PersonalityTrait)
                     RETURN {name: t.name, level: r.level, strength: r.strength, reason: r.reason} ORDER BY r.strength DESC
+                },
+                abilities: COLLECT {
+                    MATCH (l)-[r:REQUIRES_ABILITY]->(a:Ability)
+                    RETURN {name: a.name, level: r.level, strength: r.strength, reason: r.reason} ORDER BY r.strength DESC
                 },
                 skills: COLLECT {
                     MATCH (l)-[r:REQUIRES_SKILL]->(ol:DreyfusLevel)<-[:HAS_LEVEL]-(o:Skill)

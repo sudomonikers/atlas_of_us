@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthUser, state::AppState};
 
-use super::{bad, internal};
+use super::{abilities, bad, internal};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -115,6 +115,8 @@ async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id):
     if set == 0 {
         return Err((StatusCode::NOT_FOUND, "That body function or part doesn't exist.".to_string()));
     }
+    //an impairment holds back the abilities it rests on
+    abilities::refresh(&state, &user.person_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -125,5 +127,6 @@ async fn clear_impairment(State(state): State<AppState>, user: AuthUser, Path(id
         MATCH (:Person {{id: $personId}})-[i:HAS_IMPAIRMENT]->(c)
         DELETE i
     ")).param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
+    abilities::refresh(&state, &user.person_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

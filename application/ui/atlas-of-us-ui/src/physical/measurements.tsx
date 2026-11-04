@@ -17,8 +17,9 @@ const COMPARE: { sex: NormSex | null; label: string }[] = [
   { sex: null, label: 'Everyone' },
 ];
 
-//the user's measurements, each with where they sit among people of their sex and age, and who they're compared with
-export default function Measurements() {
+//the user's measurements, each with where they sit among people of their sex and age, and who they're compared with.
+//`focus` is a measurement to scroll to once they're loaded
+export default function Measurements({ focus }: { focus?: string }) {
   const [data, setData] = useState<MeasurementList>();
   const [error, setError] = useState<string>();
   const [compareError, setCompareError] = useState<string>();
@@ -33,6 +34,9 @@ export default function Measurements() {
     setCompareError(undefined);
     setMe({ norm_sex: sex }).then(load, (e) => setCompareError(e instanceof Error ? e.message : String(e)));
   };
+  useEffect(() => {
+    if (data && focus) document.getElementById(`measurement-${focus}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [data, focus]);
   const changed = (id: string, readings: Reading[]) =>
     setData((d) => d && { ...d, measurements: d.measurements.map((m) => (m.id === id ? { ...m, readings } : m)) });
 
@@ -82,8 +86,9 @@ export default function Measurements() {
       {!data.measurements.length && <p style={styles.how}>There's nothing to measure yet.</p>}
 
       <p style={styles.how}>
-        Only you can see your measurements. The comparisons come from NHANES, the US national health survey run by the CDC,
-        so they describe people in the United States.
+        Only you can see your measurements. Most comparisons come from NHANES, the US national health survey run by the
+        CDC, so they describe people in the United States. The tests you take yourself are compared with the studies each
+        one names. What you record here also works out where you stand on your abilities.
       </p>
     </>
   );

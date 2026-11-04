@@ -30,21 +30,53 @@ There are 46 abilities, from O\*NET (the Fleishman taxonomy), in four categories
 | Sensory | 12 | Near Vision, Night Vision, Hearing Sensitivity |
 
 The cognitive abilities carry a second label, `Cognitive`. A person's place on an ability is a percentile, as with
-personality traits. O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown.
+personality traits, with a confidence. It's worked out from what they've recorded: the latest reading of each
+measurement that shows the ability, weighted by how much that measurement says about it; or, when no reading counts,
+their own rating of themselves on the ability's three examples, which says little. An impairment in a body function the
+ability rests on, or in a part that serves one, holds it back to at most a share set by the impairment's extent, and on
+its own says the person is about there. O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown.
 
 ## Measurements
 A measurement is something about a body with a number and a unit, such as height, grip strength or resting heart rate.
-There are 15, seeded from NHANES, the US national health survey: body size (height, weight, BMI, waist and hip
+There are 50. Fifteen are from NHANES, the US national health survey: body size (height, weight, BMI, waist and hip
 circumference, upper arm and leg length), vitals (resting heart rate, blood pressure), strength and fitness (grip
-strength, VO2 max, body fat) and the senses (hearing threshold, visual acuity).
+strength, VO2 max, body fat) and the senses (hearing threshold, visual acuity). Visual acuity can also be measured with
+the app's eye chart, on a screen sized with a bank card.
 
-Each measurement has **norms**: the value at each percentile of the US population, for a sex (male, female or all) and
-an age band. A person records the raw value, and their percentile is worked out when it's read, against the norm for
+Eight are **self-tests**, which a person takes themselves. Four are done at home, following written steps: sit and
+reach, vertical jump, push-ups, and standing on one leg with the eyes closed. Four run in the app: reaction time,
+choice reaction time, digit span and trail making. Their norms come from published surveys and studies, each named in its `source`:
+the Canadian Health Measures Survey, the Canadian Society for Exercise Physiology, and studies of balance, reaction
+time, memory and trail making.
+
+Twenty-seven are the Atlas's **own tests**, each for one ability. Six are done at home, following written steps, with
+a stopwatch in the app, or a countdown for one of how many in a set time: plank hold (trunk strength), coin transfer
+(manual dexterity), coin turning (finger dexterity), plate tapping (speed of limb movement), hexagon jump (gross body
+coordination) and bend, twist and touch (dynamic flexibility). The rest run in the app:
+- reasoning: matrix puzzles and number series (inductive reasoning), shape rotation and paper folding (visualization),
+  perspective taking (spatial orientation) and syllogisms (deductive reasoning);
+- attention and perception: symbol matching (perceptual speed), distracting arrows (selective attention), card sorting
+  (category flexibility), broken words (speed of closure) and hidden shapes (flexibility of closure);
+- coordination: tapping (wrist-finger speed), tracking (control precision), timing (rate control), two-hand steering
+  (multilimb coordination) and track and count (time sharing);
+- the senses: a reading chart (near vision), odd colour out (visual color discrimination) and side vision (peripheral
+  vision);
+- ideas: animal naming (fluency of ideas) and brick uses (originality), typed answers that the api scores. An LLM keeps
+  the different animals, or the genuine uses; each use is then embedded and scored by how far it is from a brick itself
+  and from the uses people give most often, on the person's three most unusual.
+
+The app's items are generated from fixed seeds, so everyone takes the same test. They're all compared with Atlas users
+(`atlasNorms`): their norms are worked out from everyone's latest reading whenever a reading of one is added or
+removed, by age group, once a group has at least 100 people, with smaller groups joined to the next.
+
+Each measurement has **norms**: the value at each of a list of percentiles, for a sex (male, female or all) and an age
+band. A person records the raw value, and their percentile is worked out when it's read, against the norm for
 their sex for norms and their age on the day they measured it. Someone who hasn't given a sex for norms is compared
 with everyone. `better` says which way is good: `higher` (grip strength), `lower` (resting heart rate) or `neither`
 (height, where a percentile only says where someone sits).
 
-A measurement that shows an ability links to it: grip strength shows Static Strength, and VO2 max shows Stamina.
+A measurement that shows an ability links to it: grip strength shows Static Strength, VO2 max shows Stamina, and the
+reaction time test shows Reaction Time. `confidence` says how much one reading says about the ability.
 
 ## Body functions
 The WHO's International Classification of Functioning, Disability and Health (ICF) names every body function, such as
@@ -99,8 +131,8 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 | Label | Key properties | What it is |
 |---|---|---|
 | Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot. Cognitive abilities have a second label, `Cognitive` |
-| PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description` | One of the 15 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness` or `Senses`, and `min` and `max` are the lowest and highest readings that can be recorded |
-| MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists |
+| PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 50 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colours`, `side_vision`, `animals`, `uses`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
+| MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values`, `fromAtlas`, `people` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists, and the percentiles can differ between measurements. `fromAtlas` is true on a norm worked out from Atlas users, with how many `people` it's from; the norms seed keeps these |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
 | BodyPart | `id`, `fmaId` (unique), `name`, `definition`, `synonyms`, `elements`, `major` | A part of the body. `fmaId` is its FMA id, such as `FMA7088`, and `elements` the meshes of the 3D body it's drawn with, empty for a part with no model. `major` marks the parts conditions are linked to: organs (which include bones, muscles, joints and named vessels), systems and regions, without the left and right copies of a part |
 | Condition | `id`, `sourceId` (unique), `source`, `name`, `description`, `synonyms`, `ancestors`, `sourceUri`, `addedAt` | A disease or feature. `sourceId` is the ontology's id, such as `MONDO:0004979` or `HP:0001382`, `source` is `Mondo` or `HPO`, and `sourceUri` is the ontology's permanent URI for it. `synonyms` are its other names, and `ancestors` the ids of every class above it in its ontology, which places it among the other conditions. `addedAt` is on the ones people have added |
@@ -111,11 +143,12 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 
 | Relationship | From → To | Properties | Meaning |
 |---|---|---|---|
-| HAS_ABILITY | Person → Ability | `value`, `confidence` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it. No relationship means unmeasured, not average |
+| HAS_ABILITY | Person → Ability | `value`, `confidence`, `basis`, `updatedAt` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it, worked out from their readings, rating and impairments whenever those change. `basis` names what it came from. No relationship means unmeasured, not average |
+| RATED_ABILITY | Person → Ability | `anchor`, `ratedAt` | Their own rating on the ability: the hardest of its three examples they say they can do, 1 to 3, or 0 for none of them |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability (see the Skills graph) |
 | HAS_NORM | PhysicalMeasurement → MeasurementNorm | | A measurement's norms |
 | MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
-| HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value |
+| HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt`, `answers` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value. `answers` is what they typed, on a reading of a test of typed answers |
 | SUBFUNCTION_OF | BodyFunction → BodyFunction | | A narrower function, a kind or part of a broader one (Short-term memory → Memory functions) |
 | SUBPART_OF | BodyPart → BodyPart | | A part of a larger whole (Left femur → Skeleton of left lower limb) |
 | PART_SUBTYPE_OF | BodyPart → BodyPart | | A kind of a broader part (Left femur → Femur → Long bone) |

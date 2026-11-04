@@ -1,7 +1,9 @@
 //writes the physical norms seed: for each measurement, the value at each percentile of the US population, by sex and
-//age band, worked out from NHANES with its survey weights. See README.md
+//age band, worked out from NHANES with its survey weights, and the self-tests with their norms from published studies.
+//See README.md
 mod measurements;
 mod norms;
+mod published;
 mod xpt;
 
 use std::{
@@ -13,6 +15,7 @@ use std::{
 };
 
 use measurements::{Cycle, MEASUREMENTS, Measurement};
+use published::{Norms, TESTS};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -38,7 +41,25 @@ struct Norm {
     sex: &'static str,
     age_from: u32,
     age_to: Option<u32>,
+    percentiles: Vec<f64>,
     values: Vec<f64>,
+}
+
+//what the seed writes for each measurement, from NHANES or a self-test
+struct Row {
+    name: &'static str,
+    unit: &'static str,
+    better: &'static str,
+    group: &'static str,
+    range: (f64, f64),
+    description: &'static str,
+    abilities: &'static [&'static str],
+    confidence: f64,
+    test: Option<&'static str>,
+    timer: Option<u32>,
+    protocol: &'static [&'static str],
+    source: String,
+    atlas_norms: bool, //its norms come from Atlas users' readings, worked out by the api
 }
 
 fn main() -> ExitCode {
@@ -93,11 +114,21 @@ fn run(dir: &Path, seed: &Path) -> Result<(), BoxError> {
                     .map(|s| (s.value, s.weight))
                     .collect();
                 if group.len() >= MIN_RESPONDENTS {
-                    norms.push(Norm { measurement: m.name, sex, age_from, age_to, values: norms::percentiles(group) });
+                    norms.push(Norm { measurement: m.name, sex, age_from, age_to, percentiles: norms::PERCENTILES.to_vec(), values: norms::percentiles(group) });
                 }
             }
         }
         println!("{}: {} respondents, {} norms", m.name, samples.len(), norms.len() - before);
+    }
+    //a self-test's values are kept within what can be recorded, so a ceiling, such as 45 seconds on one leg, is where
+    //the best readings bunch up
+    for t in TESTS {
+        let groups = t.norms.groups();
+        println!("{}: {} norms", t.name, groups.len());
+        norms.extend(groups.into_iter().map(|(sex, age_from, age_to, percentiles, values)| Norm {
+            measurement: t.name, sex, age_from, age_to, percentiles,
+            values: values.into_iter().map(|v| v.clamp(t.range.0, t.range.1)).collect(),
+        }));
     }
 
     fs::write(seed, cypher(&norms))?;
@@ -135,8 +166,24 @@ fn samples(dir: &Path, m: &Measurement, demographics: &mut HashMap<&'static str,
     Ok(samples)
 }
 
+//every measurement the seed writes: NHANES's, then the self-tests
+fn rows() -> Vec<Row> {
+    let nhanes = MEASUREMENTS.iter().map(|m| Row {
+        name: m.name, unit: m.unit, better: m.better, group: m.group, range: m.range, description: m.description,
+        abilities: m.abilities, confidence: m.confidence, test: m.test, timer: None, protocol: &[], atlas_norms: false,
+        source: format!("NHANES, the CDC's National Health and Nutrition Examination Survey, {}.", m.cycles.iter().map(|c: &Cycle| c.years).collect::<Vec<_>>().join(", ")),
+    });
+    let tests = TESTS.iter().map(|t| Row {
+        name: t.name, unit: t.unit, better: t.better, group: t.group, range: t.range, description: t.description,
+        abilities: t.abilities, confidence: t.confidence, test: Some(t.test), timer: t.timer, protocol: t.protocol, source: t.source.to_string(),
+        atlas_norms: matches!(t.norms, Norms::Atlas),
+    });
+    nhanes.chain(tests).collect()
+}
+
 fn cypher(norms: &[Norm]) -> String {
     let mut out = String::new();
+    let rows = rows();
     let sources = MEASUREMENTS.iter()
         .map(|m| format!("//   {:<25} {}", m.name, m.cycles.iter().map(|c: &Cycle| c.years).collect::<Vec<_>>().join(", ")))
         .collect::<Vec<_>>()
@@ -150,15 +197,22 @@ fn cypher(norms: &[Norm]) -> String {
 // run it again rather than editing this file.
 //
 // One PhysicalMeasurement per measurement, each with a MeasurementNorm per sex
-// (male, female and all) and age band: the value at each percentile of the US
-// population, worked out from NHANES with its survey weights. A person's
-// percentile is worked out from these when it's read. Measurements that show
-// an ability link to it with MEASURES, so run physical_abilities_seed.cypher
-// first.
+// (male, female and all) and age band: the value at each of a list of
+// percentiles. A person's percentile is worked out from these when it's read.
+// Measurements that show an ability link to it with MEASURES, so run
+// physical_abilities_seed.cypher first. `confidence` is how much a reading says
+// about those abilities.
 //
-// Source: the National Health and Nutrition Examination Survey (NHANES), by
-// the CDC's National Center for Health Statistics. Public domain.
+// Most norms are worked out from the National Health and Nutrition
+// Examination Survey (NHANES), by the CDC's National Center for Health
+// Statistics, with its survey weights. Public domain.
 {sources}
+//
+// The self-tests, which a person takes at home (`test` is home, with the steps
+// in `protocol`) or in the app (`test` names the one the app runs), have norms
+// from the published studies and surveys in each one's `source`. Those with
+// `atlasNorms` start with none: the api works out their norms from Atlas
+// users' readings once enough people have taken them, and this seed keeps them.
 //
 // Idempotent: safe to re-run. Measurements MERGE on name and keep their id,
 // and their norms are replaced on every run.
@@ -182,9 +236,12 @@ FOR (n:PhysicalMeasurement) REQUIRE n.id IS UNIQUE;
 
 UNWIND [
 ");
-    let rows: Vec<String> = MEASUREMENTS.iter().map(|m| format!(
-        "  {{ name: {}, unit: {}, better: {}, group: {}, min: {:.1}, max: {:.1},\n    description: {} }}",
-        quote(m.name), quote(m.unit), quote(m.better), quote(m.group), m.range.0, m.range.1, quote(&m.description.split_whitespace().collect::<Vec<_>>().join(" ")),
+    let written: Vec<String> = rows.iter().map(|m| format!(
+        "  {{ name: {}, unit: {}, better: {}, group: {}, min: {:.1}, max: {:.1}, confidence: {:.1}, test: {}, timer: {}, atlasNorms: {},\n    description: {},\n    protocol: [{}],\n    source: {} }}",
+        quote(m.name), quote(m.unit), quote(m.better), quote(m.group), m.range.0, m.range.1, m.confidence,
+        m.test.map_or("null".into(), quote), m.timer.map_or("null".into(), |t| t.to_string()), m.atlas_norms,
+        quote(&words(m.description)),
+        m.protocol.iter().map(|p| quote(p)).collect::<Vec<_>>().join(", "), quote(&words(&m.source)),
     )).collect();
     let _ = write!(out, "{}\n] AS m
 MERGE (n:PhysicalMeasurement {{name: m.name}})
@@ -194,6 +251,12 @@ SET n.unit = m.unit,
     n.group = m.group,
     n.min = m.min,
     n.max = m.max,
+    n.confidence = m.confidence,
+    n.test = m.test,
+    n.timer = m.timer,
+    n.atlasNorms = m.atlasNorms,
+    n.protocol = m.protocol,
+    n.source = m.source,
     n.description = m.description;
 
 
@@ -202,11 +265,10 @@ SET n.unit = m.unit,
 // -----------------------------------------------------------------------------
 
 UNWIND [
-", rows.join(",\n"));
-    let links: Vec<String> = MEASUREMENTS.iter()
+", written.join(",\n"));
+    let links: Vec<String> = rows.iter()
         .flat_map(|m| m.abilities.iter().map(move |a| format!("  {{ measurement: {}, ability: {} }}", quote(m.name), quote(a))))
         .collect();
-    let percentiles = format!("[{}]", norms::PERCENTILES.iter().map(|p| format!("{p:.1}")).collect::<Vec<_>>().join(", "));
     let _ = write!(out, "{}\n] AS l
 MATCH (m:PhysicalMeasurement {{name: l.measurement}})
 MATCH (a:Ability {{name: l.ability}})
@@ -217,24 +279,31 @@ MERGE (m)-[:MEASURES]->(a);
 // 3. Norms
 // -----------------------------------------------------------------------------
 
-MATCH (:PhysicalMeasurement)-[:HAS_NORM]->(n:MeasurementNorm)
+MATCH (m:PhysicalMeasurement)-[:HAS_NORM]->(n:MeasurementNorm)
+WHERE NOT (m.atlasNorms AND coalesce(n.fromAtlas, false))
 DETACH DELETE n;
 
 UNWIND [
 ", links.join(",\n"));
-    let rows: Vec<String> = norms.iter().map(|n| format!(
-        "  {{ measurement: {}, sex: {}, ageFrom: {}, ageTo: {},\n    values: [{}] }}",
+    let list = |xs: &[f64]| xs.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", ");
+    let written: Vec<String> = norms.iter().map(|n| format!(
+        "  {{ measurement: {}, sex: {}, ageFrom: {}, ageTo: {},\n    percentiles: [{}],\n    values: [{}] }}",
         quote(n.measurement), quote(n.sex), n.age_from, n.age_to.map_or("null".into(), |t| t.to_string()),
-        n.values.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", "),
+        list(&n.percentiles), list(&n.values),
     )).collect();
     let _ = write!(out, "{}\n] AS norm
 MATCH (m:PhysicalMeasurement {{name: norm.measurement}})
 CREATE (m)-[:HAS_NORM]->(:MeasurementNorm {{
   sex: norm.sex, ageFrom: norm.ageFrom, ageTo: norm.ageTo,
-  percentiles: {percentiles}, values: norm.values
+  percentiles: norm.percentiles, values: norm.values
 }});
-", rows.join(",\n"));
+", written.join(",\n"));
     out
+}
+
+//a description written across lines in the source, as one line
+fn words(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn quote(s: &str) -> String {

@@ -1,7 +1,9 @@
 import { useState, type CSSProperties } from 'react';
-import { comparedWith, deleteReading, standing, withUnit, type Measurement, type Reading } from './api';
+import { addReading, comparedWith, deleteReading, standing, today, withUnit, type Measurement, type Reading } from './api';
 import { ReadingForm } from './reading_form';
+import { SelfTest } from './self_tests';
 import { AtlasError } from '../shared_components/atlas-error';
+import { Disclosure } from '../shared_components/disclosure';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -19,18 +21,29 @@ interface MeasurementCardProps {
 }
 
 //a measurement: what it is, the user's latest reading and where it sits among people like them, a form for a new
-//reading, and their earlier readings
+//reading (or the test that takes one, for a test the app runs, and the steps for one done at home), and their earlier
+//readings. A reading from the eye chart can also be typed in, from an optician's test
 export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps) {
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<'test' | 'form' | null>(null);
   const [history, setHistory] = useState(false);
   const [error, setError] = useState<string>();
-  const { name, unit, better, description, abilities, ages, readings } = measurement;
+  const { id, name, unit, better, description, abilities, test, protocol, source, ages, readings } = measurement;
   const latest = readings[0];
+  const inApp = !!test && test !== 'home';
+  const typedToo = test === 'eye_chart';
 
   const saved = (reading: Reading) => {
-    setAdding(false);
-    //newest first, by the day it was measured
-    onChanged([...readings, reading].sort((a, b) => b.measured_on.localeCompare(a.measured_on)));
+    setAdding(null);
+    //newest first, by the day it was measured, and the new one ahead of others from the same day
+    onChanged([reading, ...readings].sort((a, b) => b.measured_on.localeCompare(a.measured_on)));
+  };
+  //a test the app ran is recorded as taken today
+  const tested = (value: number) => {
+    setError(undefined);
+    addReading(id, value, today()).then(saved, (e) => {
+      setAdding(null);
+      setError(e instanceof Error ? e.message : String(e));
+    });
   };
   const remove = (id: string) => {
     setError(undefined);
@@ -41,9 +54,18 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
   };
 
   return (
-    <article style={styles.card}>
+    <article style={styles.card} id={`measurement-${id}`}>
       <h3 style={styles.name}>{name}</h3>
       <p style={styles.description}>{description}</p>
+      {test === 'home' && !!protocol.length && (
+        <Disclosure label="How to do it at home">
+          <ol style={styles.steps}>
+            {protocol.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </Disclosure>
+      )}
       {!!abilities.length && (
         <div style={styles.chips}>
           Shows {abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
@@ -73,13 +95,20 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
         <p style={styles.note}>Not measured yet.</p>
       )}
 
-      {adding ? (
-        <ReadingForm measurement={measurement} onSaved={saved} onCancel={() => setAdding(false)} />
+      {adding === 'test' && inApp ? (
+        <SelfTest test={test} measurement={id} onDone={tested} onSaved={saved} onCancel={() => setAdding(null)} />
+      ) : adding ? (
+        <ReadingForm measurement={measurement} onSaved={saved} onCancel={() => setAdding(null)} />
       ) : (
         <div style={styles.buttons}>
-          <button className="comic-lift" style={styles.primary} onClick={() => setAdding(true)}>
-            {latest ? 'Add a new reading' : 'Add a reading'}
+          <button className="comic-lift" style={styles.primary} onClick={() => setAdding(inApp ? 'test' : 'form')}>
+            {inApp ? (latest ? 'Take it again' : 'Take the test') : latest ? 'Add a new reading' : 'Add a reading'}
           </button>
+          {typedToo && (
+            <button className="comic-lift" style={styles.secondary} onClick={() => setAdding('form')}>
+              Type one in
+            </button>
+          )}
           {readings.length > 1 && (
             <button className="comic-lift" style={styles.secondary} aria-expanded={history} onClick={() => setHistory(!history)}>
               {history ? 'Hide earlier readings' : `Earlier readings (${readings.length - 1})`}
@@ -109,13 +138,14 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
           ))}
         </ul>
       )}
+      {source && <p style={styles.source}>Compared with: {source}</p>}
     </article>
   );
 }
 
 //a hand-drawn line from 0 to 100 with a marker where the reading sits. Where lower is better the line runs the other
 //way, so further right is always better, and where neither is better it's only where they sit
-function Scale({ percentile, better }: { percentile: number; better: Measurement['better'] }) {
+export function Scale({ percentile, better }: { percentile: number; better: Measurement['better'] }) {
   const at = better === 'lower' ? 100 - percentile : percentile;
   const [left, right] = better === 'neither' ? ['Lower', 'Higher'] : ['Worse', 'Better'];
   return (
@@ -270,6 +300,20 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     paddingBottom: 6,
     borderBottom: `1px dashed ${gunmetal}`,
+  },
+  steps: {
+    margin: '4px 0 0',
+    paddingLeft: 20,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    fontSize: 14,
+    lineHeight: 1.4,
+  },
+  source: {
+    margin: '4px 0 0',
+    fontSize: 12,
+    lineHeight: 1.4,
   },
   remove: {
     padding: '2px 10px',

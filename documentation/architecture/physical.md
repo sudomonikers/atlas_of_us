@@ -7,13 +7,13 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: recording measurements and seeing where they sit, a 3D body to explore, and noting impairments and conditions |
+| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: recording measurements and taking self-tests, seeing where they sit, abilities, a 3D body to explore, and noting impairments and conditions |
 | 3D body | `application/ui/atlas-of-us-ui/public/anatomy/` | The models of the body, one file per layer, and which part each mesh is, served with the site |
-| API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; the anatomy; impairments; conditions, and adding ones from Mondo and HPO |
+| API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; where a person stands on each ability; the anatomy; impairments; conditions, and adding ones from Mondo and HPO |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
 | Condition links | `application/apis/atlas-jobs/src/events/condition_added/physical.rs` | Links a condition a person added to the body functions and parts it affects |
 | Seeds | `application/database/physical_abilities_seed.cypher`, `physical_norms_seed.cypher`, `physical_functions_seed.cypher`, `physical_anatomy_seed.cypher`, `physical_conditions_seed.cypher` | The abilities, from O\*NET, the measurements with their norms, from NHANES, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
-| Norms import | `application/database/physical_norms_import/` | Works out the norms from NHANES and writes the norms seed |
+| Norms import | `application/database/physical_norms_import/` | Works out the norms from NHANES, adds the self-tests with their published norms, and writes the norms seed |
 | ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions seed |
 | Anatomy import | `application/database/anatomy_import/` | Reads FMA and BodyParts3D, writes the anatomy seed, and turns BodyParts3D's models into the 3D body |
 | Conditions import | `application/database/conditions_import/` | Reads Mondo and HPO, and writes the conditions seed from a hand-picked list |
@@ -24,8 +24,12 @@ The abilities of the O\*NET content model: capacities of the body and mind that 
 such as strength, eyesight and memory. A person's place on each is a **value** from 0 to 1, a percentile among people
 where 0.5 is typical, with a **confidence**, as for personality traits.
 
-Measurements, such as height and grip strength, are numbers a person records. Each has norms from NHANES, the US
-national health survey: the value at each percentile, by sex and age band. A person's percentile is worked out when
+Measurements, such as height and grip strength, are numbers a person records. Most have norms from NHANES, the US
+national health survey: the value at each percentile, by sex and age band. Self-tests are measurements a person takes
+themselves, at home by following written steps or in the app, which times and scores them, with norms from published
+surveys and studies. The Atlas's own tests are compared with Atlas users: the api works out their norms from
+everyone's readings as readings come in. Two of them, of typed answers, are scored by the api with Bedrock: a fast model
+reads the answers, and embeddings measure how unusual they are. A person's percentile is worked out when
 it's read, from their reading, their age when they took it and their sex for norms, so better norms update everyone at
 once. Measurements that show an ability, such as grip strength for Static Strength, are linked to it.
 
@@ -47,16 +51,25 @@ one is placed among the ones we have from those alone: under the nearest conditi
 ones that are kinds of it.
 
 ## What the user sees
-Physical Traits has four views. Measurements lists every measurement, grouped into body size, vitals, strength and
-fitness, and the senses. A person records a reading and the day they took it, and sees their latest reading with where
+Physical Traits has five views. Measurements lists every measurement, grouped into body size, vitals, strength and
+fitness, the senses, and reflexes and memory, with the steps for each home test and the in-app tests to take. A person records a reading and the day they took it, and sees their latest reading with where
 it sits among people of their sex and age, and their earlier readings. They choose whether they're compared with men,
-women or everyone. Body map is a place to learn about the body: a 3D body to turn and zoom, in layers (skin, skeleton,
+women or everyone. Abilities lists every ability with where they stand, what that comes from, the tests that measure it, and a rating on
+its examples for the ones no test covers. Body map is a place to learn about the body: a 3D body to turn and zoom, in layers (skin, skeleton,
 muscles, organs, nervous system, heart and vessels), where clicking any part, or finding it by name, lights it up and
 opens everything about it, and picking a system or region lights up all of its parts. Impairments lists the ones
 they've noted, with the abilities each can affect, and finds a body function or part to add by searching or browsing. Conditions lists the ones they've noted, with how
 much each affects them, whether it was diagnosed, whether it's under control, and the parts of the body it affects; a
 search finds a condition by any of its names, and looks further in Mondo and HPO for one that isn't listed.
 Measurements, impairments and conditions are private: they're only shown to the person who recorded them.
+
+## Abilities
+A person's place on each ability is worked out from what they've recorded, by the api, whenever a reading, their sex
+for norms, an impairment or a rating changes, and whenever they open their abilities. The latest reading of each
+measurement that shows an ability counts, weighted by how much that measurement says about it. With no reading, their
+own rating on the ability's examples stands in, with little confidence. An impairment in what the ability rests on
+holds it back. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's
+abilities show beside where the person stands, as its personality traits do.
 
 ## Skill requirements
 Every skill level is linked to the abilities it takes, so a person can see how what they have to work with fits a

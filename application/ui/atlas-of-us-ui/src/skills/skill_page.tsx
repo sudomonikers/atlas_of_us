@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { LEVEL_NAMES, feelingsLabel, getAchievement, monthYear, practiceLabel, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement } from './api';
+import { LEVEL_NAMES, abilityLevel, feelingsLabel, getAchievement, monthYear, practiceLabel, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement, type AbilityRequirement } from './api';
 import { AchievementWalkthrough } from './achievement_walkthrough';
 import { GoalForm } from './goal_form';
 import { FeelingsForm } from './feelings_form';
@@ -352,6 +352,7 @@ function Levels({ levels, rank, mine, onRank, onOpen }: {
           <Prerequisites levels={levels} rank={rank} onOpen={onOpen} />
           <Knowledge levels={levels} rank={rank} />
           <Traits levels={levels} rank={rank} />
+          <Abilities levels={levels} rank={rank} />
           {level.next_level && next && (
             <div style={styles.next}>
               <h4 style={styles.subheading}>Getting to {next}</h4>
@@ -449,6 +450,28 @@ function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
           <li key={requirement.name} style={styles.trait}>
             <div style={styles.traitHead}>
               <strong>{requirement.level >= 0.5 ? 'High' : 'Low'} {requirement.name}</strong>
+              <Strength strength={requirement.strength} from={from} rank={rank} label="How much it matters" />
+            </div>
+            <span>{requirement.reason}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+//the abilities the picked level takes, and how much of each
+function Abilities({ levels, rank }: { levels: Level[]; rank: number }) {
+  const abilities = carriedUp<AbilityRequirement>(levels, rank, (level) => level.abilities, (requirement) => requirement.name);
+  if (!abilities.length) return null;
+  return (
+    <div>
+      <h4 style={styles.subheading}>Abilities it takes</h4>
+      <ul style={styles.traits}>
+        {abilities.map(({ requirement, from }) => (
+          <li key={requirement.name} style={styles.trait}>
+            <div style={styles.traitHead}>
+              <strong>{requirement.name}, {abilityLevel(requirement.level)}</strong>
               <Strength strength={requirement.strength} from={from} rank={rank} label="How much it matters" />
             </div>
             <span>{requirement.reason}</span>

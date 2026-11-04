@@ -32,6 +32,7 @@ export interface Level {
   trust: 'provisional' | 'established' | null;
   next_level: string | null; //what it takes to reach the next level. Missing on Expert and on a stub's levels
   traits: TraitRequirement[]; //the personality it takes, written on this level itself. Lower levels' carry up to it
+  abilities: AbilityRequirement[]; //the abilities it takes, written on this level itself. Lower levels' carry up to it
   skills: SkillRequirement[]; //the other skills it needs, written on this level itself. Lower levels' carry up to it
   topics: TopicRequirement[]; //the levels of topics it needs knowledge of, written on this level itself. Lower levels' carry up to it
 }
@@ -43,6 +44,17 @@ export interface TraitRequirement {
   strength: number; //how much it matters, 0 to 1
   reason: string;
 }
+
+//an ability a level takes. `level` is the percentile of it the level takes, from 0.5 (a typical amount is enough) to 1
+export interface AbilityRequirement {
+  name: string;
+  level: number;
+  strength: number; //how much it matters, 0 to 1
+  reason: string;
+}
+
+//how much of an ability a level takes, in words
+export const abilityLevel = (level: number) => (level <= 0.55 ? 'a typical amount' : `more than about ${Math.round(level * 100)}% of people`);
 
 //a level of another skill a level needs
 export interface SkillRequirement extends SkillRef {
@@ -214,6 +226,7 @@ export interface Requirements {
   skills: (SkillRequirement & { yours: number | null })[]; //yours: the level they've reached in it
   topics: (TopicRequirement & { yours: number | null })[]; //yours: the Bloom level they've reached in it
   traits: (TraitRequirement & { yours: number | null })[]; //yours: their score on it, 0 to 1, if they've been measured
+  abilities: (AbilityRequirement & { yours: number | null })[]; //yours: where they stand on it, 0 to 1, if anything says
 }
 
 //what it takes to reach the next level of a skill the logged in user is on

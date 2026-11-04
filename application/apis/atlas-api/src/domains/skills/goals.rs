@@ -14,7 +14,7 @@ use crate::{auth::AuthUser, state::AppState};
 
 use super::{
     SkillRef,
-    achievement::{SkillStep, TopicStep, TraitStep, requirements},
+    achievement::{AbilityStep, SkillStep, TopicStep, TraitStep, requirements},
     current, internal, not_found,
 };
 
@@ -37,11 +37,12 @@ pub struct Goal {
     skills: Vec<SkillStep>,
     topics: Vec<TopicStep>,
     traits: Vec<TraitStep>,
+    abilities: Vec<AbilityStep>,
 }
 
 //the logged in user's goals: the ones still to reach first, soonest date first, then the ones they've reached
 async fn goals(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<Goal>>, (StatusCode, String)> {
-    let [skills, topics, traits] = requirements("goal");
+    let [skills, topics, traits, abilities] = requirements("goal");
     let mut rows = state.graph.execute(query(&format!("
         MATCH (p:Person {{id: $personId}})-[g:WANTS_TO_REACH]->(goal:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)
         OPTIONAL MATCH (p)-[:ACHIEVED]->(at:DreyfusLevel)<-[:HAS_LEVEL]-(s)
@@ -54,7 +55,7 @@ async fn goals(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec
         }}) AS reached_on
         RETURN {{id: s.id, name: s.name, status: s.status}} AS skill, goal.rank AS rank, toString(g.by) AS by,
                toString(g.setAt) AS set_at, at.rank AS current, reached_on, goal.description AS description,
-               {skills} AS skills, {topics} AS topics, {traits} AS traits
+               {skills} AS skills, {topics} AS topics, {traits} AS traits, {abilities} AS abilities
         ORDER BY reached_on IS NOT NULL, g.by IS NULL, g.by, s.name
     ", current = current("p", "at", "s"))).param("personId", user.person_id)).await.map_err(internal)?;
     let mut goals = Vec::new();

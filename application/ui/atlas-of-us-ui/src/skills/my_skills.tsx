@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { LEVEL_NAMES, clearGoal, feelingsLabel, getAchievements, getFeelings, getGoals, getNextSteps, getPersonalityFits, getPractice, getSuggestions, getTimeline, doesNotHave, hoursAWeek, monthYear, practiceLabel, setAchievement, type AchievedSkill, type Fit, type Feeling, type Fits, type Goal, type NextStep, type Practice, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
+import { LEVEL_NAMES, abilityLevel, clearGoal, feelingsLabel, getAchievements, getFeelings, getGoals, getNextSteps, getPersonalityFits, getPractice, getSuggestions, getTimeline, doesNotHave, hoursAWeek, monthYear, practiceLabel, setAchievement, type AchievedSkill, type Fit, type Feeling, type Fits, type Goal, type NextStep, type Practice, type Requirements, type SuggestedBy, type Suggestion, type TimelineSkill } from './api';
 import { FeelingsForm } from './feelings_form';
 import { GoalForm } from './goal_form';
 import { PracticeForm } from './practice_form';
@@ -440,15 +440,15 @@ function Goals({ goals, open, onToggle, onChanged }: { goals: Goal[]; open: Set<
   );
 }
 
-//what reaching a level of a skill takes: the skills and knowledge, each marked met or not yet, and the personality,
-//shown beside the user's own score
+//what reaching a level of a skill takes: the skills and knowledge, each marked met or not yet, and the personality and
+//abilities, shown beside the user's own
 function LevelRequirements({ heading, text, requirements }: { heading: string; text: string | null; requirements: Requirements }) {
-  const { skills, topics, traits } = requirements;
+  const { skills, topics, traits, abilities } = requirements;
   return (
     <div style={styles.next}>
       <h4 style={styles.subheading}>{heading}</h4>
       {text && <p style={styles.text}>{text}</p>}
-      {!skills.length && !topics.length && !traits.length && <p style={styles.text}>This level doesn't name any other skills, knowledge or personality.</p>}
+      {!skills.length && !topics.length && !traits.length && !abilities.length && <p style={styles.text}>This level doesn't name any other skills, knowledge, personality or abilities.</p>}
       {!!skills.length && (
         <div>
           <h5 style={styles.minorHeading}>Skills it takes</h5>
@@ -491,6 +491,22 @@ function LevelRequirements({ heading, text, requirements }: { heading: string; t
               <li key={name} style={styles.check}>
                 <div style={styles.checkHead}>
                   <strong>{level >= 0.5 ? 'High' : 'Low'} {name}</strong>
+                  {yours === null ? <span style={styles.where}>Not measured yet</span> : <Score yours={yours} level={level} name={name} />}
+                </div>
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!!abilities.length && (
+        <div>
+          <h5 style={styles.minorHeading}>Abilities it takes</h5>
+          <ul style={styles.checks}>
+            {abilities.map(({ name, level, reason, yours }) => (
+              <li key={name} style={styles.check}>
+                <div style={styles.checkHead}>
+                  <strong>{name}, {abilityLevel(level)}</strong>
                   {yours === null ? <span style={styles.where}>Not measured yet</span> : <Score yours={yours} level={level} name={name} />}
                 </div>
                 <span>{reason}</span>

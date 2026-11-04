@@ -1,6 +1,35 @@
 import { request } from '../auth/api';
 
 export type NormSex = 'male' | 'female';
+//a test a person takes themselves: at home, following its steps, or one the app runs
+export type Test =
+  | 'home'
+  | 'simple_reaction'
+  | 'choice_reaction'
+  | 'digit_span'
+  | 'trail_making'
+  | 'eye_chart'
+  | 'matrices'
+  | 'series'
+  | 'rotation'
+  | 'paper_folding'
+  | 'perspective'
+  | 'syllogisms'
+  | 'symbols'
+  | 'flanker'
+  | 'cards'
+  | 'broken_words'
+  | 'hidden_shapes'
+  | 'tapping'
+  | 'tracking'
+  | 'timing'
+  | 'steering'
+  | 'track_count'
+  | 'near_chart'
+  | 'colours'
+  | 'side_vision'
+  | 'animals'
+  | 'uses';
 export type Better = 'higher' | 'lower' | 'neither';
 
 //how measurements are grouped on the page, in order
@@ -9,6 +38,9 @@ export const GROUPS = [
   { id: 'Vitals', label: 'Vitals' },
   { id: 'Fitness', label: 'Strength and fitness' },
   { id: 'Senses', label: 'Senses' },
+  { id: 'Reflexes', label: 'Reflexes and coordination' },
+  { id: 'Attention', label: 'Attention, perception and memory' },
+  { id: 'Reasoning', label: 'Reasoning and ideas' },
 ];
 
 //the group of people a reading is compared with
@@ -38,6 +70,10 @@ export interface Measurement {
   min: number; //the lowest and highest readings the api takes
   max: number;
   abilities: string[]; //the abilities it shows
+  test: Test | null; //how a person takes it themselves, at home or in the app
+  timer: number | null; //for a home test of how many in a set time, the seconds to count down
+  protocol: string[]; //the steps of a home test
+  source: string | null; //where its norms come from
   ages: { from: number; to: number | null } | null; //the ages it has norms for
   readings: Reading[];
 }
@@ -53,6 +89,11 @@ export const getMeasurements = () => request<Measurements>('GET', '/physical/mea
 //records a reading, returning it with its percentile
 export const addReading = (id: string, value: number, measuredOn: string) =>
   request<Reading>('POST', `/physical/measurements/${encodeURIComponent(id)}/readings`, { value, measured_on: measuredOn });
+
+//has the api score typed answers, for a test such as Animal Naming, and record the score as a reading. Returns the
+//reading and the answers that counted
+export const scoreAnswers = (id: string, answers: string[], measuredOn: string) =>
+  request<{ reading: Reading; counted: string[] }>('POST', `/physical/measurements/${encodeURIComponent(id)}/answers`, { answers, measured_on: measuredOn });
 
 export const deleteReading = (id: string) => request<void>('DELETE', `/physical/readings/${encodeURIComponent(id)}`);
 
@@ -84,6 +125,60 @@ export function withUnit(value: number, unit: string) {
   if (unit === '20/x') return `20/${v}`;
   return unit === '%' ? `${v}%` : `${v} ${unit}`;
 }
+
+//today, as YYYY-MM-DD in the user's own time zone
+export function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+//what a person's place on an ability comes from: a measurement, with where their reading sits (0 to 100, higher
+//better), their rating of themselves, or an impairment holding it back
+export interface Basis {
+  kind: 'measurement' | 'rating' | 'impairment';
+  name: string;
+  standing: number | null;
+  extent: Extent | null;
+}
+
+//a measurement that shows an ability, and whether the user has a reading of it that counts
+export interface Shows {
+  id: string;
+  name: string;
+  test: Test | null;
+  counted: boolean;
+}
+
+//an ability from O*NET, with where the user stands on it, if anything says
+export interface Ability {
+  id: string;
+  name: string;
+  category: 'Cognitive' | 'Psychomotor' | 'Physical' | 'Sensory';
+  group: string;
+  description: string;
+  examples: string[]; //from what takes a little of it to what takes a lot
+  value: number | null; //0 to 1, with 0.5 typical
+  confidence: number | null;
+  basis: Basis[];
+  rating: number | null; //the hardest example they say they can do, 1 to 3, or 0 for none
+  measurements: Shows[];
+}
+
+//how abilities are grouped on the page, in order
+export const CATEGORIES: { id: Ability['category']; label: string }[] = [
+  { id: 'Physical', label: 'Body' },
+  { id: 'Psychomotor', label: 'Coordination and speed' },
+  { id: 'Sensory', label: 'Senses' },
+  { id: 'Cognitive', label: 'Mind' },
+];
+
+//every ability, with where the user stands on each, worked out again from what they've recorded
+export const getAbilities = () => request<Ability[]>('GET', '/physical/abilities');
+
+//rates the user on an ability by the hardest of its examples they can do, 1 to 3, or 0 for none of them
+export const rateAbility = (id: string, anchor: number) => request<void>('PUT', `/physical/abilities/${encodeURIComponent(id)}/rating`, { anchor });
+
+export const unrateAbility = (id: string) => request<void>('DELETE', `/physical/abilities/${encodeURIComponent(id)}/rating`);
 
 //a body function
 export interface BodyFunction {

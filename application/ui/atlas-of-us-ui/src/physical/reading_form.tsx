@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
-import { addReading, type Measurement, type Reading } from './api';
+import { addReading, today, type Measurement, type Reading } from './api';
+import { Countdown, Stopwatch } from './home_timer';
 import { AtlasError } from '../shared_components/atlas-error';
 import { DatePicker, type DateMessages } from '../shared_components/date-picker';
 
@@ -14,25 +15,20 @@ const MEASURED_MESSAGES: DateMessages = {
   tooEarly: (year) => `That's a long time ago. Try a date after ${year}.`,
 };
 
-//today, as YYYY-MM-DD in the user's own time zone
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 interface ReadingFormProps {
   measurement: Measurement;
   onSaved: (reading: Reading) => void;
   onCancel: () => void;
 }
 
-//records a reading of a measurement and the day it was taken
+//records a reading of a measurement and the day it was taken. A timed home test has a stopwatch that fills in the
+//reading, and a home test of how many in a set time a countdown
 export function ReadingForm({ measurement, onSaved, onCancel }: ReadingFormProps) {
   const [typed, setTyped] = useState('');
   const [date, setDate] = useState(today);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
-  const { id, min, max, unit } = measurement;
+  const { id, min, max, unit, test, timer } = measurement;
   const shown = unit === '20/x' ? '20/' : '';
 
   const save = () => {
@@ -68,6 +64,8 @@ export function ReadingForm({ measurement, onSaved, onCancel }: ReadingFormProps
         save();
       }}
     >
+      {test === 'home' && unit === 's' && <Stopwatch onStop={(s) => setTyped(String(s))} />}
+      {test === 'home' && timer !== null && <Countdown seconds={timer} />}
       <label style={styles.question} htmlFor={`reading-${id}`}>
         What did you measure?
       </label>
