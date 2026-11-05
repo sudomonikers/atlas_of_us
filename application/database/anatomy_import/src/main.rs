@@ -87,6 +87,9 @@ fn run(dir: &Path, icf: &Path, norms: &Path, seed: &Path, models_dir: &Path) -> 
             return Err(format!("picks.rs says {name} measures {part}, which isn't a part").into());
         }
     }
+    if let Some((part, _)) = picks::TOPICS.iter().find(|(p, _)| !ids.contains(*p)) {
+        return Err(format!("picks.rs links {part} to topics, but it isn't a part").into());
+    }
     if let Some((part, whole)) = picks::PLACES.iter().find(|(p, w)| !ids.contains(*p) || !ids.contains(*w)) {
         return Err(format!("picks.rs places {part} in {whole}, and both have to be parts").into());
     }
@@ -304,6 +307,9 @@ fn cypher(parts: &[Part], subpart_of: &BTreeSet<(String, String)>, subtype_of: &
     let serves: Vec<String> = picks::SERVES.iter()
         .flat_map(|(id, codes)| codes.iter().map(move |c| format!("  {{ part: {}, code: {} }}", quote(id), quote(c))))
         .collect();
+    let topics: Vec<String> = picks::TOPICS.iter()
+        .flat_map(|(id, names)| names.iter().map(move |n| format!("  {{ part: {}, topic: {} }}", quote(id), quote(n))))
+        .collect();
     format!("\
 // =============================================================================
 // Atlas of Us — Physical Attributes sub-graph seed: anatomy
@@ -320,7 +326,9 @@ fn cypher(parts: &[Part], subpart_of: &BTreeSet<(String, String)>, subtype_of: &
 // SUBPART_OF the wholes it belongs to and a PART_SUBTYPE_OF the kinds it is,
 // and SERVES the body functions it carries out. Measurements MEASURE the parts
 // they're a reading of, so run physical_norms_seed.cypher and
-// physical_functions_seed.cypher first.
+// physical_functions_seed.cypher first. Topics COVER the systems and organs
+// they teach about, by topic name, so run it again after the topics import to
+// link topics that didn't exist yet.
 //
 // Sources: FMA, CC BY 3.0. BodyParts3D, (c) The Database Center for Life
 // Science, CC BY 4.0.
@@ -393,5 +401,16 @@ UNWIND [
 ] AS l
 MATCH (m:PhysicalMeasurement {{name: l.measurement}}), (p:BodyPart {{fmaId: l.part}})
 MERGE (m)-[:MEASURES]->(p);
-", rows.join(",\n"), pairs(subpart_of), pairs(subtype_of), serves.join(",\n"), measures.join(",\n"))
+
+
+// -----------------------------------------------------------------------------
+// 5. Topics to learn more about them in
+// -----------------------------------------------------------------------------
+
+UNWIND [
+{}
+] AS l
+MATCH (t:Topic {{name: l.topic}}), (p:BodyPart {{fmaId: l.part}})
+MERGE (t)-[:COVERS]->(p);
+", rows.join(",\n"), pairs(subpart_of), pairs(subtype_of), serves.join(",\n"), measures.join(",\n"), topics.join(",\n"))
 }

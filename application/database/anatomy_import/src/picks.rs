@@ -208,3 +208,35 @@ pub const LAYER_WORDS: &[(&str, &[&str])] = &[
     ("skeleton", &["ligament", "bone", "cartilage", "vertebra", "rib"]),
     ("muscles", &["muscle", "pronator", "supinator", "adductor", "abductor", "flexor", "extensor", "trapezius", "rectus", "oblique", "intertransversari", "pollicis", "hallucis", "lumbrical", "interosse", "tract", "fascia", "levator", "tendinous"]),
 ];
+
+//a part and the topics to learn more about it in, by name as the topics graph has them. Topics come from the topics
+//import, so a name the graph doesn't have yet links nothing until the topic exists. The parts below a part, and above it
+//up to the whole body, show its topics too, so systems and organs carry them
+pub const TOPICS: &[(&str, &[&str])] = &[
+    ("FMA20394", &["Human Anatomy", "Human Physiology"]),                                       // human body
+    ("FMA7161", &["Cardiovascular System", "Cardiology", "Vascular Surgery"]),                  // cardiovascular system
+    ("FMA7158", &["Respiratory Medicine", "Respiratory Therapy"]),                              // respiratory system
+    ("FMA7157", &["Neurology", "Neuroanatomy", "Neurophysiology"]),                             // nervous system
+    ("FMA50801", &["Neuropsychology", "Neurological Surgery"]),                                 // brain
+    ("FMA7482", &["Musculoskeletal Anatomy", "Orthopaedics", "Kinesiology", "Biomechanics", "Physiotherapy"]), // musculoskeletal system
+    ("FMA7490", &["Orthopaedic Manual Physiotherapy"]),                                         // joint
+    ("FMA5022", &["Exercise Physiology"]),                                                      // muscle organ
+    ("FMA7152", &["Gastroenterology", "Nutrition"]),                                            // alimentary system
+    ("FMA7197", &["Hepatology"]),                                                               // liver
+    ("FMA49184", &["Mouth Anatomy", "Maxillofacial and Oral Surgery"]),                         // mouth
+    ("FMA12516", &["Dental Anatomy", "Dental Sciences", "Orthodontics"]),                       // tooth
+    ("FMA7159", &["Urology", "Renal Diseases"]),                                                // urinary system
+    ("FMA7160", &["Reproductive Health"]),                                                      // genital system
+    ("FMA17558", &["Obstetrics and Gynaecology"]),                                              // uterus
+    ("FMA7209", &["Obstetrics and Gynaecology"]),                                               // ovary
+    ("FMA9668", &["Endocrinology", "Endocrine Physiology"]),                                    // endocrine system
+    ("FMA9825", &["Immunology", "Clinical Immunology"]),                                        // immune system
+    ("FMA7162", &["Immunology"]),                                                               // lymphatic system
+    ("FMA9608", &["General Haematology"]),                                                      // bone marrow
+    ("FMA74657", &["Dermatology", "Skin Types"]),                                               // integumentary system
+    ("FMA72979", &["Dermatology", "Skin Types"]),                                               // integumentary system
+    ("FMA7163", &["Dermatology", "Skin Types"]),                                                // skin
+    ("FMA54448", &["Ophthalmology", "Refraction of the Eye", "Orthoptics"]),                    // eye
+    ("FMA52780", &["Audiology", "Physiology of Hearing", "Physiology of Balance"]),             // ear
+    ("FMA9664", &["Foot Problems", "Podiatric Surgery"]),                                       // foot
+];

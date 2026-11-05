@@ -43,6 +43,14 @@ pub struct BodyFunction {
     includes: Vec<String>,
     excludes: Vec<String>,
     abilities: Vec<String>, //the abilities it underlies
+    personality: Vec<Corresponds>, //the Big Five domains and traits it corresponds to
+}
+
+//a Big Five domain or trait a temperament and personality function corresponds to, and whether it's the opposite end
+#[derive(Serialize, Deserialize)]
+pub struct Corresponds {
+    name: String,
+    opposite: bool,
 }
 
 //one of the logged in user's impairments, in a body function or a body part
@@ -66,7 +74,8 @@ async fn impairments(State(state): State<AppState>, user: AuthUser) -> Result<Js
         OPTIONAL MATCH (c)-[:SUBFUNCTION_OF]->(p:BodyFunction)
         RETURN c.id AS id, c.code AS code, c.name AS name, c.group AS group, c.subgroup AS subgroup, p.id AS parent,
                c.description AS description, coalesce(c.includes, []) AS includes, coalesce(c.excludes, []) AS excludes,
-               COLLECT { MATCH (c)-[:UNDERLIES]->(a:Ability) RETURN a.name ORDER BY a.name } AS abilities
+               COLLECT { MATCH (c)-[:UNDERLIES]->(a:Ability) RETURN a.name ORDER BY a.name } AS abilities,
+               COLLECT { MATCH (c)-[r:CORRESPONDS_TO]->(t) RETURN {name: t.name, opposite: r.opposite} ORDER BY t.name } AS personality
         ORDER BY c.code
     ")).await.map_err(internal)?;
     let mut functions = Vec::new();

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getModel, type Breakdown, type Domain, type DomainTrait, type PersonalityModel } from './api';
+import { getModel, type Breakdown, type Domain, type DomainTrait, type Icf, type PersonalityModel } from './api';
 import { DOMAIN_LOOK, polesOf, type Poles } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
@@ -173,6 +173,7 @@ function DomainSection({ domain, open, onToggle, onJump }: DomainSectionProps) {
         <>
           {domain.overview && <p style={{ ...styles.text, ...styles.domainOverview }}>{domain.overview}</p>}
           <BreakdownGrid breakdown={domain} poles={look} />
+          <IcfLine icf={domain.icf} />
         </>
       )}
 
@@ -215,6 +216,7 @@ function TraitEntry({ trait, open, onToggle, onJump }: TraitEntryProps) {
           {poles && trait.description && <p style={styles.traitSummary}>{shortDescription(trait.description)}</p>}
           {trait.overview && <p style={styles.text}>{trait.overview}</p>}
           <BreakdownGrid breakdown={trait} poles={poles} />
+          <IcfLine icf={trait.icf} />
           {trait.interactions.length > 0 && (
             <div>
               <h3 style={styles.subheading}>How it plays with other traits</h3>
@@ -245,6 +247,15 @@ function TraitEntry({ trait, open, onToggle, onJump }: TraitEntryProps) {
       )}
     </li>
   );
+}
+
+//the temperament and personality functions of the WHO's ICF that match a domain or trait, which is how the body
+//functions an impairment or condition can be in meet the Big Five. ICF codes and titles are shown as the WHO has them
+function IcfLine({ icf }: { icf: Icf[] }) {
+  if (!icf.length) return null;
+  const named = (opposite: boolean) => icf.filter((f) => f.opposite === opposite).map((f) => `${f.code} ${f.name}`).join(' and ');
+  const said = [named(false) && `this is ${named(false)}`, named(true) && `${named(true)} is its low end`].filter(Boolean);
+  return <p style={styles.icf}>In the WHO's International Classification of Functioning (ICF), {said.join(', and ')}.</p>;
 }
 
 //a scale drawn like the bars on My Personality, striped end to end with the word for each end underneath
@@ -444,6 +455,12 @@ const styles: Record<string, CSSProperties> = {
   },
   domainOverview: {
     margin: '10px 0',
+  },
+  icf: {
+    margin: '8px 0',
+    fontSize: 14,
+    lineHeight: 1.4,
+    fontStyle: 'italic',
   },
   //a reset button that reads as a small link
   reveal: {

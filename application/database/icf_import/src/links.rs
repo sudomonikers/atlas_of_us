@@ -1,5 +1,6 @@
 //how ICF body functions link to the rest of the physical graph, chosen by hand. A function underlies the abilities it's
-//the basis of, so an impairment in it holds them back, and a measurement measures the function it's a reading of
+//the basis of, so an impairment in it holds them back, a measurement measures the function it's a reading of, and a
+//temperament and personality function corresponds to the Big Five domains and traits it describes
 
 //a body function and the abilities it underlies, by name as the abilities seed has them
 pub const UNDERLIES: &[(&str, &[&str])] = &[
@@ -50,3 +51,21 @@ pub const MEASURES: &[(&str, &str)] = &[
     ("Body Fat", "b530"),
 ];
 
+
+//a temperament and personality function and the Big Five domain or trait it corresponds to, by name as the personality
+//seeds have them, and whether it's that domain or trait's opposite end. The five broad ones match the Big Five domains,
+//with psychic stability as the calm end of Neuroticism. The three narrower ones match the traits they describe
+pub const PERSONALITY: &[(&str, &str, bool)] = &[
+    ("b1260", "Extraversion", false),
+    ("b1261", "Agreeableness", false),
+    ("b1262", "Conscientiousness", false),
+    ("b1263", "Neuroticism", true),
+    ("b1264", "Openness", false),
+    ("b1265", "Cheerfulness", false),
+    ("b1265", "Depression", true),
+    ("b1266", "Assertiveness", false),
+    ("b1266", "Self-Efficacy", false),
+    ("b1266", "Self-Consciousness", true),
+    ("b1267", "Morality", false),
+    ("b1267", "Dutifulness", false),
+];

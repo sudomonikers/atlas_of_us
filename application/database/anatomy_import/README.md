@@ -42,6 +42,8 @@ body ships with the site.
   `MEASURES` name, leaving out the left and right copies of a part. Branches of vessels and nerves, and regions of
   organs, aren't major.
 - **Measurements:** `MEASURES` in `src/picks.rs` links each measurement to the parts it's a reading of.
+- **Topics:** `TOPICS` in `src/picks.rs` links the systems and organs to the topics to learn more about them in, by topic
+  name. Topics come from the topics import, so run the seed again after it to link the ones that didn't exist yet.
 - **How they nest:** BodyParts3D's part-of and is-a trees, which use FMA ids. Each extra is placed under the nearest
   parts above it in FMA, and `PLACES` in `src/picks.rs` puts the ones FMA doesn't link in their systems.
 - **Layers:** a mesh goes on the first layer one of whose classes the part in its header is, or is part of, in FMA

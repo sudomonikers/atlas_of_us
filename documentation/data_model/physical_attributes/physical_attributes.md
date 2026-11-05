@@ -153,12 +153,14 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 | SUBPART_OF | BodyPart → BodyPart | | A part of a larger whole (Left femur → Skeleton of left lower limb) |
 | PART_SUBTYPE_OF | BodyPart → BodyPart | | A kind of a broader part (Left femur → Femur → Long bone) |
 | UNDERLIES | BodyFunction → Ability | | An ability the function is the basis of |
+| CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | A Big Five domain or trait the temperament and personality function matches, or the low end of when `opposite` (Psychic stability → Neuroticism, opposite) |
 | MEASURES | PhysicalMeasurement → BodyFunction | | The function the measurement is a reading of |
 | MEASURES | PhysicalMeasurement → BodyPart | | A part the measurement is a reading of (Grip Strength → Hand) |
 | HAS_IMPAIRMENT | Person → BodyFunction or BodyPart | `extent`, `change`, `updatedAt` | An impairment they've noted. `extent` is how much, `mild` to `complete`, and `change`, on a part only, how it has changed |
 | SUBTYPE_OF | Condition → Condition | | A condition that's a kind of a broader one (Alzheimer disease → dementia) |
 | AFFECTS | Condition → BodyFunction or BodyPart | | A function or part the condition acts on |
 | SERVES | BodyPart → BodyFunction | | A function the part carries out (Lung → Respiration functions) |
+| COVERS | Topic → BodyPart | | A topic to learn more about the part in, on systems and organs (Cardiology → Cardiovascular system) |
 | HAS_CONDITION | Person → Condition | `severity`, `diagnosed`, `managed`, `updatedAt` | A condition they've noted. `severity` is `mild`, `moderate` or `severe` when they've said, `diagnosed` whether a professional diagnosed it, and `managed` whether it's under control |
 
 ## Example

@@ -1,5 +1,5 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
-import { contestEvidence, DOMAINS, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { contestEvidence, DOMAINS, getAffectedBy, type AffectedBy, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
 import { PersonalityReport } from './report';
 import { polesOf } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -18,6 +18,14 @@ const comic = 'var(--font-comic)';
 //grouped by domain. onContested is called when the user contests a piece of evidence, so the traits can be fetched again
 export default function MyPersonality({ traits, report, onContested }: { traits: Trait[]; report: Report | null; onContested: () => void }) {
   const [compare, setCompare] = useState(false); //overlay everyone's average on each bar
+  const [affectedBy, setAffectedBy] = useState<Map<string, AffectedBy>>(new Map()); //the user's conditions and impairments, by the domain or trait they can affect
+  useEffect(() => {
+    let live = true;
+    getAffectedBy().then((loaded) => live && setAffectedBy(new Map(loaded.map((b) => [b.name, b]))), () => {}); //the traits are still worth reading without them
+    return () => {
+      live = false;
+    };
+  }, []);
   const measured = traits.filter((t) => t.value !== undefined).length;
   const domains = DOMAINS.map((d) => ({ ...d, traits: traits.filter((t) => t.domain === d.key) })).filter((d) => d.traits.length);
 
@@ -53,9 +61,10 @@ export default function MyPersonality({ traits, report, onContested }: { traits:
               {domain.traits.filter((t) => t.value !== undefined).length} / {domain.traits.length} measured
             </span>
           </header>
+          <AffectedByNote affectedBy={affectedBy.get(domain.title)} />
           <ul style={styles.traitList}>
             {domain.traits.map((t) => (
-              <TraitRow key={t.id} trait={t} compare={compare} onContested={onContested} />
+              <TraitRow key={t.id} trait={t} compare={compare} affectedBy={affectedBy.get(t.name)} onContested={onContested} />
             ))}
           </ul>
         </section>
@@ -66,7 +75,24 @@ export default function MyPersonality({ traits, report, onContested }: { traits:
 
 const toPercent = (value?: number) => (value === undefined ? undefined : Math.round(Math.min(Math.max(value, 0), 1) * 100));
 
-function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: boolean; onContested: () => void }) {
+//the user's conditions and impairments that can affect how a domain or trait shows up, through the ICF functions that
+//match it. Worded so it reads as information: the score comes from their answers, not from what they've noted
+function AffectedByNote({ affectedBy }: { affectedBy: AffectedBy | undefined }) {
+  if (!affectedBy) return null;
+  const noted = [
+    ...affectedBy.conditions.map((c) => c.name),
+    ...affectedBy.impairments.map((i) => `${/^[aeiou]/.test(i.extent) ? 'an' : 'a'} ${i.extent} impairment in ${i.name.toLowerCase()}`),
+  ];
+  const list = noted.length < 2 ? noted.join('') : `${noted.slice(0, -1).join(', ')} and ${noted[noted.length - 1]}`;
+  return (
+    <p style={styles.affectedBy}>
+      You've noted {list}, which can affect this. Your score here comes only from your answers, and doesn't diagnose or
+      rule out anything.
+    </p>
+  );
+}
+
+function TraitRow({ trait, compare, affectedBy, onContested }: { trait: Trait; compare: boolean; affectedBy?: AffectedBy; onContested: () => void }) {
   const [open, setOpen] = useState(false);
   const percent = toPercent(trait.value);
   const average = compare ? toPercent(trait.average) : undefined;
@@ -123,6 +149,7 @@ function TraitRow({ trait, compare, onContested }: { trait: Trait; compare: bool
           </div>
         )}
       </button>
+      <AffectedByNote affectedBy={affectedBy} />
       {open && trait.description && <p style={styles.traitDescription}>{trait.description}</p>}
       {open && (
         <ol style={styles.contributions}>
@@ -537,6 +564,16 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 23,
     color: blue,
+  },
+  affectedBy: {
+    alignSelf: 'flex-start',
+    margin: '6px 0',
+    padding: '2px 10px',
+    background: 'var(--pale-cinnamon)',
+    border: `2px dashed ${gunmetal}`,
+    borderRadius: 10,
+    fontSize: 14,
+    lineHeight: 1.4,
   },
   traitDescription: {
     margin: '0 0 10px',

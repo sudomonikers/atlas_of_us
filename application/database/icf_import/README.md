@@ -2,7 +2,7 @@
 
 Writes `../physical_functions_seed.cypher`: the body functions of the WHO's International Classification of Functioning,
 Disability and Health (ICF), each with its definition, inclusions and exclusions, how they nest, and how they link to
-abilities and measurements (`src/links.rs`). The seed is generated, so change this and run it again rather than editing
+abilities, measurements and the Big Five (`src/links.rs`). The seed is generated, so change this and run it again rather than editing
 it.
 
 ## Getting ICF
@@ -26,8 +26,9 @@ Put the keys in `.env`, which git ignores, as `export ICD_CLIENT_ID=...` and `ex
 source .env && cargo run --release -- data ../physical_functions_seed.cypher
 ```
 
-Then run the seed against the database, after `physical_abilities_seed.cypher` and `physical_norms_seed.cypher`, since
-functions link to abilities and measurements.
+Then run the seed against the database, after `physical_abilities_seed.cypher`, `physical_norms_seed.cypher`,
+`personality_seed.cypher` and `personality_explore_seed.cypher`, since functions link to abilities, measurements and
+the Big Five domains and traits.
 
 - **What's in it:** the 346 body functions (b) of release 2026-01, leaving out the residual "other specified" and
   "unspecified" categories. The parts of the body come from the anatomy import, activities and participation (d)

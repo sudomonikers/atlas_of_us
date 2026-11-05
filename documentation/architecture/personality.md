@@ -64,7 +64,11 @@ says the budget's gone.
 - **"Why?"** on a facet lists the answers behind it and what in them shows it, each of which can be contested.
 - **Profiles** show a person's scores and report to whoever may see them, and public profiles can be shared with a
   link that previews well on social sites.
-- **Explore** teaches the Big Five and each facet.
+- **Explore** teaches the Big Five and each facet, and names the WHO ICF temperament and personality function that
+  matches each, where one does.
+- **The body meets personality** through those ICF functions, which the body functions seed links to the domains and
+  facets by hand. A condition or impairment the person has noted in one shows on My Personality beside the domain or
+  facet it matches, as something that can affect it, apart from the score.
 
 ## The report
 Once every scene is finished and scored, the person gets a written report: a headline, an overview, a paragraph per

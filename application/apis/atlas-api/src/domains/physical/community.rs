@@ -100,11 +100,11 @@ fn bands(people: &[(i64, f64)]) -> Vec<(i64, Option<i64>, Vec<f64>)> {
             from = decade_to.map_or(i64::MAX, |to| to + 1);
         }
     }
-    if let Some(last) = out.last_mut() {
-        if !gathered.is_empty() || last.1.is_some() {
-            last.1 = None;
-            last.2.append(&mut gathered);
-        }
+    if let Some(last) = out.last_mut()
+        && (!gathered.is_empty() || last.1.is_some())
+    {
+        last.1 = None;
+        last.2.append(&mut gathered);
     }
     out
 }

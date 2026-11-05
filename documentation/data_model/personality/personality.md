@@ -31,6 +31,7 @@ headline, an overview, a paragraph per domain, strengths and things to watch, an
 | ANSWERED | Person → PersonalityScenarioQuestion | `id`, `answer`, `reasoning`, `context`, `facets`, `clockSeconds`, `clockLeft`, `clockRanOut`, `answeredDate`, `scoring`, `contests` | Their answer, with what they saw before it. `scoring` is the evidence the scorer found in it, and `contests` the person's challenges to that evidence, both JSON lists |
 | HAS_JOB | Person → JobRunning | | A job running for them |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A skill level that takes the trait (see the Skills graph) |
+| CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | An ICF temperament and personality function that matches the domain or trait, or its low end when `opposite` (see the Physical Attributes graph) |
 
 ## Example
 ```cypher

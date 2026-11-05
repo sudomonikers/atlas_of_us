@@ -3,6 +3,7 @@ import { EXTENTS, comparedWith, conditionName, getPart, partName, standing, with
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
 import { Thinking } from '../shared_components/thinking';
+import { navigate } from '../router';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const brownRed = 'var(--brown-red)';
@@ -43,7 +44,7 @@ function Some<T>({ items, render }: { items: T[]; render: (item: T) => ReactNode
 
 //everything to learn about a part of the body, opened fresh for each one (give it a key of the id): what it is, the
 //conditions that affect it, how it's measured and where the user stands, the user's impairments in it, what it lets
-//them do, and how it fits in the body. What's linked to the parts it belongs to or is made of, or to what it does,
+//them do and the skills that rely on it, the topics to learn more about it in, and how it fits in the body. What's linked to the parts it belongs to or is made of, or to what it does,
 //counts for it too, and says where it comes from
 export function PartPanel({ id, myConditions, measurements, onLoaded, onPick, onNote }: PartPanelProps) {
   const [part, setPart] = useState<Part>();
@@ -170,6 +171,47 @@ export function PartPanel({ id, myConditions, measurements, onLoaded, onPick, on
                     {f.abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
                   </div>
                 )}
+              </li>
+            )}
+          />
+        </>
+      )}
+
+      {!!part.skills.length && (
+        <>
+          <h3 style={styles.heading}>Skills that rely on it</h3>
+          <p style={styles.small}>Skills with a level that takes an ability it gives you. Yours come first.</p>
+          <Some
+            items={part.skills}
+            render={(s) => (
+              <li key={s.id} style={styles.item}>
+                <span style={styles.row}>
+                  <button className="comic-lift" style={styles.part} onClick={() => navigate(`/skills/${encodeURIComponent(s.id)}`)}>
+                    {s.name}
+                  </button>
+                  {s.yours && <span className="comic-chip">Yours</span>}
+                </span>
+                <span style={styles.through}>takes {s.abilities.join(', ')}</span>
+              </li>
+            )}
+          />
+          {part.skills_total > part.skills.length && <p style={styles.small}>and {part.skills_total - part.skills.length} more</p>}
+        </>
+      )}
+
+      {!!part.topics.length && (
+        <>
+          <h3 style={styles.heading}>Learn more</h3>
+          <Some
+            items={part.topics}
+            render={(t) => (
+              <li key={t.id} style={styles.item}>
+                <span>
+                  <button className="comic-lift" style={styles.part} onClick={() => navigate(`/topics/${encodeURIComponent(t.id)}`)}>
+                    {t.name}
+                  </button>
+                </span>
+                <Through through={t.through} />
               </li>
             )}
           />

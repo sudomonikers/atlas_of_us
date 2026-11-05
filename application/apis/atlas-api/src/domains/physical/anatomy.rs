@@ -1,6 +1,6 @@
 //the anatomy: every part of the body, from FMA, to explore on the 3D body and learn about, each with the wholes it
-//belongs to and the parts it's made of, the kinds it is, and the functions, conditions, measurements and impairments
-//that relate to it. See "Learning about the body" in documentation/architecture/physical.md
+//belongs to and the parts it's made of, the kinds it is, the functions, conditions, measurements and impairments that
+//relate to it, the skills that rely on what it lets you do, and the topics to learn more about it in. See "Learning about the body" in documentation/architecture/physical.md
 use axum::{
     Json, Router,
     extract::{Path, State},
@@ -101,6 +101,29 @@ pub struct Impaired {
     through: Option<String>,
 }
 
+//a topic to learn more about the part in, from the part, a part it belongs to or a part it's made of, which `through`
+//names when it isn't this part
+#[derive(Serialize, Deserialize)]
+pub struct Covering {
+    id: String,
+    name: String,
+    status: String,
+    through: Option<String>,
+}
+
+//a skill with a level that takes an ability the part's functions underlie, and whether it's one of the logged in user's,
+//one they're on or have a goal in
+#[derive(Serialize, Deserialize)]
+pub struct Relying {
+    id: String,
+    name: String,
+    abilities: Vec<String>, //the part's abilities it takes
+    yours: bool,
+}
+
+//how many of the skills that rely on a part come with it
+const SKILLS: i64 = 12;
+
 #[derive(Serialize, Deserialize)]
 pub struct Part {
     id: String,
@@ -117,12 +140,16 @@ pub struct Part {
     conditions: Vec<Affecting>,
     measurements: Vec<Measuring>,
     impairments: Vec<Impaired>,
+    skills: Vec<Relying>, //the user's own first, then the ones that rely on it most
+    skills_total: i64,
+    topics: Vec<Covering>,
 }
 
 //a part of the body and everything to learn about it. What's linked to the parts it belongs to (above) and is made of
 //(below) counts for it too, as does what's linked to the functions those carry out: the left lung carries out
 //respiration because the lung does, and asthma affects it. Each list puts what's linked to the part itself first, then
-//what comes from above, below and through functions
+//what comes from above, below and through functions. The skills that rely on it are the ones whose levels take the
+//abilities its functions underlie
 async fn part(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<Json<Part>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query(&format!("
         MATCH (p:BodyPart {{id: $id}})
@@ -132,7 +159,9 @@ async fn part(State(state): State<AppState>, user: AuthUser, Path(id): Path<Stri
         WITH p, above, below, [p] + above + below AS related
         WITH p, above, below, related,
              COLLECT {{ UNWIND related AS r MATCH (r)-[:SERVES]->(f:BodyFunction) RETURN DISTINCT f }} AS functions
-        WITH p, above, below, related, functions, related + functions AS linked
+        WITH p, above, below, related, functions, related + functions AS linked,
+             COLLECT {{ UNWIND functions AS f MATCH (f)-[:UNDERLIES]->(a:Ability) RETURN DISTINCT a }} AS abilities
+        MATCH (me:Person {{id: $personId}})
         RETURN p.id AS id, p.fmaId AS fma_id, p.name AS name, p.definition AS definition,
                coalesce(p.synonyms, []) AS synonyms, coalesce(p.elements, []) AS elements,
                COLLECT {{ MATCH (p)-[:SUBPART_OF]->(o:BodyPart) RETURN {{id: o.id, name: o.name}} ORDER BY o.name }} AS wholes,
@@ -173,10 +202,35 @@ async fn part(State(state): State<AppState>, user: AuthUser, Path(id): Path<Stri
                    WITH t, i, CASE WHEN t = p THEN 0 WHEN t IN above THEN 1 WHEN t:BodyFunction THEN 3 ELSE 2 END AS rank
                    RETURN {{id: t.id, name: t.name, extent: i.extent, through: CASE WHEN t = p THEN null ELSE t.name END}}
                    ORDER BY rank, t.name
-               }} AS impairments
+               }} AS impairments,
+               COLLECT {{
+                   UNWIND abilities AS a
+                   MATCH (s:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_ABILITY]->(a)
+                   WITH s, a, max(r.strength) AS strength ORDER BY strength DESC
+                   WITH s, collect(a.name) AS names, max(strength) AS strength,
+                        EXISTS {{ (me)-[:ACHIEVED|WANTS_TO_REACH]->(:DreyfusLevel)<-[:HAS_LEVEL]-(s) }} AS yours
+                   RETURN {{id: s.id, name: s.name, abilities: names, yours: yours}}
+                   ORDER BY yours DESC, strength DESC, s.name
+                   LIMIT $skills
+               }} AS skills,
+               COUNT {{
+                   UNWIND abilities AS a
+                   MATCH (s:Skill)-[:HAS_LEVEL]->(:DreyfusLevel)-[:REQUIRES_ABILITY]->(a)
+                   RETURN DISTINCT s
+               }} AS skills_total,
+               COLLECT {{
+                   UNWIND related AS r
+                   MATCH (t:Topic)-[:COVERS]->(r)
+                   WITH t, r, CASE WHEN r = p THEN 0 WHEN r IN above THEN 1 ELSE 2 END AS rank
+                   ORDER BY rank, r.name
+                   WITH t, collect(r)[0] AS r, min(rank) AS rank
+                   RETURN {{id: t.id, name: t.name, status: t.status, through: CASE WHEN r = p THEN null ELSE r.name END}}
+                   ORDER BY rank, t.name
+               }} AS topics
     "))
         .param("id", id)
         .param("root", HUMAN_BODY)
+        .param("skills", SKILLS)
         .param("personId", user.person_id.as_str())
     ).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;

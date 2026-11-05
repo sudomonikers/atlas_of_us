@@ -17,6 +17,7 @@ interface Found {
   structure: boolean; //whether it's a body part rather than a function
   group: string;
   abilities: string[];
+  personality: string[]; //the Big Five domains and traits it corresponds to, as "Extraversion" or "Low Neuroticism"
 }
 
 //the user's impairments in body functions and parts, and a way to add more
@@ -38,8 +39,8 @@ export default function Impairments() {
   if (!data || !anatomy) return <Thinking label="Looking over the body" />;
 
   const parts = new Map<string, Found>([
-    ...data.functions.map((f): [string, Found] => [f.id, { part: f, structure: false, group: f.group, abilities: f.abilities }]),
-    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: partName(p.name) }, structure: true, group: 'Body part', abilities: [] }]),
+    ...data.functions.map((f): [string, Found] => [f.id, { part: f, structure: false, group: f.group, abilities: f.abilities, personality: f.personality.map((t) => `${t.opposite ? 'Low ' : ''}${t.name}`) }]),
+    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: partName(p.name) }, structure: true, group: 'Body part', abilities: [], personality: [] }]),
   ]);
   const saved = (impairment: Impairment) => {
     setData({ ...data, impairments: [...data.impairments.filter((i) => i.id !== impairment.id), impairment] });
@@ -107,9 +108,9 @@ interface ImpairmentCardProps {
   onRemove: () => void;
 }
 
-//one impairment: what it's in, how much, and the abilities it holds back
+//one impairment: what it's in, how much, the abilities it holds back, and what it is in the Big Five
 function ImpairmentCard({ found, impairment, onEdit, onRemove }: ImpairmentCardProps) {
-  const { part, group, abilities } = found;
+  const { part, group, abilities, personality } = found;
   const extent = EXTENTS.find((e) => e.value === impairment.extent);
   const change = CHANGES.find((c) => c.value === impairment.change);
   return (
@@ -123,6 +124,11 @@ function ImpairmentCard({ found, impairment, onEdit, onRemove }: ImpairmentCardP
       {!!abilities.length && (
         <div style={styles.chips}>
           Can affect {abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
+        </div>
+      )}
+      {!!personality.length && (
+        <div style={styles.chips}>
+          In the Big Five {personality.map((t) => <span key={t} className="comic-chip">{t}</span>)}
         </div>
       )}
       <div style={styles.buttons}>

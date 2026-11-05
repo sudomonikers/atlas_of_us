@@ -21,6 +21,7 @@ use super::{age_on, bad, date, internal, norms::{self, Norm}};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/abilities", get(abilities))
+        .route("/abilities/affected-by", get(affected_by))
         .route("/abilities/{id}/rating", put(rate).delete(unrate))
 }
 
@@ -132,12 +133,16 @@ const ABILITIES: &str = "
            } AS measurements,
            COLLECT {
                MATCH (p)-[i:HAS_IMPAIRMENT]->(t)
-               WHERE EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
-                  OR EXISTS { MATCH (t)-[:PART_SUBTYPE_OF*0..2]->(:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
+               WHERE {RESTS_ON}
                RETURN {name: t.name, extent: i.extent}
            } AS impairments
     ORDER BY a.category, a.name
 ";
+
+//whether the ability `a` rests on the body function or part `t`: the function or one it's part of underlies it, or the
+//part, or a kind of part it is, serves one that does
+const RESTS_ON: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
+                  OR EXISTS { MATCH (t)-[:PART_SUBTYPE_OF*0..2]->(:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) })";
 
 //where a person stands on one ability: the readings that count, each weighted by how much it says, or else their
 //rating of themselves, held back by their worst impairment in what it rests on
@@ -201,7 +206,7 @@ fn work_out(row: Row) -> Ability {
 //works out where a person stands on every ability, keeps it as HAS_ABILITY (dropping the ones nothing says anything
 //about any more), and returns them all
 pub async fn refresh(state: &AppState, person_id: &str) -> Result<Vec<Ability>, (StatusCode, String)> {
-    let mut result = state.graph.execute(query(ABILITIES).param("personId", person_id)).await.map_err(internal)?;
+    let mut result = state.graph.execute(query(&ABILITIES.replace("{RESTS_ON}", RESTS_ON)).param("personId", person_id)).await.map_err(internal)?;
     let mut abilities = Vec::new();
     while let Some(row) = result.next().await.map_err(internal)? {
         abilities.push(work_out(row.to::<Row>().map_err(internal)?));
@@ -237,6 +242,58 @@ pub async fn refresh(state: &AppState, person_id: &str) -> Result<Vec<Ability>, 
 //every ability, with where the logged in user stands on it and what that comes from
 async fn abilities(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<Ability>>, (StatusCode, String)> {
     Ok(Json(refresh(&state, &user.person_id).await?))
+}
+
+//one of the logged in user's conditions, as it can affect an ability
+#[derive(Serialize, Deserialize)]
+pub struct ConditionOn {
+    id: String,
+    name: String,
+    severity: Option<String>,
+}
+
+//one of the logged in user's impairments, as it can affect an ability
+#[derive(Serialize, Deserialize)]
+pub struct ImpairmentOn {
+    id: String, //the function or part it's in
+    name: String,
+    extent: String,
+}
+
+//an ability, with the logged in user's conditions and impairments in the body functions and parts it rests on
+#[derive(Serialize, Deserialize)]
+pub struct AffectedBy {
+    id: String,
+    name: String,
+    conditions: Vec<ConditionOn>,
+    impairments: Vec<ImpairmentOn>,
+}
+
+//the abilities the logged in user's conditions and impairments can affect, each with them, so a skill can show what can
+//affect the abilities it takes. A condition can affect what rests on the functions and parts it affects
+async fn affected_by(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<AffectedBy>>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (p:Person {{id: $personId}}), (a:Ability)
+        WITH a,
+             COLLECT {{
+                 MATCH (p)-[h:HAS_CONDITION]->(c:Condition)-[:AFFECTS]->(t)
+                 WHERE {RESTS_ON}
+                 RETURN DISTINCT {{id: c.id, name: c.name, severity: h.severity}} AS c ORDER BY toLower(c.name)
+             }} AS conditions,
+             COLLECT {{
+                 MATCH (p)-[i:HAS_IMPAIRMENT]->(t)
+                 WHERE {RESTS_ON}
+                 RETURN {{id: t.id, name: t.name, extent: i.extent}} ORDER BY t.name
+             }} AS impairments
+        WHERE size(conditions) > 0 OR size(impairments) > 0
+        RETURN a.id AS id, a.name AS name, conditions, impairments
+        ORDER BY a.name
+    ")).param("personId", user.person_id)).await.map_err(internal)?;
+    let mut affected = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        affected.push(row.to::<AffectedBy>().map_err(internal)?);
+    }
+    Ok(Json(affected))
 }
 
 #[derive(Deserialize)]

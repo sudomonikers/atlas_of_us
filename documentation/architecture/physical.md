@@ -69,7 +69,8 @@ for norms, an impairment or a rating changes, and whenever they open their abili
 measurement that shows an ability counts, weighted by how much that measurement says about it. With no reading, their
 own rating on the ability's examples stands in, with little confidence. An impairment in what the ability rests on
 holds it back. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's
-abilities show beside where the person stands, as its personality traits do.
+abilities show beside where the person stands, as its personality traits do, along with the person's conditions and
+impairments in the functions and parts each ability rests on.
 
 ## Skill requirements
 Every skill level is linked to the abilities it takes, so a person can see how what they have to work with fits a
@@ -90,8 +91,9 @@ body loads in a browser, and drawn in the browser with three.js in a cel-shaded 
 loaded the first time it's shown. Every mesh is named, and a file beside the models says which part each one is, so a
 click opens that part. A part's page shows its FMA definition and other names, the wholes it belongs to and the parts
 it's made of, the kinds of part it is, the functions it serves with the abilities they underlie and the measurements
-that read them, the conditions that affect it, its measurements with where the person stands on each, and the person's
-impairments. The physical data sets are linked at a few points (conditions to parts and functions, measurements to
+that read them, the conditions that affect it, its measurements with where the person stands on each, the person's
+impairments, the skills whose levels take the abilities it gives, the person's own first, and the topics to learn more
+about it in. Topics are linked by hand to the body's systems and organs, and the parts below them show them too. The physical data sets are linked at a few points (conditions to parts and functions, measurements to
 parts and functions, parts to the functions they serve), and a part gathers everything linked to it, to the parts it
 belongs to and is made of, and to the functions those serve, saying where each came from: the left lung shows asthma
 through the lung. Opening a part lights up every mesh it's drawn with; a part with no model lights up the nearest part

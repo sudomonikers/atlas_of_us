@@ -67,8 +67,10 @@ Each asks the live api for every item, the way a user asks, so it goes through t
      knowledge and traits with what a level requires, but leaves out `REQUIRES_ABILITY`.
    - This joins measurements to skills.
 
-2. **Show how conditions and impairments bear on skills.** The path condition → function → ability ← skill level is
-   already in the graph, and nothing reads it.
+2. **(Done) Show how conditions and impairments bear on skills.** The api follows condition or impairment → function or
+   part → ability, and a skill level's abilities, on the skill page and in My Skills, name the person's conditions and
+   impairments that can affect each. A part's page lists the skills whose levels take the abilities it gives, the
+   person's own first. What it was:
    - A skill page could say "carpal tunnel syndrome affects Manual Dexterity, which this level relies on".
    - A part's page could list the skills behind the abilities it already shows.
 
@@ -82,18 +84,25 @@ Each asks the live api for every item, the way a user asks, so it goes through t
    circumference share a function with obesity, but nothing says a reading is in a condition's range. A direct link, or
    a range on it, would let the Measurements view point to relevant conditions, as information rather than diagnosis.
 
-5. **Link ICF's personality functions to the Big Five.** `b126 Temperament and personality functions` is seeded, and
-   its sub-functions (extraversion, agreeableness, conscientiousness, openness and more) map almost one to one onto the
-   Big Five domains. A hand-picked mapping would be the first link between Physical and Personality. Mental health
-   conditions that affect b126 would then sit next to traits, which needs careful wording in the ui.
+5. **(Done) Link ICF's personality functions to the Big Five.** The body functions seed links b1260 to b1267 to the
+   domains and facets they match (`CORRESPONDS_TO`, with psychic stability as the low end of Neuroticism). Explore names
+   the matching ICF function, impairment cards name the Big Five match, and My Personality notes the person's own
+   conditions and impairments in them as things that can affect a domain or facet, apart from the score. What it was:
+   - `b126 Temperament and personality functions` is seeded, and its sub-functions (extraversion, agreeableness,
+     conscientiousness, openness and more) map almost one to one onto the Big Five domains.
+   - A hand-picked mapping would be the first link between Physical and Personality.
+   - Mental health conditions that affect b126 would then sit next to traits, which needs careful wording in the ui.
 
 6. **Use a person's conditions to suggest their impairments.** A condition's `AFFECTS` links name the functions and
    parts it usually impairs, so noting a condition could offer them as impairments to note. The two are kept apart now,
    and only meet on a part's page.
 
-7. **Link the anatomy to Topics.** The body map is a place to learn, and Topics is the learning graph. ESCO's knowledge
-   has anatomy, physiology and their branches, which systems and organs could link to, so learning more from a part
-   leads to a topic.
+7. **(Done) Link the anatomy to Topics.** The anatomy seed links 26 systems and organs by hand to the topics ESCO's
+   knowledge gave us, such as Cardiology and Ophthalmology (`COVERS`). A part's page lists them under "Learn more",
+   with the ones from the parts it belongs to, and each opens its topic. What it was:
+   - The body map is a place to learn, and Topics is the learning graph.
+   - ESCO's knowledge has anatomy, physiology and their branches, which systems and organs could link to, so learning
+     more from a part leads to a topic.
 
 8. **Use the source data left on the table.**
    - ESCO's skill-to-skill relations (essential and optional, `skill_to_skill_relations.csv` in the same Tabiya export)
@@ -103,5 +112,5 @@ Each asks the live api for every item, the way a user asks, so it goes through t
 
 ## The order
 
-1 and 2 first: they make the ability links that already exist count for a person, and need no new source data. 3 is the
-most valuable new data. 5 is a small hand-picked mapping that brings Personality in.
+1 and 2 are done: they make the ability links that already exist count for a person, and need no new source data. 3 is the
+most valuable new data. 5 is done, and brings Personality in.

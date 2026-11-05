@@ -1,5 +1,5 @@
 //writes the body functions seed: the ICF's body functions, with each one's definition from the ICD-API, how they nest, and
-//how they link to abilities and measurements. See README.md
+//how they link to abilities, measurements and the Big Five. See README.md
 mod api;
 mod links;
 mod tabulation;
@@ -47,7 +47,9 @@ fn main() -> ExitCode {
 fn run(dir: &Path, seed: &Path, release: &str) -> Result<(), BoxError> {
     let categories = tabulation::categories(dir)?;
     let codes: HashMap<&str, &Category> = categories.iter().map(|c| (c.code.as_str(), c)).collect();
-    for code in links::UNDERLIES.iter().map(|(c, _)| c).chain(links::MEASURES.iter().map(|(_, c)| c)) {
+    for code in links::UNDERLIES.iter().map(|(c, _)| c).chain(links::MEASURES.iter().map(|(_, c)| c))
+        .chain(links::PERSONALITY.iter().map(|(c, _, _)| c))
+    {
         if !codes.contains_key(code) {
             return Err(format!("links.rs names {code}, which isn't a body function in the tabulation").into());
         }
@@ -110,6 +112,9 @@ fn cypher(categories: &[Category], definitions: &HashMap<String, Definition>, re
     let measures: Vec<String> = links::MEASURES.iter()
         .map(|(m, code)| format!("  {{ measurement: {}, code: {} }}", quote(m), quote(code)))
         .collect();
+    let personality: Vec<String> = links::PERSONALITY.iter()
+        .map(|(code, name, opposite)| format!("  {{ code: {}, name: {}, opposite: {opposite} }}", quote(code), quote(name)))
+        .collect();
     format!("\
 // =============================================================================
 // Atlas of Us — Physical Attributes sub-graph seed: body functions
@@ -123,8 +128,10 @@ fn cypher(categories: &[Category], definitions: &HashMap<String, Definition>, re
 // SUBFUNCTION_OF to the one it's part of. `code` is the ICF code, and
 // `sourceUri` the WHO's permanent URI for it. Body functions UNDERLIE the
 // abilities they're the basis of, and measurements MEASURE the function they're
-// a reading of, so run physical_abilities_seed.cypher and
-// physical_norms_seed.cypher first.
+// a reading of, and temperament and personality functions CORRESPOND_TO the
+// Big Five domains and traits they describe, so run
+// physical_abilities_seed.cypher, physical_norms_seed.cypher,
+// personality_seed.cypher and personality_explore_seed.cypher first.
 //
 // Source: ICF, release {release}, from the WHO's ICD-API. (c) World Health
 // Organization, licensed under CC BY-ND 3.0 IGO: codes and titles are used
@@ -184,5 +191,18 @@ UNWIND [
 ] AS l
 MATCH (m:PhysicalMeasurement {{name: l.measurement}}), (f:BodyFunction {{code: l.code}})
 MERGE (m)-[:MEASURES]->(f);
-", rows.join(",\n"), parents.join(",\n"), underlies.join(",\n"), measures.join(",\n"))
+
+
+// -----------------------------------------------------------------------------
+// 3. The Big Five domains and traits they correspond to
+// -----------------------------------------------------------------------------
+
+UNWIND [
+{}
+] AS l
+MATCH (f:BodyFunction {{code: l.code}})
+CALL (l) {{ MATCH (t:PersonalityDomain {{name: l.name}}) RETURN t UNION MATCH (t:PersonalityTrait {{name: l.name}}) RETURN t }}
+MERGE (f)-[c:CORRESPONDS_TO]->(t)
+SET c.opposite = l.opposite;
+", rows.join(",\n"), parents.join(",\n"), underlies.join(",\n"), measures.join(",\n"), personality.join(",\n"))
 }

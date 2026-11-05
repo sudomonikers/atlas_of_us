@@ -13,7 +13,9 @@
 // SUBPART_OF the wholes it belongs to and a PART_SUBTYPE_OF the kinds it is,
 // and SERVES the body functions it carries out. Measurements MEASURE the parts
 // they're a reading of, so run physical_norms_seed.cypher and
-// physical_functions_seed.cypher first.
+// physical_functions_seed.cypher first. Topics COVER the systems and organs
+// they teach about, by topic name, so run it again after the topics import to
+// link topics that didn't exist yet.
 //
 // Sources: FMA, CC BY 3.0. BodyParts3D, (c) The Database Center for Life
 // Science, CC BY 4.0.
@@ -8160,3 +8162,65 @@ UNWIND [
 ] AS l
 MATCH (m:PhysicalMeasurement {name: l.measurement}), (p:BodyPart {fmaId: l.part})
 MERGE (m)-[:MEASURES]->(p);
+
+
+// -----------------------------------------------------------------------------
+// 5. Topics to learn more about them in
+// -----------------------------------------------------------------------------
+
+UNWIND [
+  { part: "FMA20394", topic: "Human Anatomy" },
+  { part: "FMA20394", topic: "Human Physiology" },
+  { part: "FMA7161", topic: "Cardiovascular System" },
+  { part: "FMA7161", topic: "Cardiology" },
+  { part: "FMA7161", topic: "Vascular Surgery" },
+  { part: "FMA7158", topic: "Respiratory Medicine" },
+  { part: "FMA7158", topic: "Respiratory Therapy" },
+  { part: "FMA7157", topic: "Neurology" },
+  { part: "FMA7157", topic: "Neuroanatomy" },
+  { part: "FMA7157", topic: "Neurophysiology" },
+  { part: "FMA50801", topic: "Neuropsychology" },
+  { part: "FMA50801", topic: "Neurological Surgery" },
+  { part: "FMA7482", topic: "Musculoskeletal Anatomy" },
+  { part: "FMA7482", topic: "Orthopaedics" },
+  { part: "FMA7482", topic: "Kinesiology" },
+  { part: "FMA7482", topic: "Biomechanics" },
+  { part: "FMA7482", topic: "Physiotherapy" },
+  { part: "FMA7490", topic: "Orthopaedic Manual Physiotherapy" },
+  { part: "FMA5022", topic: "Exercise Physiology" },
+  { part: "FMA7152", topic: "Gastroenterology" },
+  { part: "FMA7152", topic: "Nutrition" },
+  { part: "FMA7197", topic: "Hepatology" },
+  { part: "FMA49184", topic: "Mouth Anatomy" },
+  { part: "FMA49184", topic: "Maxillofacial and Oral Surgery" },
+  { part: "FMA12516", topic: "Dental Anatomy" },
+  { part: "FMA12516", topic: "Dental Sciences" },
+  { part: "FMA12516", topic: "Orthodontics" },
+  { part: "FMA7159", topic: "Urology" },
+  { part: "FMA7159", topic: "Renal Diseases" },
+  { part: "FMA7160", topic: "Reproductive Health" },
+  { part: "FMA17558", topic: "Obstetrics and Gynaecology" },
+  { part: "FMA7209", topic: "Obstetrics and Gynaecology" },
+  { part: "FMA9668", topic: "Endocrinology" },
+  { part: "FMA9668", topic: "Endocrine Physiology" },
+  { part: "FMA9825", topic: "Immunology" },
+  { part: "FMA9825", topic: "Clinical Immunology" },
+  { part: "FMA7162", topic: "Immunology" },
+  { part: "FMA9608", topic: "General Haematology" },
+  { part: "FMA74657", topic: "Dermatology" },
+  { part: "FMA74657", topic: "Skin Types" },
+  { part: "FMA72979", topic: "Dermatology" },
+  { part: "FMA72979", topic: "Skin Types" },
+  { part: "FMA7163", topic: "Dermatology" },
+  { part: "FMA7163", topic: "Skin Types" },
+  { part: "FMA54448", topic: "Ophthalmology" },
+  { part: "FMA54448", topic: "Refraction of the Eye" },
+  { part: "FMA54448", topic: "Orthoptics" },
+  { part: "FMA52780", topic: "Audiology" },
+  { part: "FMA52780", topic: "Physiology of Hearing" },
+  { part: "FMA52780", topic: "Physiology of Balance" },
+  { part: "FMA9664", topic: "Foot Problems" },
+  { part: "FMA9664", topic: "Podiatric Surgery" }
+] AS l
+MATCH (t:Topic {name: l.topic}), (p:BodyPart {fmaId: l.part})
+MERGE (t)-[:COVERS]->(p);

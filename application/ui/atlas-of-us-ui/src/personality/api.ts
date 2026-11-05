@@ -111,18 +111,38 @@ export interface Breakdown {
   low_watch: string[];
 }
 
+//a temperament and personality function of the WHO's ICF that corresponds to a domain or trait, and whether it's the
+//domain or trait's opposite end
+export interface Icf {
+  code: string; //such as b1260
+  name: string;
+  opposite: boolean;
+}
+
 export interface DomainTrait extends Breakdown {
   id: string;
   name: string;
   description: string | null;
   interactions: { name: string; description: string }[]; //name is the other trait's
+  icf: Icf[];
 }
 
 export interface Domain extends Breakdown {
   key: string;
   name: string;
   traits: DomainTrait[];
+  icf: Icf[];
 }
+
+//a domain or trait, by name, with the user's conditions and impairments in the ICF functions that correspond to it
+export interface AffectedBy {
+  name: string;
+  conditions: { id: string; name: string; severity: string | null }[];
+  impairments: { id: string; name: string; extent: string }[]; //id: the body function it's in
+}
+
+//the domains and traits the user's conditions and impairments can affect
+export const getAffectedBy = () => request<AffectedBy[]>('GET', '/personality/affected-by');
 
 export interface PersonalityModel {
   name: string | null;

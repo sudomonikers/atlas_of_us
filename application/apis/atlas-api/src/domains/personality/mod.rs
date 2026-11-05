@@ -14,6 +14,7 @@ pub fn router() -> Router<AppState> {
         .route("/traits", get(list_all_personality_traits))
         .route("/traits/{id}/skills", get(list_trait_skills))
         .route("/model", get(get_model))
+        .route("/affected-by", get(get_affected_by))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/answers", put(answer_question).delete(clear_answers))
         .route("/progress", get(get_user_scenario_progress))
@@ -116,6 +117,15 @@ pub struct Interaction {
     description: String,
 }
 
+//a temperament and personality function of the WHO's ICF that corresponds to a domain or trait, and whether it's the
+//domain or trait's opposite end
+#[derive(Serialize, Deserialize)]
+pub struct Icf {
+    code: String, //such as b1260
+    name: String,
+    opposite: bool,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct DomainTrait {
     id: String,
@@ -127,6 +137,7 @@ pub struct DomainTrait {
     high_watch: Vec<String>, //what to watch out for when high
     low_watch: Vec<String>, //what to watch out for when low
     interactions: Vec<Interaction>,
+    icf: Vec<Icf>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -139,6 +150,7 @@ pub struct Domain {
     high_watch: Vec<String>, //what to watch out for when high
     low_watch: Vec<String>, //what to watch out for when low
     traits: Vec<DomainTrait>,
+    icf: Vec<Icf>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -152,7 +164,7 @@ pub struct Model {
 }
 
 //the personality model: what it is, where it came from and its limits, then every domain with its traits, each with
-//what being high or low on it means and how it interacts with other traits
+//what being high or low on it means and how it interacts with other traits, and the ICF functions that correspond to it
 pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (StatusCode, String)> {
     //built inside out: each trait's interactions, then each domain's traits, then the domains
     let mut rows = state.graph.execute(query("
@@ -165,13 +177,15 @@ pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (St
         WITH d, collect(CASE WHEN t IS NULL THEN null ELSE {
             id: t.id, name: t.name, description: t.description, overview: t.overview,
             high_good: t.highGood, low_good: t.lowGood, high_watch: t.highWatch, low_watch: t.lowWatch,
-            interactions: interactions
+            interactions: interactions,
+            icf: COLLECT { MATCH (f:BodyFunction)-[c:CORRESPONDS_TO]->(t) RETURN {code: f.code, name: f.name, opposite: c.opposite} ORDER BY f.code }
         } END) AS traits
         ORDER BY d.order
         WITH collect({
             key: d.key, name: d.name, overview: d.overview,
             high_good: d.highGood, low_good: d.lowGood, high_watch: d.highWatch, low_watch: d.lowWatch,
-            traits: traits
+            traits: traits,
+            icf: COLLECT { MATCH (f:BodyFunction)-[c:CORRESPONDS_TO]->(d) RETURN {code: f.code, name: f.name, opposite: c.opposite} ORDER BY f.code }
         }) AS domains
         OPTIONAL MATCH (m:PersonalityModel)
         RETURN m.name AS name, m.overview AS overview, m.history AS history, m.limits AS limits, m.ourTake AS our_take, domains
@@ -179,6 +193,60 @@ pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (St
 
     let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no personality model row"))?;
     Ok(Json(row.to::<Model>().map_err(internal)?))
+}
+
+//one of the logged in user's conditions, as it can affect a domain or trait
+#[derive(Serialize, Deserialize)]
+pub struct ConditionOn {
+    id: String,
+    name: String,
+    severity: Option<String>,
+}
+
+//one of the logged in user's impairments, as it can affect a domain or trait
+#[derive(Serialize, Deserialize)]
+pub struct ImpairmentOn {
+    id: String, //the body function it's in
+    name: String,
+    extent: String,
+}
+
+//a domain or trait, by name, with the logged in user's conditions and impairments in the ICF functions that correspond
+//to it
+#[derive(Serialize, Deserialize)]
+pub struct AffectedBy {
+    name: String,
+    conditions: Vec<ConditionOn>,
+    impairments: Vec<ImpairmentOn>,
+}
+
+//the domains and traits the logged in user's conditions and impairments can affect, through the ICF temperament and
+//personality functions that correspond to them. A condition or impairment in a function counts for the functions it's
+//part of
+async fn get_affected_by(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<AffectedBy>>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person {id: $personId}), (f:BodyFunction)-[:CORRESPONDS_TO]->(t)
+        WITH p, t, collect(f) AS functions
+        WITH t,
+             COLLECT {
+                 UNWIND functions AS f
+                 MATCH (p)-[h:HAS_CONDITION]->(c:Condition)-[:AFFECTS]->(:BodyFunction)-[:SUBFUNCTION_OF*0..4]->(f)
+                 RETURN DISTINCT {id: c.id, name: c.name, severity: h.severity} AS c ORDER BY toLower(c.name)
+             } AS conditions,
+             COLLECT {
+                 UNWIND functions AS f
+                 MATCH (p)-[i:HAS_IMPAIRMENT]->(g:BodyFunction)-[:SUBFUNCTION_OF*0..4]->(f)
+                 RETURN DISTINCT {id: g.id, name: g.name, extent: i.extent} AS i ORDER BY i.name
+             } AS impairments
+        WHERE size(conditions) > 0 OR size(impairments) > 0
+        RETURN t.name AS name, conditions, impairments
+        ORDER BY name
+    ").param("personId", user.person_id)).await.map_err(internal)?;
+    let mut affected = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        affected.push(row.to::<AffectedBy>().map_err(internal)?);
+    }
+    Ok(Json(affected))
 }
 
 #[derive(Serialize, Deserialize)]

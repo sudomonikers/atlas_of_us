@@ -1,12 +1,14 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { LEVEL_NAMES, abilityLevel, feelingsLabel, getAchievement, monthYear, practiceLabel, getSkill, requestFill, type Achievement, type Level, type Skill, type SkillRef, type SkillRequirement, type TopicRequirement, type TraitRequirement, type AbilityRequirement } from './api';
 import { AchievementWalkthrough } from './achievement_walkthrough';
+import { AffectedByNote } from './affected_by_note';
 import { GoalForm } from './goal_form';
 import { FeelingsForm } from './feelings_form';
 import { PracticeForm } from './practice_form';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
+import { getAffectedBy, type AffectedBy } from '../physical/api';
 import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -54,6 +56,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
   const [own, setRank] = useState(1); //the level being read, when it's picked here
   const rank = picked ?? own;
   const [achievement, setAchievement] = useState<Achievement>(); //where the user is with it, once it's ready
+  const [affectedBy, setAffectedBy] = useState<Map<string, AffectedBy>>(); //their conditions and impairments, by the ability they can affect
   const [walking, setWalking] = useState(false); //walking through its levels to place themselves on it
   const [settingGoal, setSettingGoal] = useState(false); //picking the level they want to reach
   const [settingPractice, setSettingPractice] = useState(false); //saying how much they practice it
@@ -99,6 +102,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
     if (status !== 'ready') return;
     let live = true;
     getAchievement(id).then((a) => live && setAchievement(a), () => {}); //the skill is still worth reading without it
+    getAffectedBy().then((loaded) => live && setAffectedBy(new Map(loaded.map((b) => [b.name, b]))), () => {});
     return () => {
       live = false;
     };
@@ -236,7 +240,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
           {achievement && walking && (
             <AchievementWalkthrough skill={skill} achievement={achievement} onChange={setAchievement} onClose={() => setWalking(false)} />
           )}
-          <Levels levels={skill.levels} rank={rank} mine={achievement?.rank ?? null} onRank={picked === undefined ? setRank : undefined} onOpen={onOpen} />
+          <Levels levels={skill.levels} rank={rank} mine={achievement?.rank ?? null} affectedBy={affectedBy} onRank={picked === undefined ? setRank : undefined} onOpen={onOpen} />
         </>
       )}
       {skill.status === 'stub' && askToFill && (
@@ -305,10 +309,11 @@ export function Ladder({ rank, mine, onRank, compact }: {
 }
 
 //the level picker, unless the level is picked somewhere else, and what the picked level says
-function Levels({ levels, rank, mine, onRank, onOpen }: {
+function Levels({ levels, rank, mine, affectedBy, onRank, onOpen }: {
   levels: Level[];
   rank: number;
   mine: number | null; //the level the user is at, marked on its rung
+  affectedBy?: Map<string, AffectedBy>; //the user's conditions and impairments, by the ability they can affect
   onRank?: (rank: number) => void;
   onOpen: (skill: SkillRef) => void;
 }) {
@@ -352,7 +357,7 @@ function Levels({ levels, rank, mine, onRank, onOpen }: {
           <Prerequisites levels={levels} rank={rank} onOpen={onOpen} />
           <Knowledge levels={levels} rank={rank} />
           <Traits levels={levels} rank={rank} />
-          <Abilities levels={levels} rank={rank} />
+          <Abilities levels={levels} rank={rank} affectedBy={affectedBy} />
           {level.next_level && next && (
             <div style={styles.next}>
               <h4 style={styles.subheading}>Getting to {next}</h4>
@@ -460,8 +465,8 @@ function Traits({ levels, rank }: { levels: Level[]; rank: number }) {
   );
 }
 
-//the abilities the picked level takes, and how much of each
-function Abilities({ levels, rank }: { levels: Level[]; rank: number }) {
+//the abilities the picked level takes, and how much of each, with the user's conditions and impairments that can affect them
+function Abilities({ levels, rank, affectedBy }: { levels: Level[]; rank: number; affectedBy?: Map<string, AffectedBy> }) {
   const abilities = carriedUp<AbilityRequirement>(levels, rank, (level) => level.abilities, (requirement) => requirement.name);
   if (!abilities.length) return null;
   return (
@@ -475,6 +480,7 @@ function Abilities({ levels, rank }: { levels: Level[]; rank: number }) {
               <Strength strength={requirement.strength} from={from} rank={rank} label="How much it matters" />
             </div>
             <span>{requirement.reason}</span>
+            <AffectedByNote affectedBy={affectedBy?.get(requirement.name)} />
           </li>
         ))}
       </ul>

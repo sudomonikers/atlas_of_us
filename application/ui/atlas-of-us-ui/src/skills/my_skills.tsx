@@ -6,6 +6,8 @@ import { PracticeForm } from './practice_form';
 import Timeline from './timeline';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
+import { AffectedByNote } from './affected_by_note';
+import { getAffectedBy, type AffectedBy } from '../physical/api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { LevelSteps } from '../shared_components/level_steps';
 import { Thinking } from '../shared_components/thinking';
@@ -32,6 +34,7 @@ export default function MySkills() {
   const [goals, setGoals] = useState<Goal[]>();
   const [practice, setPractice] = useState<Practice[]>();
   const [feelings, setFeelings] = useState<Map<string, Feeling[]>>();
+  const [affectedBy, setAffectedBy] = useState<Map<string, AffectedBy>>(); //the user's conditions and impairments, by the ability they can affect
   const [open, setOpen] = useState<Set<string>>(new Set()); //the rows whose requirements are showing, by key
   const [setting, setSetting] = useState<string>(); //the skill a goal is being set for
   const [practising, setPractising] = useState<string>(); //the skill whose practice is being set
@@ -53,6 +56,7 @@ export default function MySkills() {
     getGoals().then((loaded) => live && setGoals(loaded), () => {});
     getPractice().then((loaded) => live && setPractice(loaded), () => {});
     getFeelings().then((loaded) => live && setFeelings(new Map(loaded.map((s) => [s.skill_id, s.feelings]))), () => {});
+    getAffectedBy().then((loaded) => live && setAffectedBy(new Map(loaded.map((b) => [b.name, b]))), () => {});
     return () => {
       live = false;
     };
@@ -89,7 +93,7 @@ export default function MySkills() {
       {error && <AtlasError message={error} />}
       {!error && !skills && <Thinking label="Gathering what you can do" />}
       {skills && !skills.length && <p style={styles.text}>Nothing here yet. Open a skill in the Skills Explorer and add yourself to it.</p>}
-      {!!goals?.length && <Goals goals={goals} open={open} onToggle={toggle} onChanged={reload} />}
+      {!!goals?.length && <Goals goals={goals} open={open} affectedBy={affectedBy} onToggle={toggle} onChanged={reload} />}
       {LEVEL_NAMES.map((name, i) => ({ name, rank: i + 1 }))
         .reverse()
         .map(({ name, rank }) => {
@@ -143,7 +147,7 @@ export default function MySkills() {
                         {feeling === skill.id && (
                           <FeelingsForm skillId={skill.id} feelings={feelings?.get(skill.id) ?? []} onSaved={reload} onCancel={() => setFeeling(undefined)} />
                         )}
-                        {step && expanded && <LevelRequirements heading={`Getting to ${LEVEL_NAMES[step.rank - 1]}`} text={step.next_level} requirements={step} />}
+                        {step && expanded && <LevelRequirements heading={`Getting to ${LEVEL_NAMES[step.rank - 1]}`} text={step.next_level} requirements={step} affectedBy={affectedBy} />}
                       </li>
                     );
                   })}
@@ -375,7 +379,7 @@ function metOf({ skills, topics }: Requirements) {
 }
 
 //the user's goals, each with where they are, and once open what the level takes. Reached goals stay until cleared
-function Goals({ goals, open, onToggle, onChanged }: { goals: Goal[]; open: Set<string>; onToggle: (key: string) => void; onChanged: () => void }) {
+function Goals({ goals, open, affectedBy, onToggle, onChanged }: { goals: Goal[]; open: Set<string>; affectedBy?: Map<string, AffectedBy>; onToggle: (key: string) => void; onChanged: () => void }) {
   const [changing, setChanging] = useState<string>();
   const [error, setError] = useState<string>();
   const today = new Date().toLocaleDateString('en-CA'); //YYYY-MM-DD, in the user's own time zone
@@ -431,7 +435,7 @@ function Goals({ goals, open, onToggle, onChanged }: { goals: Goal[]; open: Set<
                   onCancel={() => setChanging(undefined)}
                 />
               )}
-              {!reached_on && expanded && <LevelRequirements heading={`Getting to ${level}`} text={description} requirements={goal} />}
+              {!reached_on && expanded && <LevelRequirements heading={`Getting to ${level}`} text={description} requirements={goal} affectedBy={affectedBy} />}
             </li>
           );
         })}
@@ -441,8 +445,8 @@ function Goals({ goals, open, onToggle, onChanged }: { goals: Goal[]; open: Set<
 }
 
 //what reaching a level of a skill takes: the skills and knowledge, each marked met or not yet, and the personality and
-//abilities, shown beside the user's own
-function LevelRequirements({ heading, text, requirements }: { heading: string; text: string | null; requirements: Requirements }) {
+//abilities, shown beside the user's own, with their conditions and impairments that can affect the abilities
+function LevelRequirements({ heading, text, requirements, affectedBy }: { heading: string; text: string | null; requirements: Requirements; affectedBy?: Map<string, AffectedBy> }) {
   const { skills, topics, traits, abilities } = requirements;
   return (
     <div style={styles.next}>
@@ -510,6 +514,7 @@ function LevelRequirements({ heading, text, requirements }: { heading: string; t
                   {yours === null ? <span style={styles.where}>Not measured yet</span> : <Score yours={yours} level={level} name={name} />}
                 </div>
                 <span>{reason}</span>
+                <AffectedByNote affectedBy={affectedBy?.get(name)} />
               </li>
             ))}
           </ul>

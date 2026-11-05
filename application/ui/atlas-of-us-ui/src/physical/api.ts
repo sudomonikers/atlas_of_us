@@ -175,6 +175,29 @@ export const CATEGORIES: { id: Ability['category']; label: string }[] = [
 //every ability, with where the user stands on each, worked out again from what they've recorded
 export const getAbilities = () => request<Ability[]>('GET', '/physical/abilities');
 
+//one of the user's conditions or impairments, as it can affect an ability
+export interface ConditionOn {
+  id: string;
+  name: string;
+  severity: string | null;
+}
+export interface ImpairmentOn {
+  id: string; //the function or part it's in
+  name: string;
+  extent: Extent;
+}
+
+//an ability, with the user's conditions and impairments in the body functions and parts it rests on
+export interface AffectedBy {
+  id: string;
+  name: string;
+  conditions: ConditionOn[];
+  impairments: ImpairmentOn[];
+}
+
+//the abilities the user's conditions and impairments can affect
+export const getAffectedBy = () => request<AffectedBy[]>('GET', '/physical/abilities/affected-by');
+
 //rates the user on an ability by the hardest of its examples they can do, 1 to 3, or 0 for none of them
 export const rateAbility = (id: string, anchor: number) => request<void>('PUT', `/physical/abilities/${encodeURIComponent(id)}/rating`, { anchor });
 
@@ -192,6 +215,7 @@ export interface BodyFunction {
   includes: string[];
   excludes: string[];
   abilities: string[]; //the abilities it underlies
+  personality: { name: string; opposite: boolean }[]; //the Big Five domains and traits it corresponds to
 }
 
 export type Extent = 'mild' | 'moderate' | 'severe' | 'complete';
@@ -360,6 +384,22 @@ export interface Impaired {
   through: string | null;
 }
 
+//a skill with a level that takes an ability a part's functions underlie, and whether the user is on it or has a goal in it
+export interface Relying {
+  id: string;
+  name: string;
+  abilities: string[]; //the part's abilities it takes
+  yours: boolean;
+}
+
+//a topic to learn more about a part in, from the part, a part it belongs to or a part it's made of, which through names
+export interface Covering {
+  id: string;
+  name: string;
+  status: string;
+  through: string | null;
+}
+
 //a part of the body and everything to learn about it
 export interface Part {
   id: string;
@@ -376,6 +416,9 @@ export interface Part {
   conditions: Affecting[];
   measurements: Measuring[];
   impairments: Impaired[];
+  skills: Relying[]; //the user's own first, then the ones that rely on it most
+  skills_total: number;
+  topics: Covering[]; //its own first, then the ones from the parts it belongs to and is made of
 }
 
 //every part of the body

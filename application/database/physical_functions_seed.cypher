@@ -10,8 +10,10 @@
 // SUBFUNCTION_OF to the one it's part of. `code` is the ICF code, and
 // `sourceUri` the WHO's permanent URI for it. Body functions UNDERLIE the
 // abilities they're the basis of, and measurements MEASURE the function they're
-// a reading of, so run physical_abilities_seed.cypher and
-// physical_norms_seed.cypher first.
+// a reading of, and temperament and personality functions CORRESPOND_TO the
+// Big Five domains and traits they describe, so run
+// physical_abilities_seed.cypher, physical_norms_seed.cypher,
+// personality_seed.cypher and personality_explore_seed.cypher first.
 //
 // Source: ICF, release 2026-01, from the WHO's ICD-API. (c) World Health
 // Organization, licensed under CC BY-ND 3.0 IGO: codes and titles are used
@@ -1431,3 +1433,27 @@ UNWIND [
 ] AS l
 MATCH (m:PhysicalMeasurement {name: l.measurement}), (f:BodyFunction {code: l.code})
 MERGE (m)-[:MEASURES]->(f);
+
+
+// -----------------------------------------------------------------------------
+// 3. The Big Five domains and traits they correspond to
+// -----------------------------------------------------------------------------
+
+UNWIND [
+  { code: "b1260", name: "Extraversion", opposite: false },
+  { code: "b1261", name: "Agreeableness", opposite: false },
+  { code: "b1262", name: "Conscientiousness", opposite: false },
+  { code: "b1263", name: "Neuroticism", opposite: true },
+  { code: "b1264", name: "Openness", opposite: false },
+  { code: "b1265", name: "Cheerfulness", opposite: false },
+  { code: "b1265", name: "Depression", opposite: true },
+  { code: "b1266", name: "Assertiveness", opposite: false },
+  { code: "b1266", name: "Self-Efficacy", opposite: false },
+  { code: "b1266", name: "Self-Consciousness", opposite: true },
+  { code: "b1267", name: "Morality", opposite: false },
+  { code: "b1267", name: "Dutifulness", opposite: false }
+] AS l
+MATCH (f:BodyFunction {code: l.code})
+CALL (l) { MATCH (t:PersonalityDomain {name: l.name}) RETURN t UNION MATCH (t:PersonalityTrait {name: l.name}) RETURN t }
+MERGE (f)-[c:CORRESPONDS_TO]->(t)
+SET c.opposite = l.opposite;
