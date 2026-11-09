@@ -1,21 +1,20 @@
 ### EVENTS
 # The Atlas event bus. Every module publishes what happened to its sub-graph here (Skills events have the source
-# atlas.skills, and Topics events atlas.topics), and every job that reacts to an event has its own rule and queue, named
-# <event>-<module>, so one job's backlog, replay or failures never hold up another's. The queues all feed the atlas-jobs
-# lambda (jobs_lambda.tf), which picks the handler by the queue. See documentation/architecture/events.md.
+# atlas.skills, and Topics events atlas.topics), and every job that reacts to an event has its own rule, named
+# <event>-<module>, which invokes the atlas-jobs lambda (jobs_lambda.tf) with the event and the job's name, so the lambda
+# picks the handler. See documentation/architecture/events.md.
 locals {
   events_name = "atlas-events"
 
-  # one entry per job. `module` is the module that reacts, and `concurrency` is how many of its events, and so its
-  # bedrock calls, run at once, on top of every other queue's. Lambda runs at least 2 at once
+  # one entry per job. `module` is the module that reacts
   event_jobs = { for job in [
-    { event = "SkillFillRequested", source = "atlas.skills", module = "Skills", concurrency = 5 },
-    { event = "SkillFilled", source = "atlas.skills", module = "Skills", concurrency = 2 },
-    { event = "SkillFilled", source = "atlas.skills", module = "Personality", concurrency = 2 },
-    { event = "SkillFilled", source = "atlas.skills", module = "Physical", concurrency = 2 },
-    { event = "SkillFilled", source = "atlas.skills", module = "Topics", concurrency = 2 },
-    { event = "TopicFillRequested", source = "atlas.topics", module = "Topics", concurrency = 5 },
-    { event = "ConditionAdded", source = "atlas.physical", module = "Physical", concurrency = 2 },
+    { event = "SkillFillRequested", source = "atlas.skills", module = "Skills" },
+    { event = "SkillFilled", source = "atlas.skills", module = "Skills" },
+    { event = "SkillFilled", source = "atlas.skills", module = "Personality" },
+    { event = "SkillFilled", source = "atlas.skills", module = "Physical" },
+    { event = "SkillFilled", source = "atlas.skills", module = "Topics" },
+    { event = "TopicFillRequested", source = "atlas.topics", module = "Topics" },
+    { event = "ConditionAdded", source = "atlas.physical", module = "Physical" },
   ] : "${job.event}-${job.module}" => job }
 }
 
@@ -42,55 +41,24 @@ resource "aws_cloudwatch_event_rule" "jobs" {
   })
 }
 
+# the lambda is invoked asynchronously: lambda holds the event until there's room under the function's concurrency, and
+# retries and parks failures by the function's invoke config (jobs_lambda.tf)
 resource "aws_cloudwatch_event_target" "jobs" {
   for_each       = local.event_jobs
   rule           = aws_cloudwatch_event_rule.jobs[each.key].name
   event_bus_name = aws_cloudwatch_event_bus.atlas.name
-  arn            = aws_sqs_queue.events[each.key].arn
-}
+  arn            = aws_lambda_function.jobs.arn
 
-resource "aws_sqs_queue" "events" {
-  for_each                   = local.event_jobs
-  name                       = each.key
-  visibility_timeout_seconds = 960   # longer than the function's timeout, so an event is never handed out twice at once
-  message_retention_seconds  = 86400 # a flood of events, or a replay from the archive, waits here behind the concurrency limit
-
-  # an event whose handler times out gets one more try, then is parked for a look
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.events_failed[each.key].arn
-    maxReceiveCount     = 2
-  })
-}
-
-resource "aws_sqs_queue" "events_failed" {
-  for_each                  = local.event_jobs
-  name                      = "${each.key}-failed"
-  message_retention_seconds = 1209600
-}
-
-resource "aws_sqs_queue_policy" "events" {
-  for_each  = local.event_jobs
-  queue_url = aws_sqs_queue.events[each.key].id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "events.amazonaws.com" }
-      Action    = "sqs:SendMessage"
-      Resource  = aws_sqs_queue.events[each.key].arn
-      Condition = { ArnEquals = { "aws:SourceArn" = aws_cloudwatch_event_rule.jobs[each.key].arn } }
-    }]
-  })
-}
-
-resource "aws_lambda_event_source_mapping" "events" {
-  for_each         = local.event_jobs
-  event_source_arn = aws_sqs_queue.events[each.key].arn
-  function_name    = aws_lambda_function.jobs.arn
-  batch_size       = 1
-
-  scaling_config {
-    maximum_concurrency = each.value.concurrency
+  input_transformer {
+    input_template = "{\"handler\": \"${each.key}\", \"event\": <aws.events.event.json>}"
   }
+}
+
+resource "aws_lambda_permission" "jobs_events" {
+  for_each      = local.event_jobs
+  statement_id  = "AllowEvents-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.jobs.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.jobs[each.key].arn
 }

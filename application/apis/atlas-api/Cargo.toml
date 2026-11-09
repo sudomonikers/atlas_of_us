@@ -29,7 +29,7 @@ argon2 = { version = "0.5", features = ["std"] }
 
 # AWS: the atlas-jobs queue, the atlas-events bus, and bedrock for the skills gates and embeddings
 aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
-aws-sdk-sqs = { version = "1.114.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
+aws-sdk-lambda = { version = "1.156.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
 aws-sdk-eventbridge = { version = "1.125.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
 aws-sdk-bedrockruntime = { version = "1.148.0", default-features = false, features = ["rt-tokio", "legacy-https-client"] }
 

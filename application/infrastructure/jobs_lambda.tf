@@ -1,25 +1,14 @@
 ### JOBS LAMBDA
 # Slow work, like rescoring someone's personality with long bedrock calls, doesn't fit the api's 60 seconds behind
-# cloudfront. The api queues it here and apis/atlas-jobs works through the queue, one job at a time. The same function
-# works through each events queue too (events.tf).
+# cloudfront. The api invokes apis/atlas-jobs asynchronously with the job, and each events rule invokes it with an event
+# (events.tf). Lambda holds invocations until there's room under the function's concurrency.
 # Terraform creates the function from a placeholder and then ignores its code.
 # Real code ships with apis/atlas-jobs/deploy.sh.
 locals {
   jobs_name = "atlas-jobs"
 }
 
-resource "aws_sqs_queue" "jobs" {
-  name                       = local.jobs_name
-  visibility_timeout_seconds = 960 # longer than the function's timeout, so a job is never handed out twice at once
-  message_retention_seconds  = 3600
-
-  # a job that times out gets one more try, then is parked for a look
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.jobs_failed.arn
-    maxReceiveCount     = 2
-  })
-}
-
+# jobs and events that failed both tries, with what they were invoked with, to send again once fixed
 resource "aws_sqs_queue" "jobs_failed" {
   name                      = "${local.jobs_name}-failed"
   message_retention_seconds = 1209600
@@ -34,6 +23,10 @@ resource "aws_lambda_function" "jobs" {
   filename      = data.archive_file.jobs_placeholder.output_path
   memory_size   = 512
   timeout       = 900
+
+  # at most this many jobs and events, and so this many bedrock calls, at once. Invocations past it wait in lambda's own
+  # queue, for up to the invoke config's maximum event age, without using up their tries
+  reserved_concurrent_executions = 10
 
   environment {
     variables = merge(
@@ -65,16 +58,21 @@ resource "aws_cloudwatch_log_group" "jobs" {
   retention_in_days = 14
 }
 
-resource "aws_lambda_event_source_mapping" "jobs" {
-  event_source_arn = aws_sqs_queue.jobs.arn
-  function_name    = aws_lambda_function.jobs.arn
-  batch_size       = 1
+# a job or event whose run times out or crashes gets one more try, then is parked in the failed queue. Handlers handle
+# their own errors, so only those reach here
+resource "aws_lambda_function_event_invoke_config" "jobs" {
+  function_name                = aws_lambda_function.jobs.function_name
+  maximum_retry_attempts       = 1
+  maximum_event_age_in_seconds = 21600
 
-  # at most this many jobs, and so this many bedrock calls, at once. A flood of jobs waits in the queue instead of fanning
-  # out, and unlike reserved concurrency nothing is throttled, so no job burns its two tries waiting
-  scaling_config {
-    maximum_concurrency = 5
+  destination_config {
+    on_failure {
+      destination = aws_sqs_queue.jobs_failed.arn
+    }
   }
+
+  # lambda checks the role can send to the failed queue when this is created
+  depends_on = [aws_iam_role_policy.jobs]
 }
 
 ###IAM
@@ -113,9 +111,10 @@ resource "aws_iam_role_policy" "jobs" {
         ]
       },
       {
+        # failed invocations are parked in the failed queue
         Effect   = "Allow"
-        Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
-        Resource = concat([aws_sqs_queue.jobs.arn], [for queue in aws_sqs_queue.events : queue.arn])
+        Action   = ["sqs:SendMessage"]
+        Resource = [aws_sqs_queue.jobs_failed.arn]
       },
       {
         # handlers publish what they did, such as a skill being filled (events.tf)

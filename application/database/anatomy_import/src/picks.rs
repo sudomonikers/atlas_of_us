@@ -98,7 +98,7 @@ pub const MAJOR: &[&str] = &[
 //a part and the ICF body functions it carries out, by code as the functions seed has them
 pub const SERVES: &[(&str, &[&str])] = &[
     ("FMA50801", &["b110", "b114", "b117", "b122", "b126", "b130", "b134", "b140", "b144", "b152", "b156", "b160", "b164", "b167", "b172", "b176", "b180"]), // brain
-    ("FMA61824", &["b164", "b1304", "b7600"]),          // frontal lobe
+    ("FMA61824", &["b147", "b164", "b1304", "b7600"]),  // frontal lobe
     ("FMA61825", &["b144", "b1560", "b167"]),           // temporal lobe
     ("FMA61826", &["b1564", "b1565", "b172"]),          // parietal lobe
     ("FMA67325", &["b1561"]),                           // occipital lobe

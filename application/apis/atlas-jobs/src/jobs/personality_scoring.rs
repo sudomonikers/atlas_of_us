@@ -12,7 +12,7 @@ use crate::{bedrock::{BoxError, invoke}, jobs::{personality_contest, personality
 pub struct ScoringJob {
     id: String, //the JobRunning node's id
     person_id: String,
-    request_id: Option<String>, //the api request that queued it, to find its logs. Missing on jobs queued before it was sent
+    request_id: Option<String>, //the api request that sent it, to find its logs. Missing on jobs sent before it was
     batches: Vec<Vec<ScoredAnswer>>, //the batches to score, each up to six scenarios' answers, ordered by scenario, then question
 }
 

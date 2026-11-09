@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { addReading, today, type Measurement, type Reading } from './api';
+import { addReading, today, type Measurement, type Recorded } from './api';
 import { Countdown, Stopwatch } from './home_timer';
 import { AtlasError } from '../shared_components/atlas-error';
 import { DatePicker, type DateMessages } from '../shared_components/date-picker';
@@ -17,7 +17,7 @@ const MEASURED_MESSAGES: DateMessages = {
 
 interface ReadingFormProps {
   measurement: Measurement;
-  onSaved: (reading: Reading) => void;
+  onSaved: (recorded: Recorded) => void;
   onCancel: () => void;
 }
 
@@ -44,9 +44,9 @@ export function ReadingForm({ measurement, onSaved, onCancel }: ReadingFormProps
     setSaving(true);
     setError(undefined);
     addReading(id, value, date).then(
-      (reading) => {
+      (recorded) => {
         setSaving(false);
-        onSaved(reading);
+        onSaved(recorded);
       },
       (e) => {
         setSaving(false);

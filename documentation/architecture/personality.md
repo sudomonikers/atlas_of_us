@@ -13,7 +13,7 @@ the graph itself, read `../data_model/personality/personality.md`.
 | API | `application/apis/atlas-api/src/domains/personality/` | Saves answers, decides when to score, queues scoring and contests, serves scores and evidence |
 | Jobs | `application/apis/atlas-jobs/src/jobs/` | Scoring, reviewing contests and writing the report, with Bedrock |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/` | Links a filled skill's levels to the traits they take |
-| Queue | `application/infrastructure/jobs_lambda.tf` | The queue between the API and the jobs |
+| Jobs lambda | `application/infrastructure/jobs_lambda.tf` | The function the API hands jobs to |
 | Seeds | `application/database/` | The traits, the scenarios and their questions, and the reading material for Explore |
 
 ## What we measure

@@ -32,6 +32,8 @@ import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Dots } from '../shared_components/thinking';
+import { Typed } from '../shared_components/typed';
+import { useTypewriter } from '../shared_components/typewriter';
 
 //scenes are split into their own chunks so their art, sounds and textures only load when one is opened
 const Sketchbook = lazy(() => import('./the_story_game/sketchbook'));
@@ -911,7 +913,6 @@ interface Answer {
   text: string; //the user's free text explanation
 }
 
-const TYPE_SPEED_MS = 28; //delay between each character as the text writes out
 //how many times a second a scene's animations move. Each redraw re-runs the scene's SVG filters, so letting them run at
 //the display's rate (120 on newer Macs) kept the GPU flat out
 const SCENE_FPS = 24;
@@ -966,7 +967,6 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
   const [resumed] = useState(() => resume(script, saved));
   //every position the user has visited, so the left arrow can walk back through branches
   const [history, setHistory] = useState<Position[]>(resumed.history);
-  const [shown, setShown] = useState(0); //how many characters of the current text have been written out
   const [answers, setAnswers] = useState<Record<string, Answer>>(resumed.answers);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
@@ -982,7 +982,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
   const section = script.sections[position.section];
   const step = section.steps[position.index];
   const text = stepText(step);
-  const typed = shown >= text.length;
+  const { shown, typed, setShown } = useTypewriter(text);
   const answer = isPrompt(step) ? answers[step.id] : undefined;
   const answered = !isPrompt(step) || (!!answer?.text.trim() && (!step.choices || answer.choice !== undefined));
   const asking = isPrompt(step) && typed;
@@ -999,12 +999,6 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
     };
   }, []);
 
-  useEffect(() => {
-    if (typed) return;
-    const timer = setTimeout(() => setShown((s) => s + 1), TYPE_SPEED_MS);
-    return () => clearTimeout(timer);
-  }, [shown, typed]);
-
   //running out jumps straight to the clock's late Section, whatever the user is in the middle of
   useEffect(() => {
     if (!running || !clock || deadline === undefined) return;
@@ -1017,7 +1011,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
       setShown(0);
     }, 250);
     return () => clearInterval(timer);
-  }, [running, deadline, clock]);
+  }, [running, deadline, clock, setShown]);
 
   //where the clock stands for the scorer, once it has started. After it stops, that's where it stopped
   const clockNow = (): AnswerClock | undefined => {
@@ -1143,9 +1137,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
           {/* keyed so every step starts scrolled to the top */}
           <div key={`${position.section}-${position.index}`} style={styles.scroll}>
             <p style={styles.text}>
-              {text.slice(0, shown)}
-              {/* the unwritten remainder holds its space so words don't jump between lines as they appear */}
-              <span style={styles.unwritten}>{text.slice(shown)}</span>
+              <Typed text={text} shown={shown} />
             </p>
 
             {isPrompt(step) && typed && (
@@ -1277,9 +1269,6 @@ const styles: Record<string, CSSProperties> = {
   },
   text: {
     whiteSpace: 'pre-wrap',
-  },
-  unwritten: {
-    visibility: 'hidden',
   },
   prompt: {
     marginTop: 16,

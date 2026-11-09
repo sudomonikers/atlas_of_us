@@ -70,6 +70,7 @@ export interface Measurement {
   min: number; //the lowest and highest readings the api takes
   max: number;
   abilities: string[]; //the abilities it shows
+  parts: string[]; //the ids of the body parts it's a reading of
   test: Test | null; //how a person takes it themselves, at home or in the app
   timer: number | null; //for a home test of how many in a set time, the seconds to count down
   protocol: string[]; //the steps of a home test
@@ -86,24 +87,32 @@ export interface Measurements {
 //every measurement, with the logged in user's readings
 export const getMeasurements = () => request<Measurements>('GET', '/physical/measurements');
 
-//records a reading, returning it with its percentile
+//a reading just recorded, with where the user now stands on every ability, since it may show one
+export interface Recorded {
+  reading: Reading;
+  abilities: Ability[];
+}
+
+//records a reading, returning it with its percentile and the user's abilities
 export const addReading = (id: string, value: number, measuredOn: string) =>
-  request<Reading>('POST', `/physical/measurements/${encodeURIComponent(id)}/readings`, { value, measured_on: measuredOn });
+  request<Recorded>('POST', `/physical/measurements/${encodeURIComponent(id)}/readings`, { value, measured_on: measuredOn });
 
 //has the api score typed answers, for a test such as Animal Naming, and record the score as a reading. Returns the
-//reading and the answers that counted
+//reading, the answers that counted and the user's abilities
 export const scoreAnswers = (id: string, answers: string[], measuredOn: string) =>
-  request<{ reading: Reading; counted: string[] }>('POST', `/physical/measurements/${encodeURIComponent(id)}/answers`, { answers, measured_on: measuredOn });
+  request<Recorded & { counted: string[] }>('POST', `/physical/measurements/${encodeURIComponent(id)}/answers`, { answers, measured_on: measuredOn });
 
-export const deleteReading = (id: string) => request<void>('DELETE', `/physical/readings/${encodeURIComponent(id)}`);
+//removes a reading, returning the user's abilities
+export const deleteReading = (id: string) => request<Ability[]>('DELETE', `/physical/readings/${encodeURIComponent(id)}`);
 
 //the user's own physical attributes, the ones that are set rather than recorded as readings
 export interface Me {
   norm_sex: NormSex | null; //the sex whose norms they're compared with. null compares them with everyone
 }
 
-//sets the user's own physical attributes. Every field is sent, and replaces what they had
-export const setMe = (me: Me) => request<void>('PUT', '/physical/me', me);
+//sets the user's own physical attributes. Every field is sent, and replaces what they had. Returns the user's
+//abilities, which who they're compared with moves
+export const setMe = (me: Me) => request<Ability[]>('PUT', '/physical/me', me);
 
 //who a reading was compared with, such as "women aged 30 to 39"
 export function comparedWith(c: ComparedWith) {
@@ -162,6 +171,7 @@ export interface Ability {
   basis: Basis[];
   rating: number | null; //the hardest example they say they can do, 1 to 3, or 0 for none
   measurements: Shows[];
+  parts: string[]; //the ids of the body parts it rests on
 }
 
 //how abilities are grouped on the page, in order
@@ -198,10 +208,12 @@ export interface AffectedBy {
 //the abilities the user's conditions and impairments can affect
 export const getAffectedBy = () => request<AffectedBy[]>('GET', '/physical/abilities/affected-by');
 
-//rates the user on an ability by the hardest of its examples they can do, 1 to 3, or 0 for none of them
-export const rateAbility = (id: string, anchor: number) => request<void>('PUT', `/physical/abilities/${encodeURIComponent(id)}/rating`, { anchor });
+//rates the user on an ability by the hardest of its examples they can do, 1 to 3, or 0 for none of them. Returns the
+//user's abilities
+export const rateAbility = (id: string, anchor: number) => request<Ability[]>('PUT', `/physical/abilities/${encodeURIComponent(id)}/rating`, { anchor });
 
-export const unrateAbility = (id: string) => request<void>('DELETE', `/physical/abilities/${encodeURIComponent(id)}/rating`);
+//takes back a rating, returning the user's abilities
+export const unrateAbility = (id: string) => request<Ability[]>('DELETE', `/physical/abilities/${encodeURIComponent(id)}/rating`);
 
 //a body function
 export interface BodyFunction {
@@ -215,6 +227,7 @@ export interface BodyFunction {
   includes: string[];
   excludes: string[];
   abilities: string[]; //the abilities it underlies
+  parts: string[]; //the ids of the body parts that carry it out, a function within it, or one it's within
   personality: { name: string; opposite: boolean }[]; //the Big Five domains and traits it corresponds to
 }
 
@@ -262,11 +275,12 @@ export const CHANGES: { value: Change; label: string }[] = [
 //every body function, with the logged in user's impairments. The parts come from getAnatomy
 export const getImpairments = () => request<Impairments>('GET', '/physical/impairments');
 
-//notes or changes an impairment. change only applies to parts
+//notes or changes an impairment. change only applies to parts. Returns the user's abilities, which it can hold back
 export const setImpairment = (id: string, extent: Extent, change: Change | null) =>
-  request<void>('PUT', `/physical/impairments/${encodeURIComponent(id)}`, { extent, change });
+  request<Ability[]>('PUT', `/physical/impairments/${encodeURIComponent(id)}`, { extent, change });
 
-export const clearImpairment = (id: string) => request<void>('DELETE', `/physical/impairments/${encodeURIComponent(id)}`);
+//removes an impairment, returning the user's abilities
+export const clearImpairment = (id: string) => request<Ability[]>('DELETE', `/physical/impairments/${encodeURIComponent(id)}`);
 
 //a condition: a disease from Mondo or a feature from HPO, with the body functions and parts it affects
 export interface Condition {
@@ -342,6 +356,7 @@ export interface PartSummary {
   name: string;
   synonyms: string[];
   wholes: string[]; //the ids of the parts it belongs to
+  kinds: string[]; //the ids of the kinds of part it is
   drawn: boolean; //whether the 3D body has a model of it
 }
 

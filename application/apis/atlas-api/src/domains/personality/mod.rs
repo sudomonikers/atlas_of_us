@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use aws_sdk_sqs::error::DisplayErrorContext;
+use aws_sdk_lambda::{error::DisplayErrorContext, primitives::Blob, types::InvocationType};
 use axum::{Extension, Json, Router, extract::{Path, Query, State}, http::StatusCode, routing::{get, post, put}};
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
@@ -834,13 +834,14 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
     Ok(())
 }
 
-//sends a job to atlas-jobs, or logs it to run by hand when there's no queue
+//invokes atlas-jobs asynchronously with a job, or logs it to run by hand when there's no function
 async fn queue(state: &AppState, kind: &str, job: impl Serialize) -> Result<(), BoxError> {
     let body = json!({"kind": kind, "job": job}).to_string();
-    let Some((sqs, url)) = &state.jobs_queue else {
-        tracing::info!("JOBS_QUEUE_URL isn't set, so run this job through atlas-jobs by hand: {body}");
+    let Some((lambda, function)) = &state.jobs else {
+        tracing::info!("JOBS_FUNCTION isn't set, so run this job through atlas-jobs by hand: {body}");
         return Ok(());
     };
-    sqs.send_message().queue_url(url).message_body(body).send().await.map_err(|e| DisplayErrorContext(e).to_string())?;
+    lambda.invoke().function_name(function).invocation_type(InvocationType::Event).payload(Blob::new(body)).send().await
+        .map_err(|e| DisplayErrorContext(e).to_string())?;
     Ok(())
 }

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { CHANGES, EXTENTS, setImpairment, type Change, type Extent, type Impairment } from './api';
+import { CHANGES, EXTENTS, setImpairment, type Ability, type Change, type Extent, type Impairment } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
 
@@ -22,7 +22,7 @@ interface ImpairmentFormProps {
   part: Impairable;
   structure: boolean; //whether it's a body part, which can say how it has changed
   impairment: Impairment | null; //what they've said about it already, if anything
-  onSaved: (impairment: Impairment) => void;
+  onSaved: (impairment: Impairment, abilities: Ability[]) => void; //with the user's abilities, which it can hold back
   onCancel: () => void;
 }
 
@@ -42,9 +42,9 @@ export function ImpairmentForm({ part, structure, impairment, onSaved, onCancel 
     setError(undefined);
     const kept = structure && change ? change : null;
     setImpairment(part.id, extent, kept).then(
-      () => {
+      (abilities) => {
         setSaving(false);
-        onSaved({ id: part.id, extent, change: kept });
+        onSaved({ id: part.id, extent, change: kept }, abilities);
       },
       (e) => {
         setSaving(false);

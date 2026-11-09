@@ -1,6 +1,7 @@
-//slow work the api queues on the atlas-jobs queue. Each message carries everything the job needs
+//slow work the api hands to atlas-jobs. Each job carries everything it needs
 use neo4rs::Graph;
 use serde::Deserialize;
+use serde_json::Value;
 
 pub mod personality_contest;
 pub mod personality_report;
@@ -16,8 +17,8 @@ enum Job {
 }
 
 //handlers are picked by kind. Jobs handle their own failures, so a bad one is logged and never retried
-pub async fn handle(graph: &Graph, body: &str) {
-    match serde_json::from_str::<Job>(body) {
+pub async fn handle(graph: &Graph, job: Value) {
+    match serde_json::from_value::<Job>(job) {
         Ok(Job::PersonalityScoring(job)) => personality_scoring::run(graph, job).await,
         Ok(Job::PersonalityContest(job)) => personality_contest::run(graph, job).await,
         Ok(Job::PersonalityReport(job)) => personality_report::run(graph, job).await,

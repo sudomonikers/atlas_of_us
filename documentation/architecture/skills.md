@@ -32,7 +32,7 @@ sits relative to everything else. The design is built around that.
 | API | `application/apis/atlas-api/src/domains/skills/` | Search, the gates, placing yourself and your evidence, publishing events |
 | Resolver | `application/apis/atlas-shared/src/skills/` | Decides whether a skill is new and where it sits. Shared by the API and the jobs, so both run the same logic |
 | Jobs | `application/apis/atlas-jobs/src/events/` | Fill a stub's levels, link levels to the skills they need, screen proposals |
-| Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and a queue per job |
+| Event bus | `application/infrastructure/events.tf` | The Atlas event bus, its archive, and a rule per job |
 | Taxonomy import | `application/database/skills_import/` | Asks the API for each ESCO skill |
 
 LLM calls run on Bedrock: a fast model for the gates and the resolver, and a stronger one for writing levels and
@@ -164,8 +164,8 @@ of it would change meaning. So no single user, and no single LLM call, changes t
 Every meaningful change is published as an event, so other modules can react without the Skills module calling them.
 
 - **One bus for the whole Atlas.** Every module publishes to it.
-- **One queue per job,** named `<event>-<module>`, so one job's backlog, replay or failures never hold up another's,
-  even when several react to the same event.
+- **One rule per job,** named `<event>-<module>`, so each job gets its own copy of an event and can be replayed on its
+  own, even when several react to the same event.
 - **An archive.** A new module can replay past events to backfill, instead of a one-off migration.
 - **Thin events.** An event says what happened and to which nodes; consumers read the graph for the details, so they
   always see the current state.

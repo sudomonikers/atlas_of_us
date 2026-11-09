@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { scoreAnswers, today, type Reading } from './api';
+import { scoreAnswers, today, type Recorded } from './api';
 import { TIMED } from './puzzles';
 import type { TestProps } from './self_tests';
 import { Frame } from './test_frame';
@@ -20,7 +20,7 @@ function IdeaTest({ intro, seconds, placeholder, counted, measurement, onSaved, 
   const [typed, setTyped] = useState('');
   const [answers, setAnswers] = useState<string[]>([]);
   const [kept, setKept] = useState<string[]>([]);
-  const [saved, setSaved] = useState<Reading>();
+  const [saved, setSaved] = useState<Recorded>();
   const [error, setError] = useState<string>();
   const all = useRef<string[]>([]);
   const pending = useRef('');
@@ -29,9 +29,9 @@ function IdeaTest({ intro, seconds, placeholder, counted, measurement, onSaved, 
     setPhase('scoring');
     setError(undefined);
     scoreAnswers(measurement, all.current, today()).then(
-      ({ reading, counted }) => {
+      ({ counted, ...recorded }) => {
         setKept(counted);
-        setSaved(reading);
+        setSaved(recorded);
         setPhase('done');
       },
       (e) => {

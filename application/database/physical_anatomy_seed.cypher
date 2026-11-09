@@ -7993,6 +7993,7 @@ UNWIND [
   { part: "FMA50801", code: "b172" },
   { part: "FMA50801", code: "b176" },
   { part: "FMA50801", code: "b180" },
+  { part: "FMA61824", code: "b147" },
   { part: "FMA61824", code: "b164" },
   { part: "FMA61824", code: "b1304" },
   { part: "FMA61824", code: "b7600" },

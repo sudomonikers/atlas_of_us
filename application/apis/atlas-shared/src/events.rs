@@ -1,5 +1,5 @@
 //the Atlas event bus (infrastructure/events.tf). The api and atlas-jobs publish what happened to a sub-graph after
-//writing it, and every job that reacts has its own rule and queue into atlas-jobs. Events are thin: they name the nodes
+//writing it, and every job that reacts has its own rule, which invokes atlas-jobs. Events are thin: they name the nodes
 //it happened to, and consumers read the graph for the rest
 use aws_sdk_eventbridge::{error::DisplayErrorContext, types::PutEventsRequestEntry};
 use serde_json::{Map, Value, json};

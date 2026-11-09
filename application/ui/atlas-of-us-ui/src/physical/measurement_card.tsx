@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { addReading, comparedWith, deleteReading, standing, today, withUnit, type Measurement, type Reading } from './api';
+import { addReading, comparedWith, deleteReading, standing, today, withUnit, type Ability, type Measurement, type Reading, type Recorded } from './api';
 import { ReadingForm } from './reading_form';
 import { SelfTest } from './self_tests';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -17,13 +17,14 @@ const shortDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateStrin
 
 interface MeasurementCardProps {
   measurement: Measurement;
-  onChanged: (readings: Reading[]) => void;
+  onChanged: (readings: Reading[], abilities: Ability[]) => void; //with the user's abilities, which a reading can move
+  plain?: boolean; //leaves out its name, description and what it shows, for when they've been said already
 }
 
 //a measurement: what it is, the user's latest reading and where it sits among people like them, a form for a new
 //reading (or the test that takes one, for a test the app runs, and the steps for one done at home), and their earlier
 //readings. A reading from the eye chart can also be typed in, from an optician's test
-export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps) {
+export function MeasurementCard({ measurement, onChanged, plain }: MeasurementCardProps) {
   const [adding, setAdding] = useState<'test' | 'form' | null>(null);
   const [history, setHistory] = useState(false);
   const [error, setError] = useState<string>();
@@ -32,10 +33,10 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
   const inApp = !!test && test !== 'home';
   const typedToo = test === 'eye_chart';
 
-  const saved = (reading: Reading) => {
+  const saved = ({ reading, abilities }: Recorded) => {
     setAdding(null);
     //newest first, by the day it was measured, and the new one ahead of others from the same day
-    onChanged([reading, ...readings].sort((a, b) => b.measured_on.localeCompare(a.measured_on)));
+    onChanged([reading, ...readings].sort((a, b) => b.measured_on.localeCompare(a.measured_on)), abilities);
   };
   //a test the app ran is recorded as taken today
   const tested = (value: number) => {
@@ -48,15 +49,19 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
   const remove = (id: string) => {
     setError(undefined);
     deleteReading(id).then(
-      () => onChanged(readings.filter((r) => r.id !== id)),
+      (abilities) => onChanged(readings.filter((r) => r.id !== id), abilities),
       (e) => setError(e instanceof Error ? e.message : String(e)),
     );
   };
 
   return (
     <article style={styles.card} id={`measurement-${id}`}>
-      <h3 style={styles.name}>{name}</h3>
-      <p style={styles.description}>{description}</p>
+      {!plain && (
+        <>
+          <h3 style={styles.name}>{name}</h3>
+          <p style={styles.description}>{description}</p>
+        </>
+      )}
       {test === 'home' && !!protocol.length && (
         <Disclosure label="How to do it at home">
           <ol style={styles.steps}>
@@ -66,7 +71,7 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
           </ol>
         </Disclosure>
       )}
-      {!!abilities.length && (
+      {!plain && !!abilities.length && (
         <div style={styles.chips}>
           Shows {abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
         </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { Reading, Test } from './api';
+import type { Recorded, Test } from './api';
 import { Frame } from './test_frame';
 import { blue, brownRed, cinnamon, comic, gunmetal, ivory, now, seeded, since, testStyles } from './test_kit';
 import { Matrices, PaperFolding, PerspectiveTaking, Rotation, Series, Syllogisms } from './reasoning_tests';
@@ -33,7 +33,7 @@ const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 export interface TestProps {
   measurement: string; //the measurement's id, for a test scored by the api
   onDone: (value: number) => void; //the score, in the measurement's unit, for the card to record
-  onSaved: (reading: Reading) => void; //a reading the api scored and recorded itself
+  onSaved: (recorded: Recorded) => void; //a reading the api scored and recorded itself, with the user's abilities
   onCancel: () => void;
 }
 

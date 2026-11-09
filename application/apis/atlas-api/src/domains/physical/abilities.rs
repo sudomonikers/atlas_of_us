@@ -73,6 +73,7 @@ struct Row {
     rating: Option<i64>,
     measurements: Vec<MeasurementRow>,
     impairments: Vec<Impaired>,
+    parts: Vec<String>,
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits, 0 to 100 with higher
@@ -108,6 +109,7 @@ pub struct Ability {
     basis: Vec<Basis>,
     rating: Option<i64>, //the hardest example they say they can do, 1 to 3, or 0 for none of them
     measurements: Vec<Shows>,
+    parts: Vec<String>, //the ids of the body parts it rests on
 }
 
 const ABILITIES: &str = "
@@ -135,7 +137,11 @@ const ABILITIES: &str = "
                MATCH (p)-[i:HAS_IMPAIRMENT]->(t)
                WHERE {RESTS_ON}
                RETURN {name: t.name, extent: i.extent}
-           } AS impairments
+           } AS impairments,
+           COLLECT {
+               MATCH (b:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a)
+               RETURN DISTINCT b.id
+           } AS parts
     ORDER BY a.category, a.name
 ";
 
@@ -194,6 +200,7 @@ fn work_out(row: Row) -> Ability {
         basis,
         rating: row.rating,
         measurements,
+        parts: row.parts,
         id: row.id,
         name: row.name,
         category: row.category,
@@ -301,8 +308,9 @@ struct RatingRequest {
     anchor: i64, //the hardest of the ability's three examples they can do, 1 to 3, or 0 for none of them
 }
 
-//rates the logged in user on an ability by its examples, in place of any rating they had
-async fn rate(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<RatingRequest>) -> Result<StatusCode, (StatusCode, String)> {
+//rates the logged in user on an ability by its examples, in place of any rating they had, and returns where they now
+//stand on every ability
+async fn rate(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<RatingRequest>) -> Result<Json<Vec<Ability>>, (StatusCode, String)> {
     if !(0..RATED.len() as i64).contains(&req.anchor) {
         return Err(bad("Pick one of the examples, or none of them."));
     }
@@ -320,16 +328,14 @@ async fn rate(State(state): State<AppState>, user: AuthUser, Path(id): Path<Stri
     if set == 0 {
         return Err((StatusCode::NOT_FOUND, "That ability doesn't exist.".to_string()));
     }
-    refresh(&state, &user.person_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(refresh(&state, &user.person_id).await?))
 }
 
-//takes back the logged in user's rating of themselves on an ability
-async fn unrate(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<StatusCode, (StatusCode, String)> {
+//takes back the logged in user's rating of themselves on an ability, and returns where they now stand on every ability
+async fn unrate(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<Json<Vec<Ability>>, (StatusCode, String)> {
     state.graph.run(query("
         MATCH (:Person {id: $personId})-[r:RATED_ABILITY]->(:Ability {id: $id})
         DELETE r
     ").param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
-    refresh(&state, &user.person_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(refresh(&state, &user.person_id).await?))
 }

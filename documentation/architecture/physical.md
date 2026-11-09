@@ -7,7 +7,7 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: recording measurements and taking self-tests, seeing where they sit, abilities, a 3D body to explore, and noting impairments and conditions |
+| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: a guided walk through the body beside a 3D model of it, covering measurements and self-tests, abilities, where they stand drawn on the body, impairments and conditions, and the body to explore |
 | 3D body | `application/ui/atlas-of-us-ui/public/anatomy/` | The models of the body, one file per layer, and which part each mesh is, served with the site |
 | API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; where a person stands on each ability; the anatomy; impairments; conditions, and adding ones from Mondo and HPO |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
@@ -51,21 +51,34 @@ one is placed among the ones we have from those alone: under the nearest conditi
 ones that are kinds of it.
 
 ## What the user sees
-Physical Traits has five views. Measurements lists every measurement, grouped into body size, vitals, strength and
-fitness, the senses, and reflexes and memory, with the steps for each home test and the in-app tests to take. A person records a reading and the day they took it, and sees their latest reading with where
-it sits among people of their sex and age, and their earlier readings. They choose whether they're compared with men,
-women or everyone. Abilities lists every ability with where they stand, what that comes from, the tests that measure it, and a rating on
-its examples for the ones no test covers. Body map is a place to learn about the body: a 3D body to turn and zoom, in layers (skin, skeleton,
-muscles, organs, nervous system, heart and vessels), where clicking any part, or finding it by name, lights it up and
-opens everything about it, and picking a system or region lights up all of its parts. Impairments lists the ones
-they've noted, with the abilities each can affect, and finds a body function or part to add by searching or browsing. Conditions lists the ones they've noted, with how
-much each affects them, whether it was diagnosed, whether it's under control, and the parts of the body it affects; a
-search finds a condition by any of its names, and looks further in Mondo and HPO for one that isn't listed.
+Physical Traits is a walk through the person's body in chapters, taken one at a time from a page that lists them with
+how far through each the person is. A chapter plays as scenes beside a 3D model of the body. Atlas narrates each scene,
+the body lights up and the camera flies to the parts it's about, and each scene holds one thing: something to read, one
+measurement to take, one ability to rate, or one list to fill in. The chapters are:
+- Your body: a tour of the body's systems and how each shapes who someone is.
+- Size and vitals: who they're compared with, then a scene for each body size and vitals measurement.
+- Body, Coordination and speed, Senses, Mind: one chapter for each category of abilities. Each opens on what its
+  abilities are and why they're worth finding out, then has a scene for every measurement that shows one of its abilities and a rating scene for every ability no measurement shows, and ends on
+  where they stand, drawn on the body in colour.
+- Your results: every ability drawn on the body.
+- What you live with: impairments, then conditions. Each one lights up where it sits and tints the parts of the
+  abilities it can affect.
+- Explore: clicking any part, picking a system, or finding a part by name opens everything about it.
+
+The chapter and scene are kept in the url.
+
+A measurement shows the steps for its home test or runs its in-app test, records a reading and the day it was taken,
+and shows where it sits among people of their sex and age, compared with men, women or everyone as they choose. An
+impairment is in a body function or part, found by searching or browsing. A condition records how much it affects
+them, whether it was diagnosed and whether it's under control; a search finds one by any of its names, and looks
+further in Mondo and HPO for one that isn't listed.
 Measurements, impairments and conditions are private: they're only shown to the person who recorded them.
 
 ## Abilities
 A person's place on each ability is worked out from what they've recorded, by the api, whenever a reading, their sex
-for norms, an impairment or a rating changes, and whenever they open their abilities. The latest reading of each
+for norms, an impairment or a rating changes, and whenever they open Physical Traits, so norms that shift as other
+people take the tests reach them. Every ability is worked out together in one query, and a change returns the result
+with what it saved. The latest reading of each
 measurement that shows an ability counts, weighted by how much that measurement says about it. With no reading, their
 own rating on the ability's examples stands in, with little confidence. An impairment in what the ability rests on
 holds it back. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's
@@ -87,7 +100,7 @@ a condition that has them is left as it is.
 
 ## Learning about the body
 The 3D body is BodyParts3D's models of a real human body, simplified when the anatomy seed is generated so the whole
-body loads in a browser, and drawn in the browser with three.js in a cel-shaded style. Each layer is its own file,
+body loads in a browser, and drawn in the browser with three.js as a comic x-ray: the skin is an inked figure, and the parts inside it are drawn in flat colour with ink between them. Each layer is its own file,
 loaded the first time it's shown. Every mesh is named, and a file beside the models says which part each one is, so a
 click opens that part. A part's page shows its FMA definition and other names, the wholes it belongs to and the parts
 it's made of, the kinds of part it is, the functions it serves with the abilities they underlie and the measurements
@@ -96,5 +109,6 @@ impairments, the skills whose levels take the abilities it gives, the person's o
 about it in. Topics are linked by hand to the body's systems and organs, and the parts below them show them too. The physical data sets are linked at a few points (conditions to parts and functions, measurements to
 parts and functions, parts to the functions they serve), and a part gathers everything linked to it, to the parts it
 belongs to and is made of, and to the functions those serve, saying where each came from: the left lung shows asthma
-through the lung. Opening a part lights up every mesh it's drawn with; a part with no model lights up the nearest part
-it belongs to that has one.
+through the lung. Lighting up a part lights up every mesh it's drawn with, or those of the parts within it and kinds of it;
+a part with no model lights up the nearest part it belongs to that has one. An ability lights up the parts that serve
+the functions it rests on, and a body function the parts that serve it.

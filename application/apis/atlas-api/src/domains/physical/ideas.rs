@@ -17,7 +17,7 @@ use tokio::sync::OnceCell;
 
 use crate::{auth::AuthUser, bedrock, state::AppState};
 
-use super::{Reading, bad, internal, record};
+use super::{Reading, abilities::Ability, bad, internal, record};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/measurements/{id}/answers", post(answers))
@@ -71,6 +71,7 @@ struct AnswersRequest {
 struct Scored {
     reading: Reading,
     counted: Vec<String>, //the animals counted, or the uses kept
+    abilities: Vec<Ability>, //where the person now stands on every ability
 }
 
 #[derive(Deserialize)]
@@ -109,8 +110,8 @@ async fn answers(State(state): State<AppState>, user: AuthUser, Path(id): Path<S
         Some("uses") => uses(&state, &answers).await?,
         _ => return Err(bad("That measurement isn't scored from typed answers.")),
     };
-    let reading = record(&state, &user.person_id, &id, value, req.measured_on.trim(), &answers).await?;
-    Ok((StatusCode::CREATED, Json(Scored { reading, counted })))
+    let (reading, abilities) = record(&state, &user.person_id, &id, value, req.measured_on.trim(), &answers).await?;
+    Ok((StatusCode::CREATED, Json(Scored { reading, counted, abilities })))
 }
 
 //the different animals named

@@ -18,7 +18,6 @@ interface PartPanelProps {
   id: string;
   myConditions: Set<string>; //the ids of the conditions the user has
   measurements: Map<string, Measurement>; //every measurement, with the user's readings, by id
-  onLoaded: (part: Part) => void; //lights up the meshes it's drawn with
   onPick: (id: string) => void; //opens another part
   onNote: () => void; //notes or changes an impairment in it
 }
@@ -46,24 +45,20 @@ function Some<T>({ items, render }: { items: T[]; render: (item: T) => ReactNode
 //conditions that affect it, how it's measured and where the user stands, the user's impairments in it, what it lets
 //them do and the skills that rely on it, the topics to learn more about it in, and how it fits in the body. What's linked to the parts it belongs to or is made of, or to what it does,
 //counts for it too, and says where it comes from
-export function PartPanel({ id, myConditions, measurements, onLoaded, onPick, onNote }: PartPanelProps) {
+export function PartPanel({ id, myConditions, measurements, onPick, onNote }: PartPanelProps) {
   const [part, setPart] = useState<Part>();
   const [error, setError] = useState<string>();
 
   useEffect(() => {
     let live = true;
     getPart(id).then(
-      (loaded) => {
-        if (!live) return;
-        setPart(loaded);
-        onLoaded(loaded);
-      },
+      (loaded) => live && setPart(loaded),
       (e) => live && setError(e instanceof Error ? e.message : String(e)),
     );
     return () => {
       live = false;
     };
-  }, [id, onLoaded]);
+  }, [id]);
 
   if (error) return <AtlasError message={error} />;
   if (!part) return <Thinking label="Opening it up" />;

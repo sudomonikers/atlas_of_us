@@ -55,15 +55,15 @@ async fn main() {
 
     let aws = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
 
-    //slow work like personality scoring is queued for atlas-jobs
-    let jobs_queue = env::var("JOBS_QUEUE_URL").ok().map(|url| (aws_sdk_sqs::Client::new(&aws), url));
+    //slow work like personality scoring goes to atlas-jobs
+    let jobs = env::var("JOBS_FUNCTION").ok().map(|name| (aws_sdk_lambda::Client::new(&aws), name));
 
     //create state every route can grab from
     let state = AppState {
         graph,
         s3: aws_sdk_s3::Client::new(&mail_config),
         ses: aws_sdk_sesv2::Client::new(&mail_config),
-        jobs_queue,
+        jobs,
         bus: env::var("EVENT_BUS_NAME").ok().map(|name| events::Bus::new(&aws, name)),
         bedrock: aws_sdk_bedrockruntime::Client::new(&aws),
         evidence_bucket: env::var("EVIDENCE_BUCKET").ok(),

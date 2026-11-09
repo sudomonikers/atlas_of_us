@@ -32,6 +32,7 @@ pub struct PartSummary {
     name: String,
     synonyms: Vec<String>,
     wholes: Vec<String>, //the ids of the parts it belongs to
+    kinds: Vec<String>,  //the ids of the kinds of part it is
     drawn: bool,         //whether the 3D body has a model of it
 }
 
@@ -41,6 +42,7 @@ async fn anatomy(State(state): State<AppState>, _user: AuthUser) -> Result<Json<
         MATCH (p:BodyPart)
         RETURN p.id AS id, p.fmaId AS fma_id, p.name AS name, coalesce(p.synonyms, []) AS synonyms,
                COLLECT { MATCH (p)-[:SUBPART_OF]->(w:BodyPart) RETURN w.id } AS wholes,
+               COLLECT { MATCH (p)-[:PART_SUBTYPE_OF]->(k:BodyPart) RETURN k.id } AS kinds,
                size(coalesce(p.elements, [])) > 0 AS drawn
         ORDER BY toLower(p.name)
     ")).await.map_err(internal)?;

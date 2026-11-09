@@ -23,13 +23,13 @@ resource "aws_lambda_function" "api" {
   architectures = ["arm64"]
   filename      = data.archive_file.api_placeholder.output_path
   memory_size   = 512
-  timeout       = 60 # matches the cloudfront origin read timeout. slow work is queued for atlas-jobs (jobs_lambda.tf)
+  timeout       = 60 # matches the cloudfront origin read timeout. slow work goes to atlas-jobs (jobs_lambda.tf)
 
   environment {
     variables = merge(
       { for name, param in data.aws_ssm_parameter.api : name => param.value },
       {
-        JOBS_QUEUE_URL  = aws_sqs_queue.jobs.url
+        JOBS_FUNCTION   = aws_lambda_function.jobs.function_name
         EVENT_BUS_NAME  = aws_cloudwatch_event_bus.atlas.name
         EVIDENCE_BUCKET = aws_s3_bucket.evidence.id
       },
@@ -118,8 +118,8 @@ resource "aws_iam_role_policy" "api" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["sqs:SendMessage"]
-        Resource = [aws_sqs_queue.jobs.arn]
+        Action   = ["lambda:InvokeFunction"]
+        Resource = [aws_lambda_function.jobs.arn]
       },
       {
         Effect   = "Allow"

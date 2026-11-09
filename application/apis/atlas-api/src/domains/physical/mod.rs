@@ -88,6 +88,7 @@ pub struct Measurement {
     min: f64, //the lowest and highest readings that can be recorded
     max: f64,
     abilities: Vec<String>, //the abilities it shows
+    parts: Vec<String>,     //the ids of the body parts it's a reading of
     test: Option<String>, //home for a test the person does themselves, or the test the app runs
     timer: Option<i64>, //for a home test of how many in a set time, the seconds to count down
     protocol: Vec<String>, //the steps of a home test
@@ -128,6 +129,7 @@ struct Row {
     min: f64,
     max: f64,
     abilities: Vec<String>,
+    parts: Vec<String>,
     test: Option<String>,
     timer: Option<i64>,
     protocol: Vec<String>,
@@ -167,6 +169,7 @@ const MEASUREMENTS: &str = "
            m.min AS min, m.max AS max, m.test AS test, m.timer AS timer, coalesce(m.protocol, []) AS protocol, m.source AS source,
            coalesce(m.atlasNorms, false) AS atlas_norms,
            COLLECT { MATCH (m)-[:MEASURES]->(a:Ability) RETURN a.name ORDER BY a.name } AS abilities,
+           COLLECT { MATCH (m)-[:MEASURES]->(b:BodyPart) RETURN b.id } AS parts,
            COLLECT {
                MATCH (p)-[r:HAS_MEASUREMENT]->(m)
                WITH r ORDER BY r.measuredOn DESC, r.recordedAt DESC
@@ -210,6 +213,7 @@ async fn measurements(State(state): State<AppState>, user: AuthUser) -> Result<J
             min: row.min,
             max: row.max,
             abilities: row.abilities,
+            parts: row.parts,
             test: row.test,
             timer: row.timer,
             protocol: row.protocol,
@@ -226,16 +230,23 @@ struct ReadingRequest {
     measured_on: String, //YYYY-MM-DD
 }
 
-//records a reading of a measurement for the logged in user, and returns it with its percentile
-async fn add_reading(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<ReadingRequest>) -> Result<(StatusCode, Json<Reading>), (StatusCode, String)> {
-    let reading = record(&state, &user.person_id, &id, req.value, req.measured_on.trim(), &[]).await?;
-    Ok((StatusCode::CREATED, Json(reading)))
+//a reading just recorded, with where the person now stands on every ability, since it may show one
+#[derive(Serialize)]
+pub struct Recorded {
+    reading: Reading,
+    abilities: Vec<abilities::Ability>,
+}
+
+//records a reading of a measurement for the logged in user, and returns it with its percentile and their abilities
+async fn add_reading(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<ReadingRequest>) -> Result<(StatusCode, Json<Recorded>), (StatusCode, String)> {
+    let (reading, abilities) = record(&state, &user.person_id, &id, req.value, req.measured_on.trim(), &[]).await?;
+    Ok((StatusCode::CREATED, Json(Recorded { reading, abilities })))
 }
 
 //records a reading, with the answers it was scored from for a test of typed answers, and returns it with its
 //percentile. A test compared with Atlas users has its norms worked out again first, and the person's abilities are
-//worked out again, since it may show one
-async fn record(state: &AppState, person_id: &str, id: &str, value: f64, measured_on: &str, answers: &[String]) -> Result<Reading, (StatusCode, String)> {
+//worked out again, since it may show one, and returned with it
+async fn record(state: &AppState, person_id: &str, id: &str, value: f64, measured_on: &str, answers: &[String]) -> Result<(Reading, Vec<abilities::Ability>), (StatusCode, String)> {
     let row = rows(state, person_id, Some(id)).await?.into_iter().next()
         .ok_or_else(|| (StatusCode::NOT_FOUND, "That measurement doesn't exist.".to_string()))?;
     if !value.is_finite() || value < row.min || value > row.max {
@@ -269,13 +280,14 @@ async fn record(state: &AppState, person_id: &str, id: &str, value: f64, measure
     } else {
         row.norms
     };
-    abilities::refresh(state, person_id).await?;
+    let abilities = abilities::refresh(state, person_id).await?;
     let raw = RawReading { id: reading_id, value, measured_on: measured_on.to_string() };
-    Ok(reading(raw, &norms, row.norm_sex.as_deref(), birthday))
+    Ok((reading(raw, &norms, row.norm_sex.as_deref(), birthday), abilities))
 }
 
-//removes one of the logged in user's readings, working out the norms again for a test compared with Atlas users
-async fn delete_reading(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<StatusCode, (StatusCode, String)> {
+//removes one of the logged in user's readings, working out the norms again for a test compared with Atlas users, and
+//returns where they now stand on every ability
+async fn delete_reading(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<Json<Vec<abilities::Ability>>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         MATCH (:Person {id: $personId})-[r:HAS_MEASUREMENT {id: $id}]->(m:PhysicalMeasurement)
         DELETE r
@@ -286,8 +298,7 @@ async fn delete_reading(State(state): State<AppState>, user: AuthUser, Path(id):
     if row.get::<bool>("atlas_norms").map_err(internal)? {
         community::renorm(&state, &row.get::<String>("measurement").map_err(internal)?).await?;
     }
-    abilities::refresh(&state, &user.person_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(abilities::refresh(&state, &user.person_id).await?))
 }
 
 //the logged in user's own physical attributes, the ones that are set rather than recorded as readings. Every field is
@@ -298,7 +309,7 @@ struct MeRequest {
 }
 
 //sets the logged in user's own physical attributes
-async fn set_me(State(state): State<AppState>, user: AuthUser, Json(req): Json<MeRequest>) -> Result<StatusCode, (StatusCode, String)> {
+async fn set_me(State(state): State<AppState>, user: AuthUser, Json(req): Json<MeRequest>) -> Result<Json<Vec<abilities::Ability>>, (StatusCode, String)> {
     if req.norm_sex.as_deref().is_some_and(|s| s != "male" && s != "female") {
         return Err(bad("Pick men, women or everyone to be compared with."));
     }
@@ -306,7 +317,6 @@ async fn set_me(State(state): State<AppState>, user: AuthUser, Json(req): Json<M
         .param("personId", user.person_id.as_str())
         .param("normSex", req.norm_sex)
     ).await.map_err(internal)?;
-    //who they're compared with moves every reading's percentile, and so their abilities
-    abilities::refresh(&state, &user.person_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    //who they're compared with moves every reading's percentile, and so their abilities, which come back
+    Ok(Json(abilities::refresh(&state, &user.person_id).await?))
 }

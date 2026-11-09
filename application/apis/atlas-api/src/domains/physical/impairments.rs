@@ -43,6 +43,7 @@ pub struct BodyFunction {
     includes: Vec<String>,
     excludes: Vec<String>,
     abilities: Vec<String>, //the abilities it underlies
+    parts: Vec<String>,     //the ids of the body parts that carry it out, a function within it, or one it's within
     personality: Vec<Corresponds>, //the Big Five domains and traits it corresponds to
 }
 
@@ -75,6 +76,10 @@ async fn impairments(State(state): State<AppState>, user: AuthUser) -> Result<Js
         RETURN c.id AS id, c.code AS code, c.name AS name, c.group AS group, c.subgroup AS subgroup, p.id AS parent,
                c.description AS description, coalesce(c.includes, []) AS includes, coalesce(c.excludes, []) AS excludes,
                COLLECT { MATCH (c)-[:UNDERLIES]->(a:Ability) RETURN a.name ORDER BY a.name } AS abilities,
+               COLLECT {
+                   MATCH (c)-[:SUBFUNCTION_OF*0..4]->(:BodyFunction)<-[:SERVES]-(b:BodyPart) RETURN b.id AS id
+                   UNION MATCH (c)<-[:SUBFUNCTION_OF*1..4]-(:BodyFunction)<-[:SERVES]-(b:BodyPart) RETURN b.id AS id
+               } AS parts,
                COLLECT { MATCH (c)-[r:CORRESPONDS_TO]->(t) RETURN {name: t.name, opposite: r.opposite} ORDER BY t.name } AS personality
         ORDER BY c.code
     ")).await.map_err(internal)?;
@@ -100,8 +105,9 @@ struct ImpairmentRequest {
     change: Option<String>, //only kept on a part
 }
 
-//notes or changes an impairment in a body function or part for the logged in user
-async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<ImpairmentRequest>) -> Result<StatusCode, (StatusCode, String)> {
+//notes or changes an impairment in a body function or part for the logged in user, and returns where they now stand on
+//every ability
+async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<ImpairmentRequest>) -> Result<Json<Vec<abilities::Ability>>, (StatusCode, String)> {
     if !EXTENTS.contains(&req.extent.as_str()) {
         return Err(bad("Pick mild, moderate, severe or complete."));
     }
@@ -124,18 +130,16 @@ async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id):
     if set == 0 {
         return Err((StatusCode::NOT_FOUND, "That body function or part doesn't exist.".to_string()));
     }
-    //an impairment holds back the abilities it rests on
-    abilities::refresh(&state, &user.person_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    //an impairment holds back the abilities it rests on, which come back
+    Ok(Json(abilities::refresh(&state, &user.person_id).await?))
 }
 
-//removes one of the logged in user's impairments
-async fn clear_impairment(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<StatusCode, (StatusCode, String)> {
+//removes one of the logged in user's impairments, and returns where they now stand on every ability
+async fn clear_impairment(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<Json<Vec<abilities::Ability>>, (StatusCode, String)> {
     state.graph.run(query(&format!("
         {FIND}
         MATCH (:Person {{id: $personId}})-[i:HAS_IMPAIRMENT]->(c)
         DELETE i
     ")).param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
-    abilities::refresh(&state, &user.person_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(abilities::refresh(&state, &user.person_id).await?))
 }

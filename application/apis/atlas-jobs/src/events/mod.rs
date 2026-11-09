@@ -1,5 +1,5 @@
 //the Atlas event bus (infrastructure/events.tf). Every module publishes what happened to its sub-graph, and each module
-//that reacts has its own rule and queue into this worker. Events are thin: they name the nodes it happened to, and
+//that reacts has its own rule, which invokes this worker. Events are thin: they name the nodes it happened to, and
 //consumers read the graph for the rest
 use std::env;
 
@@ -8,13 +8,13 @@ use neo4rs::Graph;
 use serde::Deserialize;
 use serde_json::Value;
 
-//one folder per event, and in it one file per module that reacts to it, matching the queue <event>-<module>
+//one folder per event, and in it one file per module that reacts to it, matching the rule <event>-<module>
 mod condition_added;
 mod skill_fill_requested;
 mod skill_filled;
 mod topic_fill_requested;
 
-//an event as it arrives on a queue: the bus's envelope, with what the publisher sent in `detail`
+//an event as it arrives from a rule: the bus's envelope, with what the publisher sent in `detail`
 #[derive(Deserialize)]
 pub struct Event {
     source: String,
@@ -23,15 +23,15 @@ pub struct Event {
     detail: Value,
 }
 
-//every job that reacts to an event has its own queue, named <event>-<module> (infrastructure/events.tf), so the queue
-//picks the handler. Events can arrive more than once, so every handler is safe to run twice. Handlers handle their own
+//every job that reacts to an event has its own rule, named <event>-<module> (infrastructure/events.tf), which names its
+//handler. Events can arrive more than once, so every handler is safe to run twice. Handlers handle their own
 //failures, so a bad event is logged and never retried
-pub async fn handle(graph: &Graph, queue: &str, body: &str) {
-    let event = match serde_json::from_str::<Event>(body) {
+pub async fn handle(graph: &Graph, handler: &str, event: Value) {
+    let event = match serde_json::from_value::<Event>(event) {
         Ok(event) => event,
         Err(e) => return tracing::error!("unreadable event: {e}"),
     };
-    match queue {
+    match handler {
         "SkillFillRequested-Skills" => skill_fill_requested::skills::run(graph, event.detail).await,
         "SkillFilled-Skills" => skill_filled::skills::run(graph, event.detail).await,
         "SkillFilled-Personality" => skill_filled::personality::run(graph, event.detail).await,
@@ -39,7 +39,7 @@ pub async fn handle(graph: &Graph, queue: &str, body: &str) {
         "SkillFilled-Topics" => skill_filled::topics::run(graph, event.detail).await,
         "TopicFillRequested-Topics" => topic_fill_requested::topics::run(graph, event.detail).await,
         "ConditionAdded-Physical" => condition_added::physical::run(graph, event.detail).await,
-        _ => tracing::warn!(queue, source = event.source, detail_type = event.detail_type, detail = %event.detail, "no handler for queue"),
+        _ => tracing::warn!(handler, source = event.source, detail_type = event.detail_type, detail = %event.detail, "no such handler"),
     }
 }
 

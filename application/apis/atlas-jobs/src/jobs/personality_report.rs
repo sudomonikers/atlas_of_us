@@ -35,7 +35,7 @@ struct DomainText {
     text: String,
 }
 
-//rewrites a person's report without rescoring them. The api never queues it: it's sent by hand, to write reports for people
+//rewrites a person's report without rescoring them. The api never sends it: it's sent by hand, to write reports for people
 //scored before reports existed
 #[derive(Deserialize)]
 pub struct ReportJob {

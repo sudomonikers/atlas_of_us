@@ -8,7 +8,7 @@ pub struct AppState {
     pub graph: Graph,
     pub s3: aws_sdk_s3::Client,
     pub ses: aws_sdk_sesv2::Client,
-    pub jobs_queue: Option<(aws_sdk_sqs::Client, String)>, //the queue atlas-jobs works through, and its url. None when JOBS_QUEUE_URL isn't set
+    pub jobs: Option<(aws_sdk_lambda::Client, String)>, //atlas-jobs and its function name. None when JOBS_FUNCTION isn't set
     pub bus: Option<Bus>, //the atlas-events bus. None when EVENT_BUS_NAME isn't set
     pub bedrock: aws_sdk_bedrockruntime::Client,
     pub evidence_bucket: Option<String>, //where files people give as evidence go. None when EVIDENCE_BUCKET isn't set
