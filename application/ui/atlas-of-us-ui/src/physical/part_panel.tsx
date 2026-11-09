@@ -1,18 +1,16 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { EXTENTS, comparedWith, conditionName, getPart, partName, standing, withUnit, type Measurement, type Part, type PartRef } from './api';
+import { EXTENTS, comparedWith, capitalised, getPart, standing, withUnit, type Measurement, type Part, type PartRef } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
 import { Thinking } from '../shared_components/thinking';
 import { navigate } from '../router';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 //how many of a list show before the rest are behind a toggle
 const SHOWN = 8;
+//how many related parts show, before saying how many more there are
+const LINKS = 12;
 
 interface PartPanelProps {
   id: string;
@@ -24,7 +22,7 @@ interface PartPanelProps {
 
 //where a related thing comes from, when it isn't the part itself
 function Through({ through }: { through: string | null }) {
-  return through ? <span style={styles.through}>through {partName(through)}</span> : null;
+  return through ? <span style={styles.through}>through {capitalised(through)}</span> : null;
 }
 
 //a list that shows the first few, with the rest behind a toggle
@@ -53,7 +51,7 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
     let live = true;
     getPart(id).then(
       (loaded) => live && setPart(loaded),
-      (e) => live && setError(e instanceof Error ? e.message : String(e)),
+      (e) => live && setError(failure(e)),
     );
     return () => {
       live = false;
@@ -68,18 +66,18 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
       <>
         <h3 style={styles.heading}>{title}</h3>
         <div style={styles.links}>
-          {refs.slice(0, 12).map((r) => (
+          {refs.slice(0, LINKS).map((r) => (
             <button key={r.id} className="comic-lift" style={styles.part} onClick={() => onPick(r.id)}>
-              {partName(r.name)}
+              {capitalised(r.name)}
             </button>
           ))}
-          {refs.length > 12 && <span style={styles.small}>and {refs.length - 12} more</span>}
+          {refs.length > LINKS && <span style={styles.small}>and {refs.length - LINKS} more</span>}
         </div>
       </>
     );
   return (
     <article style={styles.panel}>
-      <h2 style={styles.name}>{partName(part.name)}</h2>
+      <h2 style={styles.name}>{capitalised(part.name)}</h2>
       {!part.elements.length && <p style={styles.small}>The 3D body has no model of this one, so it's lit up by what it belongs to.</p>}
       {part.definition && <p style={styles.definition}>{part.definition}</p>}
       {!!part.synonyms.length && (
@@ -96,11 +94,11 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
           <li key={c.id} style={styles.item}>
             <span style={styles.row}>
               {c.description ? (
-                <Disclosure label={conditionName(c.name)}>
+                <Disclosure label={capitalised(c.name)}>
                   <p style={styles.small}>{c.description}</p>
                 </Disclosure>
               ) : (
-                <span>{conditionName(c.name)}</span>
+                <span>{capitalised(c.name)}</span>
               )}
               {myConditions.has(c.id) && <span className="comic-chip">You have this</span>}
             </span>
@@ -128,7 +126,7 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
                   )}
                 </span>
               ) : (
-                <span style={styles.small}>You haven't measured this yet. Add a reading on the Measurements view.</span>
+                <span style={styles.small}>You haven't measured this yet. It comes up in one of the chapters.</span>
               )}
             </li>
           );
@@ -142,7 +140,7 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
         render={(i) => (
           <li key={i.id} style={styles.item}>
             <span>
-              <span style={styles.itemName}>{partName(i.name)}</span>: {EXTENTS.find((e) => e.value === i.extent)?.label.toLowerCase()}
+              <span style={styles.itemName}>{capitalised(i.name)}</span>: {EXTENTS.find((e) => e.value === i.extent)?.label.toLowerCase()}
             </span>
             {!!i.through && <span style={styles.through}>in a related part or function</span>}
           </li>

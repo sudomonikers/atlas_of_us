@@ -1,13 +1,9 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { partName, type BodyFunction, type PartSummary } from './api';
+import { capitalised, type BodyFunction, type PartSummary } from './api';
 import { Disclosure } from '../shared_components/disclosure';
 import { SearchField } from '../shared_components/search_field';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { matchesAll, searchWords } from '../shared_components/search';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //the most search results shown at once
 const MAX_RESULTS = 40;
@@ -46,11 +42,8 @@ export function PartPicker({ functions, parts, onPick }: PartPickerProps) {
   const roots = parts.filter((p) => !p.wholes.length && partChildren.has(p.id));
 
   //every word of the search has to be in its name, or in what it includes or another name for it
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const matches = (text: string[]) => {
-    const joined = text.join(' ').toLowerCase();
-    return words.every((w) => joined.includes(w));
-  };
+  const words = searchWords(query);
+  const matches = (texts: string[]) => matchesAll(words, texts);
   const results: Picked[] = !words.length
     ? []
     : kind === 'functions'
@@ -80,7 +73,7 @@ export function PartPicker({ functions, parts, onPick }: PartPickerProps) {
             {results.slice(0, MAX_RESULTS).map((r) => (
               <li key={r.item.id} style={styles.node}>
                 <button className="comic-lift" style={styles.pick} onClick={() => onPick(r)}>
-                  {r.kind === 'part' ? partName(r.item.name) : r.item.name}
+                  {r.kind === 'part' ? capitalised(r.item.name) : r.item.name}
                 </button>
                 {r.kind === 'function' && <span style={styles.where}>{r.item.group}</span>}
               </li>
@@ -103,7 +96,7 @@ export function PartPicker({ functions, parts, onPick }: PartPickerProps) {
       ) : (
         <ul style={styles.list}>
           {roots.map((p) => (
-            <Branch key={p.id} id={p.id} label={partName(p.name)} depth={0} childrenOf={(id) => (partChildren.get(id) ?? []).map((c) => ({ id: c.id, label: partName(c.name) }))} onPick={(id) => onPick({ kind: 'part', item: parts.find((x) => x.id === id)! })} />
+            <Branch key={p.id} id={p.id} label={capitalised(p.name)} depth={0} childrenOf={(id) => (partChildren.get(id) ?? []).map((c) => ({ id: c.id, label: capitalised(c.name) }))} onPick={(id) => onPick({ kind: 'part', item: parts.find((x) => x.id === id)! })} />
           ))}
         </ul>
       )}

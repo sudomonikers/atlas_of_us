@@ -1,12 +1,7 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { CATEGORIES, type Ability } from './api';
 import { STANDING, heat, hex, meshesOf, standingColour, type Body, type Light } from './body_parts';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 interface ResultsProps {
   abilities: Ability[];
@@ -21,22 +16,13 @@ export default function Results({ abilities, only, body, onLight }: ResultsProps
   const [chosen, setCategory] = useState<Ability['category']>();
   const category = only ?? chosen;
   const [picked, setPicked] = useState<string>();
-  const shown = abilities.filter((a) => !category || a.category === category);
+  const shown = useMemo(() => abilities.filter((a) => !category || a.category === category), [abilities, category]);
   const placed = shown.filter((a) => a.value !== null).sort((a, b) => b.value! - a.value!);
 
   useEffect(() => {
     const ability = abilities.find((a) => a.id === picked);
-    onLight(
-      ability
-        ? { lit: meshesOf(body, ability.parts) }
-        : {
-            tints: heat(
-              abilities.filter((a) => !category || a.category === category),
-              body,
-            ),
-          },
-    );
-  }, [abilities, body, category, picked, onLight]);
+    onLight(ability ? { lit: meshesOf(body, ability.parts) } : { tints: heat(shown, body) });
+  }, [abilities, shown, body, picked, onLight]);
 
   return (
     <>

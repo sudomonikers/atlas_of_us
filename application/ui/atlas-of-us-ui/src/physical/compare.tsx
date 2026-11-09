@@ -2,12 +2,8 @@ import { useState, type CSSProperties } from 'react';
 import { getMeasurements, setMe, type Ability, type Measurements, type NormSex } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Dots } from '../shared_components/thinking';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 //the groups a person can be compared with
 const COMPARE: { sex: NormSex | null; label: string }[] = [
@@ -29,7 +25,7 @@ export default function Compare({ data, onChange }: { data: Measurements; onChan
     setError(undefined);
     setMe({ norm_sex: sex })
       .then((abilities) => getMeasurements().then((measurements) => onChange(measurements, abilities)))
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => setError(failure(e)))
       .finally(() => setSaving(undefined));
   };
 

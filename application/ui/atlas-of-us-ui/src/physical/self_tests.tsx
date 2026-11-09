@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ComponentType } from 'react';
 import type { Recorded, Test } from './api';
 import { Frame } from './test_frame';
-import { blue, brownRed, cinnamon, comic, gunmetal, ivory, now, seeded, since, testStyles } from './test_kit';
+import { chance, mean, now, seeded, shuffled, since, testStyles } from './test_kit';
 import { Matrices, PaperFolding, PerspectiveTaking, Rotation, Series, Syllogisms } from './reasoning_tests';
 import { BrokenWords, CardSorting, DistractingArrows, HiddenShapes, SymbolMatching } from './attention_tests';
 import { Tapping, TrackAndCount, Tracking, Timing, TwoHandSteering } from './motor_tests';
 import { FarChart, NearChart, OddColourOut, SideVision } from './vision_tests';
 import { AnimalNaming, BrickUses } from './idea_tests';
+import { blue, brownRed, cinnamon, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //how many tries are practice, and how many count
 const PRACTICE = 5;
@@ -27,8 +28,7 @@ const LONGEST_SPAN = 14;
 const DIGIT_SHOWN = 700;
 const DIGIT_GAP = 300;
 
-const pause = (from: number, to: number) => from + Math.random() * (to - from);
-const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+const pause = (from: number, to: number) => from + chance() * (to - from);
 
 export interface TestProps {
   measurement: string; //the measurement's id, for a test scored by the api
@@ -38,34 +38,9 @@ export interface TestProps {
 }
 
 //one of the tests the app runs, by the measurement's test
-export function SelfTest({ test, ...props }: TestProps & { test: Test }) {
-  if (test === 'simple_reaction') return <SimpleReaction {...props} />;
-  if (test === 'choice_reaction') return <ChoiceReaction {...props} />;
-  if (test === 'digit_span') return <DigitSpan {...props} />;
-  if (test === 'trail_making') return <TrailMaking {...props} />;
-  if (test === 'eye_chart') return <FarChart {...props} />;
-  if (test === 'matrices') return <Matrices {...props} />;
-  if (test === 'series') return <Series {...props} />;
-  if (test === 'rotation') return <Rotation {...props} />;
-  if (test === 'paper_folding') return <PaperFolding {...props} />;
-  if (test === 'perspective') return <PerspectiveTaking {...props} />;
-  if (test === 'syllogisms') return <Syllogisms {...props} />;
-  if (test === 'symbols') return <SymbolMatching {...props} />;
-  if (test === 'flanker') return <DistractingArrows {...props} />;
-  if (test === 'cards') return <CardSorting {...props} />;
-  if (test === 'broken_words') return <BrokenWords {...props} />;
-  if (test === 'hidden_shapes') return <HiddenShapes {...props} />;
-  if (test === 'tapping') return <Tapping {...props} />;
-  if (test === 'tracking') return <Tracking {...props} />;
-  if (test === 'timing') return <Timing {...props} />;
-  if (test === 'steering') return <TwoHandSteering {...props} />;
-  if (test === 'track_count') return <TrackAndCount {...props} />;
-  if (test === 'near_chart') return <NearChart {...props} />;
-  if (test === 'colours') return <OddColourOut {...props} />;
-  if (test === 'side_vision') return <SideVision {...props} />;
-  if (test === 'animals') return <AnimalNaming {...props} />;
-  if (test === 'uses') return <BrickUses {...props} />;
-  return null;
+export function SelfTest({ test, ...props }: TestProps & { test: Exclude<Test, 'home'> }) {
+  const Run = TESTS[test];
+  return <Run {...props} />;
 }
 
 //the time a target was painted, for timing a reaction from when it could first be seen
@@ -166,7 +141,7 @@ const target = (s: Stimulus) => s.letter === 'P' && s.colour === 'blue';
 
 //the next stimulus: a blue P four times in ten, each decoy twice in ten
 function draw(): Stimulus {
-  const r = Math.random();
+  const r = chance();
   if (r < 0.4) return { letter: 'P', colour: 'blue' };
   if (r < 0.6) return { letter: 'F', colour: 'orange' };
   if (r < 0.8) return { letter: 'F', colour: 'blue' };
@@ -306,7 +281,7 @@ function digits(length: number): string {
   const out: number[] = [];
   let pool: number[] = [];
   while (out.length < length) {
-    if (!pool.length) pool = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+    if (!pool.length) pool = shuffled(chance, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     const d = pool.pop()!;
     if (d === out[out.length - 1]) pool.unshift(d);
     else out.push(d);
@@ -544,6 +519,36 @@ function TrailMaking({ onDone, onCancel }: TestProps) {
     </Frame>
   );
 }
+
+//the tests the app runs, by the measurement's test
+const TESTS: Record<Exclude<Test, 'home'>, ComponentType<TestProps>> = {
+  simple_reaction: SimpleReaction,
+  choice_reaction: ChoiceReaction,
+  digit_span: DigitSpan,
+  trail_making: TrailMaking,
+  eye_chart: FarChart,
+  matrices: Matrices,
+  series: Series,
+  rotation: Rotation,
+  paper_folding: PaperFolding,
+  perspective: PerspectiveTaking,
+  syllogisms: Syllogisms,
+  symbols: SymbolMatching,
+  flanker: DistractingArrows,
+  cards: CardSorting,
+  broken_words: BrokenWords,
+  hidden_shapes: HiddenShapes,
+  tapping: Tapping,
+  tracking: Tracking,
+  timing: Timing,
+  steering: TwoHandSteering,
+  track_count: TrackAndCount,
+  near_chart: NearChart,
+  colours: OddColourOut,
+  side_vision: SideVision,
+  animals: AnimalNaming,
+  uses: BrickUses,
+};
 
 const styles: Record<string, CSSProperties> = {
   ...testStyles,

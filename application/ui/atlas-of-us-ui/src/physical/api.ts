@@ -331,9 +331,6 @@ export const SEVERITIES: { value: Severity; label: string }[] = [
   { value: 'severe', label: 'Severe' },
 ];
 
-//a condition's name to show, with a capital first letter
-export const conditionName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
-
 //every condition, with the logged in user's
 export const getConditions = () => request<Conditions>('GET', '/physical/conditions');
 
@@ -441,5 +438,5 @@ export const getAnatomy = () => request<PartSummary[]>('GET', '/physical/anatomy
 
 export const getPart = (id: string) => request<Part>('GET', `/physical/anatomy/${encodeURIComponent(id)}`);
 
-//a body part's name to show, with a capital first letter
-export const partName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+//a name to show, with a capital first letter, for the ontologies that have them in lower case
+export const capitalised = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);

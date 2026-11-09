@@ -10,12 +10,14 @@ import {
   type Ability,
   type AffectedBy,
   type Conditions,
+  type Impairment,
   type Impairments,
   type Measurements,
   type PartSummary,
+  type Reading,
 } from './api';
 import BodyMap from './body_map';
-import { indexBody, meshesOf, notedParts, partIds, type Body, type Light } from './body_parts';
+import { HUMAN_BODY, indexBody, meshesOf, notedParts, partIds, type Body, type Light } from './body_parts';
 import Compare from './compare';
 import { MeasurementCard } from './measurement_card';
 import Noting from './noting';
@@ -31,18 +33,11 @@ import { Nav } from '../shared_components/nav';
 import { Thinking } from '../shared_components/thinking';
 import { Typed } from '../shared_components/typed';
 import { useTypewriter } from '../shared_components/typewriter';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 //the 3D body, loaded with three.js only when a chapter opens
 const AnatomyViewer = lazy(() => import('./anatomy_viewer').then((m) => ({ default: m.AnatomyViewer })));
-
-//FMA's whole body, which a scene doesn't light up, since that would light up everything
-const HUMAN_BODY = 'FMA20394';
 
 //wide enough for the body to sit beside what Atlas says, rather than above it
 const WIDE = '(min-width: 900px)';
@@ -52,8 +47,6 @@ const subscribeWide = (listener: () => void) => {
   return () => query.removeEventListener('change', listener);
 };
 const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches);
-
-const failure = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 //everything the chapters show and change
 interface Loaded extends Known {
@@ -98,17 +91,23 @@ function Physical() {
   //a save that moves where the user stands on their abilities gives them back, worked out again, with what it saved.
   //Conditions don't move them, only what can affect them
   const failed = (e: unknown) => setError(failure(e));
+  const changeImpairments = (change: (list: Impairment[]) => Impairment[], abilities: Ability[]) => {
+    setImpairments((data) => data && { ...data, impairments: change(data.impairments) });
+    setAbilities(abilities);
+    getAffectedBy().then(setAffectedBy, failed);
+  };
   const changes: Changes = {
     measurements: (data, abilities) => {
       setMeasurements(data);
       setAbilities(abilities);
     },
-    rated: setAbilities,
-    impairments: (data, abilities) => {
-      setImpairments(data);
+    readings: (id, readings, abilities) => {
+      setMeasurements((data) => data && { ...data, measurements: data.measurements.map((m) => (m.id === id ? { ...m, readings } : m)) });
       setAbilities(abilities);
-      getAffectedBy().then(setAffectedBy, failed);
     },
+    rated: setAbilities,
+    impaired: (saved, abilities) => changeImpairments((list) => [...list.filter((i) => i.id !== saved.id), saved], abilities),
+    unimpaired: (id, abilities) => changeImpairments((list) => list.filter((i) => i.id !== id), abilities),
     conditions: (data) => {
       setConditions(data);
       getAffectedBy().then(setAffectedBy, failed);
@@ -121,10 +120,10 @@ function Physical() {
         <Nav />
         {error ? (
           <AtlasError message={error} />
-        ) : !loaded || !meshes ? (
+        ) : !loaded ? (
           <Thinking label="Looking you over" />
         ) : chapter ? (
-          <Player key={chapter.id} chapter={chapter} scene={params.get('scene')} loaded={loaded} meshes={meshes} changes={changes} />
+          <Player key={chapter.id} chapter={chapter} scene={params.get('scene')} loaded={loaded} changes={changes} />
         ) : (
           <Chapters loaded={loaded} />
         )}
@@ -168,10 +167,12 @@ function Chapters({ loaded }: { loaded: Loaded }) {
 }
 
 //what a scene's panel can change, passed up so everything showing it stays the same
-interface Changes {
+export interface Changes {
   measurements: (data: Measurements, abilities: Ability[]) => void;
+  readings: (id: string, readings: Reading[], abilities: Ability[]) => void; //a measurement's readings
   rated: (abilities: Ability[]) => void;
-  impairments: (data: Impairments, abilities: Ability[]) => void;
+  impaired: (saved: Impairment, abilities: Ability[]) => void; //an impairment noted or changed
+  unimpaired: (id: string, abilities: Ability[]) => void;
   conditions: (data: Conditions) => void;
 }
 
@@ -179,14 +180,14 @@ interface PlayerProps {
   chapter: Chapter;
   scene: string | null; //the id of the scene to show, from the url
   loaded: Loaded;
-  meshes: MeshIndex;
   changes: Changes;
 }
 
 //one chapter, a scene at a time, beside the 3D body. Atlas's words write themselves out, and the body shows what the
 //scene is about
-function Player({ chapter, scene: sceneId, loaded, meshes, changes }: PlayerProps) {
+function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   const { body, abilities, impairments, conditions } = loaded;
+  const { meshes } = body;
   const scenes = useMemo(() => chapter.scenes(loaded), [chapter, loaded]);
   const at = Math.max(0, scenes.findIndex((s) => s.id === sceneId));
   const scene = scenes[at];
@@ -198,7 +199,7 @@ function Player({ chapter, scene: sceneId, loaded, meshes, changes }: PlayerProp
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState<string>(); //the part open in the explorer
 
-  //what the scene lights up: its parts, or every part its category's abilities rest on
+  //what the scene lights up: its parts, or every part its category's abilities rest on, never the whole body, which would light up everything
   const shot = useMemo(() => {
     const { category, parts, ids } = scene.shot;
     const lit = category ? abilities.filter((a) => a.category === category).flatMap((a) => a.parts) : [...partIds(body, parts ?? []), ...(ids ?? [])];
@@ -349,7 +350,7 @@ function ScenePanel({ scene, loaded, changes, picked, onPick, onLight }: ScenePa
   if (panel.kind === 'compare') return <Compare data={measurements} onChange={changes.measurements} />;
   if (panel.kind === 'measurement') {
     const m = measurements.measurements.find((x) => x.id === panel.id);
-    return m ? <MeasurementCard key={m.id} measurement={m} plain onChanged={(readings, abilities) => changes.measurements({ ...measurements, measurements: measurements.measurements.map((x) => (x.id === m.id ? { ...x, readings } : x)) }, abilities)} /> : null;
+    return m ? <MeasurementCard key={m.id} measurement={m} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
   }
   if (panel.kind === 'rating') {
     const a = abilities.find((x) => x.id === panel.id);
@@ -367,7 +368,8 @@ function ScenePanel({ scene, loaded, changes, picked, onPick, onLight }: ScenePa
         abilities={abilities}
         affectedBy={affectedBy}
         body={body}
-        onImpairments={changes.impairments}
+        onImpaired={changes.impaired}
+        onUnimpaired={changes.unimpaired}
         onConditions={changes.conditions}
         onLight={onLight}
       />
@@ -382,7 +384,7 @@ function ScenePanel({ scene, loaded, changes, picked, onPick, onLight }: ScenePa
       abilities={abilities}
       picked={picked}
       onPick={onPick}
-      onImpairments={changes.impairments}
+      onImpaired={changes.impaired}
       onLight={onLight}
     />
   );

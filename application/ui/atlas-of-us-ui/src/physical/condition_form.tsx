@@ -1,13 +1,10 @@
 import { useState, type CSSProperties } from 'react';
-import { SEVERITIES, conditionName, setMyCondition, type Condition, type MyCondition, type Severity } from './api';
+import { SEVERITIES, capitalised, setMyCondition, type Condition, type MyCondition, type Severity } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
+import { Checkbox } from '../shared_components/checkbox';
 import { Disclosure } from '../shared_components/disclosure';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { useSave } from '../shared_components/use_save';
 
 interface ConditionFormProps {
   condition: Condition;
@@ -22,27 +19,13 @@ export function ConditionForm({ condition, mine, onSaved, onCancel }: ConditionF
   const [severity, setSeverity] = useState<Severity | null>(mine?.severity ?? null);
   const [diagnosed, setDiagnosed] = useState(mine?.diagnosed ?? false);
   const [managed, setManaged] = useState(mine?.managed ?? false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const { saving, error, run } = useSave();
 
-  const save = () => {
-    setSaving(true);
-    setError(undefined);
-    setMyCondition(condition.id, severity, diagnosed, managed).then(
-      () => {
-        setSaving(false);
-        onSaved({ id: condition.id, severity, diagnosed, managed });
-      },
-      (e) => {
-        setSaving(false);
-        setError(e instanceof Error ? e.message : String(e));
-      },
-    );
-  };
+  const save = () => run(setMyCondition(condition.id, severity, diagnosed, managed), () => onSaved({ id: condition.id, severity, diagnosed, managed }));
 
   return (
-    <div style={styles.form} role="group" aria-label={conditionName(condition.name)}>
-      <p style={styles.title}>{conditionName(condition.name)}</p>
+    <div style={styles.form} role="group" aria-label={capitalised(condition.name)}>
+      <p style={styles.title}>{capitalised(condition.name)}</p>
       {condition.description && <p style={styles.text}>{condition.description}</p>}
       {!!condition.synonyms.length && (
         <Disclosure label="Other names">
@@ -65,14 +48,8 @@ export function ConditionForm({ condition, mine, onSaved, onCancel }: ConditionF
           </button>
         ))}
       </div>
-      <label style={styles.check}>
-        <input type="checkbox" checked={diagnosed} onChange={(e) => setDiagnosed(e.target.checked)} />
-        A doctor or other professional diagnosed it
-      </label>
-      <label style={styles.check}>
-        <input type="checkbox" checked={managed} onChange={(e) => setManaged(e.target.checked)} />
-        It's under control, with treatment or otherwise
-      </label>
+      <Checkbox checked={diagnosed} onChange={setDiagnosed} label="A doctor or other professional diagnosed it" />
+      <Checkbox checked={managed} onChange={setManaged} label="It's under control, with treatment or otherwise" />
       {error && <AtlasError message={error} />}
       <div style={styles.buttons}>
         <button className="comic-lift" style={styles.primary} disabled={saving} onClick={save}>
@@ -143,12 +120,6 @@ const styles: Record<string, CSSProperties> = {
   picked: {
     background: brownRed,
     color: ivory,
-  },
-  check: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    fontSize: 15,
   },
   buttons: {
     display: 'flex',

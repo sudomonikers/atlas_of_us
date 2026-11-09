@@ -1,16 +1,12 @@
 import { useState, type CSSProperties } from 'react';
 import { addReading, comparedWith, deleteReading, standing, today, withUnit, type Ability, type Measurement, type Reading, type Recorded } from './api';
 import { ReadingForm } from './reading_form';
+import { Scale } from './scale';
 import { SelfTest } from './self_tests';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const blue = 'var(--air-force-blue)';
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 //a date as the user reads dates, such as "Oct 30, 2026"
 const shortDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -18,17 +14,16 @@ const shortDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateStrin
 interface MeasurementCardProps {
   measurement: Measurement;
   onChanged: (readings: Reading[], abilities: Ability[]) => void; //with the user's abilities, which a reading can move
-  plain?: boolean; //leaves out its name, description and what it shows, for when they've been said already
 }
 
-//a measurement: what it is, the user's latest reading and where it sits among people like them, a form for a new
-//reading (or the test that takes one, for a test the app runs, and the steps for one done at home), and their earlier
-//readings. A reading from the eye chart can also be typed in, from an optician's test
-export function MeasurementCard({ measurement, onChanged, plain }: MeasurementCardProps) {
+//a measurement, once Atlas has said what it is: the user's latest reading and where it sits among people like them, a
+//form for a new reading (or the test that takes one, for a test the app runs, and the steps for one done at home), and
+//their earlier readings. A reading from the eye chart can also be typed in, from an optician's test
+export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps) {
   const [adding, setAdding] = useState<'test' | 'form' | null>(null);
   const [history, setHistory] = useState(false);
   const [error, setError] = useState<string>();
-  const { id, name, unit, better, description, abilities, test, protocol, source, ages, readings } = measurement;
+  const { id, unit, better, test, protocol, source, ages, readings } = measurement;
   const latest = readings[0];
   const inApp = !!test && test !== 'home';
   const typedToo = test === 'eye_chart';
@@ -43,25 +38,19 @@ export function MeasurementCard({ measurement, onChanged, plain }: MeasurementCa
     setError(undefined);
     addReading(id, value, today()).then(saved, (e) => {
       setAdding(null);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(failure(e));
     });
   };
   const remove = (id: string) => {
     setError(undefined);
     deleteReading(id).then(
       (abilities) => onChanged(readings.filter((r) => r.id !== id), abilities),
-      (e) => setError(e instanceof Error ? e.message : String(e)),
+      (e) => setError(failure(e)),
     );
   };
 
   return (
-    <article style={styles.card} id={`measurement-${id}`}>
-      {!plain && (
-        <>
-          <h3 style={styles.name}>{name}</h3>
-          <p style={styles.description}>{description}</p>
-        </>
-      )}
+    <article style={styles.card}>
       {test === 'home' && !!protocol.length && (
         <Disclosure label="How to do it at home">
           <ol style={styles.steps}>
@@ -70,11 +59,6 @@ export function MeasurementCard({ measurement, onChanged, plain }: MeasurementCa
             ))}
           </ol>
         </Disclosure>
-      )}
-      {!plain && !!abilities.length && (
-        <div style={styles.chips}>
-          Shows {abilities.map((a) => <span key={a} className="comic-chip">{a}</span>)}
-        </div>
       )}
 
       {latest ? (
@@ -148,26 +132,6 @@ export function MeasurementCard({ measurement, onChanged, plain }: MeasurementCa
   );
 }
 
-//a hand-drawn line from 0 to 100 with a marker where the reading sits. Where lower is better the line runs the other
-//way, so further right is always better, and where neither is better it's only where they sit
-export function Scale({ percentile, better }: { percentile: number; better: Measurement['better'] }) {
-  const at = better === 'lower' ? 100 - percentile : percentile;
-  const [left, right] = better === 'neither' ? ['Lower', 'Higher'] : ['Worse', 'Better'];
-  return (
-    <div style={styles.scale} role="img" aria-label={`${Math.round(at)} out of 100`}>
-      <div style={styles.track}>
-        <span style={styles.middle} />
-        <span style={{ ...styles.marker, left: `${Math.min(Math.max(at, 2), 98)}%` }} className="comic-pop" />
-      </div>
-      <div style={styles.ends}>
-        <span>{left}</span>
-        <span>Typical</span>
-        <span>{right}</span>
-      </div>
-    </div>
-  );
-}
-
 const styles: Record<string, CSSProperties> = {
   card: {
     display: 'flex',
@@ -179,26 +143,6 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
     boxShadow: `3px 4px 0 ${gunmetal}`,
     minWidth: 0,
-  },
-  name: {
-    margin: 0,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 24,
-    letterSpacing: 1,
-    color: brownRed,
-  },
-  description: {
-    margin: 0,
-    fontSize: 15,
-    lineHeight: 1.4,
-  },
-  chips: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-    fontSize: 14,
   },
   latest: {
     display: 'flex',
@@ -226,42 +170,6 @@ const styles: Record<string, CSSProperties> = {
     margin: 0,
     fontSize: 14,
     fontStyle: 'italic',
-  },
-  scale: {
-    flexBasis: '100%',
-    marginTop: 6,
-  },
-  track: {
-    position: 'relative',
-    height: 14,
-    background: `linear-gradient(90deg, ${ivory}, var(--pale-blue))`,
-    border: `2px solid ${gunmetal}`,
-    borderRadius: '10px 6px 9px 7px / 7px 9px 6px 10px',
-  },
-  middle: {
-    position: 'absolute',
-    left: '50%',
-    top: -4,
-    bottom: -4,
-    borderLeft: `2px dashed ${gunmetal}`,
-  },
-  marker: {
-    position: 'absolute',
-    top: '50%',
-    width: 20,
-    height: 20,
-    marginLeft: -10,
-    marginTop: -10,
-    background: brownRed,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '50%',
-    boxSizing: 'border-box',
-  },
-  ends: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    fontSize: 12,
   },
   buttons: {
     display: 'flex',

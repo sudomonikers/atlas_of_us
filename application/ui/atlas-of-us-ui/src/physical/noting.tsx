@@ -5,8 +5,7 @@ import {
   SEVERITIES,
   clearImpairment,
   clearMyCondition,
-  conditionName,
-  partName,
+  capitalised,
   type Ability,
   type AffectedBy,
   type Condition,
@@ -22,12 +21,8 @@ import { ConditionPicker } from './condition_picker';
 import { ImpairmentForm, type Impairable } from './impairment_form';
 import { PartPicker } from './part_picker';
 import { AtlasError } from '../shared_components/atlas-error';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 //the colour of the parts an impairment or condition can reach through the abilities it can affect, as hex
 const REACH = 0xa77464;
@@ -48,14 +43,15 @@ interface NotingProps {
   abilities: Ability[];
   affectedBy: AffectedBy[];
   body: Body;
-  onImpairments: (data: Impairments, abilities: Ability[]) => void; //with the user's abilities, which impairments hold back
+  onImpaired: (saved: Impairment, abilities: Ability[]) => void; //with the user's abilities, which impairments hold back
+  onUnimpaired: (id: string, abilities: Ability[]) => void;
   onConditions: (data: Conditions) => void;
   onLight: (light: Light) => void;
 }
 
 //the user's impairments or conditions, and a way to add more. Picking one, or adding one, lights up where it sits in the
 //body and tints the parts of the abilities it can affect, to show how far it reaches
-export default function Noting({ show, impairments, conditions, anatomy, abilities, affectedBy, body, onImpairments, onConditions, onLight }: NotingProps) {
+export default function Noting({ show, impairments, conditions, anatomy, abilities, affectedBy, body, onImpaired, onUnimpaired, onConditions, onLight }: NotingProps) {
   const [selected, setSelected] = useState<string>(); //the function, part or condition shown on the body
   const [editing, setEditing] = useState<string>(); //the function, part or condition being changed or added
   const [adding, setAdding] = useState<'impairment' | 'condition'>();
@@ -82,10 +78,10 @@ export default function Noting({ show, impairments, conditions, anatomy, abiliti
 
   const found = new Map<string, Found>([
     ...impairments.functions.map((f): [string, Found] => [f.id, { part: f, structure: false, group: f.group, personality: f.personality.map((t) => `${t.opposite ? 'Low ' : ''}${t.name}`) }]),
-    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: partName(p.name) }, structure: true, group: 'Body part', personality: [] }]),
+    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: capitalised(p.name) }, structure: true, group: 'Body part', personality: [] }]),
   ]);
   const byId = new Map(conditions.conditions.map((c) => [c.id, c]));
-  const failed = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
+  const failed = (e: unknown) => setError(failure(e));
   const cancel = () => {
     setEditing(undefined);
     setAdding(undefined);
@@ -95,7 +91,7 @@ export default function Noting({ show, impairments, conditions, anatomy, abiliti
     setSelected(id);
   };
   const savedImpairment = (impairment: Impairment, abilities: Ability[]) => {
-    onImpairments({ ...impairments, impairments: [...impairments.impairments.filter((i) => i.id !== impairment.id), impairment] }, abilities);
+    onImpaired(impairment, abilities);
     done(impairment.id);
   };
   const savedCondition = (mine: MyCondition) => {
@@ -108,7 +104,7 @@ export default function Noting({ show, impairments, conditions, anatomy, abiliti
   };
   const removeImpairment = (id: string) => {
     setError(undefined);
-    clearImpairment(id).then((abilities) => onImpairments({ ...impairments, impairments: impairments.impairments.filter((i) => i.id !== id) }, abilities), failed);
+    clearImpairment(id).then((abilities) => onUnimpaired(id, abilities), failed);
   };
   const removeCondition = (id: string) => {
     setError(undefined);
@@ -259,10 +255,10 @@ function ImpairmentCard({ found, impairment, affects, ...actions }: CardActions 
 function ConditionCard({ condition, mine, affects, ...actions }: CardActions & { condition: Condition; mine: MyCondition }) {
   const severity = SEVERITIES.find((s) => s.value === mine.severity);
   const notes = [mine.diagnosed ? 'Diagnosed' : 'Not diagnosed', ...(mine.managed ? ['Under control'] : [])];
-  const parts = [...condition.functions.map((f) => ({ key: f.code, name: f.name })), ...condition.parts.map((p) => ({ key: p.id, name: partName(p.name) }))];
+  const parts = [...condition.functions.map((f) => ({ key: f.code, name: f.name })), ...condition.parts.map((p) => ({ key: p.id, name: capitalised(p.name) }))];
   return (
     <article style={actions.showing ? { ...styles.card, ...styles.cardShowing } : styles.card}>
-      <h3 style={styles.name}>{conditionName(condition.name)}</h3>
+      <h3 style={styles.name}>{capitalised(condition.name)}</h3>
       <p style={styles.extent}>
         {severity?.label ?? 'Noted'}
         <span style={styles.notes}> · {notes.join(' · ')}</span>

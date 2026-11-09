@@ -6,7 +6,8 @@ import {
 } from './puzzles';
 import type { TestProps } from './self_tests';
 import { Frame, ItemTest, type Item } from './test_frame';
-import { blue, brownRed, clock, comic, gunmetal, ivory, testStyles, useCountdown } from './test_kit';
+import { clock, mean, testStyles, useCountdown } from './test_kit';
+import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //how dark a figure is: white, grey or black
 const SHADES = ['#fff', '#9a9a9a', '#2b2b2b'];
@@ -373,7 +374,7 @@ export function PerspectiveTaking({ onDone, onCancel }: TestProps) {
     const missed = PERSPECTIVE_ITEMS.length - errors.current.length;
     const all = [...errors.current, ...Array<number>(missed).fill(UNANSWERED)];
     setPhase('done');
-    onDone(Math.round(all.reduce((a, b) => a + b, 0) / all.length));
+    onDone(Math.round(mean(all)));
   };
   const left = useCountdown(TIMED.perspective.seconds, phase === 'timed', finish);
 

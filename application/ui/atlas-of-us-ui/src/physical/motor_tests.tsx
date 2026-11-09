@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } fr
 import { BEEPS, STEERING_TARGETS, TIMED, TIMINGS, TIMING_PRACTICE, TRACKING_PATH, TRACK_COUNT_PATH } from './puzzles';
 import type { TestProps } from './self_tests';
 import { Frame } from './test_frame';
-import { blue, brownRed, clock, comic, gunmetal, ivory, now, since, testStyles } from './test_kit';
+import { clock, now, since, testStyles } from './test_kit';
+import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //calls onFrame with the seconds since it started, every frame while running
 function useFrames(running: boolean, onFrame: (seconds: number) => void) {

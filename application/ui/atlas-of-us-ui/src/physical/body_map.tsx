@@ -1,21 +1,15 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { partName, type Ability, type Conditions, type Impairment, type Impairments, type Measurement, type PartSummary } from './api';
-import { heat, meshesOf, type Body, type Light } from './body_parts';
+import { capitalised, type Ability, type Conditions, type Impairment, type Impairments, type Measurement, type PartSummary } from './api';
+import { HUMAN_BODY, heat, meshesOf, type Body, type Light } from './body_parts';
 import { ImpairmentForm } from './impairment_form';
 import { PartPanel } from './part_panel';
 import { Checkbox } from '../shared_components/checkbox';
 import { SearchField } from '../shared_components/search_field';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { matchesAll, searchWords } from '../shared_components/search';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //the most search results shown at once
 const MAX_RESULTS = 20;
-//FMA's whole body, whose parts are the systems and regions
-const HUMAN_BODY = 'FMA20394';
 
 interface BodyMapProps {
   anatomy: PartSummary[];
@@ -26,13 +20,13 @@ interface BodyMapProps {
   abilities: Ability[];
   picked: string | undefined; //the id of the part open, picked here or on the 3D body
   onPick: (id: string) => void;
-  onImpairments: (data: Impairments, abilities: Ability[]) => void; //with the user's abilities, which impairments hold back
+  onImpaired: (saved: Impairment, abilities: Ability[]) => void; //with the user's abilities, which impairments hold back
   onLight: (light: Light) => void;
 }
 
 //the body to explore and learn from: pick any part on the 3D body or here to light it up and read all about it, pick a
 //whole system, or search for a part by name, with where the user stands on their abilities drawn on it if they like
-export default function BodyMap({ anatomy, body, impairments, conditions, measurements, abilities, picked, onPick, onImpairments, onLight }: BodyMapProps) {
+export default function BodyMap({ anatomy, body, impairments, conditions, measurements, abilities, picked, onPick, onImpaired, onLight }: BodyMapProps) {
   const [version, setVersion] = useState(0); //goes up when the user notes something, so the open part reloads
   const [noting, setNoting] = useState(false);
   const [results, setResults] = useState(false);
@@ -52,19 +46,14 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
     onPick(id);
   };
   const saved = (impairment: Impairment, abilities: Ability[]) => {
-    onImpairments({ ...impairments, impairments: [...impairments.impairments.filter((i) => i.id !== impairment.id), impairment] }, abilities);
+    onImpaired(impairment, abilities);
     setNoting(false);
     setVersion((v) => v + 1);
   };
 
   //every word of the search has to be in its name or another name for it
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const found = words.length
-    ? anatomy.filter((p) => {
-        const text = [p.name, ...p.synonyms].join(' ').toLowerCase();
-        return words.every((w) => text.includes(w));
-      })
-    : [];
+  const words = searchWords(query);
+  const found = words.length ? anatomy.filter((p) => matchesAll(words, [p.name, ...p.synonyms])) : [];
 
   return (
     <>
@@ -72,7 +61,7 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
 
       {part ? (
         noting ? (
-          <ImpairmentForm part={{ id: part.id, name: partName(part.name) }} structure impairment={mine.get(part.id) ?? null} onSaved={saved} onCancel={() => setNoting(false)} />
+          <ImpairmentForm part={{ id: part.id, name: capitalised(part.name) }} structure impairment={mine.get(part.id) ?? null} onSaved={saved} onCancel={() => setNoting(false)} />
         ) : (
           <PartPanel key={`${part.id}-${version}`} id={part.id} myConditions={myConditions} measurements={measurements} onPick={pick} onNote={() => setNoting(true)} />
         )
@@ -85,7 +74,7 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
         <div style={styles.chips}>
           {systems.map((s) => (
             <button key={s.id} className="comic-lift" style={picked === s.id ? { ...styles.chip, ...styles.chipOn } : styles.chip} onClick={() => pick(s.id)}>
-              {partName(s.name)}
+              {capitalised(s.name)}
             </button>
           ))}
         </div>
@@ -98,7 +87,7 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
         <div style={styles.chips}>
           {found.slice(0, MAX_RESULTS).map((p) => (
             <button key={p.id} className="comic-lift" style={styles.part} onClick={() => pick(p.id)}>
-              {partName(p.name)}
+              {capitalised(p.name)}
             </button>
           ))}
         </div>

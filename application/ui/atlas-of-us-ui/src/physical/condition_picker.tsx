@@ -1,13 +1,11 @@
 import { useState, type CSSProperties } from 'react';
-import { addCondition, conditionName, lookupConditions, type Candidate, type Condition } from './api';
+import { addCondition, capitalised, lookupConditions, type Candidate, type Condition } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { SearchField } from '../shared_components/search_field';
+import { matchesAll, searchWords } from '../shared_components/search';
 import { Thinking } from '../shared_components/thinking';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
+import { brownRed, gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 //the most search results shown at once
 const MAX_RESULTS = 30;
@@ -27,13 +25,8 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
   const [error, setError] = useState<string>();
 
   //every word of the search has to be in its name or one of its other names
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const results = words.length
-    ? conditions.filter((c) => {
-        const text = [c.name, ...c.synonyms].join(' ').toLowerCase();
-        return words.every((w) => text.includes(w));
-      })
-    : [];
+  const words = searchWords(query);
+  const results = words.length ? conditions.filter((c) => matchesAll(words, [c.name, ...c.synonyms])) : [];
 
   const search = (q: string) => {
     setQuery(q);
@@ -50,7 +43,7 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
       },
       (e) => {
         setLooking(false);
-        setError(e instanceof Error ? e.message : String(e));
+        setError(failure(e));
       },
     );
   };
@@ -66,7 +59,7 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
       },
       (e) => {
         setAdding(undefined);
-        setError(e instanceof Error ? e.message : String(e));
+        setError(failure(e));
       },
     );
   };
@@ -81,7 +74,7 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
             {results.slice(0, MAX_RESULTS).map((c) => (
               <li key={c.id} style={styles.item}>
                 <button className="comic-lift" style={styles.pick} onClick={() => onPick(c)}>
-                  {conditionName(c.name)}
+                  {capitalised(c.name)}
                 </button>
               </li>
             ))}
@@ -104,7 +97,7 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
                 {candidates.map((c) => (
                   <li key={c.source_id} style={styles.item}>
                     <button className="comic-lift" style={styles.pick} disabled={!!adding} onClick={() => pickCandidate(c)}>
-                      {adding === c.source_id ? 'Adding...' : conditionName(c.name)}
+                      {adding === c.source_id ? 'Adding...' : capitalised(c.name)}
                     </button>
                     {c.description && <span style={styles.where}>{c.description}</span>}
                   </li>

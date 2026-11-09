@@ -3,8 +3,10 @@ import { scoreAnswers, today, type Recorded } from './api';
 import { TIMED } from './puzzles';
 import type { TestProps } from './self_tests';
 import { Frame } from './test_frame';
-import { clock, gunmetal, ivory, testStyles, useCountdown } from './test_kit';
+import { clock, testStyles, useCountdown } from './test_kit';
 import { AtlasError } from '../shared_components/atlas-error';
+import { gunmetal, ivory } from '../shared_components/palette';
+import { failure } from '../shared_components/use_save';
 
 interface IdeaTestProps extends TestProps {
   intro: ReactNode;
@@ -35,7 +37,7 @@ function IdeaTest({ intro, seconds, placeholder, counted, measurement, onSaved, 
         setPhase('done');
       },
       (e) => {
-        setError(e instanceof Error ? e.message : String(e));
+        setError(failure(e));
         setPhase('done');
       },
     );

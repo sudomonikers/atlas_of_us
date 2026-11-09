@@ -2,12 +2,8 @@ import { useState, type CSSProperties } from 'react';
 import { CHANGES, EXTENTS, setImpairment, type Ability, type Change, type Extent, type Impairment } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { useSave } from '../shared_components/use_save';
 
 //a body function or part, as the form shows it
 export interface Impairable {
@@ -30,27 +26,15 @@ interface ImpairmentFormProps {
 export function ImpairmentForm({ part, structure, impairment, onSaved, onCancel }: ImpairmentFormProps) {
   const [extent, setExtent] = useState<Extent | null>(impairment?.extent ?? null);
   const [change, setChange] = useState<Change | ''>(impairment?.change ?? '');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const { saving, error, setError, run } = useSave();
 
   const save = () => {
     if (!extent) {
       setError('Pick how much.');
       return;
     }
-    setSaving(true);
-    setError(undefined);
     const kept = structure && change ? change : null;
-    setImpairment(part.id, extent, kept).then(
-      (abilities) => {
-        setSaving(false);
-        onSaved({ id: part.id, extent, change: kept }, abilities);
-      },
-      (e) => {
-        setSaving(false);
-        setError(e instanceof Error ? e.message : String(e));
-      },
-    );
+    run(setImpairment(part.id, extent, kept), (abilities) => onSaved({ id: part.id, extent, change: kept }, abilities));
   };
 
   return (

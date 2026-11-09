@@ -1,5 +1,9 @@
 import type { Ability, Conditions, Impairments, PartSummary } from './api';
 import type { MeshIndex } from './anatomy_layers';
+import { HEX } from '../shared_components/palette';
+
+//FMA's whole body, whose parts are the systems and regions
+export const HUMAN_BODY = 'FMA20394';
 
 //the anatomy, indexed for finding the meshes of the 3D body any part is drawn with
 export interface Body {
@@ -87,7 +91,7 @@ export interface Light {
 }
 
 //the colours where someone stands is drawn in on the body: well behind most people, typical, and well ahead, as hex
-export const STANDING = { low: 0x6a8eae, typical: 0xfffce8, high: 0xad2831 };
+export const STANDING = { low: HEX.blue, typical: HEX.ivory, high: HEX.brownRed };
 
 //a colour part way from one to another
 function mix(from: number, to: number, t: number) {

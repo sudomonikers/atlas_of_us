@@ -3,12 +3,8 @@ import { addReading, today, type Measurement, type Recorded } from './api';
 import { Countdown, Stopwatch } from './home_timer';
 import { AtlasError } from '../shared_components/atlas-error';
 import { DatePicker, type DateMessages } from '../shared_components/date-picker';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { useSave } from '../shared_components/use_save';
 
 const MEASURED_MESSAGES: DateMessages = {
   future: "That's still to come. Pick the day you measured it.",
@@ -26,8 +22,7 @@ interface ReadingFormProps {
 export function ReadingForm({ measurement, onSaved, onCancel }: ReadingFormProps) {
   const [typed, setTyped] = useState('');
   const [date, setDate] = useState(today);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const { saving, error, setError, run } = useSave();
   const { id, min, max, unit, test, timer } = measurement;
   const shown = unit === '20/x' ? '20/' : '';
 
@@ -41,18 +36,7 @@ export function ReadingForm({ measurement, onSaved, onCancel }: ReadingFormProps
       setError('Pick the day you measured it.');
       return;
     }
-    setSaving(true);
-    setError(undefined);
-    addReading(id, value, date).then(
-      (recorded) => {
-        setSaving(false);
-        onSaved(recorded);
-      },
-      (e) => {
-        setSaving(false);
-        setError(e instanceof Error ? e.message : String(e));
-      },
-    );
+    run(addReading(id, value, date), onSaved);
   };
 
   return (

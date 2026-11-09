@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { brownRed, comic, gunmetal, ivory, now, since, testStyles } from './test_kit';
+import { now, since, testStyles } from './test_kit';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //a short beep, higher for the start and the end
 function beep(audio: AudioContext, high: boolean) {

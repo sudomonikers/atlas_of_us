@@ -6,7 +6,8 @@ import {
 } from './puzzles';
 import type { TestProps } from './self_tests';
 import { Frame, ItemTest, type Item } from './test_frame';
-import { blue, brownRed, chance, clock, comic, gunmetal, ivory, now, since, testStyles, useCountdown } from './test_kit';
+import { chance, clock, mean, now, since, testStyles, useCountdown } from './test_kit';
+import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 type Phase = 'ready' | 'practice' | 'between' | 'timed' | 'done';
 
@@ -200,7 +201,6 @@ export function DistractingArrows({ onDone, onCancel }: TestProps) {
     to('done');
     const { same, other, wrong } = times.current;
     if ((list.length - wrong) / list.length < ARROW_ACCURACY || !same.length || !other.length) return setFailed(true);
-    const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
     onDone(Math.round(mean(other) - mean(same)));
   };
 

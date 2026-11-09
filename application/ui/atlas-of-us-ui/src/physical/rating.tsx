@@ -1,13 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import { EXTENTS, rateAbility, unrateAbility, type Ability, type Basis } from './api';
-import { Scale } from './measurement_card';
+import { Scale } from './scale';
 import { AtlasError } from '../shared_components/atlas-error';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { useSave } from '../shared_components/use_save';
 
 //how sure the user's place on an ability is, in words
 function sureness(confidence: number) {
@@ -28,23 +24,9 @@ function because(b: Basis) {
 export default function Rating({ ability, onChanged }: { ability: Ability; onChanged: (abilities: Ability[]) => void }) {
   const { id, examples, value, confidence, basis, rating } = ability;
   const [picked, setPicked] = useState<number | null>(rating);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const { saving, error, run } = useSave();
 
-  const save = (anchor: number | null) => {
-    setSaving(true);
-    setError(undefined);
-    (anchor === null ? unrateAbility(id) : rateAbility(id, anchor)).then(
-      (abilities) => {
-        setSaving(false);
-        onChanged(abilities);
-      },
-      (e) => {
-        setSaving(false);
-        setError(e instanceof Error ? e.message : String(e));
-      },
-    );
-  };
+  const save = (anchor: number | null) => run(anchor === null ? unrateAbility(id) : rateAbility(id, anchor), onChanged);
 
   return (
     <>

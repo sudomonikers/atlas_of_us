@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-
-//STYLE_GUIDE.md palette, defined as variables in App.css
-export const blue = 'var(--air-force-blue)';
-export const brownRed = 'var(--brown-red)';
-export const cinnamon = 'var(--cinnamon-wood)';
-export const gunmetal = 'var(--gunmetal-black)';
-export const ivory = 'var(--ivory-white)';
-export const comic = 'var(--font-comic)';
+import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //the ms since a time from performance.now(), called from handlers, effects and timers
 export const since = (t: number) => performance.now() - t;
@@ -25,6 +18,9 @@ export function seeded(seed: number) {
 
 //a random number from 0 to 1, called from handlers and timers
 export const chance = () => Math.random();
+
+//the average of some numbers
+export const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 //a whole number from `from` to `to`, inclusive
 export const between = (random: () => number, from: number, to: number) => from + Math.floor(random() * (to - from + 1));

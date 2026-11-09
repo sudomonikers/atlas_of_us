@@ -44,6 +44,11 @@ export interface Chapter {
 }
 
 const WHOLE: LayerId[] = ['skeleton', 'organs'];
+//what's under the skin, for what someone lives with
+const INSIDE: LayerId[] = ['skeleton', 'organs', 'nervous'];
+
+//how many of the abilities have a place, as a chapter's progress
+const placed = (abilities: Ability[]) => `A place on ${abilities.filter((a) => a.value !== null).length} of ${abilities.length}`;
 
 //names run together as people say them: "a, b and c"
 const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
@@ -90,10 +95,7 @@ function abilities(id: string, title: string, category: Ability['category'], lay
         },
       ];
     },
-    progress: ({ abilities }) => {
-      const group = abilities.filter((a) => a.category === category);
-      return `A place on ${group.filter((a) => a.value !== null).length} of ${group.length}`;
-    },
+    progress: ({ abilities }) => placed(abilities.filter((a) => a.category === category)),
   };
 }
 
@@ -251,7 +253,7 @@ export const CHAPTERS: Chapter[] = [
         panel: { kind: 'results' },
       },
     ],
-    progress: ({ abilities }) => `A place on ${abilities.filter((a) => a.value !== null).length} of ${abilities.length}`,
+    progress: ({ abilities }) => placed(abilities),
   },
   {
     id: 'living-with',
@@ -261,28 +263,28 @@ export const CHAPTERS: Chapter[] = [
       {
         id: 'intro',
         text: "Lots of people live with something: glasses, a bad knee, asthma, ADHD. It's part of you, and there's nothing to hide here.",
-        shot: { layers: ['skeleton', 'organs', 'nervous'] },
+        shot: { layers: INSIDE },
       },
       {
         id: 'why',
         text: "Telling me lets me be honest with you. When a skill takes an ability that something you live with can affect, I'll say so, so you can plan for it rather than be caught out. Plenty of people do brilliantly at things their body makes harder, and it helps to know going in.",
-        shot: { layers: ['skeleton', 'organs', 'nervous'] },
+        shot: { layers: INSIDE },
       },
       {
         id: 'private',
         text: "Only you can see what you note here, and you can change or remove it any time. As you add each one, I'll show you where it sits in your body and what it can reach.",
-        shot: { layers: ['skeleton', 'organs', 'nervous'] },
+        shot: { layers: INSIDE },
       },
       {
         id: 'impairments',
         text: "First, impairments. If part of your body or mind doesn't work as well as it might, from needing glasses to a bad knee, note it and how much it holds you back.",
-        shot: { layers: ['skeleton', 'organs', 'nervous'] },
+        shot: { layers: INSIDE },
         panel: { kind: 'noting', show: 'impairments' },
       },
       {
         id: 'conditions',
         text: 'Now conditions: anything you have been diagnosed with or know you have, from asthma to being double-jointed, and how much it affects you.',
-        shot: { layers: ['skeleton', 'organs', 'nervous'] },
+        shot: { layers: INSIDE },
         panel: { kind: 'noting', show: 'conditions' },
       },
     ],

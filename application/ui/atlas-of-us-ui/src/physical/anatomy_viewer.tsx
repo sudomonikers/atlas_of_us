@@ -3,9 +3,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { LAYER_COLOURS, type LayerId } from './anatomy_layers';
+import { HEX } from '../shared_components/palette';
 
-//colours as hex, for the materials; they match the palette in App.css
-const LIT = 0xad2831;
+//what's lit up, and what the user has noted, which blushes
+const LIT = HEX.brownRed;
 const NOTED = 0xd9777d;
 //how far a click can drag before it's a turn of the body instead
 const CLICK_SLOP = 5;
@@ -187,7 +188,7 @@ export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, o
     scene.current = world;
     const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 20);
     camera.position.set(0, 0.9, 4.2);
-    world.add(new THREE.HemisphereLight(0xfffce8, 0x393d3f, 1.4));
+    world.add(new THREE.HemisphereLight(HEX.ivory, HEX.gunmetal, 1.4));
     const sun = new THREE.DirectionalLight(0xffffff, 1.6);
     sun.position.set(1, 2, 3);
     camera.add(sun);

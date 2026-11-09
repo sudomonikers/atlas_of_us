@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { blue, clock, gunmetal, ivory, testStyles, useCountdown } from './test_kit';
+import { clock, testStyles, useCountdown } from './test_kit';
+import { blue, gunmetal, ivory } from '../shared_components/palette';
 
 //the frame every test runs in: what to do, the test itself, and a way out
 export function Frame({ intro, children, onCancel }: { intro: ReactNode; children: ReactNode; onCancel: () => void }) {

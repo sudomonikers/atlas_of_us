@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { COLOUR_HUES, COLOUR_TRIES, SIDE_ANGLES, SIDE_FLASHES, SIDE_PRACTICE } from './puzzles';
 import type { TestProps } from './self_tests';
 import { Frame } from './test_frame';
-import { chance, gunmetal, testStyles } from './test_kit';
+import { chance, testStyles } from './test_kit';
+import { gunmetal } from '../shared_components/palette';
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Sizing the screen with a bank card, so the tests can draw things a true size
