@@ -39,7 +39,7 @@ import { failure } from '../shared_components/use_save';
 //the 3D body, loaded with three.js only when a chapter opens
 const AnatomyViewer = lazy(() => import('./anatomy_viewer').then((m) => ({ default: m.AnatomyViewer })));
 
-//wide enough for the body to sit beside what Atlas says, rather than above it
+//wide enough for what the user can do on a scene to sit beside the body, rather than in Atlas's box
 const WIDE = '(min-width: 900px)';
 const subscribeWide = (listener: () => void) => {
   const query = window.matchMedia(WIDE);
@@ -116,19 +116,15 @@ function Physical() {
 
   return (
     <RequireLogin reason="I can't show you around your body until I know who you are. Make an account and let's take a look.">
-      <div style={styles.page} className="comic-page">
-        <Nav />
-        {error ? (
-          <AtlasError message={error} />
-        ) : !loaded ? (
-          <Thinking label="Looking you over" />
-        ) : chapter ? (
-          <Player key={chapter.id} chapter={chapter} scene={params.get('scene')} loaded={loaded} changes={changes} />
-        ) : (
-          <Chapters loaded={loaded} />
-        )}
-        <Footer />
-      </div>
+      {chapter && loaded && !error ? (
+        <Player key={chapter.id} chapter={chapter} scene={params.get('scene')} loaded={loaded} changes={changes} />
+      ) : (
+        <div style={styles.page} className="comic-page">
+          <Nav />
+          {error ? <AtlasError message={error} /> : !loaded ? <Thinking label="Looking you over" /> : <Chapters loaded={loaded} />}
+          <Footer />
+        </div>
+      )}
     </RequireLogin>
   );
 }
@@ -183,8 +179,9 @@ interface PlayerProps {
   changes: Changes;
 }
 
-//one chapter, a scene at a time, beside the 3D body. Atlas's words write themselves out, and the body shows what the
-//scene is about
+//one chapter, a scene at a time, across the whole screen: the 3D body takes the stage with Atlas talking in a box along
+//the bottom, and what the user can do on a scene sits beside the body, or in Atlas's box on narrow screens. A test the
+//app runs takes the stage from the body while it runs
 function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   const { body, abilities, impairments, conditions } = loaded;
   const { meshes } = body;
@@ -198,6 +195,8 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   const [light, setLight] = useState<Light>({});
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState<string>(); //the part open in the explorer
+  const [testStage, setTestStage] = useState<HTMLDivElement | null>(null);
+  const [testing, setTesting] = useState(false);
 
   //what the scene lights up: its parts, or every part its category's abilities rest on, never the whole body, which would light up everything
   const shot = useMemo(() => {
@@ -238,7 +237,8 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+      //a running test has its own keys
+      if (testing || e.repeat || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
       if (e.key === 'ArrowRight') forward();
       else if (e.key === 'ArrowLeft') back();
     };
@@ -260,19 +260,32 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
     });
   const last = at === scenes.length - 1;
 
+  const panel = scene.panel && typed && (
+    <ScenePanel scene={scene} loaded={loaded} changes={changes} picked={picked} onPick={setPicked} onLight={onLight} testStage={testStage} onTesting={setTesting} />
+  );
+  //a measurement brings its own card; everything else sits on a plain one
+  const card = scene.panel?.kind === 'measurement' ? undefined : styles.panel;
+
   return (
-    <>
-      <header style={styles.playerHeader}>
-        <button className="comic-lift" style={styles.back} onClick={() => navigate('/physical')}>
+    <div style={styles.stage} className="comic-page">
+      <header style={styles.top}>
+        <button className="comic-lift" style={styles.exit} onClick={() => navigate('/physical')}>
           ◀ Chapters
         </button>
         <h1 style={styles.chapterTitle} className="comic-title">
           {chapter.title}
         </h1>
+        {scenes.length > 1 && (
+          <div style={styles.dots} role="progressbar" aria-valuemin={1} aria-valuemax={scenes.length} aria-valuenow={at + 1} aria-label={`Scene ${at + 1} of ${scenes.length}`}>
+            {scenes.map((s, i) => (
+              <span key={s.id} style={{ ...styles.dot, ...(i <= at ? styles.dotDone : {}) }} />
+            ))}
+          </div>
+        )}
       </header>
 
-      <div style={styles.stage}>
-        <div style={wide ? { ...styles.viewer, ...styles.viewerWide } : styles.viewer}>
+      <div style={styles.middle}>
+        <div style={styles.viewer}>
           <Suspense fallback={<Thinking label="Building the body" />}>
             <AnatomyViewer layers={showing} lit={lit} noted={noted} tints={tints} focus={lit} spin={!!scene.shot.spin} pulse={!!light.pulse} onPick={pickMesh} onLoading={setLoading} />
           </Suspense>
@@ -286,51 +299,60 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
           </div>
         </div>
 
-        <div style={styles.side}>
-          <div style={styles.sceneGuide}>
-            <Mascot size={80} />
-            <p key={scene.id} style={styles.bubble} className="comic-bubble comic-pop" aria-live="polite">
-              <Typed text={scene.text} shown={shown} />
-            </p>
-          </div>
+        {wide && panel && (
+          <aside style={styles.side}>
+            <div style={card}>{panel}</div>
+          </aside>
+        )}
 
-          {scenes.length > 1 && (
-            <div style={styles.dots} role="progressbar" aria-valuemin={1} aria-valuemax={scenes.length} aria-valuenow={at + 1} aria-label={`Scene ${at + 1} of ${scenes.length}`}>
-              {scenes.map((s, i) => (
-                <span key={s.id} style={{ ...styles.dot, ...(i <= at ? styles.dotDone : {}) }} />
-              ))}
-            </div>
-          )}
-
-          {scene.panel && typed && (
-            <div style={scene.panel.kind === 'measurement' ? undefined : styles.panel}>
-              <ScenePanel scene={scene} loaded={loaded} changes={changes} picked={picked} onPick={setPicked} onLight={onLight} />
-            </div>
-          )}
-
-          <div style={styles.controls}>
-            {at > 0 && (
-              <button className="comic-lift" style={styles.back} onClick={back}>
-                ◀ Back
-              </button>
-            )}
-            {!last ? (
-              <button className="comic-lift" style={styles.next} onClick={forward}>
-                Next ▶
-              </button>
-            ) : following ? (
-              <button className="comic-lift" style={styles.next} onClick={() => navigate(`/physical?chapter=${following.id}`)}>
-                Next chapter: {following.title} ▶
-              </button>
-            ) : (
-              <button className="comic-lift" style={styles.next} onClick={() => navigate('/physical')}>
-                Back to the chapters ■
-              </button>
-            )}
-          </div>
+        {/* where a running test goes, over the body */}
+        <div style={testing ? styles.testing : styles.hidden}>
+          <div ref={setTestStage} style={styles.test} />
         </div>
       </div>
-    </>
+
+      {/* the outer div places the box so the panel inside is free to animate its own transform */}
+      <div style={styles.dock}>
+        <div style={styles.box} className="comic-panel comic-pop">
+          <div style={styles.speaker}>Atlas</div>
+          <div key={scene.id} style={styles.scroll}>
+            <div style={styles.says}>
+              {wide && <Mascot size={64} />}
+              <p style={styles.text} aria-live="polite">
+                <Typed text={scene.text} shown={shown} />
+              </p>
+            </div>
+            {!wide && panel && <div style={testing ? styles.hidden : { ...card, ...styles.inline }}>{panel}</div>}
+          </div>
+
+          {!testing && (
+            <div style={styles.controls}>
+              {at > 0 && (
+                <button className="comic-lift" style={styles.back} onClick={back}>
+                  ◀ Back
+                </button>
+              )}
+              <span style={styles.hint}>
+                <span className="keyboard-only">← back · → next</span>
+              </span>
+              {!last ? (
+                <button className="comic-lift" style={styles.next} onClick={forward}>
+                  Next ▶
+                </button>
+              ) : following ? (
+                <button className="comic-lift" style={styles.next} onClick={() => navigate(`/physical?chapter=${following.id}`)}>
+                  Next chapter: {following.title} ▶
+                </button>
+              ) : (
+                <button className="comic-lift" style={styles.next} onClick={() => navigate('/physical')}>
+                  Back to the chapters ■
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -341,16 +363,18 @@ interface ScenePanelProps {
   picked: string | undefined;
   onPick: (id: string) => void;
   onLight: (light: Light) => void;
+  testStage: HTMLElement | null;
+  onTesting: (testing: boolean) => void;
 }
 
 //the one thing the user can do on a scene
-function ScenePanel({ scene, loaded, changes, picked, onPick, onLight }: ScenePanelProps) {
+function ScenePanel({ scene, loaded, changes, picked, onPick, onLight, testStage, onTesting }: ScenePanelProps) {
   const { anatomy, body, abilities, measurements, impairments, conditions, affectedBy } = loaded;
   const panel = scene.panel!;
   if (panel.kind === 'compare') return <Compare data={measurements} onChange={changes.measurements} />;
   if (panel.kind === 'measurement') {
     const m = measurements.measurements.find((x) => x.id === panel.id);
-    return m ? <MeasurementCard key={m.id} measurement={m} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
+    return m ? <MeasurementCard key={m.id} measurement={m} stage={testStage} onTesting={onTesting} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
   }
   if (panel.kind === 'rating') {
     const a = abilities.find((x) => x.id === panel.id);
@@ -470,49 +494,75 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     fontSize: 14,
   },
-  playerHeader: {
-    maxWidth: 1280,
-    margin: '8px auto 20px',
+  //the whole screen: a bar along the top, the body filling the middle, and Atlas's box along the bottom
+  stage: {
+    position: 'fixed',
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    textAlign: 'left',
+    background: `radial-gradient(rgba(106, 142, 174, 0.22) 1.6px, transparent 1.8px) 0 0 / 14px 14px, ${ivory}`,
+  },
+  top: {
+    flex: 'none',
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: '12px 24px',
+    gap: '8px 20px',
+    padding: '16px 16px 0',
+    zIndex: 20,
+  },
+  exit: {
+    padding: '4px 14px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1,
+    cursor: 'pointer',
   },
   chapterTitle: {
-    fontSize: 'clamp(36px, 6vw, 56px)',
+    fontSize: 'clamp(28px, 4vw, 44px)',
   },
-  //the body beside what Atlas says; on narrow screens it sits on top
-  stage: {
-    maxWidth: 1280,
-    margin: '0 auto 36px',
+  dots: {
+    marginLeft: 'auto',
+    maxWidth: 360,
     display: 'flex',
     flexWrap: 'wrap',
-    alignItems: 'flex-start',
-    gap: 24,
+    justifyContent: 'flex-end',
+    gap: 6,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 999,
+    background: '#fff',
+  },
+  dotDone: {
+    background: brownRed,
+  },
+  //the body, with what the user can do beside it on wide screens
+  middle: {
+    flex: '1 1 0',
+    minHeight: 0,
+    position: 'relative',
+    display: 'flex',
+    gap: 16,
+    padding: '0 16px',
   },
   viewer: {
-    flex: '1 1 420px',
+    flex: '1 1 0',
     minWidth: 0,
-    height: '50vh',
-    minHeight: 320,
     position: 'relative',
-    border: 'var(--ink)',
-    borderRadius: 'var(--wobbly)',
-    boxShadow: `6px 6px 0 ${gunmetal}`,
-    background: `radial-gradient(rgba(106, 142, 174, 0.22) 1.6px, transparent 1.8px) 0 0 / 14px 14px, ${ivory}`,
-    overflow: 'hidden',
-  },
-  //on wide screens the body stays in view while what's beside it scrolls
-  viewerWide: {
-    position: 'sticky',
-    top: 16,
-    height: 'calc(100vh - 200px)',
-    minHeight: 460,
   },
   layers: {
     position: 'absolute',
-    left: 10,
-    right: 10,
+    left: 0,
     bottom: 10,
     display: 'flex',
     flexWrap: 'wrap',
@@ -540,42 +590,104 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 13,
   },
   side: {
-    flex: '1 1 380px',
-    minWidth: 0,
+    flex: '0 0 clamp(340px, 32vw, 460px)',
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '12px 8px 12px 0', //room for the card's shadow inside the scrolling side
+  },
+  panel: {
     display: 'flex',
     flexDirection: 'column',
     gap: 16,
+    padding: '20px 22px',
+    background: '#fff',
+    borderRadius: 'var(--wobbly)',
+    border: `3px solid ${gunmetal}`,
+    boxShadow: `4px 5px 0 ${gunmetal}`,
   },
-  sceneGuide: {
+  //a running test, over the body and what's beside it
+  testing: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 15,
+    overflowY: 'auto',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'safe center',
+    padding: '12px 16px',
+    background: `radial-gradient(rgba(106, 142, 174, 0.22) 1.6px, transparent 1.8px) 0 0 / 14px 14px, ${ivory}`,
+  },
+  test: {
+    width: 'min(760px, 100%)',
+  },
+  hidden: {
+    display: 'none',
+  },
+  dock: {
+    flex: 'none',
+    maxHeight: '55%',
+    display: 'flex',
+    justifyContent: 'center',
+    padding: '28px 16px 20px',
+    zIndex: 10,
+  },
+  box: {
+    width: 'min(860px, 100%)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    minHeight: 120,
+    padding: '22px 26px 14px',
+    background: ivory,
+    borderRadius: 'var(--wobbly)',
+    '--panel-fill': 'var(--pale-blue)', //the colour wash that spills out from behind the box
+    '--tilt': '-0.4deg',
+  } as CSSProperties,
+  speaker: {
+    position: 'absolute',
+    top: -22,
+    left: 22,
+    padding: '2px 16px',
+    background: brownRed,
+    color: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    transform: 'rotate(-3deg)',
+  },
+  //the box's colour wash and speaker tag spill outside it, so the scrolling happens on a layer inside
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '0 5px 6px 0', //room for the panel's shadow inside the scrolling layer
+  },
+  says: {
     display: 'flex',
     alignItems: 'center',
     gap: 16,
   },
-  bubble: {
+  text: {
     margin: 0,
-    fontSize: 17,
-    lineHeight: 1.45,
-    '--tilt': '-0.6deg',
-  } as CSSProperties,
-  dots: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 6,
+    fontSize: 'clamp(18px, 2vw, 21px)',
+    lineHeight: 1.4,
   },
-  dot: {
-    width: 12,
-    height: 12,
-    border: `2px solid ${gunmetal}`,
-    borderRadius: 999,
-    background: '#fff',
-  },
-  dotDone: {
-    background: brownRed,
+  inline: {
+    marginTop: 14,
   },
   controls: {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
+  },
+  hint: {
+    flex: 1,
+    fontSize: 15,
+    opacity: 0.6,
   },
   back: {
     padding: '4px 16px',
@@ -589,7 +701,6 @@ const styles: Record<string, CSSProperties> = {
     cursor: 'pointer',
   },
   next: {
-    marginLeft: 'auto',
     padding: '4px 18px',
     background: brownRed,
     color: ivory,
@@ -600,16 +711,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 20,
     letterSpacing: 1,
     cursor: 'pointer',
-  },
-  panel: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-    padding: '20px 22px',
-    background: '#fff',
-    borderRadius: 'var(--wobbly)',
-    border: `3px solid ${gunmetal}`,
-    boxShadow: `4px 5px 0 ${gunmetal}`,
   },
 };
 

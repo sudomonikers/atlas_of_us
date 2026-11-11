@@ -1,4 +1,5 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { addReading, comparedWith, deleteReading, standing, today, withUnit, type Ability, type Measurement, type Reading, type Recorded } from './api';
 import { ReadingForm } from './reading_form';
 import { Scale } from './scale';
@@ -14,12 +15,15 @@ const shortDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateStrin
 interface MeasurementCardProps {
   measurement: Measurement;
   onChanged: (readings: Reading[], abilities: Ability[]) => void; //with the user's abilities, which a reading can move
+  stage: HTMLElement | null; //where a test the app runs takes place, front and centre
+  onTesting: (testing: boolean) => void; //whether one is running
 }
 
 //a measurement, once Atlas has said what it is: the user's latest reading and where it sits among people like them, a
 //form for a new reading (or the test that takes one, for a test the app runs, and the steps for one done at home), and
-//their earlier readings. A reading from the eye chart can also be typed in, from an optician's test
-export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps) {
+//their earlier readings. A reading from the eye chart can also be typed in, from an optician's test. A test the app runs
+//takes the stage while it runs
+export function MeasurementCard({ measurement, onChanged, stage, onTesting }: MeasurementCardProps) {
   const [adding, setAdding] = useState<'test' | 'form' | null>(null);
   const [history, setHistory] = useState(false);
   const [error, setError] = useState<string>();
@@ -27,6 +31,12 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
   const latest = readings[0];
   const inApp = !!test && test !== 'home';
   const typedToo = test === 'eye_chart';
+  const testing = adding === 'test' && inApp;
+
+  useEffect(() => {
+    onTesting(testing);
+    return () => onTesting(false);
+  }, [testing, onTesting]);
 
   const saved = ({ reading, abilities }: Recorded) => {
     setAdding(null);
@@ -84,8 +94,8 @@ export function MeasurementCard({ measurement, onChanged }: MeasurementCardProps
         <p style={styles.note}>Not measured yet.</p>
       )}
 
-      {adding === 'test' && inApp ? (
-        <SelfTest test={test} measurement={id} onDone={tested} onSaved={saved} onCancel={() => setAdding(null)} />
+      {adding === 'test' && test && test !== 'home' ? (
+        stage && createPortal(<SelfTest test={test} measurement={id} onDone={tested} onSaved={saved} onCancel={() => setAdding(null)} />, stage)
       ) : adding ? (
         <ReadingForm measurement={measurement} onSaved={saved} onCancel={() => setAdding(null)} />
       ) : (
