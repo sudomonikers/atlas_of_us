@@ -8,7 +8,7 @@ use axum::{
     Json, Router,
     extract::{FromRequestParts, OptionalFromRequestParts, State},
     http::{StatusCode, request::Parts},
-    routing::{get, post, put},
+    routing::{get, patch, post, put},
 };
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -17,6 +17,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::state::AppState;
 
+mod config;
+use config::{CONFIG_COLUMNS, Config};
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/create-user", post(create_user))
@@ -24,7 +27,7 @@ pub fn router() -> Router<AppState> {
         .route("/logout", post(logout))
         .route("/me", get(me))
         .route("/public", put(set_public))
-        .route("/physical-intro", put(see_physical_intro))
+        .route("/config", patch(config::update_config))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -111,7 +114,13 @@ pub struct Person {
     username: String,
     public: bool, //whether anyone can see their profile at /u/{username}
     admin: bool, //set by hand in the graph, unlocks /admin
-    physical_intro_seen: bool, //whether they've been through the story that opens Physical Traits
+}
+
+//who is logged in, with their settings in the app
+#[derive(Serialize)]
+pub struct Session {
+    person: Person,
+    config: Config,
 }
 
 #[derive(Serialize)]
@@ -119,10 +128,11 @@ pub struct AuthResponse {
     token: String,
     expires_at: DateTime<Utc>,
     person: Person,
+    config: Config,
 }
 
 //signs a 24 hour token for the person. Logout is stateless, so tokens are kept short lived
-fn authenticate(person: Person) -> Result<AuthResponse, (StatusCode, String)> {
+fn authenticate(person: Person, config: Config) -> Result<AuthResponse, (StatusCode, String)> {
     let internal = |e: &dyn std::fmt::Display| {
         tracing::error!("{e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
@@ -133,7 +143,7 @@ fn authenticate(person: Person) -> Result<AuthResponse, (StatusCode, String)> {
     let claims = Claims { sub: person.id.clone(), iat: now.timestamp(), exp: expires_at.timestamp() };
     let token = encode(&Header::new(Algorithm::HS256), &claims, &EncodingKey::from_secret(secret.as_bytes()))
         .map_err(|e| internal(&e))?;
-    Ok(AuthResponse { token, expires_at, person })
+    Ok(AuthResponse { token, expires_at, person, config })
 }
 
 //E.164: + then 8-15 digits starting with a country code. Spaces, dashes, dots and brackets are ignored
@@ -226,7 +236,7 @@ pub async fn create_user(
             username: $username, passwordHash: $passwordHash, createdDate: datetime()
         })
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("phone", phone)
         .param("username", username)
@@ -238,7 +248,8 @@ pub async fn create_user(
     ).await.map_err(constraint_failed)?;
     let row = created.next().await.map_err(constraint_failed)?.ok_or_else(|| internal(&"person was not created"))?;
     let person = row.to::<Person>().map_err(|e| internal(&e))?;
-    Ok((StatusCode::CREATED, Json(authenticate(person)?)))
+    //a new account hasn't changed any settings yet
+    Ok((StatusCode::CREATED, Json(authenticate(person, Config::default())?)))
 }
 
 #[derive(Deserialize)]
@@ -257,11 +268,13 @@ pub async fn login(
     };
     let phone = normalize_phone(&body.phone)?;
 
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {phone: $phone})
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (p:Person {{phone: $phone}})
+        OPTIONAL MATCH (p)-[:HAS_CONFIG]->(c:PersonConfig)
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen, p.passwordHash AS password_hash
-    ")
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, p.passwordHash AS password_hash,
+               {CONFIG_COLUMNS}
+    "))
         .param("phone", phone)
     ).await.map_err(|e| internal(&e))?;
     let invalid = || (StatusCode::UNAUTHORIZED, "That phone number and password don't match an account.".to_string());
@@ -278,7 +291,8 @@ pub async fn login(
         return Err(invalid());
     }
     let person = row.to::<Person>().map_err(|e| internal(&e))?;
-    Ok(Json(authenticate(person)?))
+    let config = row.to::<Config>().map_err(|e| internal(&e))?;
+    Ok(Json(authenticate(person, config)?))
 }
 
 //tokens are stateless, so logging out is the client throwing its token away. This gives the UI one place to call
@@ -286,22 +300,28 @@ pub async fn logout() -> StatusCode {
     StatusCode::NO_CONTENT
 }
 
-pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Person>, (StatusCode, String)> {
+//who the token belongs to, with their settings, for checking a stored token when the app loads
+pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Session>, (StatusCode, String)> {
     let internal = |e: &dyn std::fmt::Display| {
         tracing::error!("{e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
     };
 
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {id: $id})
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (p:Person {{id: $id}})
+        OPTIONAL MATCH (p)-[:HAS_CONFIG]->(c:PersonConfig)
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
-    ")
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin,
+               {CONFIG_COLUMNS}
+    "))
         .param("id", user.person_id)
     ).await.map_err(|e| internal(&e))?;
 
     match rows.next().await.map_err(|e| internal(&e))? {
-        Some(row) => Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?)),
+        Some(row) => Ok(Json(Session {
+            person: row.to::<Person>().map_err(|e| internal(&e))?,
+            config: row.to::<Config>().map_err(|e| internal(&e))?,
+        })),
         None => Err((StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string())), //token for a deleted Person
     }
 }
@@ -325,7 +345,7 @@ pub async fn set_public(
         MATCH (p:Person {id: $id})
         SET p.public = $public
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
     ")
         .param("id", user.person_id)
         .param("public", body.public)
@@ -335,21 +355,3 @@ pub async fn set_public(
     Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?))
 }
 
-//notes that the person has been through the story that opens Physical Traits, so it opens on the chapters from then on
-pub async fn see_physical_intro(State(state): State<AppState>, user: AuthUser) -> Result<Json<Person>, (StatusCode, String)> {
-    let internal = |e: &dyn std::fmt::Display| {
-        tracing::error!("{e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
-    };
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {id: $id})
-        SET p.physicalIntroSeen = true
-        RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
-    ")
-        .param("id", user.person_id)
-    ).await.map_err(|e| internal(&e))?;
-    let row = rows.next().await.map_err(|e| internal(&e))?
-        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string()))?;
-    Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?))
-}

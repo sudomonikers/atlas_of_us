@@ -1,3 +1,6 @@
+import type { Choice as StoryChoice, ChoiceFrame as StoryChoiceFrame, Script as StoryScript, Step as StoryStep } from '../../shared_components/story/script';
+import type { LinkType } from '../../shared_components/story/atlas';
+
 // Two Players: the story that opens the physical module. Andrew and Daniel both want to know whether they could be great
 // at Basketball. Andrew looks the part, tall and strong, but his stamina and coordination fall short, so Atlas shows him
 // exactly what to work on. Daniel is quick and steady-handed, but a car accident left him using a wheelchair, so Atlas
@@ -16,9 +19,6 @@ export interface Person {
   conditions?: { name: string; affects: string[] }[];
 }
 
-//the ways the skill graph links a skill: to the physical abilities and personality traits it takes, the knowledge it
-//needs, the skills it needs, the skills it's a kind of, and the skills like it
-export type LinkType = 'able' | 'takes' | 'knows' | 'needs' | 'kind_of' | 'similar';
 const SKILLS_TOO: LinkType[] = ['able', 'takes', 'knows', 'needs', 'kind_of', 'similar'];
 
 //the real Atlas, shown in place of the drawn scene during an interlude
@@ -27,40 +27,14 @@ export type Stage =
   | { kind: 'fit'; person: Person; skills: string[]; rank: number; focus?: string[] } //person's strengths and gaps against each skill at rank, drawn from them through their abilities to the skills, with the skills in focus picked out
   | { kind: 'skill'; skill: string; rank: number; person?: Person; abilities?: string[] }; //a skill's levels open at rank (1 Novice to 5 Expert), with the abilities it takes, set against person when given, and abilities picked out
 
-export interface Frame {
-  text: string; //the text displayed on screen for the user
-  animation?: string; //the consuming component will have a function with 'animation's value
-  stage?: Stage; //shown in place of the animation
-  speaker?: string; //who is talking; omitted for narration
+//a choice that ends the story opens the test chapter it names
+export interface Choice extends StoryChoice {
+  chapter?: string;
 }
 
-export interface Choice {
-  label: string; //the option shown to the user
-  next?: string; //id of the Section to continue with if this choice is picked
-  chapter?: string; //id of the test chapter to open if this choice is picked, which ends the story
-}
-
-export interface ChoiceFrame {
-  id: string; //unique within the script
-  prompt: string; //the question shown to the user above the choices
-  animation: string;
-  choices: Choice[];
-}
-
-export type Step = Frame | ChoiceFrame;
-
-export interface Section {
-  steps: Step[];
-  interlude?: string; //the title of an interlude, set on a section that steps out of the story to show how the Atlas works
-  next?: string; //id of the Section that follows; omitted on the final Section, ignored when the last step is a ChoiceFrame
-}
-
-export interface Script {
-  id: string;
-  title: string;
-  start: string; //id of the first Section
-  sections: Record<string, Section>;
-}
+export type ChoiceFrame = StoryChoiceFrame<Choice>;
+export type Step = StoryStep<Stage, Choice>;
+export type Script = StoryScript<Stage, Choice>;
 
 const ANDREW = 'Andrew';
 const DANIEL = 'Daniel';

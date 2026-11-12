@@ -20,6 +20,13 @@ the graph itself, read `../data_model/personality/personality.md`.
 The 30 facets of the Big Five, as defined by the IPIP-NEO. A person's score on each facet has a **value** from 0 to 1,
 where 0.5 is typical, and a **confidence** for how much their answers say about it.
 
+## The story that opens it
+Personality opens on a story the first time: two coworkers who give the same answers to a personality quiz, and how
+the scenes tell them apart, with the real Atlas shown along the way: a scene, the traits it reads, the answers behind a
+trait and contesting one, the report, and a skill set against each of them. Anyone can watch it; it ends on where to
+start, and the scenes take an account. Once a person has seen it, Personality opens on the scenes, and they can play it
+again from there.
+
 ## The scenes
 There are 18 scenes. Each is written to a set of IPIP-NEO items, five per facet across the game, with each item in
 exactly one scene (see `scene_grouping.md` in the personality UI folder).

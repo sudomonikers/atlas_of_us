@@ -10,17 +10,28 @@ export interface Person {
   username: string;
   public: boolean; //whether anyone can see their profile at /u/{username}
   admin: boolean; //set by hand in the graph, unlocks /admin
-  physical_intro_seen: boolean; //whether they've been through the story that opens Physical Traits
 }
 
-export interface NewPerson extends Omit<Person, 'id' | 'public' | 'admin' | 'physical_intro_seen'> {
+//their settings in the app, kept on their account and sent with them when they log in
+export interface Config {
+  physical_intro_seen: boolean; //whether they've been through the story that opens Physical Traits
+  personality_intro_seen: boolean; //whether they've been through the story that opens Personality
+  scene_start_note_hidden: boolean; //whether they've turned off the note on getting the most out of a scene
+  support_asked: boolean; //whether they've been asked to chip in, which happens once, when their first report is written
+}
+
+export interface NewPerson extends Omit<Person, 'id' | 'public' | 'admin'> {
   password: string;
 }
 
-interface AuthResponse {
+interface SignedIn {
+  person: Person;
+  config: Config;
+}
+
+interface AuthResponse extends SignedIn {
   token: string;
   expires_at: string;
-  person: Person;
 }
 
 const TOKEN_KEY = 'atlas.token';
@@ -37,10 +48,10 @@ const RETRY_MS = 500;
 const TIMEOUT_MS = 15_000;
 
 //calls the api with the stored token, if any. Failures throw with the api's message.
-//A GET, PUT or DELETE that gets no response at all, or none within TIMEOUT_MS, is sent once more: a browser waking from
-//sleep, back from another app, or idle for a while can send the first request down a connection that died while it was
-//away. They're safe to repeat, and POSTs never are
-export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+//A GET, PUT, PATCH or DELETE that gets no response at all, or none within TIMEOUT_MS, is sent once more: a browser
+//waking from sleep, back from another app, or idle for a while can send the first request down a connection that died
+//while it was away. They're safe to repeat, and POSTs never are
+export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const token = localStorage.getItem(TOKEN_KEY);
   const payload = body === undefined ? '' : JSON.stringify(body);
   const init: RequestInit = {
@@ -68,9 +79,9 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path
 }
 
 const authenticate = async (path: string, body: unknown) => {
-  const { token, person } = await request<AuthResponse>('POST', path, body);
+  const { token, person, config } = await request<AuthResponse>('POST', path, body);
   localStorage.setItem(TOKEN_KEY, token);
-  setSession({ status: 'authenticated', person });
+  setSession({ status: 'authenticated', person, config });
   return person;
 };
 
@@ -81,16 +92,15 @@ export const createUser = (person: NewPerson) => authenticate('/auth/create-user
 //opts the profile in or out of being seen by anyone. Private by default
 export const setPublic = async (on: boolean) => {
   const person = await request<Person>('PUT', '/auth/public', { public: on });
-  setSession({ status: 'authenticated', person });
+  if (session.status === 'authenticated') setSession({ ...session, person });
   return person;
 };
 
-//notes that the person has been through the story that opens Physical Traits. The session changes straight away, so
-//leaving the story lands on the chapters
-export const seePhysicalIntro = async () => {
-  if (session.status === 'authenticated') setSession({ status: 'authenticated', person: { ...session.person, physical_intro_seen: true } });
-  const person = await request<Person>('PUT', '/auth/physical-intro');
-  setSession({ status: 'authenticated', person });
+//changes some of the logged in person's settings. The change shows straight away, and the api's answer replaces it
+export const setConfig = async (changes: Partial<Config>) => {
+  if (session.status === 'authenticated') setSession({ ...session, config: { ...session.config, ...changes } });
+  const config = await request<Config>('PATCH', '/auth/config', changes);
+  if (session.status === 'authenticated') setSession({ ...session, config });
 };
 
 export const logout = async () => {
@@ -103,7 +113,7 @@ export const logout = async () => {
  * session: who is logged in, shared by every component through useSession
  * ------------------------------------------------------------------------------------------- */
 
-export type Session = { status: 'checking' } | { status: 'anonymous' } | { status: 'authenticated'; person: Person };
+export type Session = { status: 'checking' } | { status: 'anonymous' } | ({ status: 'authenticated' } & SignedIn);
 
 let session: Session = localStorage.getItem(TOKEN_KEY) ? { status: 'checking' } : { status: 'anonymous' };
 const listeners = new Set<() => void>();
@@ -115,8 +125,8 @@ function setSession(next: Session) {
 
 //a stored token is checked once when the app loads; an expired or invalid one is thrown away
 if (session.status === 'checking') {
-  request<Person>('GET', '/auth/me')
-    .then((person) => setSession({ status: 'authenticated', person }))
+  request<SignedIn>('GET', '/auth/me')
+    .then((me) => setSession({ status: 'authenticated', ...me }))
     .catch(() => {
       localStorage.removeItem(TOKEN_KEY);
       setSession({ status: 'anonymous' });
@@ -129,3 +139,12 @@ const subscribe = (listener: () => void) => {
 };
 
 export const useSession = () => useSyncExternalStore(subscribe, () => session);
+
+//the logged in person's settings, undefined for anyone logged out
+export const useConfig = () => {
+  const current = useSession();
+  return current.status === 'authenticated' ? current.config : undefined;
+};
+
+//the logged in person's settings as they stand, for reading outside a render, such as in a callback
+export const currentConfig = () => (session.status === 'authenticated' ? session.config : undefined);

@@ -649,7 +649,8 @@ const CROSSFADE = 2; //seconds
 
 // ---------------------------------------------------------------------------
 
-function Cctv({ animation }: { animation: string }) {
+//muted leaves out the sound, for when the scene is shown inside something else, such as the story that opens Personality
+function Cctv({ animation, muted }: { animation: string; muted?: boolean }) {
   //an animation this scene has no cue for holds whatever cue came before it
   const first = cues[animation] ? animation : FIRST_CUE;
   const [active, setActive] = useState(first);
@@ -677,13 +678,14 @@ function Cctv({ animation }: { animation: string }) {
 
   const sound = useRef<Soundscape<Bed> | null>(null);
   useEffect(() => {
+    if (muted) return;
     const soundscape = createSoundscape(BEDS, { volume: MASTER_VOLUME, crossfade: CROSSFADE });
     sound.current = soundscape;
     return () => {
       soundscape.dispose();
       sound.current = null;
     };
-  }, []);
+  }, [muted]);
 
   useEffect(() => {
     sound.current?.mix(mixFor(active, cues[active]));

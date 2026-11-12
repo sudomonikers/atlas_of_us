@@ -1,42 +1,26 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { abilityLevel, getSkillMap, LEVEL_NAMES, requestFill, type Skill, type SkillRef } from '../../skills/api';
-import { emptyBoard, expandSkill, place, withNeighbors, type SkillBoard } from '../../skills/skill_board';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { abilityLevel, LEVEL_NAMES } from '../../skills/api';
 import { Ladder } from '../../skills/skill_page';
-import { GraphBoard, MapWaiting, type LinkKind } from '../../shared_components/graph_board';
-import type { BoardNode } from '../../shared_components/board_layout';
-import { useMap } from '../../shared_components/use_map';
 import { AtlasError } from '../../shared_components/atlas-error';
 import { Thinking } from '../../shared_components/thinking';
-import { blue, brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
-import type { LinkType, Person, Stage } from './script';
-import { findSkill, readNeighbors, readSkill } from './atlas';
+import { blue, brownRed, gunmetal } from '../../shared_components/palette';
+import { listed } from '../../shared_components/story/atlas';
+import { StageGraph } from '../../shared_components/story/stage_graph';
+import { stageStyles } from '../../shared_components/story/stage_styles';
+import { useRank, useSkills } from '../../shared_components/story/use_skills';
+import type { Person, Stage } from './script';
 import { abilityFit, carriedUp } from '../../skills/ability_fit';
 import { FitGraph } from '../../shared_components/fit_graph';
-import { useSession } from '../../auth/api';
 
 // The real Atlas, shown over the whiteboard during an interlude: skills on the skill graph, or a skill's levels with
 // the abilities each takes, set against one of the story's people.
 
 const green = '#2f9a5a';
 const paleBlue = 'var(--pale-blue)';
-const paleRed = 'var(--pale-red)';
-
-//how the board draws the ways skills link, as the Skills page does
-const KINDS: LinkKind[] = [
-  { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
-  { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, colour: 'var(--cinnamon-wood)', length: 130 },
-  { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, colour: blue, length: 150 },
-  { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, colour: brownRed, length: 120 },
-  { id: 'able', label: 'Abilities needed', line: 'solid', arrow: true, colour: 'var(--cinnamon-wood)', length: 120 },
-  { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, colour: blue, length: 120 },
-];
-
-//names run together as people say them: "a, b and c"
-const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
 
 export function StageView({ stage }: { stage: Stage }) {
   return (
-    <div style={styles.stage}>
+    <>
       {stage.kind === 'graph' ? (
         <StageGraph key={stage.skills.join('|')} skills={stage.skills} expand={!!stage.expand} show={stage.show} />
       ) : stage.kind === 'fit' ? (
@@ -44,134 +28,8 @@ export function StageView({ stage }: { stage: Stage }) {
       ) : (
         <StageSkill key={stage.skill} name={stage.skill} rank={stage.rank} person={stage.person} picked={stage.abilities} />
       )}
-    </div>
+    </>
   );
-}
-
-//skills on the skill graph, selected, with everything they link to brought on once expand is set, or with no skills,
-//the whole map. Only the kinds of link in show are drawn, with what they reach, so a step can light up one kind at a time
-function StageGraph({ skills, expand, show }: { skills: string[]; expand: boolean; show?: LinkType[] }) {
-  const map = useMap(getSkillMap);
-  const [board, setBoard] = useState<SkillBoard>(emptyBoard);
-  const [refs, setRefs] = useState<SkillRef[]>();
-  const [error, setError] = useState<string>();
-  const expanded = useRef(false);
-  //a skill only brings on what it takes once its levels are written, so expanding waits for every one of them
-  const written = useSkills(expand ? skills : NONE);
-
-  useEffect(() => {
-    let live = true;
-    Promise.all(skills.map(findSkill)).then((list) => {
-      if (!live) return;
-      setRefs(list);
-      if (list.length) setBoard((b) => ({ ...list.reduce(place, b), selected: list[0].id, focus: { id: list[0].id } }));
-    }, (e) => live && setError(e instanceof Error ? e.message : String(e)));
-    return () => {
-      live = false;
-    };
-  }, [skills]);
-
-  useEffect(() => {
-    if (!expand || !refs || !written.skills || expanded.current) return;
-    expanded.current = true;
-    //once what they link to is on, glide back to the first, which the close-up is laid out around
-    Promise.all(
-      refs.map(async (ref) => {
-        const read = await readNeighbors(ref.id);
-        setBoard((b) => withNeighbors(b, read));
-        const on = withNeighbors({ ...emptyBoard(), skills: { [ref.id]: { skill: ref, expanded: false } } }, read);
-        await expandSkill(on, ref.id, setBoard);
-      }),
-    )
-      .then(() => setBoard((b) => ({ ...b, selected: refs[0].id, focus: { id: refs[0].id } })))
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, [expand, refs, written.skills]);
-
-  const items = useMemo(() => map.items.map((item) => ({ ...item, filled: false })), [map.items]);
-  const visitors = useMemo<BoardNode[]>(
-    () => [
-      ...Object.values(board.skills).filter(({ skill }) => !map.byId.has(skill.id)).map(({ skill, from }): BoardNode => ({ id: skill.id, label: skill.name, look: 'hollow', from })),
-      ...Object.values(board.traits).map(({ trait, from }): BoardNode => ({ id: trait.id, label: trait.name, look: 'pale', shape: 'diamond', from })),
-      ...Object.values(board.abilities).map(({ ability, from }): BoardNode => ({ id: ability.id, label: ability.name, look: 'warm', shape: 'hexagon', from })),
-      ...Object.values(board.topics).map(({ topic, from }): BoardNode => ({ id: topic.id, label: topic.name, look: 'warm', from })),
-    ],
-    [board.skills, board.traits, board.abilities, board.topics, map.byId],
-  );
-  const opened = useMemo(() => new Set(Object.values(board.skills).filter((s) => s.expanded).map((s) => s.skill.id)), [board.skills]);
-  const links = useMemo(() => (show ? board.links.filter((l) => show.includes(l.kind as LinkType)) : board.links), [board.links, show]);
-
-  if (error || written.error) return <AtlasError message={(error ?? written.error)!} />;
-  if (!map.nodes) return <MapWaiting error={map.error} />;
-  //with no links yet the board would draw the whole map, so a step that expands waits for what it brings on
-  if (expand && !links.length) return <Thinking label={written.waiting ?? 'Bringing them onto the board'} style={styles.waiting} />;
-  return (
-    <GraphBoard
-      label={`${listed(skills)} on the skill graph`}
-      noun="skills"
-      items={items}
-      visitors={visitors}
-      links={links}
-      kinds={KINDS}
-      hierarchy="kind_of"
-      layout={board.layout}
-      selected={board.selected}
-      focus={board.focus}
-      opened={opened}
-      onSelect={(id) => setBoard((b) => ({ ...b, selected: id }))}
-      height="100%"
-      title={refs && <h2 style={styles.graphTitle}>{refs.length ? listed(refs.map((r) => r.name)) : 'Every skill in the Atlas'}</h2>}
-    />
-  );
-}
-
-
-const NONE: string[] = [];
-
-//how often a skill being written is checked on
-const FILL_POLL_MS = 4000;
-
-//skills by name, once every one of them has its levels written. Asking for one to be written takes an account, so for
-//anyone logged out it waits on one being written already
-function useSkills(names: string[]) {
-  const signedIn = useSession().status === 'authenticated';
-  const [skills, setSkills] = useState<Skill[]>();
-  const [waiting, setWaiting] = useState<string>();
-  const [error, setError] = useState<string>();
-  useEffect(() => {
-    let live = true;
-    let timer = 0;
-    const load = async () => {
-      try {
-        const read = await Promise.all(names.map(async (name) => readSkill((await findSkill(name)).id)));
-        if (!live) return;
-        const unready = read.filter((s) => s.status !== 'ready');
-        if (signedIn) for (const s of unready) if (s.status === 'stub' || s.status === 'failed') await requestFill(s.id);
-        if (unready.length) {
-          setWaiting(`Writing the levels of ${unready.map((s) => s.name).join(' and ')}`);
-          timer = window.setTimeout(load, FILL_POLL_MS);
-        } else setSkills(read);
-      } catch (e) {
-        if (live) setError(e instanceof Error ? e.message : String(e));
-      }
-    };
-    load();
-    return () => {
-      live = false;
-      clearTimeout(timer);
-    };
-  }, [names, signedIn]);
-  return { skills, waiting, error };
-}
-
-//the level shown: the step's, until the user picks another on the ladder
-function useRank(given: number) {
-  const [rank, setRank] = useState(given);
-  const [lastGiven, setLastGiven] = useState(given);
-  if (given !== lastGiven) {
-    setLastGiven(given);
-    setRank(given);
-  }
-  return [rank, setRank] as const;
 }
 
 //a skill's levels open at one, with each ability it takes beside where person stands on it, and the ones picked out
@@ -280,84 +138,7 @@ function Meter({ need, theirs }: { need: number; theirs?: number }) {
 }
 
 const styles: Record<string, CSSProperties> = {
-  //from under the exit button down to just over the text box
-  stage: {
-    position: 'absolute',
-    left: '50%',
-    top: 72,
-    bottom: 'var(--box-height, 260px)',
-    transform: 'translateX(-50%)',
-    width: 'min(1000px, calc(100% - 32px))',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    zIndex: 5,
-  },
-  waiting: {
-    alignSelf: 'center',
-    fontSize: 22,
-  },
-  graphTitle: {
-    margin: 0,
-    padding: '4px 14px',
-    background: ivory,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: 12,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 26,
-    letterSpacing: 1,
-  },
-  panel: {
-    display: 'flex',
-    flexDirection: 'column',
-    maxHeight: '100%',
-    minHeight: 0,
-    boxSizing: 'border-box',
-    padding: '18px 8px 18px 24px',
-    background: ivory,
-    borderRadius: 'var(--wobbly)',
-    textAlign: 'left',
-    '--panel-fill': paleRed,
-    '--tilt': '0.3deg',
-  } as CSSProperties,
-  scroll: {
-    flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
-    padding: '0 16px 6px 0', //room for the picked abilities' shadows inside the scrolling layer
-  },
-  head: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  name: {
-    margin: 0,
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 38,
-    letterSpacing: 1,
-    lineHeight: 1,
-  },
-  who: {
-    fontSize: 18,
-    color: brownRed,
-  },
-  description: {
-    margin: '10px 0 0',
-    fontSize: 18,
-    lineHeight: 1.3,
-  },
-  subheading: {
-    margin: '14px 0 8px',
-    fontFamily: comic,
-    fontWeight: 400,
-    fontSize: 24,
-    letterSpacing: 1,
-  },
+  ...stageStyles,
   abilities: {
     margin: 0,
     padding: 0,
@@ -422,13 +203,6 @@ const styles: Record<string, CSSProperties> = {
     bottom: 0,
     width: 4,
     marginLeft: -2,
-  },
-  fitColumn: {
-    flex: 1,
-    minHeight: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    paddingRight: 16,
   },
   unknown: {
     fontSize: 14,

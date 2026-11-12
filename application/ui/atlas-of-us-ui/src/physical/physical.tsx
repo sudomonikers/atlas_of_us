@@ -24,7 +24,7 @@ import Noting from './noting';
 import Rating from './rating';
 import Results from './results';
 import { CHAPTERS, type Chapter, type Known, type Scene } from './tour';
-import { seePhysicalIntro, useSession } from '../auth/api';
+import { setConfig, useConfig, useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 import { noteWatched, useWatched } from './intro/watched';
 import { navigate, replace, useSearch } from '../router';
@@ -65,13 +65,14 @@ interface Loaded extends Known {
 function Physical() {
   const params = new URLSearchParams(useSearch());
   const session = useSession();
+  const config = useConfig();
   const watched = useWatched();
-  const seen = watched || (session.status === 'authenticated' && session.person.physical_intro_seen);
+  const seen = watched || !!config?.physical_intro_seen;
 
   //watched while logged out, then logged in: it's saved on their account
-  const unsaved = session.status === 'authenticated' && !session.person.physical_intro_seen && watched;
+  const unsaved = !!config && !config.physical_intro_seen && watched;
   useEffect(() => {
-    if (unsaved) seePhysicalIntro().then(() => noteWatched(false), () => {});
+    if (unsaved) setConfig({ physical_intro_seen: true }).then(() => noteWatched(false), () => {});
   }, [unsaved]);
 
   if (session.status === 'checking') return null;

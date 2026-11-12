@@ -11,6 +11,19 @@ CREATE (andrew:Person {id: "0b6f3c1e-2d4a-4c8e-9f1a-7e5d2b8c4a10", name: "Andrew
 CREATE (lulu:Person {id: "9c2e7a4b-5f1d-4e3a-8b6c-1d0f9e8a7b23", name: "Lulu Li", username: "lzy7717"});
 ```
 
+A Person's settings in the app are on their PersonConfig, made the first time they change one. A setting that isn't there is at its default, false.
+
+| Property | Meaning |
+|---|---|
+| `physicalIntroSeen` | They've been through the story that opens Physical Traits |
+| `personalityIntroSeen` | They've been through the story that opens Personality |
+| `sceneStartNoteHidden` | They've turned off the note on getting the most out of a scene |
+| `supportAsked` | They've been asked to chip in, which happens once, when their first report is written |
+
+```cypher
+(andrew)-[:HAS_CONFIG]->(:PersonConfig {physicalIntroSeen: true})
+```
+
 ### Personality Graph
 We model a person's personality with the Big Five: Openness, Conscientiousness, Extraversion, Agreeableness and
 Neuroticism, each split into six facets as defined by the IPIP-NEO. There is one static node per facet, and a person's

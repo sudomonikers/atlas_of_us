@@ -92,12 +92,22 @@ function AffectedByNote({ affectedBy }: { affectedBy: AffectedBy | undefined }) 
   );
 }
 
-function TraitRow({ trait, compare, affectedBy, onContested }: { trait: Trait; compare: boolean; affectedBy?: AffectedBy; onContested: () => void }) {
-  const [open, setOpen] = useState(false);
+interface TraitRowProps {
+  trait: Trait;
+  compare: boolean; //overlay everyone's average on the bar
+  affectedBy?: AffectedBy;
+  onContested?: () => void; //called when the user contests a piece of evidence. Without it, nothing can be contested
+  early?: boolean; //whether it's an early read, when that's known apart from the answers listed
+  open?: boolean; //whether the answers behind it start open
+}
+
+//one trait: its bar, and the answers behind it, which clicking it opens
+export function TraitRow({ trait, compare, affectedBy, onContested, early: knownEarly, open: startOpen = false }: TraitRowProps) {
+  const [open, setOpen] = useState(startOpen);
   const percent = toPercent(trait.value);
   const average = compare ? toPercent(trait.average) : undefined;
   const explained = trait.contributions.length > 0;
-  const early = percent !== undefined && trait.contributions.filter((c) => c.weight > 0).length < 3; //based on fewer than 3 answers, so shown faded
+  const early = percent !== undefined && (knownEarly ?? trait.contributions.filter((c) => c.weight > 0).length < 3); //based on fewer than 3 answers, so shown faded
   const poles = polesOf(trait.name);
 
   return (
@@ -179,13 +189,13 @@ const change = (before: Shift, after: Shift) =>
       ? `still ${push(after)}, reworded`
       : `still ${push(after)}, but ${pull(after) < pull(before) ? 'less' : 'more'} than before`;
 
-function ContributionCard({ contribution: c, onContested }: { contribution: Contribution; onContested: () => void }) {
+function ContributionCard({ contribution: c, onContested }: { contribution: Contribution; onContested?: () => void }) {
   const [contesting, setContesting] = useState(false);
   const up = c.level > 0.5;
   const removed = c.weight === 0;
   const neither = c.level === 0.5;
   const pending = c.contests.some((contest) => contest.status === 'pending');
-  const contestable = !pending && !c.dropped && c.contests.length < MAX_CONTESTS_PER_EVIDENCE;
+  const contestable = !!onContested && !pending && !c.dropped && c.contests.length < MAX_CONTESTS_PER_EVIDENCE;
   return (
     <li style={styles.contribution}>
       <div style={styles.contributionHead}>
@@ -222,7 +232,7 @@ function ContributionCard({ contribution: c, onContested }: { contribution: Cont
           onCancel={() => setContesting(false)}
           onSent={() => {
             setContesting(false);
-            onContested();
+            onContested?.();
           }}
         />
       )}

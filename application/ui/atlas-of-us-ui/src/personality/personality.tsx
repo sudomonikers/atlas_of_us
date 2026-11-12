@@ -19,12 +19,15 @@ import { thePromotion } from './the_promotion/script';
 import { theCabin } from './the_cabin/script';
 import { thePortrait } from './the_portrait/script';
 import Explore from './explore';
+import { SCENARIOS, THUMBS, type Kind, type ScenarioInfo } from './scenarios';
 import MyPersonality from './my_personality';
 import { DOMAIN_LOOK, DOMAIN_TRAITS } from './poles';
 import { Disclosure } from '../shared_components/disclosure';
 import { ProgressMeter } from '../shared_components/progress-meter';
 import { Checkbox } from '../shared_components/checkbox';
-import { useSession } from '../auth/api';
+import { currentConfig, setConfig, useConfig, useSession } from '../auth/api';
+import { navigate, replace, useSearch } from '../router';
+import { noteWatched, useWatched } from './intro/watched';
 import { Footer } from '../shared_components/footer';
 import { SupportPopup } from '../shared_components/support';
 import { Nav } from '../shared_components/nav';
@@ -54,6 +57,9 @@ const SafetyCard = lazy(() => import('./the_emergency/card'));
 const PixelOffice = lazy(() => import('./the_promotion/pixel'));
 const PaperCabin = lazy(() => import('./the_cabin/papercut'));
 const Oils = lazy(() => import('./the_portrait/oils'));
+
+//the story that opens Personality, loaded only when it plays
+const Intro = lazy(() => import('./intro/intro'));
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -187,16 +193,6 @@ function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQu
  * scenarios
  * ------------------------------------------------------------------------------------------- */
 
-type Kind = 'story' | 'interview' | 'live';
-
-export interface ScenarioInfo {
-  id: string;
-  title: string;
-  kinds: Kind[]; //the situation type. Whether it's timed comes from its script's clock
-  blurb: string;
-  facets: PersonalityTrait[];
-}
-
 //the tags on a scenario card, with what each means on hover
 const KIND_LOOK: Record<Kind | 'timed', { label: string; meaning: string }> = {
   story: { label: 'Story', meaning: 'A story you play through, choosing as it goes' },
@@ -205,146 +201,10 @@ const KIND_LOOK: Record<Kind | 'timed', { label: string; meaning: string }> = {
   timed: { label: 'Timed', meaning: 'Part of it runs against a real clock' },
 };
 
-//a still of each scene's opening, keyed by scenario id
-const THUMBS = Object.fromEntries(
-  Object.entries(import.meta.glob<string>('./*/thumb.jpg', { eager: true, import: 'default' })).map(([path, url]) => [path.split('/')[1], url]),
-);
-
 export interface Playable {
   script: Script;
   renderScene: (animation: string, clock?: number) => ReactNode;
 }
-
-//every scenario, in play order. Each is written to a set of IPIP-NEO items: which ones,
-//and why the order, are in scene_grouping.md
-const SCENARIOS: ScenarioInfo[] = [
-  {
-    id: 'the_story_game',
-    title: 'The Story Game',
-    kinds: ['live'],
-    blurb: 'A narrator invites you to build a world together, one question at a time.',
-    facets: theStoryGame.facets,
-  },
-  {
-    id: 'the_night_class',
-    title: 'The Night Class',
-    kinds: ['story'],
-    blurb: 'An evening class on big questions, a thought experiment, and a lively room.',
-    facets: theNightClass.facets,
-  },
-  {
-    id: 'the_big_party',
-    title: 'The Big Party',
-    kinds: ['story'],
-    blurb: "A friend's 40th: two hundred people, a loud band, and you know about four of them.",
-    facets: theBigParty.facets,
-  },
-  {
-    id: 'the_time_study',
-    title: 'The Time Study',
-    kinds: ['interview'],
-    blurb: 'A researcher who studies how people spend their days asks about yours.',
-    facets: theTimeStudy.facets,
-  },
-  {
-    id: 'the_night_market',
-    title: 'The Night Market',
-    kinds: ['story'],
-    blurb: 'A fable: ten silver coins, a market town at night, and a coach home at dawn.',
-    facets: theNightMarket.facets,
-  },
-  {
-    id: 'the_bad_day',
-    title: 'The Bad Day',
-    kinds: ['story'],
-    blurb: 'Traffic, a broken printer, a receptionist who keeps talking. A comedy of small disasters.',
-    facets: theBadDay.facets,
-  },
-  {
-    id: 'the_dare',
-    title: 'The Dare',
-    kinds: ['story'],
-    blurb: 'A trip abroad with a friend who chases adrenaline.',
-    facets: theDare.facets,
-  },
-  {
-    id: 'the_shoplifter',
-    title: 'The Shoplifter',
-    kinds: ['story'],
-    blurb: 'Your shop says always call the police. Then you catch a teenager stealing.',
-    facets: theShoplifter.facets,
-  },
-  {
-    id: 'the_committee',
-    title: 'The Committee',
-    kinds: ['story'],
-    blurb: 'A neighborhood committee is putting on a street festival, and nobody is in charge.',
-    facets: theCommittee.facets,
-  },
-  {
-    id: 'the_houseguest',
-    title: 'The Houseguest',
-    kinds: ['story'],
-    blurb: 'A friend of a friend stays for a week: messy, closed off, and going through something.',
-    facets: theHouseguest.facets,
-  },
-  {
-    id: 'the_promotion',
-    title: 'The Promotion',
-    kinds: ['story'],
-    blurb: "You and a peer are up for the same promotion, and there are easy ways to tip it.",
-    facets: thePromotion.facets,
-  },
-  {
-    id: 'the_festival',
-    title: 'The Festival',
-    kinds: ['live'],
-    blurb: 'A free afternoon at a city arts festival, and a map of everything on.',
-    facets: theFestival.facets,
-  },
-  {
-    id: 'the_free_weekend',
-    title: 'The Free Weekend',
-    kinds: ['story'],
-    blurb: "Nothing booked but a promise to help a friend move. Then a much better invitation arrives.",
-    facets: theFreeWeekend.facets,
-  },
-  {
-    id: 'the_stranger',
-    title: 'The Stranger',
-    kinds: ['story'],
-    blurb: 'A man stops you in the street. His wallet was stolen, and he needs bus fare home.',
-    facets: theStranger.facets,
-  },
-  {
-    id: 'the_emergency',
-    title: 'The Emergency',
-    kinds: ['live'],
-    blurb: "A grease fire breaks out in the kitchen during a dinner you're hosting.",
-    facets: theEmergency.facets,
-  },
-  {
-    id: 'the_feud',
-    title: 'The Feud',
-    kinds: ['story'],
-    blurb: 'Your neighbor builds a fence three feet onto your land.',
-    facets: theFeud.facets,
-  },
-  {
-    id: 'the_cabin',
-    title: 'The Cabin',
-    kinds: ['story', 'interview'],
-    blurb: "A winter weekend with old friends, a tradition under threat, and a friend who isn't here.",
-    facets: theCabin.facets,
-  },
-  {
-    id: 'the_portrait',
-    title: 'The Portrait',
-    kinds: ['interview'],
-    blurb: 'A painter does your portrait, and talks while they work.',
-    facets: thePortrait.facets,
-  },
-];
 
 //scenarios that have been built so far, keyed by ScenarioInfo id
 const PLAYABLE: Record<string, Playable> = {
@@ -383,12 +243,43 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'explore', label: 'Explore' },
 ];
 
+//Personality opens on the story of Sam and Priya the first time, for anyone, and on the dashboard once they've seen
+//it. ?intro plays it again, ?scene opens a scenario and ?view one of the dashboard's views
 function Personality() {
+  const params = new URLSearchParams(useSearch());
+  const session = useSession();
+  const config = useConfig();
+  const watched = useWatched();
+  const seen = watched || !!config?.personality_intro_seen;
+
+  //watched while logged out, then logged in: it's saved on their account
+  const unsaved = !!config && !config.personality_intro_seen && watched;
+  useEffect(() => {
+    if (unsaved) setConfig({ personality_intro_seen: true }).then(() => noteWatched(false), () => {});
+  }, [unsaved]);
+
+  if (session.status === 'checking') return null;
+  if (params.has('intro') || (!params.has('scene') && !params.has('view') && !seen))
+    return (
+      <Suspense fallback={null}>
+        <Intro />
+      </Suspense>
+    );
+  return <Dashboard />;
+}
+
+const isView = (view: string | null): view is View => VIEWS.some((v) => v.id === view);
+
+//the scenarios, My Personality and Explore
+function Dashboard() {
   const session = useSession();
   const loggedIn = session.status === 'authenticated';
   const personId = session.status === 'authenticated' ? session.person.id : undefined;
   const username = session.status === 'authenticated' ? session.person.username : undefined;
-  const [view, setView] = useState<View>('scenarios');
+  const startNoteHidden = !!useConfig()?.scene_start_note_hidden; //whether they've turned off the note shown before each scenario
+  const params = new URLSearchParams(useSearch());
+  const asked = params.get('view');
+  const [view, setView] = useState<View>(isView(asked) ? asked : 'scenarios');
   const [playing, setPlaying] = useState<string>(); //id of the scenario currently open
   const [starting, setStarting] = useState<string>(); //id of the scenario whose start note is showing
   const [answers, setAnswers] = useState<SavedAnswer[]>(); //undefined until loaded
@@ -451,7 +342,10 @@ function Personality() {
         setTraits(traits);
         setReport(report);
         setTraitsError(undefined);
-        if (report.report && !supportAsked()) setAsking(true);
+        if (report.report && currentConfig()?.support_asked === false) {
+          setAsking(true);
+          setConfig({ support_asked: true }).catch(() => {}); //if it can't be saved, they're asked again next time
+        }
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
@@ -479,6 +373,21 @@ function Personality() {
     const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets, clock);
     if (saved.scored) setRecalculating(true);
   };
+
+  //a scenario asked for in the url opens with its start note, once their progress is in and nothing is being scored
+  const askedScene = params.get('scene');
+  const [openedScene, setOpenedScene] = useState<string>();
+  if (askedScene && askedScene !== openedScene && answers !== undefined && !recalculating) {
+    setOpenedScene(askedScene);
+    if (askedScene in PLAYABLE) {
+      if (startNoteHidden) setPlaying(askedScene);
+      else setStarting(askedScene);
+    }
+  }
+  //once what the url asked for is open, the url goes back to plain
+  useEffect(() => {
+    if (asked !== null || openedScene) replace('/personality');
+  }, [asked, openedScene]);
 
   const open = playing ? PLAYABLE[playing] : undefined;
   if (playing && open) {
@@ -551,6 +460,9 @@ function Personality() {
         </header>
 
         <div style={dash.views}>
+          <button className="comic-lift" style={{ ...dash.viewButton, ...dash.replay }} onClick={() => navigate('/personality?intro')}>
+            Replay the intro ▶
+          </button>
           {VIEWS.map((v) => (
             <button
               key={v.id}
@@ -601,7 +513,7 @@ function Personality() {
                   progress={progress[scenario.id]}
                   playable={scenario.id in PLAYABLE}
                   locked={recalculating}
-                  onPlay={() => (startNoteHidden() ? setPlaying(scenario.id) : setStarting(scenario.id))}
+                  onPlay={() => (startNoteHidden ? setPlaying(scenario.id) : setStarting(scenario.id))}
                 />
               ))}
             </ul>
@@ -644,40 +556,11 @@ const TIPS = [
   { title: 'Jokes are fine', note: 'How you answer says something too.' },
 ];
 
-//whether the user has asked not to see the start note again. Kept in this browser only; if storage is blocked the note
-//just keeps showing
-const HIDE_START_NOTE = 'atlas.hideStartNote';
-const startNoteHidden = () => {
-  try {
-    return localStorage.getItem(HIDE_START_NOTE) === '1';
-  } catch {
-    return false;
-  }
-};
-
-//whether the chip-in popup has shown in this browser, marking it shown. If storage is blocked it shows every time
-const SUPPORT_ASKED = 'atlas.supportAsked';
-const supportAsked = () => {
-  try {
-    if (localStorage.getItem(SUPPORT_ASKED) === '1') return true;
-    localStorage.setItem(SUPPORT_ASKED, '1');
-  } catch {
-    //storage is blocked
-  }
-  return false;
-};
-
 //how to answer to get the most accurate results. Shown before every scenario starts, until the user turns it off
 function GettingTheMost({ onBack, onStart }: { onBack: () => void; onStart: () => void }) {
   const [hide, setHide] = useState(false);
   const start = () => {
-    if (hide) {
-      try {
-        localStorage.setItem(HIDE_START_NOTE, '1');
-      } catch {
-        //storage is blocked, so it will show again next time
-      }
-    }
+    if (hide) setConfig({ scene_start_note_hidden: true }).catch(() => {}); //if it can't be saved, it shows again next time
     onStart();
   };
   return (
@@ -1768,6 +1651,12 @@ const dash: Record<string, CSSProperties> = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: 12,
+  },
+  //at the far end of the row of views
+  replay: {
+    order: 1,
+    marginLeft: 'auto',
+    fontSize: 20,
   },
   viewButton: {
     padding: '4px 20px',

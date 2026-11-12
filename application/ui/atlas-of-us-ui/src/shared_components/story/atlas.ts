@@ -1,9 +1,8 @@
 import { getNeighbors, getSkill, getSkillMap, searchSkills, type Neighbors, type Skill, type SkillRef } from '../../skills/api';
-import { preloadMap } from '../../shared_components/use_map';
-import type { Script } from './script';
+import { preloadMap } from '../use_map';
 
-// What the interludes read from the real Atlas, each kept for as long as the page is open, and read ahead as the story
-// opens so each interlude has it by the time it's reached.
+// What the stories that open a module read from the real Atlas, each kept for as long as the page is open, and read
+// ahead as a story opens so each interlude has it by the time it's reached.
 
 //each fetch kept for as long as the page is open, by what it's for, so a step finds what an earlier one or the
 //preload already read. A fetch that fails is forgotten, so the next ask tries again
@@ -39,20 +38,26 @@ export const readSkill = (id: string) => {
 const linksOf = new Map<string, Promise<Neighbors>>();
 export const readNeighbors = (id: string) => kept(linksOf, id, () => getNeighbors(id));
 
-//starts reading everything the script's interludes show, as the story opens, so each one is there by the time it's
-//reached: the skill map, each skill, its levels, and what the graph steps that expand bring on
-export function preload(script: Script) {
+//a skill a story shows, and whether a step brings on what it links to
+export interface Shown {
+  name: string;
+  expand: boolean;
+}
+
+//starts reading everything a story's interludes show, as it opens: the skill map, each skill, its levels, and what
+//the steps that expand bring on
+export function preloadSkills(shown: Shown[]) {
   preloadMap(getSkillMap);
-  for (const section of Object.values(script.sections)) {
-    for (const step of section.steps) {
-      const stage = 'stage' in step ? step.stage : undefined;
-      if (!stage) continue;
-      const names = stage.kind === 'skill' ? [stage.skill] : stage.skills;
-      for (const name of names) {
-        findSkill(name)
-          .then((ref) => Promise.all([readSkill(ref.id), stage.kind === 'graph' && stage.expand ? readNeighbors(ref.id) : null]))
-          .catch(() => {}); //the step asks again when it's reached, and shows what went wrong then
-      }
-    }
+  for (const { name, expand } of shown) {
+    findSkill(name)
+      .then((ref) => Promise.all([readSkill(ref.id), expand ? readNeighbors(ref.id) : null]))
+      .catch(() => {}); //the step asks again when it's reached, and shows what went wrong then
   }
 }
+
+//the ways the skill graph links a skill: to the physical abilities and personality traits it takes, the knowledge it
+//needs, the skills it needs, the skills it's a kind of, and the skills like it
+export type LinkType = 'able' | 'takes' | 'knows' | 'needs' | 'kind_of' | 'similar';
+
+//names run together as people say them: "a, b and c"
+export const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
