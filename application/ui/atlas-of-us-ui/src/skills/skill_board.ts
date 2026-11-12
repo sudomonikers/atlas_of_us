@@ -61,7 +61,7 @@ export function place(board: SkillBoard, skill: SkillRef): SkillBoard {
 }
 
 //keeps what was read about a skill on the board
-function read(board: SkillBoard, neighbors: Neighbors): SkillBoard {
+export function withNeighbors(board: SkillBoard, neighbors: Neighbors): SkillBoard {
   const { id, name, status } = neighbors.skill;
   const on = board.skills[id];
   if (!on) return board;
@@ -173,7 +173,7 @@ export function readThen(board: SkillBoard, id: string, setBoard: Update, then: 
     setBoard((b) => then(b));
     return Promise.resolve();
   }
-  return getNeighbors(id).then((neighbors) => setBoard((b) => then(read(b, neighbors))));
+  return getNeighbors(id).then((neighbors) => setBoard((b) => then(withNeighbors(b, neighbors))));
 }
 
 //brings the skills linked to a skill onto the board, reading it first if it hasn't been read

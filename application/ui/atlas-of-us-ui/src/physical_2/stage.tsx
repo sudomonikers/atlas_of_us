@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { abilityLevel, getSkill, getSkillMap, LEVEL_NAMES, requestFill, searchSkills, type AbilityRequirement, type Skill, type SkillRef } from '../skills/api';
-import { emptyBoard, expandSkill, place, type SkillBoard } from '../skills/skill_board';
+import { abilityLevel, getSkillMap, LEVEL_NAMES, requestFill, type Skill, type SkillRef } from '../skills/api';
+import { emptyBoard, expandSkill, place, withNeighbors, type SkillBoard } from '../skills/skill_board';
 import { Ladder } from '../skills/skill_page';
 import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
 import type { BoardNode } from '../shared_components/board_layout';
@@ -9,6 +9,9 @@ import { AtlasError } from '../shared_components/atlas-error';
 import { Thinking } from '../shared_components/thinking';
 import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 import type { LinkType, Person, Stage } from './script';
+import { findSkill, readNeighbors, readSkill } from './atlas';
+import { abilityFit, carriedUp } from '../skills/ability_fit';
+import { FitGraph } from '../shared_components/fit_graph';
 
 // The real Atlas, shown over the whiteboard during an interlude: skills on the skill graph, or a skill's levels with
 // the abilities each takes, set against one of the story's people.
@@ -29,21 +32,6 @@ const KINDS: LinkKind[] = [
 
 //names run together as people say them: "a, b and c"
 const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
-
-//a skill by name, once per name for as long as the page is open
-const found = new Map<string, Promise<SkillRef>>();
-function findSkill(name: string) {
-  if (!found.has(name)) {
-    const finding = searchSkills(name).then((results) => {
-      const skill = results.find((s) => s.name.toLowerCase() === name.toLowerCase());
-      if (!skill) throw new Error(`${name} isn't in the Atlas yet`);
-      return { id: skill.id, name: skill.name, status: skill.status };
-    });
-    finding.catch(() => found.delete(name));
-    found.set(name, finding);
-  }
-  return found.get(name)!;
-}
 
 export function StageView({ stage }: { stage: Stage }) {
   return (
@@ -86,7 +74,14 @@ function StageGraph({ skills, expand, show }: { skills: string[]; expand: boolea
     if (!expand || !refs || !written.skills || expanded.current) return;
     expanded.current = true;
     //once what they link to is on, glide back to the first, which the close-up is laid out around
-    Promise.all(refs.map((ref) => expandSkill(emptyBoard(), ref.id, setBoard)))
+    Promise.all(
+      refs.map(async (ref) => {
+        const read = await readNeighbors(ref.id);
+        setBoard((b) => withNeighbors(b, read));
+        const on = withNeighbors({ ...emptyBoard(), skills: { [ref.id]: { skill: ref, expanded: false } } }, read);
+        await expandSkill(on, ref.id, setBoard);
+      }),
+    )
       .then(() => setBoard((b) => ({ ...b, selected: refs[0].id, focus: { id: refs[0].id } })))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [expand, refs, written.skills]);
@@ -128,15 +123,6 @@ function StageGraph({ skills, expand, show }: { skills: string[]; expand: boolea
   );
 }
 
-//the abilities a level takes, its own and carried up from the levels below it, the most important first
-function carriedUp(skill: Skill, rank: number) {
-  const carried = new Map<string, AbilityRequirement>();
-  for (const level of [...skill.levels].sort((a, b) => a.rank - b.rank)) {
-    if (level.rank > rank) break;
-    for (const requirement of level.abilities) carried.set(requirement.name, requirement);
-  }
-  return [...carried.values()].sort((a, b) => b.strength - a.strength);
-}
 
 const NONE: string[] = [];
 
@@ -153,7 +139,7 @@ function useSkills(names: string[]) {
     let timer = 0;
     const load = async () => {
       try {
-        const read = await Promise.all(names.map(async (name) => getSkill((await findSkill(name)).id)));
+        const read = await Promise.all(names.map(async (name) => readSkill((await findSkill(name)).id)));
         if (!live) return;
         const unready = read.filter((s) => s.status !== 'ready');
         for (const s of unready) if (s.status === 'stub' || s.status === 'failed') await requestFill(s.id);
@@ -242,53 +228,17 @@ function StageSkill({ name, rank: given, person, picked }: { name: string; rank:
   );
 }
 
-//where someone stands on an ability a skill takes: ahead of it, short of it, or open to a condition they live with.
-//Nothing when there's nothing to go on
-type Standing = 'ahead' | 'short' | 'affected';
-function standing(person: Person, requirement: AbilityRequirement): Standing | undefined {
-  if (person.conditions?.some((c) => c.affects.includes(requirement.name))) return 'affected';
-  const theirs = person.abilities[requirement.name];
-  if (theirs === undefined) return undefined;
-  return theirs >= requirement.level ? 'ahead' : 'short';
-}
-
-const LOOK: Record<Standing, { colour: string; dash?: string; label: (person: Person) => string }> = {
-  ahead: { colour: green, label: () => 'Ahead of what it takes' },
-  short: { colour: brownRed, dash: '12 8', label: () => 'Short of what it takes' },
-  affected: { colour: brownRed, dash: '2 8', label: (p) => `Can be affected by ${p.conditions?.map((c) => c.name).join(' and ')}` },
-};
-
-//the drawing's own space: the person on the left, their abilities down the middle, the skills on the right
-const FIT_W = 1000;
-const ROW = 38;
-const BOX = { x: 290, w: 290, h: 32 };
-const SKILL_X = 860;
-const SKILL_R = 62;
-
-//a person's strengths and gaps against a few skills at once: a line from each ability we know about them to each
-//skill that takes it, green where they're ahead of what it takes and red where they're short or their condition can
-//reach it. Skills not in focus step back
+//a person's strengths and gaps against a few skills at once, at a level they can change on the ladder. Skills not in
+//focus step back
 function StageFit({ person, skills: names, rank: given, focus }: { person: Person; skills: string[]; rank: number; focus?: string[] }) {
   const { skills, waiting, error } = useSkills(names);
   const [rank, setRank] = useRank(given);
   if (error) return <AtlasError message={error} />;
   if (!skills) return <Thinking label={waiting ?? `Opening ${names.join(', ')}`} />;
 
-  const links = skills.flatMap((skill) =>
-    carriedUp(skill, rank).flatMap((requirement) => {
-      const how = standing(person, requirement);
-      return how ? [{ skill: skill.name, requirement, how }] : [];
-    }),
-  );
-  //strengths first, the strongest at the top, then the gaps, then what the condition can reach
-  const worst = (name: string) => Math.max(...links.filter((l) => l.requirement.name === name).map((l) => ['ahead', 'short', 'affected'].indexOf(l.how)));
-  const abilities = [...new Set(links.map((l) => l.requirement.name))].sort((a, b) => worst(a) - worst(b) || (person.abilities[b] ?? 0) - (person.abilities[a] ?? 0));
-
-  const height = Math.max(abilities.length * ROW, skills.length * 170) + 20;
-  const rowY = (i: number) => (height - abilities.length * ROW) / 2 + i * ROW + ROW / 2;
-  const skillY = (i: number) => (height / skills.length) * (i + 0.5);
-  const inFocus = (name: string) => !focus || focus.includes(name);
-
+  const affectedBy: Record<string, string[]> = {};
+  for (const condition of person.conditions ?? []) for (const ability of condition.affects) (affectedBy[ability] ??= []).push(condition.name);
+  const { items, targets, links } = abilityFit(skills, rank, person.abilities, affectedBy);
   return (
     <section style={{ ...styles.panel, height: '100%' }} className="comic-panel">
       {/* the drawing shrinks to fit, rather than scrolling */}
@@ -300,79 +250,15 @@ function StageFit({ person, skills: names, rank: given, focus }: { person: Perso
           </div>
           <Ladder rank={rank} mine={null} onRank={setRank} compact />
         </header>
-        <svg viewBox={`0 0 ${FIT_W} ${height}`} style={styles.fit} role="img" aria-label={`${person.name}'s strengths and gaps against ${names.join(', ')}`}>
-          {abilities.map((name, i) => (
-            <path key={name} d={`M 150 ${height / 2} C 220 ${height / 2}, 220 ${rowY(i)}, ${BOX.x} ${rowY(i)}`} fill="none" stroke={gunmetal} strokeWidth={2} opacity={0.3} />
-          ))}
-          {links.map(({ skill, requirement, how }) => {
-            const y0 = rowY(abilities.indexOf(requirement.name));
-            const y1 = skillY(names.indexOf(skill));
-            const look = LOOK[how];
-            return (
-              <path
-                key={`${skill}:${requirement.name}`}
-                d={`M ${BOX.x + BOX.w} ${y0} C ${BOX.x + BOX.w + 120} ${y0}, ${SKILL_X - 160} ${y1}, ${SKILL_X - SKILL_R - 4} ${y1}`}
-                fill="none"
-                stroke={look.colour}
-                strokeWidth={2 + requirement.strength * 5}
-                strokeDasharray={look.dash}
-                strokeLinecap="round"
-                opacity={inFocus(skill) ? 0.85 : 0.12}
-                style={styles.link}
-              >
-                <title>{`${skill} takes ${requirement.name}: ${look.label(person).toLowerCase()}`}</title>
-              </path>
-            );
-          })}
-
-          <circle cx={100} cy={height / 2} r={50} fill="var(--cinnamon-wood)" stroke={gunmetal} strokeWidth={4} />
-          <text x={100} y={height / 2 + 9} textAnchor="middle" style={styles.fitPerson}>
-            {person.name}
-          </text>
-
-          {abilities.map((name, i) => {
-            const theirs = person.abilities[name];
-            const affected = person.conditions?.filter((c) => c.affects.includes(name)) ?? [];
-            return (
-              <g key={name} transform={`translate(${BOX.x} ${rowY(i) - BOX.h / 2})`}>
-                <rect width={BOX.w} height={BOX.h} rx={10} fill={affected.length ? 'var(--pale-cinnamon)' : '#fff'} stroke={gunmetal} strokeWidth={3} strokeDasharray={affected.length ? '6 5' : undefined} />
-                <text x={12} y={22} style={styles.fitAbility}>
-                  {name}
-                </text>
-                <text x={BOX.w - 12} y={22} textAnchor="end" style={{ ...styles.fitValue, fill: affected.length ? brownRed : gunmetal }}>
-                  {affected.length ? affected.map((c) => c.name).join(', ') : theirs === undefined ? '' : `${Math.round(theirs * 100)}`}
-                </text>
-              </g>
-            );
-          })}
-
-          {skills.map((skill, i) => {
-            const mine = links.filter((l) => l.skill === skill.name);
-            const ahead = mine.filter((l) => l.how === 'ahead').length;
-            const y = skillY(i);
-            return (
-              <g key={skill.id} opacity={inFocus(skill.name) ? 1 : 0.3} style={styles.link}>
-                <circle cx={SKILL_X} cy={y} r={SKILL_R} fill={ivory} stroke={gunmetal} strokeWidth={4} />
-                <text x={SKILL_X} y={y + 7} textAnchor="middle" style={styles.fitSkill}>
-                  {skill.name}
-                </text>
-                <text x={SKILL_X} y={y + SKILL_R + 24} textAnchor="middle" style={{ ...styles.fitValue, fill: ahead === mine.length ? green : brownRed }}>
-                  {`${ahead} strength${ahead === 1 ? '' : 's'}, ${mine.length - ahead} gap${mine.length - ahead === 1 ? '' : 's'}`}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-        <div style={styles.legend}>
-          {(Object.keys(LOOK) as Standing[]).filter((how) => links.some((l) => l.how === how)).map((how) => (
-            <span key={how} style={styles.legendItem}>
-              <svg width={44} height={12} aria-hidden>
-                <path d="M 4 6 H 40" stroke={LOOK[how].colour} strokeWidth={5} strokeDasharray={LOOK[how].dash} strokeLinecap="round" />
-              </svg>
-              {LOOK[how].label(person)}
-            </span>
-          ))}
-        </div>
+        <FitGraph
+          who={person.name}
+          items={items}
+          targets={targets}
+          links={links}
+          focus={focus && skills.filter((s) => focus.includes(s.name)).map((s) => s.id)}
+          labels={{ affected: `Can be affected by ${person.conditions?.map((c) => c.name).join(' and ')}` }}
+          label={`${person.name}'s strengths and gaps against ${listed(names)}`}
+        />
       </div>
     </section>
   );
@@ -540,48 +426,6 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     paddingRight: 16,
-  },
-  fit: {
-    flex: 1,
-    minHeight: 0,
-    width: '100%',
-    marginTop: 8,
-  },
-  link: {
-    transition: 'opacity 0.4s',
-  },
-  fitPerson: {
-    fontFamily: comic,
-    fontSize: 26,
-    letterSpacing: 1,
-    fill: ivory,
-  },
-  fitAbility: {
-    fontFamily: 'var(--font-hand)',
-    fontSize: 19,
-    fill: gunmetal,
-  },
-  fitValue: {
-    fontFamily: 'var(--font-hand)',
-    fontSize: 17,
-  },
-  fitSkill: {
-    fontFamily: comic,
-    fontSize: 20,
-    letterSpacing: 1,
-    fill: gunmetal,
-  },
-  legend: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '4px 18px',
-    marginTop: 6,
-    fontSize: 16,
-  },
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
   },
   unknown: {
     fontSize: 14,

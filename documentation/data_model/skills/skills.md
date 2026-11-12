@@ -14,7 +14,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 
 | Label | Key properties | What it is |
 |---|---|---|
-| Skill | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `createdDate` | A skill. `status` is `stub`, `filling`, `ready` or `failed`, and `vector` is an embedding of its name, description and aliases |
+| Skill | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `createdDate`, `abilityScale` | A skill. `status` is `stub`, `filling`, `ready` or `failed`, and `vector` is an embedding of its name, description and aliases. `abilityScale` is `anchored` once its ability requirements are worked out on the level scale, even when it takes none |
 | DreyfusLevel | `name`, `rank` (1 to 5), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a skill's five levels, with a second label for which (`Novice`, `AdvancedBeginner`, `Competent`, `Proficient`, `Expert`). `trust` is `provisional` or `established` |
 | SkillProposal | `id`, `reason`, `status`, `rejectionReason`, `createdDate`, `resolvedDate` | A proposed change to one or more of a skill's levels. `status` is `screening`, `rejected`, `open`, `promoted` or `superseded` |
 | SkillLevelRevision | `version`, `description`, `observableSigns`, `exampleEvidence`, `nextLevel`, `replacedDate` | A level's old content, kept when a proposal replaces it |
@@ -29,7 +29,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | SPECIALIZATION_OF | Skill → Skill | | A kind of a broader skill. Everyone with the narrower skill has a form of the broader one |
 | REQUIRES_SKILL | DreyfusLevel → DreyfusLevel | `strength`, `reason` | A level needs a level of another skill |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A level takes a personality trait. `level` is where on the trait it pulls, above 0.5 for more of it |
-| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is the score it takes, out of 1, from 0.5 to 1 |
+| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is how much it takes on the ability's level scale, over 7 |
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
 | ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |

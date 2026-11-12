@@ -172,7 +172,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 
 | Label | Key properties | What it is |
 |---|---|---|
-| Skill | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `createdDate` | A skill. `status` is `stub`, `filling`, `ready` or `failed`, and `vector` is an embedding of its name, description and aliases |
+| Skill | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `createdDate`, `abilityScale` | A skill. `status` is `stub`, `filling`, `ready` or `failed`, and `vector` is an embedding of its name, description and aliases. `abilityScale` is `anchored` once its ability requirements are worked out on the level scale, even when it takes none |
 | DreyfusLevel | `name`, `rank` (1 to 5), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a skill's five levels, with a second label for which (`Novice`, `AdvancedBeginner`, `Competent`, `Proficient`, `Expert`). `trust` is `provisional` or `established` |
 | SkillProposal | `id`, `reason`, `status`, `rejectionReason`, `createdDate`, `resolvedDate` | A proposed change to one or more of a skill's levels. `status` is `screening`, `rejected`, `open`, `promoted` or `superseded` |
 | SkillLevelRevision | `version`, `description`, `observableSigns`, `exampleEvidence`, `nextLevel`, `replacedDate` | A level's old content, kept when a proposal replaces it |
@@ -187,7 +187,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | SPECIALIZATION_OF | Skill → Skill | | A kind of a broader skill. Everyone with the narrower skill has a form of the broader one |
 | REQUIRES_SKILL | DreyfusLevel → DreyfusLevel | `strength`, `reason` | A level needs a level of another skill |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A level takes a personality trait. `level` is where on the trait it pulls, above 0.5 for more of it |
-| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is the score it takes, out of 1, from 0.5 to 1 |
+| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is how much it takes on the ability's level scale, over 7 |
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
 | ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
@@ -264,6 +264,11 @@ There are 46 abilities, from O\*NET (the Fleishman taxonomy), in four categories
 | Psychomotor | 10 | Manual Dexterity, Arm-Hand Steadiness, Reaction Time |
 | Physical | 9 | Static Strength, Stamina, Gross Body Equilibrium |
 | Sensory | 12 | Near Vision, Night Vision, Hearing Sensitivity |
+
+Each ability has O\*NET's level scale, from 0 to 7: an amount, set by its examples at fixed points on it. Stamina's are
+1 "Walk 1/4 mile", 4 "Climb 6 flights of stairs" and 6 "Run 10 miles". What a skill level or an occupation takes is a
+level on this scale, kept over 7. The 894 occupations O\*NET rates on its abilities, with the level and importance its
+job analysts gave each one, are the references a skill's requirements are grounded in.
 
 The cognitive abilities carry a second label, `Cognitive`. A person's place on an ability is a percentile, as with
 personality traits, with a confidence. It's worked out from what they've recorded: the latest reading of each
@@ -366,7 +371,8 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 
 | Label | Key properties | What it is |
 |---|---|---|
-| Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot. Cognitive abilities have a second label, `Cognitive` |
+| Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples`, `anchorLevels` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot, and `anchorLevels` is where each sits on the level scale, over 7, in the same order. Cognitive abilities have a second label, `Cognitive` |
+| Occupation | `id`, `onetSoc` (unique), `title`, `description`, `alternateTitles`, `vector` | One of the 894 occupations O\*NET rates on its abilities. `onetSoc` is its O\*NET-SOC code, and `vector` is an embedding of its title, description and alternate titles, which skills find it by |
 | PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 50 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colours`, `side_vision`, `animals`, `uses`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values`, `fromAtlas`, `people` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists, and the percentiles can differ between measurements. `fromAtlas` is true on a norm worked out from Atlas users, with how many `people` it's from; the norms seed keeps these |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
@@ -381,7 +387,9 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
 |---|---|---|---|
 | HAS_ABILITY | Person → Ability | `value`, `confidence`, `basis`, `updatedAt` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it, worked out from their readings, rating and impairments whenever those change. `basis` names what it came from. No relationship means unmeasured, not average |
 | RATED_ABILITY | Person → Ability | `anchor`, `ratedAt` | Their own rating on the ability: the hardest of its three examples they say they can do, 1 to 3, or 0 for none of them |
-| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability (see the Skills graph) |
+| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability, `level` on the level scale over 7 (see the Skills graph) |
+| TAKES_ABILITY | Occupation → Ability | `level`, `importance` | What O\*NET's job analysts rated the occupation takes: `level` on the level scale over 7, and `importance` from 0 to 1 |
+| PERFORMED_IN | Skill → Occupation | | The occupation whose work is doing the skill, which its ability requirements were grounded in |
 | HAS_NORM | PhysicalMeasurement → MeasurementNorm | | A measurement's norms |
 | MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
 | HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt`, `answers` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value. `answers` is what they typed, on a reading of a test of typed answers |

@@ -1,0 +1,15 @@
+[package]
+name = "onet-import"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.53.2", features = ["full"] }
+futures = "0.3"
+
+# AWS: bedrock, for each occupation's embedding
+aws-config = { version = "1", default-features = false, features = ["legacy-client", "rt-tokio", "credentials-process", "sso"] }
+aws-sdk-bedrockruntime = { version = "1", default-features = false, features = ["legacy-https-client", "rt-tokio"] }
+
+# Shared with the api and jobs: the embedding model, and the text a skill is embedded from
+atlas-shared = { path = "../../apis/atlas-shared" }

@@ -6,6 +6,7 @@ import { useTypewriter } from '../shared_components/typewriter';
 import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 import { twoPlayers, type ChoiceFrame, type Script, type Step } from './script';
 import { StageView } from './stage';
+import { preload } from './atlas';
 
 // Physical, take two: the story of Andrew and Daniel told across the whole screen, a step at a time, with the
 // whiteboard behind it and the real Atlas over it during the interludes. It ends on where the user wants to start, and
@@ -42,6 +43,8 @@ function Physical2() {
 }
 
 function Player({ script }: { script: Script }) {
+  //the interludes read the real Atlas, so start reading all of it while the story is still being told
+  useEffect(() => preload(script), [script]);
   //every position visited, so back can walk back through branches
   const [history, setHistory] = useState<Position[]>([{ section: script.start, index: 0 }]);
   const position = history[history.length - 1];

@@ -229,7 +229,7 @@ export const twoPlayers: Script = {
         { text: "Here's what Andrew sees when he opens Basketball now. Every ability it takes, with where he stands on it set right beside it.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: andrew } },
         { text: 'Explosive Strength and Dynamic Strength: well clear of the bar. The build everyone kept pointing at is real.', stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: andrew, abilities: ['Explosive Strength', 'Dynamic Strength'] } },
         { text: 'Stamina, Gross Body Coordination and Multilimb Coordination: short, and by a long way. Those are the gaps between him and the top level.', stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: andrew, abilities: ['Stamina', 'Gross Body Coordination', 'Multilimb Coordination'] } },
-        { text: "But look one level at a time. At Competent, the bar sits lower, and Andrew is already most of the way there. A good pickup player is well within reach today.", stage: { kind: 'skill', skill: BASKETBALL, rank: COMPETENT, person: andrew } },
+        { text: "But look one level at a time. At Competent, the bar sits lower. His strength, reactions and eyes already clear it, and the gaps that are left are smaller: a few months of work, not a lifetime.", stage: { kind: 'skill', skill: BASKETBALL, rank: COMPETENT, person: andrew } },
         { text: "This works for every skill in the Atlas, not just Basketball. Once your abilities are in, every skill you open shows you exactly this: where you're ahead, and where you're short.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: andrew } },
       ],
       next: 'andrew_plan',

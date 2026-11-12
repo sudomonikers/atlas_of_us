@@ -12,6 +12,14 @@ interface MapNode {
 //each map's fetch, kept for the rest of the visit
 const fetched = new Map<() => Promise<MapNode[]>, Promise<MapNode[]>>();
 
+//starts fetching a map before a board needs it, so it's there when one opens
+export function preloadMap(load: () => Promise<MapNode[]>) {
+  if (fetched.has(load)) return;
+  const loading = load();
+  loading.catch(() => fetched.delete(load));
+  fetched.set(load, loading);
+}
+
 //every node of a module's map, for its board. `add` puts a node on the map that was just asked for, without fetching
 //it again
 export function useMap<T extends MapNode>(load: () => Promise<T[]>) {

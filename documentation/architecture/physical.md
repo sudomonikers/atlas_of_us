@@ -12,7 +12,7 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 | API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; where a person stands on each ability; the anatomy; impairments; conditions, and adding ones from Mondo and HPO |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
 | Condition links | `application/apis/atlas-jobs/src/events/condition_added/physical.rs` | Links a condition a person added to the body functions and parts it affects |
-| Seeds | `application/database/physical_abilities_seed.cypher`, `physical_norms_seed.cypher`, `physical_functions_seed.cypher`, `physical_anatomy_seed.cypher`, `physical_conditions_seed.cypher` | The abilities, from O\*NET, the measurements with their norms, from NHANES, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
+| Seeds | `application/database/physical_abilities_seed.cypher`, `onet_occupations_seed.cypher`, `physical_norms_seed.cypher`, `physical_functions_seed.cypher`, `physical_anatomy_seed.cypher`, `physical_conditions_seed.cypher` | The abilities and the occupations rated on them, from O\*NET, the measurements with their norms, from NHANES, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
 | Norms import | `application/database/physical_norms_import/` | Works out the norms from NHANES, adds the self-tests with their published norms, and writes the norms seed |
 | ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions seed |
 | Anatomy import | `application/database/anatomy_import/` | Reads FMA and BodyParts3D, writes the anatomy seed, and turns BodyParts3D's models into the 3D body |
@@ -87,10 +87,16 @@ impairments in the functions and parts each ability rests on.
 
 ## Skill requirements
 Every skill level is linked to the abilities it takes, so a person can see how what they have to work with fits a
-skill. A job reacts to `SkillFilled` from the Skills module (see `skills.md` and `events.md`): one LLM call names the
-abilities that make a real difference at each level, how much of each as a percentile, how much it matters and why,
-and links the levels to them. It does nothing for a skill that already has them, and a skill stays usable without
-them.
+skill. How much of an ability a level takes is a level on O\*NET's anchored scale, the same one O\*NET's job analysts
+rate occupations on, so the Atlas's estimates sit beside expert ratings.
+
+A job reacts to `SkillFilled` from the Skills module (see `skills.md` and `events.md`). It finds the occupations nearest
+the skill by meaning, and one LLM call reads the skill, its levels, each ability's anchors and those occupations with
+what they take. It names the occupation whose work is doing the skill, if one of them is, and for each ability that
+makes a real difference at a level, places it on the scale by the anchor tasks, starting from the occupation's ratings,
+with how much it matters and why. It does nothing for a skill already worked out on the scale, and replaces
+requirements written before it, so replaying the event archive to its rule recomputes the skills we have. A skill stays
+usable without them.
 
 ## Linking added conditions
 The seeded conditions link to the body functions and parts they affect by hand. One a person adds is linked by a job:
