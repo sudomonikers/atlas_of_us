@@ -59,11 +59,14 @@ const BLOOM_MS = 1100;
 //how many of the nodes in view get a focusable button, for keyboards and screen readers
 const REACHABLE = 60;
 
-//a hand-drawn blob of radius R, centred on 0,0, and a hand-drawn diamond of about the same size
+//a hand-drawn blob of radius R, centred on 0,0, and a hand-drawn diamond and hexagon of about the same size
 const BLOB =
   "M0 -18 C11 -18.5 18.5 -10 18 0 C17.5 11 10 18.5 0 18 C-11 17.5 -18.5 10 -18 0 C-17.5 -10.5 -10 -18 0 -18 Z";
 const DIAMOND =
   "M0 -21 C6 -14.5 14 -6.5 21 0 C14.5 6 6.5 14 0 21 C-6 14.5 -14 6.5 -21 0 C-14.5 -6 -6.5 -14 0 -21 Z";
+
+const HEXAGON =
+  "M-9.5 -17 C-3 -17.5 3 -16.5 9.5 -17 C13 -11 16 -6 19.5 0 C16.5 5.5 12.5 11.5 9.5 17 C3 16.5 -3.5 17.5 -9.5 17 C-12.5 11 -16.5 5.5 -19.5 0 C-16 -6 -13 -11.5 -9.5 -17 Z";
 
 const DASHES: Record<LinkKind["line"], number[]> = {
   solid: [],
@@ -116,6 +119,7 @@ interface GraphBoardProps {
   preview?: boolean; //a smaller board with no legend or tools, whose taps the owner turns into somewhere to go
   children?: ReactNode; //sits over the board's top left corner, such as a search box
   title?: ReactNode; //sits over the board's top right corner, such as the selected node's name
+  height?: string; //in place of the board's own height, for a board that shares the screen
 }
 
 //one board for a whole module's nodes. Zoomed out it's a map of every node at once, a flower for each broadest node
@@ -145,6 +149,7 @@ export function GraphBoard(props: GraphBoardProps) {
     preview,
     children,
     title,
+    height,
   } = props;
   const { seeds, fields } = useMemo(() => bloom(items), [items]);
   const seedOf = useMemo(() => new Map(seeds.map((s) => [s.id, s])), [seeds]);
@@ -447,14 +452,14 @@ export function GraphBoard(props: GraphBoardProps) {
     }
 
     //a node: a hand-drawn shape with a hard shadow, the dot that marks an expanded node, and its fill
-    const shapes = { blob: new Path2D(BLOB), diamond: new Path2D(DIAMOND) };
+    const shapes = { blob: new Path2D(BLOB), diamond: new Path2D(DIAMOND), hexagon: new Path2D(HEXAGON) };
     const node = (
       id: string,
       p: { x: number; y: number },
       r: number,
       fill: string,
       look: BoardNode["look"],
-      shape: "blob" | "diamond",
+      shape: NonNullable<BoardNode["shape"]>,
       alpha: number,
     ) => {
       const scale = r / R;
@@ -1139,7 +1144,7 @@ export function GraphBoard(props: GraphBoardProps) {
 
   return (
     <div
-      style={preview ? { ...styles.board, ...styles.preview } : styles.board}
+      style={{ ...styles.board, ...(preview && styles.preview), ...(height && { height }) }}
       ref={frame}
     >
       <canvas

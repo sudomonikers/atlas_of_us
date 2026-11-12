@@ -4,7 +4,7 @@ export interface BoardNode {
   id: string;
   label: string;
   look: 'filled' | 'hollow' | 'pale' | 'warm'; //hollow is drawn with a dashed outline, pale is filled in a pale blue, and warm in a pale red
-  shape?: 'blob' | 'diamond'; //a blob unless it's a different kind of thing from most of the board
+  shape?: 'blob' | 'diamond' | 'hexagon'; //a blob unless it's a different kind of thing from most of the board
   from?: string; //the node it was brought on from, which it starts next to
 }
 

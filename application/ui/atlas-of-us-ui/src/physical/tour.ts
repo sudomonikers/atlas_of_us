@@ -89,7 +89,7 @@ function abilities(id: string, title: string, category: Ability['category'], lay
         ),
         {
           id: 'where-you-stand',
-          text: `Here's where that leaves you. Redder parts hold up abilities where you're ahead of most people, bluer ones where you're behind. Pick one to see where it lives.`,
+          text: `Here's where that leaves you. Redder parts hold up abilities where you score high, bluer ones where you score low. Pick one to see where it lives.`,
           shot: { layers },
           panel: { kind: 'results', category },
         },
@@ -248,7 +248,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         id: 'results',
-        text: "Here's everything you've found out, drawn on you. Redder parts hold up abilities where you're ahead of most people, bluer ones where you're behind. Pick an ability to see where it lives.",
+        text: "Here's everything you've found out, drawn on you. Redder parts hold up abilities where you score high, bluer ones where you score low. Pick an ability to see where it lives.",
         shot: { layers: ['skeleton', 'muscles', 'nervous', 'organs'] },
         panel: { kind: 'results' },
       },

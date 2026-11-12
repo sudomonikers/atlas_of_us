@@ -16,7 +16,7 @@ function sureness(confidence: number) {
 function because(b: Basis) {
   if (b.kind === 'rating') return 'your own rating';
   if (b.kind === 'impairment') return `held back by your ${EXTENTS.find((e) => e.value === b.extent)?.label.toLowerCase() ?? ''} impairment in ${b.name.toLowerCase()}`;
-  return b.standing === null ? `your ${b.name.toLowerCase()}` : `your ${b.name.toLowerCase()}, better than ${Math.round(b.standing)}% of people`;
+  return b.standing === null ? `your ${b.name.toLowerCase()}` : `your ${b.name.toLowerCase()}, which scores ${Math.round(b.standing)}`;
 }
 
 //an ability no test covers yet: where the user stands and why, and a rating of themselves on its examples, from what
@@ -34,7 +34,7 @@ export default function Rating({ ability, onChanged }: { ability: Ability; onCha
         <>
           <Scale percentile={value * 100} better="higher" />
           <p style={styles.standing}>
-            About {Math.round(value * 100)} out of 100, where 50 is typical. This is {sureness(confidence)}, from{' '}
+            About {Math.round(value * 100)} out of 100. This is {sureness(confidence)}, from{' '}
             {basis.map(because).join(', and ')}.
           </p>
         </>

@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { getNeighborPage, getNeighbors, getTraitSkills, type GroupName, type Neighbor, type Neighbors, type PagedGroup, type SkillRef, type TopicLink, type TraitLink, type TraitSkills } from './api';
+import { getNeighborPage, getNeighbors, getTraitSkills, type AbilityLink, type GroupName, type Neighbor, type Neighbors, type PagedGroup, type SkillRef, type TopicLink, type TraitLink, type TraitSkills } from './api';
 import { getNeighborPage as getTopicPage, getNeighbors as getTopicNeighbors, type Linked, type Neighbors as TopicNeighbors } from '../topics/api';
 import { BoardLayout } from '../shared_components/board_layout';
 import type { BoardLink } from '../shared_components/graph_board';
@@ -20,6 +20,12 @@ export interface BoardTrait {
   read?: TraitSkills;
 }
 
+//a physical ability on the board, brought on by a skill that takes it
+export interface BoardAbility {
+  ability: { id: string; name: string };
+  from?: string; //the skill it was brought on from
+}
+
 //a topic on the board, brought on by a skill that needs it, with what's been read about it from Topics: the skills
 //that need it, a page at a time
 export interface BoardTopic {
@@ -33,6 +39,7 @@ export interface BoardTopic {
 export interface SkillBoard {
   skills: Record<string, BoardSkill>;
   traits: Record<string, BoardTrait>;
+  abilities: Record<string, BoardAbility>;
   topics: Record<string, BoardTopic>;
   links: BoardLink[];
   layout: BoardLayout;
@@ -45,7 +52,7 @@ type Update = Dispatch<SetStateAction<SkillBoard>>;
 
 const GROUPS: GroupName[] = ['broader', 'narrower', 'needs', 'leads_to', 'similar'];
 
-export const emptyBoard = (): SkillBoard => ({ skills: {}, traits: {}, topics: {}, links: [], layout: new BoardLayout() });
+export const emptyBoard = (): SkillBoard => ({ skills: {}, traits: {}, abilities: {}, topics: {}, links: [], layout: new BoardLayout() });
 
 //puts a skill on the board if it isn't already, and selects it and moves to it
 export function place(board: SkillBoard, skill: SkillRef): SkillBoard {
@@ -118,6 +125,14 @@ function bringTraits(board: SkillBoard, id: string, found: TraitLink[]): SkillBo
   return { ...board, traits, links };
 }
 
+//brings the physical abilities a skill takes onto the board, next to it. "Takes" points from the skill to the ability
+function bringAbilities(board: SkillBoard, id: string, found: AbilityLink[]): SkillBoard {
+  const abilities = { ...board.abilities };
+  for (const a of found) if (!abilities[a.id]) abilities[a.id] = { ability: { id: a.id, name: a.name }, from: id };
+  const links = addLinks(board.links, found.map((a) => ({ from: id, to: a.id, kind: 'able', weight: a.strength })));
+  return { ...board, abilities, links };
+}
+
 //brings skills that take a trait onto the board, next to it
 function bringTakers(board: SkillBoard, id: string, found: Neighbor[]): SkillBoard {
   const skills = { ...board.skills };
@@ -142,12 +157,13 @@ function bringKnowers(board: SkillBoard, id: string, found: Linked[]): SkillBoar
   return { ...board, skills, links };
 }
 
-//brings the skills linked to a skill that have been read onto the board, with the traits it takes and the topics it needs
+//brings the skills linked to a skill that have been read onto the board, with the traits and abilities it takes and the
+//topics it needs
 function expand(board: SkillBoard, id: string): SkillBoard {
   const on = board.skills[id];
   if (!on?.neighbors || on.expanded) return board;
   const { neighbors } = on;
-  const brought = bringTopics(bringTraits(bring(board, id, GROUPS.map((g) => [g, neighbors[g].skills])), id, neighbors.traits), id, neighbors.topics);
+  const brought = bringTopics(bringAbilities(bringTraits(bring(board, id, GROUPS.map((g) => [g, neighbors[g].skills])), id, neighbors.traits), id, neighbors.abilities), id, neighbors.topics);
   return { ...brought, skills: { ...brought.skills, [id]: { ...on, expanded: true } } };
 }
 
@@ -270,6 +286,7 @@ export function hide(board: SkillBoard, id: string, onMap: (id: string) => boole
     else if (key !== id && (onMap(key) || stays(key))) skills[key] = on;
   }
   const traits = Object.fromEntries(Object.entries(board.traits).filter(([key]) => key !== id && stays(key)));
+  const abilities = Object.fromEntries(Object.entries(board.abilities).filter(([key]) => key !== id && stays(key)));
   const topics = Object.fromEntries(Object.entries(board.topics).filter(([key]) => key !== id && stays(key)));
-  return { ...board, skills, traits, topics, links, selected };
+  return { ...board, skills, traits, abilities, topics, links, selected };
 }

@@ -45,7 +45,7 @@ export interface TraitRequirement {
   reason: string;
 }
 
-//an ability a level takes. `level` is the percentile of it the level takes, from 0.5 (a typical amount is enough) to 1
+//an ability a level takes. `level` is the score out of 1 the level takes, from 0.5 to 1
 export interface AbilityRequirement {
   name: string;
   level: number;
@@ -53,8 +53,8 @@ export interface AbilityRequirement {
   reason: string;
 }
 
-//how much of an ability a level takes, in words
-export const abilityLevel = (level: number) => (level <= 0.55 ? 'a typical amount' : `more than about ${Math.round(level * 100)}% of people`);
+//how much of an ability a level takes, in words, as a score out of 100
+export const abilityLevel = (level: number) => `a score of ${Math.round(level * 100)} or higher`;
 
 //a level of another skill a level needs
 export interface SkillRequirement extends SkillRef {
@@ -132,6 +132,7 @@ export interface Neighbors {
   leads_to: Group; //skills whose levels require its levels
   similar: Group; //the closest skills by meaning, other than its broader and narrower ones
   traits: TraitLink[]; //every personality trait its levels take, strongest first
+  abilities: AbilityLink[]; //every physical ability its levels take, strongest first
   topics: TopicLink[]; //every topic its levels need knowledge of, strongest first
 }
 
@@ -150,6 +151,15 @@ export interface TraitLink {
   id: string;
   name: string;
   strength: number;
+}
+
+//a physical ability a skill's levels take, with how much the strongest of them matters, 0 to 1, and the most of it any
+//level takes, as a score out of 1
+export interface AbilityLink {
+  id: string;
+  name: string;
+  strength: number;
+  level: number;
 }
 
 //the skills around a skill: the first page of each way it links, and the skill itself without its levels

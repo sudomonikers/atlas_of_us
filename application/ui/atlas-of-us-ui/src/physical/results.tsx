@@ -29,9 +29,9 @@ export default function Results({ abilities, only, body, onLight }: ResultsProps
       <div style={styles.legend} aria-hidden="true">
         <div style={styles.scale} />
         <div style={styles.ends}>
-          <span>Behind most</span>
-          <span>Typical</span>
-          <span>Ahead of most</span>
+          <span>Low</span>
+          <span>50</span>
+          <span>High</span>
         </div>
       </div>
 

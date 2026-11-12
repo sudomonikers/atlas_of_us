@@ -83,7 +83,7 @@ The Skills Explorer shows the split:
   without a refetch.
 - **The board's state.** `SkillBoard` in `skill_board.ts`, with the `BoardLayout` inside it, is kept by the Skills
   page, so the board survives opening a skill's page and visiting My Skills. It holds a record for each skill,
-  trait and topic that has been selected or brought on, with what's been read about it and whether it's expanded.
+  trait, physical ability and topic that has been selected or brought on, with what's been read about it and whether it's expanded.
   Records that aren't on the map are the board's visitors.
 - **Selecting and expanding.**
   - Selecting reads the node (`GET /api/skills/{id}/neighbors`, `GET /api/personality/traits/{id}/skills` or

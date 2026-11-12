@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import { getSkillMap, type GroupName, type PagedGroup, type SkillStatus, type SkillSummary } from './api';
+import { abilityLevel, getSkillMap, type GroupName, type PagedGroup, type SkillStatus, type SkillSummary } from './api';
 import { useMap } from '../shared_components/use_map';
 import { AskForSkill, PLACEHOLDER } from './search';
 import { Ladder, SkillPage, type LevelNeeds } from './skill_page';
-import { emptyBoard, expandSkill, expandTopic, expandTrait, hide as hideNode, moreKnowers, moreOf, moreTakers, place, readThen, readTopicThen, readTraitThen, type BoardSkill, type BoardTopic, type BoardTrait, type SkillBoard } from './skill_board';
+import { emptyBoard, expandSkill, expandTopic, expandTrait, hide as hideNode, moreKnowers, moreOf, moreTakers, place, readThen, readTopicThen, readTraitThen, type BoardAbility, type BoardSkill, type BoardTopic, type BoardTrait, type SkillBoard } from './skill_board';
 import { useSkillSearch, type SearchState } from './use_skill_search';
 import { AtlasError } from '../shared_components/atlas-error';
 import { SearchField } from '../shared_components/search_field';
@@ -25,14 +25,15 @@ const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 //how many search results show under the board's search box
 const RESULTS = 6;
 
-//the three ways skills link, and how a skill links to the personality traits it takes and the topics it needs, as the
-//board draws them. "Kinds of skills" points to the broader skill, "Skills needed" to the skill that's needed, "Traits
-//needed" to the trait, and "Knowledge needed" to the topic
+//the three ways skills link, and how a skill links to the personality traits and physical abilities it takes and the
+//topics it needs, as the board draws them. "Kinds of skills" points to the broader skill, "Skills needed" to the skill
+//that's needed, "Traits needed" to the trait, "Abilities needed" to the ability, and "Knowledge needed" to the topic
 const KINDS: LinkKind[] = [
   { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
   { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, colour: cinnamon, length: 130 },
   { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, colour: blue, length: 150 },
   { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, colour: brownRed, length: 120 },
+  { id: 'able', label: 'Abilities needed', line: 'solid', arrow: true, colour: cinnamon, length: 120 },
   { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, colour: blue, length: 120 },
 ];
 
@@ -79,9 +80,10 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
         .filter(({ skill }) => !map.byId.has(skill.id))
         .map(({ skill, from }): BoardNode => ({ id: skill.id, label: skill.name, look: 'hollow', from })),
       ...Object.values(board.traits).map(({ trait, from }): BoardNode => ({ id: trait.id, label: trait.name, look: 'pale', shape: 'diamond', from })),
+      ...Object.values(board.abilities).map(({ ability, from }): BoardNode => ({ id: ability.id, label: ability.name, look: 'warm', shape: 'hexagon', from })),
       ...Object.values(board.topics).map(({ topic, from }): BoardNode => ({ id: topic.id, label: topic.name, look: 'warm', from })),
     ],
-    [board.skills, board.traits, board.topics, map.byId],
+    [board.skills, board.traits, board.abilities, board.topics, map.byId],
   );
   const opened = useMemo(
     () => new Set([...Object.values(board.skills), ...Object.values(board.traits), ...Object.values(board.topics)].filter((on) => on.expanded).map((on) => ('skill' in on ? on.skill.id : 'trait' in on ? on.trait.id : on.topic.id))),
@@ -93,14 +95,14 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
     if (!level || level.id !== board.selected) return board.links;
     const needed = (l: BoardLink) =>
       l.from !== level.id ||
-      (l.kind === 'needs' ? level.skills.has(l.to) : l.kind === 'knows' ? level.topics.has(l.to) : l.kind === 'takes' ? level.traits.has(board.traits[l.to]?.trait.name) : true);
+      (l.kind === 'needs' ? level.skills.has(l.to) : l.kind === 'knows' ? level.topics.has(l.to) : l.kind === 'takes' ? level.traits.has(board.traits[l.to]?.trait.name) : l.kind === 'able' ? level.abilities.has(board.abilities[l.to]?.ability.name) : true);
     return board.links.filter(needed);
-  }, [board.links, board.traits, board.selected, level]);
+  }, [board.links, board.traits, board.abilities, board.selected, level]);
 
   //a skill on the map gets a place on the board's records the first time it's selected
   const known = (b: SkillBoard, id: string): SkillBoard => {
     const skill = map.byId.get(id);
-    if (b.skills[id] || b.traits[id] || b.topics[id] || !skill) return b;
+    if (b.skills[id] || b.traits[id] || b.abilities[id] || b.topics[id] || !skill) return b;
     return { ...b, skills: { ...b.skills, [id]: { skill: { id, name: skill.name, status: skill.status }, expanded: false } } };
   };
 
@@ -112,6 +114,7 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
   };
 
   const grow = (id: string) => {
+    if (board.abilities[id]) return; //an ability brings nothing on
     setError(undefined);
     setBusy(id);
     onBoard((b) => ({ ...known(b, id), selected: id, back: opened.has(id) ? b.back : b }));
@@ -150,6 +153,7 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
   const results = search.query.trim() ? search.results?.slice(0, RESULTS) : undefined;
   const chosen = board.selected ? board.skills[board.selected] : undefined;
   const chosenTrait = board.selected ? board.traits[board.selected] : undefined;
+  const chosenAbility = board.selected ? board.abilities[board.selected] : undefined;
   const chosenTopic = board.selected ? board.topics[board.selected] : undefined;
 
   return (
@@ -171,6 +175,8 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
             describe={(id) =>
               board.traits[id]
                 ? `${board.traits[id].trait.name}, a personality trait`
+                : board.abilities[id]
+                  ? `${board.abilities[id].ability.name}, a physical ability`
                 : board.topics[id]
                   ? `${board.topics[id].topic.name}, a topic`
                   : `${map.byId.get(id)?.name ?? board.skills[id]?.skill.name}, ${STATUS[map.byId.get(id)?.status ?? board.skills[id]?.skill.status ?? 'stub'].toLowerCase()}`
@@ -247,6 +253,8 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
       <aside style={styles.inspector} className="comic-panel" aria-live="polite">
         {chosenTrait ? (
           <TraitInspector on={chosenTrait} busy={busy} onExpand={grow} onMore={(id) => more(id, 'takers')} onHide={hide} />
+        ) : chosenAbility ? (
+          <AbilityInspector on={chosenAbility} board={board} onHide={hide} />
         ) : chosenTopic ? (
           <TopicInspector on={chosenTopic} busy={busy} onExpand={grow} onMore={(id) => more(id, 'knowers')} onHide={hide} />
         ) : (
@@ -339,6 +347,36 @@ function TraitInspector({ on, busy, onExpand, onMore, onHide }: {
           {expanding ? <>Expanding<Dots /></> : on.expanded ? 'Expanded' : 'Expand'}
         </button>
         <button className="comic-lift" style={styles.button} onClick={() => onHide(trait.id)}>
+          Hide
+        </button>
+      </div>
+    </>
+  );
+}
+
+//the selected physical ability: what it is, how much the skills on the board that take it need of it, and taking it
+//off the board
+function AbilityInspector({ on, board, onHide }: { on: BoardAbility; board: SkillBoard; onHide: (id: string) => void }) {
+  const { ability } = on;
+  const takers = board.links
+    .filter((l) => l.kind === 'able' && l.to === ability.id)
+    .flatMap((l) => {
+      const found = board.skills[l.from]?.neighbors?.abilities.find((a) => a.id === ability.id);
+      return found ? [{ skill: board.skills[l.from].skill.name, level: found.level }] : [];
+    });
+  return (
+    <>
+      <h3 style={styles.name}>{ability.name}</h3>
+      <span className="comic-chip" style={styles.status}>
+        Physical ability
+      </span>
+      {takers.map((t) => (
+        <p key={t.skill} style={styles.description}>
+          {t.skill} needs {abilityLevel(t.level)} at its top level.
+        </p>
+      ))}
+      <div style={styles.actions}>
+        <button className="comic-lift" style={styles.button} onClick={() => onHide(ability.id)}>
           Hide
         </button>
       </div>

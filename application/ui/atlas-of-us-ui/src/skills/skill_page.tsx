@@ -46,6 +46,7 @@ export interface LevelNeeds {
   skills: Set<string>; //ids
   topics: Set<string>; //ids
   traits: Set<string>; //names
+  abilities: Set<string>; //names
 }
 
 //one skill: its five levels, and every skill linked to it to hop to next. A stub is filled the first time it's opened,
@@ -119,6 +120,7 @@ export function SkillPage({ id, onLoaded, onOpen, onShowInGraph, askToFill, bare
       skills: ids((level) => level.skills, (r) => r.id),
       topics: ids((level) => level.topics, (r) => r.id),
       traits: ids((level) => level.traits, (r) => r.name),
+      abilities: ids((level) => level.abilities, (r) => r.name),
     });
   }, [skill, rank, achievement, onLevel]);
 

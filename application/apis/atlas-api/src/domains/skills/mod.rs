@@ -281,7 +281,7 @@ pub struct TraitRequirement {
     reason: String,
 }
 
-//an ability a level takes. `level` is the percentile of it the level takes, from 0.5 (a typical amount is enough) to 1
+//an ability a level takes. `level` is the score out of 1 the level takes, from 0.5 to 1
 #[derive(Serialize, Deserialize)]
 pub struct AbilityRequirement {
     name: String,
@@ -392,6 +392,16 @@ pub struct TraitLink {
     strength: f64,
 }
 
+//a physical ability a skill's levels take, with how much the strongest of them matters, 0 to 1, and the most of it
+//any level takes, as a score out of 1
+#[derive(Serialize, Deserialize)]
+pub struct AbilityLink {
+    id: String,
+    name: String,
+    strength: f64,
+    level: f64,
+}
+
 //a topic a skill's levels need knowledge of, with how essential the strongest of those links is, 0 to 1, and the
 //deepest Bloom level of it any level needs
 #[derive(Serialize, Deserialize)]
@@ -412,6 +422,7 @@ pub struct Neighbors {
     leads_to: Group, //skills whose levels require its levels
     similar: Group, //the closest skills by meaning, other than its broader and narrower ones
     traits: Vec<TraitLink>, //every personality trait its levels take, strongest first. There are only 30, so they aren't paged
+    abilities: Vec<AbilityLink>, //every physical ability its levels take, strongest first. There are only 46, so they aren't paged
     topics: Vec<TopicLink>, //every topic its levels need knowledge of, strongest first. A skill needs a handful, so they aren't paged
 }
 
@@ -457,6 +468,11 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
                    RETURN {{id: t.id, name: t.name, strength: strength}}
                }} AS traits,
                COLLECT {{
+                   MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_ABILITY]->(a:Ability)
+                   WITH a, max(r.strength) AS strength, max(r.level) AS level ORDER BY strength DESC, a.name
+                   RETURN {{id: a.id, name: a.name, strength: strength, level: level}}
+               }} AS abilities,
+               COLLECT {{
                    MATCH (s)-[:HAS_LEVEL]->(:DreyfusLevel)-[r:REQUIRES_KNOWLEDGE]->(b:BloomLevel)<-[:HAS_LEVEL]-(t:Topic)
                    WITH t, max(r.strength) AS strength, max(b.rank) AS rank ORDER BY strength DESC, t.name
                    RETURN {{id: t.id, name: t.name, status: t.status, strength: strength, rank: rank}}
@@ -468,6 +484,7 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
     let group = |name: &str| row.get::<Group>(name).map_err(internal);
     let (broader, narrower, needs, leads_to) = (group("broader")?, group("narrower")?, group("needs")?, group("leads_to")?);
     let traits: Vec<TraitLink> = row.get("traits").map_err(internal)?;
+    let abilities: Vec<AbilityLink> = row.get("abilities").map_err(internal)?;
     let topics: Vec<TopicLink> = row.get("topics").map_err(internal)?;
     let vector: Option<Vec<f64>> = row.get("vector").map_err(internal)?;
     drop(rows);
@@ -488,7 +505,7 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
         }
     }
     let similar = Group { total: similar.len() as i64, skills: similar };
-    Ok(Json(Neighbors { skill, broader, narrower, needs, leads_to, similar, traits, topics }))
+    Ok(Json(Neighbors { skill, broader, narrower, needs, leads_to, similar, traits, abilities, topics }))
 }
 
 #[derive(Deserialize)]

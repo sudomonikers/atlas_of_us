@@ -29,7 +29,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | SPECIALIZATION_OF | Skill → Skill | | A kind of a broader skill. Everyone with the narrower skill has a form of the broader one |
 | REQUIRES_SKILL | DreyfusLevel → DreyfusLevel | `strength`, `reason` | A level needs a level of another skill |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A level takes a personality trait. `level` is where on the trait it pulls, above 0.5 for more of it |
-| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is the percentile it takes, from 0.5 (a typical amount is enough) to 1 |
+| REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is the score it takes, out of 1, from 0.5 to 1 |
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
 | ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
