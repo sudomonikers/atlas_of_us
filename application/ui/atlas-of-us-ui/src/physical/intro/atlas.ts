@@ -1,5 +1,5 @@
-import { getNeighbors, getSkill, getSkillMap, searchSkills, type Neighbors, type Skill, type SkillRef } from '../skills/api';
-import { preloadMap } from '../shared_components/use_map';
+import { getNeighbors, getSkill, getSkillMap, searchSkills, type Neighbors, type Skill, type SkillRef } from '../../skills/api';
+import { preloadMap } from '../../shared_components/use_map';
 import type { Script } from './script';
 
 // What the interludes read from the real Atlas, each kept for as long as the page is open, and read ahead as the story

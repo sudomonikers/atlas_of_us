@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { abilityLevel, getSkillMap, LEVEL_NAMES, requestFill, type Skill, type SkillRef } from '../skills/api';
-import { emptyBoard, expandSkill, place, withNeighbors, type SkillBoard } from '../skills/skill_board';
-import { Ladder } from '../skills/skill_page';
-import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
-import type { BoardNode } from '../shared_components/board_layout';
-import { useMap } from '../shared_components/use_map';
-import { AtlasError } from '../shared_components/atlas-error';
-import { Thinking } from '../shared_components/thinking';
-import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { abilityLevel, getSkillMap, LEVEL_NAMES, requestFill, type Skill, type SkillRef } from '../../skills/api';
+import { emptyBoard, expandSkill, place, withNeighbors, type SkillBoard } from '../../skills/skill_board';
+import { Ladder } from '../../skills/skill_page';
+import { GraphBoard, MapWaiting, type LinkKind } from '../../shared_components/graph_board';
+import type { BoardNode } from '../../shared_components/board_layout';
+import { useMap } from '../../shared_components/use_map';
+import { AtlasError } from '../../shared_components/atlas-error';
+import { Thinking } from '../../shared_components/thinking';
+import { blue, brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
 import type { LinkType, Person, Stage } from './script';
 import { findSkill, readNeighbors, readSkill } from './atlas';
-import { abilityFit, carriedUp } from '../skills/ability_fit';
-import { FitGraph } from '../shared_components/fit_graph';
+import { abilityFit, carriedUp } from '../../skills/ability_fit';
+import { FitGraph } from '../../shared_components/fit_graph';
+import { useSession } from '../../auth/api';
 
 // The real Atlas, shown over the whiteboard during an interlude: skills on the skill graph, or a skill's levels with
 // the abilities each takes, set against one of the story's people.
@@ -129,8 +130,10 @@ const NONE: string[] = [];
 //how often a skill being written is checked on
 const FILL_POLL_MS = 4000;
 
-//skills by name, once every one of them has its levels written, asking for any that haven't been
+//skills by name, once every one of them has its levels written. Asking for one to be written takes an account, so for
+//anyone logged out it waits on one being written already
 function useSkills(names: string[]) {
+  const signedIn = useSession().status === 'authenticated';
   const [skills, setSkills] = useState<Skill[]>();
   const [waiting, setWaiting] = useState<string>();
   const [error, setError] = useState<string>();
@@ -142,7 +145,7 @@ function useSkills(names: string[]) {
         const read = await Promise.all(names.map(async (name) => readSkill((await findSkill(name)).id)));
         if (!live) return;
         const unready = read.filter((s) => s.status !== 'ready');
-        for (const s of unready) if (s.status === 'stub' || s.status === 'failed') await requestFill(s.id);
+        if (signedIn) for (const s of unready) if (s.status === 'stub' || s.status === 'failed') await requestFill(s.id);
         if (unready.length) {
           setWaiting(`Writing the levels of ${unready.map((s) => s.name).join(' and ')}`);
           timer = window.setTimeout(load, FILL_POLL_MS);
@@ -156,7 +159,7 @@ function useSkills(names: string[]) {
       live = false;
       clearTimeout(timer);
     };
-  }, [names]);
+  }, [names, signedIn]);
   return { skills, waiting, error };
 }
 

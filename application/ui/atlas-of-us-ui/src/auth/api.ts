@@ -10,9 +10,10 @@ export interface Person {
   username: string;
   public: boolean; //whether anyone can see their profile at /u/{username}
   admin: boolean; //set by hand in the graph, unlocks /admin
+  physical_intro_seen: boolean; //whether they've been through the story that opens Physical Traits
 }
 
-export interface NewPerson extends Omit<Person, 'id' | 'public' | 'admin'> {
+export interface NewPerson extends Omit<Person, 'id' | 'public' | 'admin' | 'physical_intro_seen'> {
   password: string;
 }
 
@@ -82,6 +83,14 @@ export const setPublic = async (on: boolean) => {
   const person = await request<Person>('PUT', '/auth/public', { public: on });
   setSession({ status: 'authenticated', person });
   return person;
+};
+
+//notes that the person has been through the story that opens Physical Traits. The session changes straight away, so
+//leaving the story lands on the chapters
+export const seePhysicalIntro = async () => {
+  if (session.status === 'authenticated') setSession({ status: 'authenticated', person: { ...session.person, physical_intro_seen: true } });
+  const person = await request<Person>('PUT', '/auth/physical-intro');
+  setSession({ status: 'authenticated', person });
 };
 
 export const logout = async () => {

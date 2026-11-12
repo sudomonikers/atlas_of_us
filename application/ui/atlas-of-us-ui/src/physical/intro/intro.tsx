@@ -1,16 +1,17 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { RequireLogin } from '../auth/require-login';
-import { navigate } from '../router';
-import { Typed } from '../shared_components/typed';
-import { useTypewriter } from '../shared_components/typewriter';
-import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { seePhysicalIntro, useSession } from '../../auth/api';
+import { navigate } from '../../router';
+import { Typed } from '../../shared_components/typed';
+import { useTypewriter } from '../../shared_components/typewriter';
+import { blue, brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
 import { twoPlayers, type ChoiceFrame, type Script, type Step } from './script';
 import { StageView } from './stage';
 import { preload } from './atlas';
+import { noteWatched } from './watched';
 
-// Physical, take two: the story of Andrew and Daniel told across the whole screen, a step at a time, with the
+// The story that opens Physical Traits: Andrew and Daniel told across the whole screen, a step at a time, with the
 // whiteboard behind it and the real Atlas over it during the interludes. It ends on where the user wants to start, and
-// opens that chapter of Physical.
+// opens that chapter. Anyone can watch it; the chapters take an account.
 
 const Whiteboard = lazy(() => import('./whiteboard'));
 
@@ -34,15 +35,19 @@ const following = (script: Script, { section, index }: Position): Position | und
   return next ? { section: next, index: 0 } : undefined;
 };
 
-function Physical2() {
-  return (
-    <RequireLogin reason="Make an account, and I'll show you how your body shapes what you could be great at.">
-      <Player script={twoPlayers} />
-    </RequireLogin>
-  );
+function Intro() {
+  return <Player script={twoPlayers} />;
 }
 
 function Player({ script }: { script: Script }) {
+  const session = useSession();
+  //leaving the story, however the user leaves it, notes it as seen and opens the chapters or the one they picked
+  const leave = (chapter?: string) => {
+    if (session.status === 'authenticated') seePhysicalIntro().catch(() => {});
+    else noteWatched(true);
+    navigate(chapter ? `/physical?chapter=${chapter}` : '/physical');
+  };
+
   //the interludes read the real Atlas, so start reading all of it while the story is still being told
   useEffect(() => preload(script), [script]);
   //every position visited, so back can walk back through branches
@@ -66,6 +71,7 @@ function Player({ script }: { script: Script }) {
     if (isChoice(step)) return;
     const next = following(script, position);
     if (next) go(next);
+    else leave();
   };
 
   const back = () => {
@@ -77,7 +83,7 @@ function Player({ script }: { script: Script }) {
   const choose = (i: number) => {
     if (!isChoice(step)) return;
     const { next, chapter } = step.choices[i];
-    if (chapter) navigate(`/physical?chapter=${chapter}`);
+    if (chapter) leave(chapter);
     else if (next) go({ section: next, index: 0 });
   };
 
@@ -128,8 +134,8 @@ function Player({ script }: { script: Script }) {
       </div>
       {stage && <StageView stage={stage} />}
 
-      <button style={styles.exit} className="comic-lift" onClick={() => navigate('/physical')}>
-        ◀ Back to physical
+      <button style={styles.exit} className="comic-lift" onClick={() => leave()}>
+        Skip to the chapters ▶
       </button>
       {section.interlude && (
         <div key={section.interlude} style={styles.interlude} className="comic-pop">
@@ -331,4 +337,4 @@ const styles: Record<string, CSSProperties> = {
   },
 };
 
-export default Physical2;
+export default Intro;

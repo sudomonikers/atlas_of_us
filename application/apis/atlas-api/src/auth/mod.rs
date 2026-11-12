@@ -24,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .route("/logout", post(logout))
         .route("/me", get(me))
         .route("/public", put(set_public))
+        .route("/physical-intro", put(see_physical_intro))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -110,6 +111,7 @@ pub struct Person {
     username: String,
     public: bool, //whether anyone can see their profile at /u/{username}
     admin: bool, //set by hand in the graph, unlocks /admin
+    physical_intro_seen: bool, //whether they've been through the story that opens Physical Traits
 }
 
 #[derive(Serialize)]
@@ -224,7 +226,7 @@ pub async fn create_user(
             username: $username, passwordHash: $passwordHash, createdDate: datetime()
         })
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
     ")
         .param("phone", phone)
         .param("username", username)
@@ -258,7 +260,7 @@ pub async fn login(
     let mut rows = state.graph.execute(query("
         MATCH (p:Person {phone: $phone})
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, p.passwordHash AS password_hash
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen, p.passwordHash AS password_hash
     ")
         .param("phone", phone)
     ).await.map_err(|e| internal(&e))?;
@@ -293,7 +295,7 @@ pub async fn me(State(state): State<AppState>, user: AuthUser) -> Result<Json<Pe
     let mut rows = state.graph.execute(query("
         MATCH (p:Person {id: $id})
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
     ")
         .param("id", user.person_id)
     ).await.map_err(|e| internal(&e))?;
@@ -323,10 +325,29 @@ pub async fn set_public(
         MATCH (p:Person {id: $id})
         SET p.public = $public
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
-               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
     ")
         .param("id", user.person_id)
         .param("public", body.public)
+    ).await.map_err(|e| internal(&e))?;
+    let row = rows.next().await.map_err(|e| internal(&e))?
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string()))?;
+    Ok(Json(row.to::<Person>().map_err(|e| internal(&e))?))
+}
+
+//notes that the person has been through the story that opens Physical Traits, so it opens on the chapters from then on
+pub async fn see_physical_intro(State(state): State<AppState>, user: AuthUser) -> Result<Json<Person>, (StatusCode, String)> {
+    let internal = |e: &dyn std::fmt::Display| {
+        tracing::error!("{e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
+    };
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person {id: $id})
+        SET p.physicalIntroSeen = true
+        RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
+               p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin, coalesce(p.physicalIntroSeen, false) AS physical_intro_seen
+    ")
+        .param("id", user.person_id)
     ).await.map_err(|e| internal(&e))?;
     let row = rows.next().await.map_err(|e| internal(&e))?
         .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string()))?;

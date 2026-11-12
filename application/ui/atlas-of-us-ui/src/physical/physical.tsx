@@ -24,7 +24,9 @@ import Noting from './noting';
 import Rating from './rating';
 import Results from './results';
 import { CHAPTERS, type Chapter, type Known, type Scene } from './tour';
+import { seePhysicalIntro, useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
+import { noteWatched, useWatched } from './intro/watched';
 import { navigate, replace, useSearch } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Footer } from '../shared_components/footer';
@@ -35,6 +37,9 @@ import { Typed } from '../shared_components/typed';
 import { useTypewriter } from '../shared_components/typewriter';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 import { failure } from '../shared_components/use_save';
+
+//the story that opens Physical Traits, loaded only when it plays
+const Intro = lazy(() => import('./intro/intro'));
 
 //the 3D body, loaded with three.js only when a chapter opens
 const AnatomyViewer = lazy(() => import('./anatomy_viewer').then((m) => ({ default: m.AnatomyViewer })));
@@ -55,10 +60,34 @@ interface Loaded extends Known {
   body: Body;
 }
 
-//Physical Traits: a walk through the user's body beside a 3D model of it, in chapters taken one at a time. Each chapter
-//is a run of scenes, and each scene is one thing: Atlas saying something with the parts it's about lit up, one
-//measurement to take, one ability to rate, or one list to fill in
+//Physical Traits opens on the story of Andrew and Daniel the first time, for anyone, and on the chapters once they've
+//seen it. ?intro plays it again
 function Physical() {
+  const params = new URLSearchParams(useSearch());
+  const session = useSession();
+  const watched = useWatched();
+  const seen = watched || (session.status === 'authenticated' && session.person.physical_intro_seen);
+
+  //watched while logged out, then logged in: it's saved on their account
+  const unsaved = session.status === 'authenticated' && !session.person.physical_intro_seen && watched;
+  useEffect(() => {
+    if (unsaved) seePhysicalIntro().then(() => noteWatched(false), () => {});
+  }, [unsaved]);
+
+  if (session.status === 'checking') return null;
+  if (params.has('intro') || (!params.has('chapter') && !seen))
+    return (
+      <Suspense fallback={null}>
+        <Intro />
+      </Suspense>
+    );
+  return <Traits />;
+}
+
+//the chapters: a walk through the user's body beside a 3D model of it, taken one at a time. Each chapter is a run of
+//scenes, and each scene is one thing: Atlas saying something with the parts it's about lit up, one measurement to take,
+//one ability to rate, or one list to fill in
+function Traits() {
   const params = new URLSearchParams(useSearch());
   const chapter = CHAPTERS.find((c) => c.id === params.get('chapter'));
 
@@ -145,6 +174,9 @@ function Chapters({ loaded }: { loaded: Loaded }) {
             If you're new, start with the first.
           </div>
         </div>
+        <button className="comic-lift" style={styles.replay} onClick={() => navigate('/physical?intro')}>
+          Replay the intro ▶
+        </button>
       </header>
       <ol style={styles.cards}>
         {CHAPTERS.map((c, i) => (
@@ -440,6 +472,18 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 16,
+  },
+  replay: {
+    padding: '4px 16px',
+    background: ivory,
+    color: gunmetal,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
+    boxShadow: `3px 4px 0 ${gunmetal}`,
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1,
+    cursor: 'pointer',
   },
   menuBubble: {
     maxWidth: 520,

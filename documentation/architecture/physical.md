@@ -51,6 +51,11 @@ one is placed among the ones we have from those alone: under the nearest conditi
 ones that are kinds of it.
 
 ## What the user sees
+Physical Traits opens on a story the first time: two people, drawn on a whiteboard, and how their bodies shape what
+they could be great at, with the real Atlas shown along the way. Anyone can watch it; it ends on which chapter to start
+with, and the chapters take an account. Once a person has seen it, Physical Traits opens on the chapters, and they can
+play it again from there.
+
 Physical Traits is a walk through the person's body in chapters, taken one at a time from a page that lists them with
 how far through each the person is. A chapter plays as scenes beside a 3D model of the body. Atlas narrates each scene,
 the body lights up and the camera flies to the parts it's about, and each scene holds one thing: something to read, one

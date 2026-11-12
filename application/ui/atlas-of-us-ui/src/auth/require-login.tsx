@@ -14,7 +14,7 @@ export function RequireLogin({ reason, children }: RequireLoginProps) {
   const session = useSession();
   const locked = session.status === 'anonymous';
   //come back to this page after logging in
-  const go = (path: string) => navigate(`${path}?next=${encodeURIComponent(window.location.pathname)}`);
+  const go = (path: string) => navigate(`${path}?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
 
   return (
     <>

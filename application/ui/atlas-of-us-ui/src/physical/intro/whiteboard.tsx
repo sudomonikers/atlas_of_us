@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { Layers, Sheet, type Layer } from '../personality/layers';
+import { Layers, Sheet, type Layer } from '../../personality/layers';
 
 // Two Players is drawn in marker on a coach's whiteboard: Andrew in red, Daniel in blue, Marcus in purple, and the
 // ball in orange. Every line draws itself on as if someone is sketching it while they talk, and fills go on like a
