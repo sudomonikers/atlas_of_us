@@ -6,7 +6,7 @@ use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::AuthUser, helpers::jobs::queue, state::AppState};
+use crate::{auth::AuthUser, credits::{refund, spend}, helpers::jobs::queue, state::AppState};
 
 use super::{FINISHED, STALE_JOB_MINUTES, internal};
 
@@ -17,6 +17,9 @@ pub fn router() -> Router<AppState> {
 //how long a report asked for is taken to be on its way. A job that hasn't written it by then has failed
 const WRITING_MINUTES: i64 = 5;
 
+//the report's properties on the Person, which credits are spent and given back by
+const FEATURE: &str = "personalityReport";
+
 #[derive(Deserialize)]
 struct Kept {
     report: Option<String>,
@@ -26,9 +29,11 @@ struct Kept {
     asked: bool, //whether it was asked for since it was last written
     enough: bool,
     scoring: bool,
+    charged: bool, //whether a credit was spent on the last ask, and not given back yet
 }
 
-//the report as it's kept on the person, and whether they can have one. Stale once their scores were worked out after it
+//the report as it's kept on the person, and whether they can have one. A credit spent on one that couldn't be written
+//goes back here, which covers a job that never ran as well as one that failed. Stale once their scores were worked out after it
 //was written. Enough once they've finished every scenario and every answer is scored
 async fn kept(graph: &Graph, person_id: &str) -> Result<Kept, (StatusCode, String)> {
     let mut rows = graph.execute(query(&format!("
@@ -45,15 +50,21 @@ async fn kept(graph: &Graph, person_id: &str) -> Result<Kept, (StatusCode, Strin
                EXISTS {{
                    MATCH (p)-[:HAS_JOB]->(j:JobRunning {{kind: 'personality_scoring'}})
                    WHERE j.startedAt > datetime() - duration({{minutes: $staleMinutes}})
-               }} AS scoring
+               }} AS scoring,
+               coalesce(p.personalityReportCharged, false) AS charged
     "))
         .param("personId", person_id)
         .param("writingMinutes", WRITING_MINUTES)
         .param("staleMinutes", STALE_JOB_MINUTES)
     ).await.map_err(internal)?;
-    rows.next().await.map_err(internal)?
+    let mut kept = rows.next().await.map_err(internal)?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "That person doesn't exist.".to_string()))?
-        .to::<Kept>().map_err(internal)
+        .to::<Kept>().map_err(internal)?;
+    if kept.charged && kept.asked && !kept.writing {
+        refund(graph, person_id, FEATURE).await.map_err(internal)?;
+        kept.charged = false;
+    }
+    Ok(kept)
 }
 
 //the report, and where it's at
@@ -89,7 +100,7 @@ struct ReportJob<'a> {
     person_id: &'a str,
 }
 
-//asks for the logged in user's report to be written, unless it's being written already or it's up to date
+//asks for the logged in user's report to be written, for a credit, unless it's being written already or it's up to date
 async fn ask(State(state): State<AppState>, user: AuthUser) -> Result<Json<ReportState>, (StatusCode, String)> {
     let current = kept(&state.graph, &user.person_id).await?;
     if current.scoring {
@@ -103,12 +114,12 @@ async fn ask(State(state): State<AppState>, user: AuthUser) -> Result<Json<Repor
     }
 
     let person = user.person_id.as_str();
-    state.graph.run(query("MATCH (p:Person {id: $personId}) SET p.personalityReportAskedAt = datetime()").param("personId", person))
-        .await.map_err(internal)?;
+    spend(&state, person, FEATURE).await?;
     if let Err(e) = queue(&state, "personality_report", ReportJob { person_id: person }).await {
         tracing::error!("couldn't queue the personality report: {e}");
         state.graph.run(query("MATCH (p:Person {id: $personId}) SET p.personalityReportFailedAt = datetime()").param("personId", person))
             .await.map_err(internal)?;
+        refund(&state.graph, person, FEATURE).await.map_err(internal)?;
     }
     Ok(Json(report_state(kept(&state.graph, person).await?)?))
 }

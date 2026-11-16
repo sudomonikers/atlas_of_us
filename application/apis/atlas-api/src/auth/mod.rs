@@ -233,7 +233,7 @@ pub async fn create_user(
     let mut created = state.graph.execute(query("
         CREATE (p:Person {
             id: randomUUID(), phone: $phone, firstName: $firstName, lastName: $lastName, email: $email, birthday: $birthday,
-            username: $username, passwordHash: $passwordHash, createdDate: datetime()
+            username: $username, passwordHash: $passwordHash, createdDate: datetime(), credits: $credits
         })
         RETURN p.id AS id, p.phone AS phone, p.firstName AS first_name, p.lastName AS last_name, p.email AS email,
                p.birthday AS birthday, p.username AS username, coalesce(p.public, false) AS public, coalesce(p.admin, false) AS admin
@@ -245,6 +245,7 @@ pub async fn create_user(
         .param("email", email)
         .param("birthday", birthday)
         .param("passwordHash", password_hash)
+        .param("credits", crate::credits::FREE_CREDITS)
     ).await.map_err(constraint_failed)?;
     let row = created.next().await.map_err(constraint_failed)?.ok_or_else(|| internal(&"person was not created"))?;
     let person = row.to::<Person>().map_err(|e| internal(&e))?;

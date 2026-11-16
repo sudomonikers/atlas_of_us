@@ -20,7 +20,7 @@ A Person also carries their personality report, once they've asked for one: `per
 headline, an overview, a paragraph per domain, strengths and things to watch, and `personalityReportAt`.
 `personalityScoredAt` is when their trait scores were last worked out, which makes the report stale when it's later.
 `personalityReportAskedAt` and `personalityReportFailedAt` are when they last asked for one and when one last couldn't
-be written.
+be written, and `personalityReportCharged` is whether a credit was spent on the last one asked for and is still spent.
 
 ## Relationships
 

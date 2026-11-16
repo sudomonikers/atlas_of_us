@@ -1,6 +1,6 @@
 use neo4rs::Graph;
 
-use crate::events::Bus;
+use crate::{credits::stripe::Stripe, events::Bus};
 
 //shared state every layer router can grab from
 #[derive(Clone)]
@@ -13,5 +13,6 @@ pub struct AppState {
     pub bedrock: aws_sdk_bedrockruntime::Client,
     pub evidence_bucket: Option<String>, //where files people give as evidence go. None when EVIDENCE_BUCKET isn't set
     pub http: reqwest::Client, //for outside apis, such as the ontology search conditions are looked up in
+    pub stripe: Option<Stripe>, //where credits are bought. None when STRIPE_SECRET_KEY isn't set
     // add more shared resources here later
 }

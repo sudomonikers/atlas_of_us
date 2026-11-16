@@ -1,13 +1,12 @@
 ### API LAMBDA
 # Terraform creates the function from a placeholder and then ignores its code.
 # Real code ships with apis/atlas-api/deploy.sh.
-# Secrets (NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, JWT_SECRET) are SecureString parameters under
-# local.api_ssm_path, created outside terraform. Terraform reads them into the function's env vars,
-# so they are in state (encrypted in S3, see backend.tf) but never in this repo.
+# Secrets (NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, JWT_SECRET, STRIPE_SECRET_KEY) are SecureString parameters under
+# local.api_ssm_path, created outside terraform. Terraform reads them into the function's env vars, so they are in state (encrypted in S3, see backend.tf) but never in this repo.
 locals {
   api_name     = "atlas-api"
   api_ssm_path = "/atlas-of-us/api"
-  api_secrets  = toset(["NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD", "JWT_SECRET"])
+  api_secrets  = toset(["NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD", "JWT_SECRET", "STRIPE_SECRET_KEY"])
 }
 
 data "aws_ssm_parameter" "api" {
@@ -32,6 +31,7 @@ resource "aws_lambda_function" "api" {
         JOBS_FUNCTION   = aws_lambda_function.jobs.function_name
         EVENT_BUS_NAME  = aws_cloudwatch_event_bus.atlas.name
         EVIDENCE_BUCKET = aws_s3_bucket.evidence.id
+        APP_URL         = "https://${local.website_name}"
       },
     )
   }

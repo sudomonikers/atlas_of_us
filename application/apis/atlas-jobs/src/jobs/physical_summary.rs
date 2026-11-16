@@ -6,6 +6,7 @@ use serde_json::json;
 use tracing::Instrument;
 
 use crate::bedrock::{BoxError, invoke};
+use crate::jobs::failed_query;
 
 //writes the summary of everything a person has added to Physical Traits, at the top of Your results and on their
 //profile. The api gathers what it's written from and queues this when the person asks for it (atlas-api
@@ -89,8 +90,8 @@ pub async fn run(graph: &Graph, job: SummaryJob) {
             Ok(()) => tracing::info!(latency_ms = started.elapsed().as_millis() as u64, "physical summary written"),
             Err(e) => {
                 tracing::error!("couldn't write the physical summary: {e}");
-                //the person is told it couldn't be written, so they can ask again
-                let failed = graph.run(query("MATCH (p:Person {id: $personId}) SET p.physicalSummaryFailedAt = datetime()").param("personId", job.person_id.as_str())).await;
+                //the person is told it couldn't be written, so they can ask again, and gets back the credit they spent on it
+                let failed = graph.run(query(&failed_query("physicalSummary")).param("personId", job.person_id.as_str())).await;
                 if let Err(e) = failed {
                     tracing::error!("couldn't mark the physical summary failed: {e}");
                 }
@@ -139,7 +140,8 @@ async fn write(graph: &Graph, job: &SummaryJob) -> Result<(), BoxError> {
 
     graph.run(query("
         MATCH (p:Person {id: $personId})
-        SET p.physicalSummary = $summary, p.physicalSummaryInput = $input, p.physicalSummaryAt = datetime()
+        SET p.physicalSummary = $summary, p.physicalSummaryInput = $input, p.physicalSummaryAt = datetime(),
+            p.physicalSummaryCharged = false
     ")
         .param("personId", job.person_id.as_str())
         .param("summary", serde_json::to_string(&summary)?)

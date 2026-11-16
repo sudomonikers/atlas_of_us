@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { logout, useSession } from '../auth/api';
+import { useCredits } from '../credits/api';
 import { Feedback } from '../feedback/feedback';
 import { navigate, usePath } from '../router';
 
@@ -107,10 +108,14 @@ function Menu({ label, active = false, children }: { label: string; active?: boo
 }
 
 function Account({ username, admin }: { username: string; admin: boolean }) {
+  const credits = useCredits();
   return (
-    <Menu label="My profile" active={usePath() === `/u/${username}`}>
+    <Menu label="My profile" active={[`/u/${username}`, '/credits'].includes(usePath())}>
       <button className="comic-lift" style={styles.item} onClick={() => navigate(`/u/${username}`)}>
         View profile
+      </button>
+      <button className="comic-lift" style={styles.item} onClick={() => navigate('/credits')}>
+        {!credits ? 'Credits' : credits.subscribed_until ? 'Credits: unlimited' : `Credits: ${credits.credits}`}
       </button>
       {admin && (
         <button className="comic-lift" style={styles.item} onClick={() => navigate('/admin')}>

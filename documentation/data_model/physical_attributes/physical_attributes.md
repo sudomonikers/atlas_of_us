@@ -149,7 +149,8 @@ A Person also carries Atlas's summary of their physical traits, once they've ask
 string with a headline, an overview, a paragraph per area of abilities, strengths, what's worth working on and working
 around their conditions, `physicalSummaryAt`, and `physicalSummaryInput`, what it was written from, which tells when
 it's stale. `physicalSummaryAskedAt` and `physicalSummaryFailedAt` are when they last asked for one and when one last
-couldn't be written.
+couldn't be written, and `physicalSummaryCharged` is whether a credit was spent on the last one asked for and is still
+spent.
 
 
 ## Relationships

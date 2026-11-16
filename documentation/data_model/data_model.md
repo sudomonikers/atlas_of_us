@@ -18,10 +18,22 @@ A Person's settings in the app are on their PersonConfig, made the first time th
 | `physicalIntroSeen` | They've been through the story that opens Physical Traits |
 | `personalityIntroSeen` | They've been through the story that opens Personality |
 | `sceneStartNoteHidden` | They've turned off the note on getting the most out of a scene |
-| `supportAsked` | They've been asked to chip in, which happens once, when their first report is written |
 
 ```cypher
 (andrew)-[:HAS_CONFIG]->(:PersonConfig {physicalIntroSeen: true})
+```
+
+A Person's credits pay for Atlas's written summaries (`documentation/architecture/credits.md`). `credits` is how many
+they have left, starting at 3. While they're subscribed, `subscribedUntil` is when the period they've paid for ends,
+and `stripeSubscriptionId` is their subscription. `stripeCustomerId` is who they are at Stripe once they've bought
+anything. Each Stripe checkout they start is a Checkout, with `settledAt` once what it bought has been added.
+
+| Label | Key properties | What it is |
+|---|---|---|
+| Checkout | `id` (unique, the Stripe Checkout Session's), `kind` (`pack` or `subscription`), `createdAt`, `settledAt` | A purchase they started |
+
+```cypher
+(andrew)-[:CHECKED_OUT]->(:Checkout {id: "cs_test_a1B2c3", kind: "pack", settledAt: datetime()})
 ```
 
 ### Personality Graph
@@ -46,7 +58,7 @@ A Person also carries their personality report, once they've asked for one: `per
 headline, an overview, a paragraph per domain, strengths and things to watch, and `personalityReportAt`.
 `personalityScoredAt` is when their trait scores were last worked out, which makes the report stale when it's later.
 `personalityReportAskedAt` and `personalityReportFailedAt` are when they last asked for one and when one last couldn't
-be written.
+be written, and `personalityReportCharged` is whether a credit was spent on the last one asked for and is still spent.
 
 #### Relationships
 
@@ -401,7 +413,8 @@ A Person also carries Atlas's summary of their physical traits, once they've ask
 string with a headline, an overview, a paragraph per area of abilities, strengths, what's worth working on and working
 around their conditions, `physicalSummaryAt`, and `physicalSummaryInput`, what it was written from, which tells when
 it's stale. `physicalSummaryAskedAt` and `physicalSummaryFailedAt` are when they last asked for one and when one last
-couldn't be written.
+couldn't be written, and `physicalSummaryCharged` is whether a credit was spent on the last one asked for and is still
+spent.
 
 
 #### Relationships

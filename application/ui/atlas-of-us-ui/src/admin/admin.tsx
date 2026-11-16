@@ -3,7 +3,6 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 import { navigate, usePath } from '../router';
-import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { getEmail, listEmails, replyToEmail, type Contact, type Email, type EmailSummary } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -251,7 +250,6 @@ function Shell({ actions, children }: { actions?: ReactNode; children: ReactNode
         </div>
       </header>
       {typeof children === 'string' ? <p style={styles.notice}>{children}</p> : children}
-      <Footer />
     </div>
   );
 }

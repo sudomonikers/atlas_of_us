@@ -35,7 +35,6 @@ import { RequireLogin } from '../auth/require-login';
 import { noteWatched, useWatched } from './intro/watched';
 import { navigate, replace, useSearch } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
-import { Footer } from '../shared_components/footer';
 import { Mascot } from '../shared_components/mascot';
 import { Nav } from '../shared_components/nav';
 import { Thinking } from '../shared_components/thinking';
@@ -187,7 +186,6 @@ function Traits() {
           ) : (
             <Chapters loaded={loaded} />
           )}
-          <Footer />
         </div>
       )}
     </RequireLogin>

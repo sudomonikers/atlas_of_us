@@ -28,3 +28,15 @@ pub async fn handle(graph: &Graph, job: Value) {
         Err(e) => tracing::error!("unreadable job: {e}"),
     }
 }
+
+//marks a premium feature's write failed and gives back the credit spent on it, once. `feature` is the prefix of its
+//properties on the Person, such as physicalSummary (see the api's credits module)
+pub fn failed_query(feature: &str) -> String {
+    format!("
+        MATCH (p:Person {{id: $personId}})
+        SET p.lock = true REMOVE p.lock
+        SET p.{feature}FailedAt = datetime(),
+            p.credits = coalesce(p.credits, 0) + CASE WHEN coalesce(p.{feature}Charged, false) THEN 1 ELSE 0 END,
+            p.{feature}Charged = false
+    ")
+}

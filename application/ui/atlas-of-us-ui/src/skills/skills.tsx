@@ -4,7 +4,6 @@ import Explorer from './explorer';
 import { emptyBoard, type SkillBoard } from './skill_board';
 import MySkills from './my_skills';
 import { SkillsGuide } from './skills_guide';
-import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
@@ -80,7 +79,6 @@ function Skills() {
         )}
         {view === 'explorer' && <Explorer skillId={skillId} board={board} onBoard={setBoard} />}
         {view === 'mine' && <MySkills />}
-        <Footer />
       </div>
     </RequireLogin>
   );

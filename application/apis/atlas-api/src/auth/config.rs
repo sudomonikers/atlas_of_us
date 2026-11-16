@@ -14,7 +14,6 @@ pub struct Config {
     physical_intro_seen: bool, //whether they've been through the story that opens Physical Traits
     personality_intro_seen: bool, //whether they've been through the story that opens Personality
     scene_start_note_hidden: bool, //whether they've turned off the note on getting the most out of a scene
-    support_asked: bool, //whether they've been asked to chip in, which happens once, when their first report is written
 }
 
 //the settings to change. Any left out keep their value, and a setting that doesn't exist is refused
@@ -24,7 +23,6 @@ pub struct ConfigChanges {
     physical_intro_seen: Option<bool>,
     personality_intro_seen: Option<bool>,
     scene_start_note_hidden: Option<bool>,
-    support_asked: Option<bool>,
 }
 
 //every setting, as columns read from the PersonConfig c, with its default where it's never been set or c is missing.
@@ -32,8 +30,7 @@ pub struct ConfigChanges {
 pub const CONFIG_COLUMNS: &str = "
     coalesce(c.physicalIntroSeen, false) AS physical_intro_seen,
     coalesce(c.personalityIntroSeen, false) AS personality_intro_seen,
-    coalesce(c.sceneStartNoteHidden, false) AS scene_start_note_hidden,
-    coalesce(c.supportAsked, false) AS support_asked
+    coalesce(c.sceneStartNoteHidden, false) AS scene_start_note_hidden
 ";
 
 //changes some of the logged in person's settings, and gives back all of them
@@ -51,15 +48,13 @@ pub async fn update_config(
         MERGE (p)-[:HAS_CONFIG]->(c:PersonConfig)
         SET c.physicalIntroSeen = coalesce($physicalIntroSeen, c.physicalIntroSeen),
             c.personalityIntroSeen = coalesce($personalityIntroSeen, c.personalityIntroSeen),
-            c.sceneStartNoteHidden = coalesce($sceneStartNoteHidden, c.sceneStartNoteHidden),
-            c.supportAsked = coalesce($supportAsked, c.supportAsked)
+            c.sceneStartNoteHidden = coalesce($sceneStartNoteHidden, c.sceneStartNoteHidden)
         RETURN {CONFIG_COLUMNS}
     "))
         .param("id", user.person_id)
         .param("physicalIntroSeen", changes.physical_intro_seen)
         .param("personalityIntroSeen", changes.personality_intro_seen)
         .param("sceneStartNoteHidden", changes.scene_start_note_hidden)
-        .param("supportAsked", changes.support_asked)
     ).await.map_err(|e| internal(&e))?;
     let row = rows.next().await.map_err(|e| internal(&e))?
         .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Your session has expired. Please log in again.".to_string()))?;

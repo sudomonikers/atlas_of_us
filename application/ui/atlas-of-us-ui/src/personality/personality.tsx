@@ -25,11 +25,9 @@ import { DOMAIN_LOOK, DOMAIN_TRAITS } from './poles';
 import { Disclosure } from '../shared_components/disclosure';
 import { ProgressMeter } from '../shared_components/progress-meter';
 import { Checkbox } from '../shared_components/checkbox';
-import { currentConfig, setConfig, useConfig, useSession } from '../auth/api';
+import { setConfig, useConfig, useSession } from '../auth/api';
 import { navigate, replace, useSearch } from '../router';
 import { noteWatched, useWatched } from './intro/watched';
-import { Footer } from '../shared_components/footer';
-import { SupportPopup } from '../shared_components/support';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
@@ -347,19 +345,14 @@ function Dashboard() {
 
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
-  const [asking, setAsking] = useState(false); //the chip-in popup, shown the first time they see their report
 
   //fetched each time the view opens, a rescore finishes, a contest is sent or a report is written, so it picks up anything since
   useEffect(() => {
     if (view !== 'traits' || !personId || !username) return;
     fetchTraits(personId, username).then(
-      ({ traits, ...report }) => {
+      ({ traits }) => {
         setTraits(traits);
         setTraitsError(undefined);
-        if (report.report && currentConfig()?.support_asked === false) {
-          setAsking(true);
-          setConfig({ support_asked: true }).catch(() => {}); //if it can't be saved, they're asked again next time
-        }
       },
       (e) => setTraitsError(e instanceof Error ? e.message : String(e)),
     );
@@ -490,8 +483,6 @@ function Dashboard() {
 
         {view === 'traits' && traits && <MyPersonality traits={traits} onContested={() => setScorings((n) => n + 1)} onReport={() => setScorings((n) => n + 1)} />}
 
-        {asking && <SupportPopup onClose={() => setAsking(false)} />}
-
         {view === 'explore' && <Explore />}
 
         {view === 'chapters' && <OurApproach />}
@@ -530,7 +521,6 @@ function Dashboard() {
             </ul>
           </>
         )}
-        <Footer />
       </div>
     </RequireLogin>
   );

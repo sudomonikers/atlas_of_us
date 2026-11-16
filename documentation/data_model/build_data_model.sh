@@ -67,10 +67,22 @@ A Person's settings in the app are on their PersonConfig, made the first time th
 | `physicalIntroSeen` | They've been through the story that opens Physical Traits |
 | `personalityIntroSeen` | They've been through the story that opens Personality |
 | `sceneStartNoteHidden` | They've turned off the note on getting the most out of a scene |
-| `supportAsked` | They've been asked to chip in, which happens once, when their first report is written |
 
 ```cypher
 (andrew)-[:HAS_CONFIG]->(:PersonConfig {physicalIntroSeen: true})
+```
+
+A Person's credits pay for Atlas's written summaries (`documentation/architecture/credits.md`). `credits` is how many
+they have left, starting at 3. While they're subscribed, `subscribedUntil` is when the period they've paid for ends,
+and `stripeSubscriptionId` is their subscription. `stripeCustomerId` is who they are at Stripe once they've bought
+anything. Each Stripe checkout they start is a Checkout, with `settledAt` once what it bought has been added.
+
+| Label | Key properties | What it is |
+|---|---|---|
+| Checkout | `id` (unique, the Stripe Checkout Session's), `kind` (`pack` or `subscription`), `createdAt`, `settledAt` | A purchase they started |
+
+```cypher
+(andrew)-[:CHECKED_OUT]->(:Checkout {id: "cs_test_a1B2c3", kind: "pack", settledAt: datetime()})
 ```
 EOF
 

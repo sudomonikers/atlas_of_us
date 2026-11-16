@@ -212,7 +212,8 @@ Atlas writes a summary of everything a person has added when they ask for it on 
 written from (their characteristics, the latest reading of each measurement with where it sits, where they stand on
 each ability, and their conditions and impairments with the abilities each can affect) and queues the
 `physical_summary` job with it. One LLM call writes it in Atlas's voice, and it's kept with what it was written from, so
-a change to any of that marks it stale and they can ask for it again. It takes a place on a few abilities to ask.
+a change to any of that marks it stale and they can ask for it again. It takes a place on a few abilities to ask, and
+each one costs a credit, given back if it can't be written (see `credits.md`).
 
 ## Learning about the body
 The 3D body is BodyParts3D's models of a real human body, simplified when the anatomy seed is generated so the whole

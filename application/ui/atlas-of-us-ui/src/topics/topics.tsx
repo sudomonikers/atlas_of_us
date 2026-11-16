@@ -4,7 +4,6 @@ import Explorer, { type Opened } from './explorer';
 import { emptyBoard, place, type TopicBoard } from './topic_board';
 import MyKnowledge from './my_knowledge';
 import Explained from './explained';
-import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
@@ -88,7 +87,6 @@ function Topics() {
             }}
           />
         )}
-        <Footer />
       </div>
     </RequireLogin>
   );

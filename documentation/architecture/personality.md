@@ -83,13 +83,13 @@ says the budget's gone.
 ## Report
 The report is its own thing, apart from scoring. Once every chapter is finished and scored, the person can ask for a
 written report: a headline, an overview, a paragraph per domain, and strengths and things to watch. It's written only
-when they press the button for it, by its own job. Scoring or an accepted contest that changes their scores after it's
+when they press the button for it, by its own job, and each one costs a credit (see `credits.md`). Scoring or an accepted contest that changes their scores after it's
 written leaves it stale, and they can ask for it again.
 
 - **It's in Atlas's voice.**
 - **It's private by design.** It's shown to anyone who can see the profile, so it describes patterns only, and never
   quotes or retells the person's answers.
-- **A failed report keeps the old one,** and the person can ask again.
+- **A failed report keeps the old one,** gives back its credit, and the person can ask again.
 
 ## Contesting evidence
 A person can contest any piece of evidence, to explain why they answered as they did or to say it misread them.

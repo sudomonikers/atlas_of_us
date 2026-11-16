@@ -17,7 +17,6 @@ export interface Config {
   physical_intro_seen: boolean; //whether they've been through the story that opens Physical Traits
   personality_intro_seen: boolean; //whether they've been through the story that opens Personality
   scene_start_note_hidden: boolean; //whether they've turned off the note on getting the most out of a scene
-  support_asked: boolean; //whether they've been asked to chip in, which happens once, when their first report is written
 }
 
 export interface NewPerson extends Omit<Person, 'id' | 'public' | 'admin'> {

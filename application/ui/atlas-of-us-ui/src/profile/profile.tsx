@@ -9,7 +9,6 @@ import { BLOOM_NAMES, type EngagedTopic } from '../topics/api';
 import { EvidenceList } from '../shared_components/evidence';
 import { LevelSteps } from '../shared_components/level_steps';
 import { navigate, replace, useSearch } from '../router';
-import { Footer } from '../shared_components/footer';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
 import { AtlasError } from '../shared_components/atlas-error';
@@ -154,7 +153,6 @@ export default function Profile({ username }: { username: string }) {
           {mine ? 'Back to the Atlas ▶' : 'Map yourself ▶'}
         </button>
       </div>
-      <Footer />
     </div>
   );
 }

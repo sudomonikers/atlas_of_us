@@ -1,14 +1,14 @@
 //the written summary of everything a person has added to Physical Traits, at the top of Your results and on their
 //profile. Asking for it gathers what it's written from here (their characteristics, latest readings with where each
 //sits, abilities, conditions and impairments) and hands that to atlas-jobs' physical_summary job, which has Sonnet write
-//it and keeps it with what it was written from. Whatever has changed since then makes it stale, so the person can ask
+//it and keeps it with what it was written from. Each write costs a credit (see credits/), given back if it fails. Whatever has changed since then makes it stale, so the person can ask
 //for it again. See "Summary" in documentation/architecture/physical.md
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use chrono::Utc;
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::AuthUser, helpers::jobs::queue, state::AppState};
+use crate::{auth::AuthUser, credits::{refund, spend}, helpers::jobs::queue, state::AppState};
 
 use super::{abilities, age_on, bad, date, internal, reading, rows};
 
@@ -20,6 +20,8 @@ pub fn router() -> Router<AppState> {
 const ENOUGH: usize = 6;
 //how long a summary asked for is taken to be on its way. A job that hasn't written it by then has failed
 const WRITING_MINUTES: i64 = 5;
+//the summary's properties on the Person, which credits are spent and given back by
+const FEATURE: &str = "physicalSummary";
 
 //what the summary is written from, in the order it's gathered, so the same things always come out the same
 #[derive(Serialize)]
@@ -160,8 +162,11 @@ struct Kept {
     input: Option<String>,
     writing: bool,
     asked: bool, //whether it was asked for since it was last written
+    charged: bool, //whether a credit was spent on the last ask, and not given back yet
 }
 
+//the summary as it's kept on the person. A credit spent on one that couldn't be written goes back here, which covers a
+//job that never ran as well as one that failed
 async fn kept(graph: &Graph, person_id: &str) -> Result<Kept, (StatusCode, String)> {
     let mut rows = graph.execute(query("
         MATCH (p:Person {id: $personId})
@@ -170,11 +175,17 @@ async fn kept(graph: &Graph, person_id: &str) -> Result<Kept, (StatusCode, Strin
              coalesce(p.physicalSummaryFailedAt, datetime({year: 1})) AS failed
         RETURN p.physicalSummary AS summary, toString(p.physicalSummaryAt) AS written_at, p.physicalSummaryInput AS input,
                coalesce(asked > written AND asked > failed AND asked > datetime() - duration({minutes: $minutes}), false) AS writing,
-               coalesce(asked > written, false) AS asked
+               coalesce(asked > written, false) AS asked,
+               coalesce(p.physicalSummaryCharged, false) AS charged
     ").param("personId", person_id).param("minutes", WRITING_MINUTES)).await.map_err(internal)?;
-    rows.next().await.map_err(internal)?
+    let mut kept = rows.next().await.map_err(internal)?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "That person doesn't exist.".to_string()))?
-        .to::<Kept>().map_err(internal)
+        .to::<Kept>().map_err(internal)?;
+    if kept.charged && kept.asked && !kept.writing {
+        refund(graph, person_id, FEATURE).await.map_err(internal)?;
+        kept.charged = false;
+    }
+    Ok(kept)
 }
 
 //the summary, and where it's at
@@ -213,8 +224,8 @@ struct SummaryJob<'a> {
     input: &'a str, //kept with the summary as it's sent, so it can tell when the summary is stale
 }
 
-//asks for the logged in user's summary to be written, unless it's being written already or nothing has changed since it
-//was
+//asks for the logged in user's summary to be written, for a credit, unless it's being written already or nothing has
+//changed since it was
 async fn ask(State(state): State<AppState>, user: AuthUser) -> Result<Json<Summary>, (StatusCode, String)> {
     let (input, placed) = gather(&state, &user.person_id).await?;
     if placed < ENOUGH {
@@ -226,12 +237,12 @@ async fn ask(State(state): State<AppState>, user: AuthUser) -> Result<Json<Summa
         return Ok(Json(summary(current, &input, placed)?));
     }
 
-    state.graph.run(query("MATCH (p:Person {id: $personId}) SET p.physicalSummaryAskedAt = datetime()").param("personId", user.person_id.as_str()))
-        .await.map_err(internal)?;
+    spend(&state, &user.person_id, FEATURE).await?;
     if let Err(e) = queue(&state, "physical_summary", SummaryJob { person_id: &user.person_id, input: &input }).await {
         tracing::error!("couldn't queue the physical summary: {e}");
         state.graph.run(query("MATCH (p:Person {id: $personId}) SET p.physicalSummaryFailedAt = datetime()").param("personId", user.person_id.as_str()))
             .await.map_err(internal)?;
+        refund(&state.graph, &user.person_id, FEATURE).await.map_err(internal)?;
     }
     Ok(Json(summary(kept(&state.graph, &user.person_id).await?, &input, placed)?))
 }

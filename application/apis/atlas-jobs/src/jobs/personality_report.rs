@@ -6,6 +6,7 @@ use serde_json::json;
 use tracing::Instrument;
 
 use crate::bedrock::{BoxError, invoke};
+use crate::jobs::failed_query;
 use crate::jobs::personality_scoring::Shift;
 
 //a measured trait, as the report's writer reads it
@@ -73,7 +74,8 @@ evidence. Use the evidence only to understand the patterns, and describe the pat
 - watch_outs: three to five short phrases for what can trip them up.";
 
 //writes the person's report from their scores and the evidence behind them, once they've finished and been scored on
-//every scenario. A report that can't be written keeps the old one, and is marked failed so the person can ask again
+//every scenario. A report that can't be written keeps the old one, and is marked failed so the person can ask again,
+//with the credit they spent on it given back
 pub async fn run(graph: &Graph, job: ReportJob) {
     async {
         let started = Instant::now();
@@ -88,7 +90,7 @@ pub async fn run(graph: &Graph, job: ReportJob) {
                     Err(e) => tracing::error!("couldn't write the report: {e}"),
                     _ => tracing::error!("couldn't write the report: they aren't finished and fully scored"),
                 }
-                let marked = graph.run(query("MATCH (p:Person {id: $personId}) SET p.personalityReportFailedAt = datetime()").param("personId", job.person_id.as_str())).await;
+                let marked = graph.run(query(&failed_query("personalityReport")).param("personId", job.person_id.as_str())).await;
                 if let Err(e) = marked {
                     tracing::error!("couldn't mark the report failed: {e}");
                 }
@@ -169,7 +171,7 @@ async fn write(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &s
 
     graph.run(query("
         MATCH (p:Person {id: $personId})
-        SET p.personalityReport = $report, p.personalityReportAt = toString(datetime())
+        SET p.personalityReport = $report, p.personalityReportAt = toString(datetime()), p.personalityReportCharged = false
     ")
         .param("personId", person_id)
         .param("report", serde_json::to_string(&report)?)

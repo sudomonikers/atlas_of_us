@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { askForReport, DOMAINS, getReport, type Report, type ReportState } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
+import { canSpend, cost, refreshCredits, useCredits } from '../credits/api';
+import { GetCredits } from '../credits/get_credits';
 import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -23,6 +25,7 @@ export function ReportPanel({ onWritten }: { onWritten: () => void }) {
   const [error, setError] = useState<string>();
   const [asking, setAsking] = useState(false);
   const [slow, setSlow] = useState(false);
+  const credits = useCredits();
 
   useEffect(() => {
     getReport().then(setState, (e: Error) => setError(e.message));
@@ -30,6 +33,12 @@ export function ReportPanel({ onWritten }: { onWritten: () => void }) {
 
   //while it's being written, check on it until it's done or it's taking too long
   const writing = !!state?.writing;
+  //a write spends a credit, and one that fails gives it back, so the balance is read again once it's done either way
+  const loaded = !!state;
+  const gaveUp = !!state?.failed;
+  useEffect(() => {
+    if (loaded && !writing) refreshCredits();
+  }, [loaded, writing, gaveUp]);
   const started = useRef(0);
   const latest = useRef(onWritten);
   useEffect(() => {
@@ -58,16 +67,24 @@ export function ReportPanel({ onWritten }: { onWritten: () => void }) {
     setError(undefined);
     askForReport()
       .then(setState, (e: Error) => setError(e.message))
-      .finally(() => setAsking(false));
+      .finally(() => {
+        setAsking(false);
+        refreshCredits();
+      });
   };
 
   if (!state) return error ? <AtlasError message={error} /> : null;
   const { report, stale, failed, enough } = state;
-  const button = (label: string) => (
-    <button className="comic-lift" style={styles.button} disabled={asking} onClick={ask}>
-      {label}
-    </button>
-  );
+  //each write costs a credit, unless they're subscribed
+  const button = (label: string) =>
+    canSpend(credits) ? (
+      <button className="comic-lift" style={styles.button} disabled={asking} onClick={ask}>
+        {label}
+        {cost(credits)}
+      </button>
+    ) : (
+      <GetCredits buttonStyle={styles.button} />
+    );
   const status = writing ? (
     slow ? (
       <p style={styles.note}>This is taking longer than usual. Check back in a bit.</p>

@@ -7,6 +7,7 @@ mod evidence;
 mod feedback;
 mod admin;
 mod profile;
+mod credits;
 
 use axum::{
     Json, Router,
@@ -58,6 +59,15 @@ async fn main() {
     //slow work like personality scoring goes to atlas-jobs
     let jobs = env::var("JOBS_FUNCTION").ok().map(|name| (aws_sdk_lambda::Client::new(&aws), name));
 
+    let http = reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build().unwrap();
+
+    //credits are bought through stripe, which has what's for sale (credits/stripe.rs)
+    let stripe = env::var("STRIPE_SECRET_KEY").ok().map(|key| credits::stripe::Stripe::new(
+        http.clone(),
+        key,
+        env::var("APP_URL").unwrap_or_else(|_| "http://localhost:5173".to_string()),
+    ));
+
     //create state every route can grab from
     let state = AppState {
         graph,
@@ -67,7 +77,8 @@ async fn main() {
         bus: env::var("EVENT_BUS_NAME").ok().map(|name| events::Bus::new(&aws, name)),
         bedrock: aws_sdk_bedrockruntime::Client::new(&aws),
         evidence_bucket: env::var("EVIDENCE_BUCKET").ok(),
-        http: reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build().unwrap(),
+        http,
+        stripe,
     };
 
     // build our application 
@@ -81,6 +92,7 @@ async fn main() {
         .nest("/api/feedback", feedback::router())
         .nest("/api/admin", admin::router(state.clone()))
         .nest("/api/profiles", profile::router())
+        .nest("/api/credits", credits::router())
         .route("/share/{username}", get(profile::share_page))
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(TraceLayer::new_for_http()
