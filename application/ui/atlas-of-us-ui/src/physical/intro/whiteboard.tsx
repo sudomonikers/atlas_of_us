@@ -94,14 +94,15 @@ const Tape = ({ x, top, label }: { x: number; top: number; label: string }) => (
   </g>
 );
 
-//a stair to step up and down, with the pulse it's taking
-const Stair = ({ x }: { x: number }) => <Ink d={rect(x, GROUND - 60, 150, 60)} c={GRAY} />;
-const Pulse = ({ x, y, c = RED }: { x: number; y: number; c?: string }) => (
+//the lanes of a running track, running off behind someone
+const Track = () => <Ink d={line([120, GROUND + 20], [1480, GROUND + 20]) + ' ' + line([120, GROUND + 80], [1480, GROUND + 80])} c={GRAY} w={4} dash />;
+
+//a search box with something typed in it
+const SearchBox = ({ x, y, w, text }: { x: number; y: number; w: number; text: string }) => (
   <g>
-    <g className="wb-beat">
-      <Wash d={`M ${x} ${y + 26} C ${x - 40} ${y} ${x - 34} ${y - 30} ${x} ${y - 10} C ${x + 34} ${y - 30} ${x + 40} ${y} ${x} ${y + 26} Z`} c={c} op={0.6} />
-    </g>
-    <Ink d={line([x + 50, y], [x + 90, y], [x + 106, y - 40], [x + 126, y + 36], [x + 142, y - 8], [x + 154, y], [x + 220, y])} c={c} w={5} />
+    <Ink d={rect(x, y, w, 84)} />
+    <Ink d={circle(x + 44, y + 38, 16) + ' ' + line([x + 56, y + 50], [x + 72, y + 66])} c={GRAY} w={5} />
+    <Say x={x + 96} y={y + 56} text={text} size={38} anchor="start" />
   </g>
 );
 
@@ -270,7 +271,7 @@ const CUES: Record<string, Cue> = {
   },
   andrew_step: {
     board: 'andrew_tests',
-    parts: [ANDREW('step', 420), part('stair', <Stair x={430} />), part('pulse', <Pulse x={820} y={240} />, true), part('timer', <Say x={1180} y={420} text="3:00" size={90} c={RED} />), part('sweat', <Ink d="M 520 230 q 8 16 0 22 q -8 -6 0 -22 M 330 250 q 8 16 0 22 q -8 -6 0 -22" c={BLUE} w={4} />)],
+    parts: [part('track', <Track />), ANDREW('run', 420), part('timer', <Say x={1100} y={300} text="12:00" size={110} c={RED} />), part('sweat', <Ink d="M 520 230 q 8 16 0 22 q -8 -6 0 -22 M 330 250 q 8 16 0 22 q -8 -6 0 -22" c={BLUE} w={4} />)],
   },
   andrew_games: {
     board: 'andrew_tests',
@@ -290,7 +291,7 @@ const CUES: Record<string, Cue> = {
   },
   andrew_retest: {
     board: 'andrew_retest',
-    parts: [ANDREW('cheer', 300), part('stair', <Stair x={390} />), part('bars', <Bars x={620} y={170} rows={[['Strength', 0.86, 0.7], ['Stamina', 0.56, 0.7], ['Coordination', 0.48, 0.7]]} />), part('label', <Say x={1000} y={130} text="Three months later" size={46} c={RED} />)],
+    parts: [ANDREW('cheer', 300), part('bars', <Bars x={620} y={170} rows={[['Strength', 0.86, 0.7], ['Stamina', 0.56, 0.7], ['Coordination', 0.48, 0.7]]} />), part('label', <Say x={1000} y={130} text="Three months later" size={46} c={RED} />)],
   },
   andrew_court: {
     board: 'andrew_court',
@@ -298,7 +299,11 @@ const CUES: Record<string, Cue> = {
   },
   daniel_note: {
     board: 'daniel_tests',
-    parts: [DANIEL('rest', 380), part('card', <Card x={720} y={170} w={560} title="What I live with" lines={['Paraplegia']} c={BLUE} />)],
+    parts: [
+      DANIEL('rest', 380),
+      part('search', <SearchBox x={720} y={120} w={560} text="paraplegia" />),
+      part('card', <Card x={720} y={250} w={560} title="What it can affect" lines={['Stamina', 'Explosive Strength', 'Balance']} c={BLUE} />),
+    ],
   },
   daniel_basketball_reach: {
     board: 'daniel_tests',

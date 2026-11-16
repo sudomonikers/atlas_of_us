@@ -187,7 +187,7 @@ export const twoPlayers: Script = {
     andrew_tests: {
       steps: [
         { text: 'Back to Andrew. He starts with the easy part: a tape measure, a scale and a few strength tests. Six foot four, and his strength scores 86 out of 100. So far, so athlete.', animation: 'andrew_measure' },
-        { text: 'Then the step test: three minutes stepping up and down a single step, then count your pulse. Andrew is red in the face after one.', animation: 'andrew_step' },
+        { text: 'Then stamina: run as far as you can in twelve minutes, and see how far you got. Andrew is red in the face by minute four.', animation: 'andrew_step' },
         { speaker: ANDREW, text: 'Is it supposed to be this hard?', animation: 'andrew_step' },
         { text: 'His stamina scores 24 out of 100. Then the coordination games, played right on his screen: keep two hands doing two different things at once. He fumbles, and scores 33.', animation: 'andrew_games' },
       ],
@@ -218,7 +218,7 @@ export const twoPlayers: Script = {
         { text: "Not wrong, exactly. Just half right. And here's the part a mirror could never tell him: his gaps are the kind you can close.", animation: 'andrew_match' },
         { text: "Height can't be trained, and he already has it. Stamina is one of the most trainable abilities there is. Coordination comes with drills, a little every day.", animation: 'andrew_plan' },
         { text: 'So Andrew makes a plan, aimed right at what is holding him back: three runs a week, and twenty minutes of footwork and dribbling every night at the park down the street.', animation: 'andrew_training' },
-        { text: 'Three months later, he takes the step test again, and the coordination games. He finishes the step test this time.', animation: 'andrew_retest' },
+        { text: 'Three months later, he runs the twelve minutes again, and plays the coordination games. He runs the whole way this time.', animation: 'andrew_retest' },
         { text: 'His stamina has climbed from 24 to 56, and his coordination from the 30s to nearly 50. The gaps on Basketball are narrower, and he can watch them shrink.', stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: andrewLater, abilities: ['Stamina', 'Gross Body Coordination', 'Multilimb Coordination'] } },
         { speaker: ANDREW, text: "I'm not there yet. But for the first time, I know exactly what 'there' looks like, and how far I have to go.", animation: 'andrew_court' },
       ],
@@ -230,7 +230,7 @@ export const twoPlayers: Script = {
     // -------------------------------------------------------------------------
     daniel_tests: {
       steps: [
-        { text: 'Daniel starts somewhere different. First, he notes what he lives with: paraplegia, from his accident, and how much it affects him.', animation: 'daniel_note' },
+        { text: 'Daniel starts somewhere different. First, he adds what he lives with. He searches for paraplegia, says how much it affects him, and the Atlas lists the abilities it can reach.', animation: 'daniel_note' },
         { text: 'Then he plays the coordination games, right on his screen. Steady hands. Nimble fingers. Reactions.', animation: 'daniel_games' },
         { text: "His results come back, and they're not ordinary. Finger Dexterity: 94 out of 100. Arm-Hand Steadiness: 91. Wrist-Finger Speed: 93. Reaction Time: 86.", animation: 'daniel_results' },
         { text: 'The kid who caught every ball never went anywhere. None of that runs through his legs.', animation: 'daniel_catch' },
@@ -247,8 +247,9 @@ export const twoPlayers: Script = {
       interlude: 'What you live with',
       steps: [
         { text: "Here's Basketball as Daniel sees it. Next to Stamina, Explosive Strength and Gross Body Coordination there's a note: his paraplegia can affect each of them.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel, abilities: ['Stamina', 'Explosive Strength', 'Gross Body Coordination'] } },
-        { text: "The Atlas knows which abilities a condition can reach, so you only note it once. From then on, every skill you open flags it wherever it matters, so nothing catches you out.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel } },
-        { text: "It works for the everyday things too: glasses, a bad knee, asthma, ADHD. Lots of people do brilliantly at things their body makes harder. It helps to know going in.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel } },
+        { text: "The Atlas knows which abilities a condition can reach, so you only add it once. From then on, every skill you open flags it wherever it matters, so nothing catches you out.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel } },
+        { text: "The everyday ones are a tap away: needing glasses, a bad knee, asthma, ADHD. Anything else you can search for, and if the Atlas hasn't met it yet, it looks it up in the medical lists and works out which abilities it can reach.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel } },
+        { text: "It's not only conditions with a name, either. A shoulder or a memory that doesn't work as well as it could counts too. Lots of people do brilliantly at things their body makes harder. It helps to know going in.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel } },
         { text: "And it does something else. Notice what the note doesn't touch: Reaction Time and Depth Perception, and Daniel already scores more than Basketball takes on both.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel, abilities: ['Reaction Time', 'Depth Perception'] } },
       ],
       next: 'other_way',
@@ -304,6 +305,7 @@ export const twoPlayers: Script = {
       steps: [
         { text: "Now it's your turn. Most of what Andrew and Daniel did takes a few minutes: a tape measure, a stopwatch, some quick games right here on your screen.", animation: 'your_turn' },
         { text: "Every bit you add sharpens the picture. The more the Atlas knows, the better it can point you at the things you'd be great at.", animation: 'your_turn' },
+        { text: 'Everything you add is drawn on your body under Your results, so you can see which parts of you are behind each ability. And Explore lets you turn that body around and find out what every part does.', animation: 'your_turn' },
         {
           id: 'start',
           prompt: 'Where do you want to start?',
@@ -311,10 +313,10 @@ export const twoPlayers: Script = {
           choices: [
             { label: 'Physical Characteristics: a scale, a tape measure and your pulse.', chapter: 'basics' },
             { label: 'Strength and fitness: strength, stamina, flexibility and balance.', chapter: 'body' },
-            { label: 'Coordination: the games Daniel aced.', chapter: 'coordination' },
+            { label: 'Coordination and speed: the games Daniel aced.', chapter: 'coordination' },
             { label: 'Senses: your eyes and ears.', chapter: 'senses' },
             { label: 'Mind: puzzles for reasoning, memory and ideas.', chapter: 'mind' },
-            { label: 'Conditions and disabilities: anything I live with.', chapter: 'living-with' },
+            { label: 'Conditions and disabilities: glasses, a bad knee, or anything else I live with.', chapter: 'living-with' },
           ],
         },
       ],
