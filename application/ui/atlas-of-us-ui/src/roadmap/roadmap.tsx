@@ -65,7 +65,7 @@ export default function Roadmap() {
         <h2 style={styles.subtitle} className="comic-title">
           Every journey starts somewhere.
         </h2>
-        <p style={styles.text}>Yours starts with your personality. Play a few scenarios and watch your map appear.</p>
+        <p style={styles.text}>Yours starts with your personality. Play a few personality chapters and watch your map appear.</p>
         <div style={styles.ctas}>
           <button
             className="comic-lift"

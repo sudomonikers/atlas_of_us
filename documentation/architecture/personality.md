@@ -1,7 +1,7 @@
 # How the Personality Module Works
 
 This explains the personality module end to end: what the player does, what gets stored, and how answers become trait
-scores. For why we measure personality through scenes built from the IPIP-NEO rather than a questionnaire, read the
+scores. For why we measure personality through chapters built from the IPIP-NEO rather than a questionnaire, read the
 module's README (`application/ui/atlas-of-us-ui/src/personality/README.md`) and `ADRs/personality_ipip_scenes.md`. For
 the graph itself, read `../data_model/personality/personality.md`.
 
@@ -9,12 +9,12 @@ the graph itself, read `../data_model/personality/personality.md`.
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/personality/` | The scenes, My Personality and Explore |
+| UI | `application/ui/atlas-of-us-ui/src/personality/` | The chapters, My Personality and Explore |
 | API | `application/apis/atlas-api/src/domains/personality/` | Saves answers, decides when to score, queues scoring and contests, serves scores and evidence |
 | Jobs | `application/apis/atlas-jobs/src/jobs/` | Scoring, reviewing contests and writing the report, with Bedrock |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/` | Links a filled skill's levels to the traits they take |
 | Jobs lambda | `application/infrastructure/jobs_lambda.tf` | The function the API hands jobs to |
-| Seeds | `application/database/` | The traits, the scenarios and their questions, and the reading material for Explore |
+| Seeds | `application/database/` | The traits, the chapters and their questions, and the reading material for Explore |
 
 ## What we measure
 The 30 facets of the Big Five, as defined by the IPIP-NEO. A person's score on each facet has a **value** from 0 to 1,
@@ -22,39 +22,39 @@ where 0.5 is typical, and a **confidence** for how much their answers say about 
 
 ## The story that opens it
 Personality opens on a story the first time: two coworkers who give the same answers to a personality quiz, and how
-the scenes tell them apart, with the real Atlas shown along the way: a scene, the traits it reads, the answers behind a
+the chapters tell them apart, with the real Atlas shown along the way: a chapter, the traits it reads, the answers behind a
 trait and contesting one, the report, and a skill set against each of them. Anyone can watch it; it ends on where to
-start, and the scenes take an account. Once a person has seen it, Personality opens on the scenes, and they can play it
+start, and the chapters take an account. Once a person has seen it, Personality opens on the chapters, and they can play it
 again from there.
 
-## The scenes
-There are 18 scenes. Each is written to a set of IPIP-NEO items, five per facet across the game, with each item in
-exactly one scene (see `scene_grouping.md` in the personality UI folder).
+## The chapters
+There are 18 chapters. Each is written to a set of IPIP-NEO items, five per facet across the game, with each item in
+exactly one chapter (see `scene_grouping.md` in the personality UI folder).
 
-- **A scene is a script** of narration, dialogue and prompts. A prompt asks for free text, or offers choices and asks
+- **A chapter is a script** of narration, dialogue and prompts. A prompt asks for free text, or offers choices and asks
   why, and choices branch the story.
 - **Each prompt names the facets** it was written to test. The scorer gets them as a hint, not a limit.
-- **Scenes come in three modes:** a **story** with choices, a **live** scene that watches what the player actually does
+- **Chapters come in three modes:** a **story** with choices, a **live** chapter that watches what the player actually does
   in the app, and an **interview** with pinned-down questions about habits and inner states.
-- **Some scenes run a real clock,** and each answer records how much time was left.
-- **Every scene ends with a real-life question** about the player's own life, the strongest evidence we get.
-- **Each scene and its questions are also in the graph,** so answers attach to them and scoring knows the play order.
-  How to add a scene is in `CREATE_SCENE.md` in the personality UI folder.
+- **Some chapters run a real clock,** and each answer records how much time was left.
+- **Every chapter ends with a real-life question** about the player's own life, the strongest evidence we get.
+- **Each chapter and its questions are also in the graph,** so answers attach to them and scoring knows the play order.
+  How to add a chapter is in `CREATE_SCENE.md` in the personality UI folder.
 
 ## Answering
 Each answer is saved as the player moves past a prompt, with the **context**: everything they saw since the last
 prompt on the path they took, and the choices offered. The scorer needs it to know what they were answering.
 
-- **Answering again** overwrites the old answer, and **replaying a scene** clears its old answers first, since a replay
+- **Answering again** overwrites the old answer, and **replaying a chapter** clears its old answers first, since a replay
   can take a different branch.
-- **An unfinished scene resumes** where the player left off.
+- **An unfinished chapter resumes** where the player left off.
 
 ## Scoring
-Scenes are scored in **batches of six** in play order, when every scene in a batch is finished. Replaying a scene in a
+Chapters are scored in **batches of six** in play order, when every chapter in a batch is finished. Replaying a chapter in a
 finished batch rescores it, and a person can ask for a full rescore.
 
-1. The API marks the person as being scored, which locks the scenes until it's done, and queues the job.
-2. The job makes **one LLM call per batch**, so the model sees patterns across six scenes at once. For each facet it
+1. The API marks the person as being scored, which locks the chapters until it's done, and queues the job.
+2. The job makes **one LLM call per batch**, so the model sees patterns across six chapters at once. For each facet it
    lists **evidence**: which answer shows it, why, a level and a weight. Weights are capped by the kind of answer, so a
    real action or real-life detail counts more than a story choice or a bare claim about oneself.
 3. The evidence is saved on each answer, and every facet's score is worked out again from all the person's evidence:
@@ -78,7 +78,7 @@ says the budget's gone.
   facet it matches, as something that can affect it, apart from the score.
 
 ## The report
-Once every scene is finished and scored, the person gets a written report: a headline, an overview, a paragraph per
+Once every chapter is finished and scored, the person gets a written report: a headline, an overview, a paragraph per
 domain, and strengths and things to watch. It's rewritten after each scoring job and each accepted contest.
 
 - **It's in Atlas's voice.**
@@ -96,7 +96,7 @@ A person can contest any piece of evidence, to explain why they answered as they
 - **An accepted contest** changes or removes that one piece of evidence and rescores. The write only lands if nothing
   changed in the meantime, and a contest that fails is rejected with a reply, so it never stays pending.
 - **Contests last.** A later rescore reads the settled contests with each answer, so a fair explanation carries into
-  the new evidence. Replaying a scene clears its contests.
+  the new evidence. Replaying a chapter clears its contests.
 
 ## Skill requirements
 Every skill level is linked to the personality traits it takes, so a person can see how their personality fits a

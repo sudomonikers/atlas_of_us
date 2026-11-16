@@ -83,7 +83,7 @@ function StageScenes({ picked }: { picked?: string[] }) {
   const batches = Array.from({ length: Math.ceil(SCENARIOS.length / BATCH) }, (_, i) => SCENARIOS.slice(i * BATCH, (i + 1) * BATCH));
   return (
     <Panel scrollTo={picked ? '[data-picked="true"]' : undefined}>
-      <h2 style={styles.name}>Eighteen scenes</h2>
+      <h2 style={styles.name}>Eighteen chapters</h2>
       {batches.map((batch, i) => (
         <div key={i}>
           <h3 style={styles.subheading}>{i === 0 ? 'Your first look comes after these six' : i === batches.length - 1 ? 'And your report after these' : 'A sharper picture after these'}</h3>

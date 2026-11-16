@@ -57,7 +57,7 @@ export type Stage =
 //a choice that ends the story opens a scene, or one of the dashboard's views
 export interface Choice extends StoryChoice {
   scene?: string;
-  view?: 'scenarios' | 'explore';
+  view?: 'chapters' | 'explore';
 }
 
 export type Script = StoryScript<Stage, Choice>;
@@ -102,7 +102,7 @@ const samImmoderation: Evidence[] = [
     contest: {
       kind: 'wrong',
       message: "It's a fairy tale. I'd never do that with real money.",
-      reply: "Fair point that it's a story. But at the end of the same scene you told me you spent your whole bonus the weekend it landed, so it holds outside the story too. This one stays as it is.",
+      reply: "Fair point that it's a story. But at the end of the same chapter you told me you spent your whole bonus the weekend it landed, so it holds outside the story too. This one stays as it is.",
       accepted: false,
     },
   },
@@ -348,7 +348,7 @@ export const sameAnswer: Script = {
         { text: "Here's one. You're working the register at Frank's corner store, alone for the first time. Frank's one rule is taped up by the till: always call the police. And you've just caught a boy in a school uniform with a sandwich and a bottle of children's Tylenol.", stage: shoplifter },
         { text: 'You pick what you would do, and then you say why, in your own words. The why is the part that counts.', stage: { ...shoplifter, choice: WARN } },
         { text: "Every option has a good reason behind it. There's no right answer to find, so the only thing to do is say what you'd really do.", stage: { ...shoplifter, choice: WARN } },
-        { text: 'And every scene ends by asking about your own life: when you last broke a rule, and why. A real story from your life says more than any made-up one.', stage: { kind: 'scenes', picked: [SHOPLIFTER] } },
+        { text: 'And every chapter ends by asking about your own life: when you last broke a rule, and why. A real story from your life says more than any made-up one.', stage: { kind: 'scenes', picked: [SHOPLIFTER] } },
       ],
       next: 'same_choice',
     },
@@ -375,8 +375,8 @@ export const sameAnswer: Script = {
       interlude: 'What your answers become',
       steps: [
         { text: 'The Atlas reads every answer for thirty traits: the facets of the Big Five, the model of personality psychologists have tested more than any other.', stage: { kind: 'explore' } },
-        { text: "Every six scenes, it reads everything you've written so far together, and you get a first look. Here's Sam's, after six.", stage: { kind: 'traits', person: samEarly } },
-        { text: 'An early read comes from only a scene or two, and some traits have not come up yet. As he plays on, every scene adds evidence, and the picture fills in and firms up.', stage: { kind: 'traits', person: samEarly } },
+        { text: "Every six chapters, it reads everything you've written so far together, and you get a first look. Here's Sam's, after six.", stage: { kind: 'traits', person: samEarly } },
+        { text: 'An early read comes from only a chapter or two, and some traits have not come up yet. As he plays on, every chapter adds evidence, and the picture fills in and firms up.', stage: { kind: 'traits', person: samEarly } },
         { text: "After all eighteen, every trait has been seen in several different situations. Here's Sam.", stage: { kind: 'traits', person: sam } },
         { text: 'High Assertiveness, Gregariousness and Excitement-Seeking. He takes charge, loves a crowd, and chases the new thing.', stage: { kind: 'traits', person: sam, picked: ['Assertiveness', 'Gregariousness', 'Excitement-Seeking'] } },
         { text: 'And Priya. High Orderliness, Self-Discipline and Achievement-Striving, and low Anxiety. Organized, persistent, ambitious, and calm when things go wrong.', stage: { kind: 'traits', person: priya, picked: ['Orderliness', 'Self-Discipline', 'Achievement-Striving', 'Anxiety'] } },
@@ -397,7 +397,7 @@ export const sameAnswer: Script = {
         { text: "Now Sam's Immoderation. Behind it is his Night Market answer: he spent all ten coins at the very first stall.", stage: { kind: 'why', person: { ...sam, evidence: { Immoderation: samImmoderation.map((e) => ({ ...e, contest: undefined })) } }, trait: 'Immoderation' } },
         { speaker: SAM, text: "Hang on, that's a fairy tale. I'd never do that with real money.", animation: 'sam_phone_protest' },
         { text: 'So he contests it. Anyone can, on any piece of evidence: explain what you meant, or say it read you wrong. Atlas reads the answers again with your note beside them, and replies.', stage: { kind: 'why', person: sam, trait: 'Immoderation' } },
-        { text: "This time, Atlas holds its ground. At the end of that same scene, asked about his real life, he'd said he blew his whole bonus in a weekend.", stage: { kind: 'why', person: sam, trait: 'Immoderation' } },
+        { text: "This time, Atlas holds its ground. At the end of that same chapter, asked about his real life, he'd said he blew his whole bonus in a weekend.", stage: { kind: 'why', person: sam, trait: 'Immoderation' } },
         { speaker: SAM, text: '...Okay. Fair.', animation: 'sam_phone_sheepish' },
         { text: 'When a note does change what an answer shows, the evidence changes with it, and the trait is worked out again. Either way, you get a reason.', stage: { kind: 'why', person: sam, trait: 'Immoderation' } },
       ],
@@ -422,7 +422,7 @@ export const sameAnswer: Script = {
     the_report: {
       interlude: 'Your report',
       steps: [
-        { text: 'Finish all eighteen scenes, and Atlas writes you a report: a portrait of you in words, drawn from everything you said.', stage: { kind: 'report', person: priya, part: 'headline' } },
+        { text: 'Finish all eighteen chapters, and Atlas writes you a report: a portrait of you in words, drawn from everything you said.', stage: { kind: 'report', person: priya, part: 'headline' } },
         { text: 'A paragraph on each part of your personality, and how the traits in it play off each other.', stage: { kind: 'report', person: priya, part: 'domains' } },
         { text: "And your strengths, and what to watch for. Priya's says it plainly: she stays calm when things go wrong, people trust her with what matters, and she holds back when a moment needs someone to speak up.", stage: { kind: 'report', person: priya, part: 'lists' } },
         { text: 'It never quotes your answers or retells your stories. It only describes the patterns, so you can show it to people, on a profile you choose to make public.', stage: { kind: 'report', person: priya, part: 'lists' } },
@@ -512,7 +512,7 @@ export const sameAnswer: Script = {
 
     your_turn: {
       steps: [
-        { text: "Now it's your turn. Your first look comes after six scenes. After all eighteen, your report, every skill set against your personality, and a profile you can share if you want to.", animation: 'your_turn' },
+        { text: "Now it's your turn. Your first look comes after six chapters. After all eighteen, your report, every skill set against your personality, and a profile you can share if you want to.", animation: 'your_turn' },
         { text: 'Be honest, not impressive. Say why. Be specific. And jokes are fine: how you answer says something too.', animation: 'your_turn' },
         {
           id: 'start',
@@ -520,7 +520,7 @@ export const sameAnswer: Script = {
           animation: 'your_turn',
           choices: [
             { label: 'The Story Game: build a world with a narrator. The best place to begin.', scene: 'the_story_game' },
-            { label: 'Show me all eighteen scenes.', view: 'scenarios' },
+            { label: 'Show me all eighteen chapters.', view: 'chapters' },
             { label: 'Teach me about the Big Five first.', view: 'explore' },
           ],
         },

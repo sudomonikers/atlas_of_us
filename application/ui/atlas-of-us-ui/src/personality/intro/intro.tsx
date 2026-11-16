@@ -30,7 +30,7 @@ function Intro() {
   const leave = (choice?: Choice) => {
     if (session.status === 'authenticated') setConfig({ personality_intro_seen: true }).catch(() => {});
     else noteWatched(true);
-    navigate(choice?.scene ? `/personality?scene=${choice.scene}` : choice?.view ? `/personality?view=${choice.view}` : '/personality');
+    navigate(choice?.scene ? `/personality?chapter=${choice.scene}` : choice?.view ? `/personality?view=${choice.view}` : '/personality');
   };
 
   //the interludes read the real Atlas, so start reading all of it while the story is still being told
@@ -46,7 +46,7 @@ function Intro() {
       )}
       stage={(stage) => <StageView stage={stage} />}
       onLeave={leave}
-      exitLabel="Skip to the scenes"
+      exitLabel="Skip to the chapters"
     />
   );
 }

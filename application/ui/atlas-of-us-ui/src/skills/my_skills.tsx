@@ -173,7 +173,7 @@ export default function MySkills() {
           <p style={styles.text}>
             Once we know your personality, this shows the skills that suit it.{' '}
             <button className="comic-lift" style={styles.link} onClick={() => navigate('/personality')}>
-              Play the personality scenes
+              Play the personality chapters
             </button>
           </p>
         </section>

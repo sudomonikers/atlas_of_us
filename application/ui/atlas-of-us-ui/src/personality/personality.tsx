@@ -235,10 +235,10 @@ const SCORE_EVERY = 6;
  * dashboard
  * ------------------------------------------------------------------------------------------- */
 
-type View = 'scenarios' | 'traits' | 'explore';
+type View = 'chapters' | 'traits' | 'explore';
 
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'scenarios', label: 'Scenarios' },
+  { id: 'chapters', label: 'Chapters' },
   { id: 'traits', label: 'My Personality' },
   { id: 'explore', label: 'Explore' },
 ];
@@ -259,7 +259,7 @@ function Personality() {
   }, [unsaved]);
 
   if (session.status === 'checking') return null;
-  if (params.has('intro') || (!params.has('scene') && !params.has('view') && !seen))
+  if (params.has('intro') || (!params.has('chapter') && !params.has('view') && !seen))
     return (
       <Suspense fallback={null}>
         <Intro />
@@ -279,7 +279,7 @@ function Dashboard() {
   const startNoteHidden = !!useConfig()?.scene_start_note_hidden; //whether they've turned off the note shown before each scenario
   const params = new URLSearchParams(useSearch());
   const asked = params.get('view');
-  const [view, setView] = useState<View>(isView(asked) ? asked : 'scenarios');
+  const [view, setView] = useState<View>(isView(asked) ? asked : 'chapters');
   const [playing, setPlaying] = useState<string>(); //id of the scenario currently open
   const [starting, setStarting] = useState<string>(); //id of the scenario whose start note is showing
   const [answers, setAnswers] = useState<SavedAnswer[]>(); //undefined until loaded
@@ -375,7 +375,7 @@ function Dashboard() {
   };
 
   //a scenario asked for in the url opens with its start note, once their progress is in and nothing is being scored
-  const askedScene = params.get('scene');
+  const askedScene = params.get('chapter');
   const [openedScene, setOpenedScene] = useState<string>();
   if (askedScene && askedScene !== openedScene && answers !== undefined && !recalculating) {
     setOpenedScene(askedScene);
@@ -423,8 +423,8 @@ function Dashboard() {
       : outOfBudget
         ? "I've burned through this month's AI budget, so scoring is paused. Your answers are saved. Chipping in below helps."
       : recalculating
-        ? 'Recalculating your results. Your next scenario unlocks in a few minutes.'
-        : view === 'scenarios'
+        ? 'Recalculating your results. Your next chapter unlocks in a few minutes.'
+        : view === 'chapters'
           ? ready
             ? greeting(firstName, completed)
             : <>Digging up your map<Dots /></>
@@ -433,7 +433,7 @@ function Dashboard() {
             : <>Flipping through my notes on you. Some of them are unflattering<Dots /></>;
   //a failed load replaces the greeting
   const failure =
-    view === 'scenarios' && loadError
+    view === 'chapters' && loadError
       ? `I couldn't load your progress. ${loadError}`
       : view === 'traits' && traitsError
         ? `I couldn't load your traits. ${traitsError}`
@@ -482,7 +482,7 @@ function Dashboard() {
 
         {view === 'explore' && <Explore />}
 
-        {view === 'scenarios' && <OurApproach />}
+        {view === 'chapters' && <OurApproach />}
 
         {/* every scenario opens with how to get the most out of it */}
         {starting && (
@@ -499,7 +499,7 @@ function Dashboard() {
           </div>
         )}
 
-        {view === 'scenarios' && ready && (
+        {view === 'chapters' && ready && (
           <>
             <div style={dash.meter}>
               <ProgressMeter done={completed} total={SCENARIOS.length} label="complete" />
@@ -530,13 +530,13 @@ const SCORING_POLL_MS = 5000;
 const LIKERT = ['Strongly disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly agree'];
 
 //how a scenario goes, drawn as a strip
-const STEPS = ['Step into a scene', 'Make your call', 'Tell us why'];
+const STEPS = ['Step into a chapter', 'Make your call', 'Tell us why'];
 
 //the longer case, behind "Why we think that"
 const APPROACH = [
   {
     title: 'Put you in actual situations',
-    body: "Each scenario plays out like a game. React to what is happening.",
+    body: "Each chapter plays out like a game. React to what is happening.",
   },
   {
     title: 'Let you explain yourself',
@@ -552,7 +552,7 @@ const TIPS = [
   { title: 'Be honest, not impressive', note: "Answer how you'd actually act." },
   { title: 'Tell us why', note: 'Your reasoning matters more than your pick.' },
   { title: 'Be specific', example: { vague: "I'm bad in a crisis.", specific: 'I froze, then called my mom.' } },
-  { title: 'Keep playing', note: `I re-read everything every ${SCORE_EVERY} scenarios.` },
+  { title: 'Keep playing', note: `I re-read everything every ${SCORE_EVERY} chapters.` },
   { title: 'Jokes are fine', note: 'How you answer says something too.' },
 ];
 
@@ -691,17 +691,17 @@ function OurApproach() {
 const greeting = (name: string | undefined, completed: number) => {
   const left = SCENARIOS.length - completed;
   const toNext = SCORE_EVERY - (completed % SCORE_EVERY);
-  if (completed === 0) return `Hey ${name ?? 'there'}. Finish ${SCORE_EVERY} scenarios and I'll tell you who you are.`;
-  if (left === 0) return `Every scenario done${name ? `, ${name}` : ''}. You really need a hobby. I'm proud of you.`;
+  if (completed === 0) return `Hey ${name ?? 'there'}. Finish ${SCORE_EVERY} chapters and I'll tell you who you are.`;
+  if (left === 0) return `Every chapter done${name ? `, ${name}` : ''}. You really need a hobby. I'm proud of you.`;
   const next = toNext > left ? `${left} to go.` : completed < SCORE_EVERY ? `${toNext} more and I'll tell you who you are.` : `${toNext} more and I'll update your results.`;
   return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}! ${next}`;
 };
 
 const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   const measured = traits.filter((t) => t.value !== undefined).length;
-  if (measured === 0) return `Nothing on you yet${name ? `, ${name}` : ''}. I read everything after every ${SCORE_EVERY} scenarios.`;
+  if (measured === 0) return `Nothing on you yet${name ? `, ${name}` : ''}. I read everything after every ${SCORE_EVERY} chapters.`;
   if (measured === traits.length) return `Every trait measured${name ? `, ${name}` : ''}. I know you better than your group chat does.`;
-  return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots need more scenarios.`;
+  return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots need more chapters.`;
 };
 
 const badges: Record<ScenarioStatus, { label: string; fill: string; ink: string }> = {
@@ -1004,7 +1004,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
       )}
 
       <button style={styles.exit} className="comic-lift" onClick={onExit}>
-        ◀ Back to scenarios
+        ◀ Back to chapters
       </button>
 
       {/* the outer div positions the box so the panel inside is free to animate its own transform */}

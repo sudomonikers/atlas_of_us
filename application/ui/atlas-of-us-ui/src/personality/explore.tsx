@@ -36,7 +36,7 @@ const TIMELINE = [
   { when: '1930s', what: 'Collect every word we have for describing people' },
   { when: 'Next', what: 'Cluster them. Five groups keep turning up' },
   { when: '1980s', what: 'Costa and McCrae build the NEO questionnaire' },
-  { when: 'Today', what: 'The free IPIP-NEO, which our scenes are written to' },
+  { when: 'Today', what: 'The free IPIP-NEO, which our chapters are written to' },
 ];
 
 //the Explore view: what the Big Five is, then every domain and trait in depth, all read from the database. Only the

@@ -61,7 +61,7 @@ export default function Profile({ username }: { username: string }) {
   //the post's text, filled in for them. Their report's headline when they have one
   const shareText = profile?.personality.report
     ? `Atlas Of Us summed up my personality: "${profile.personality.report.headline}" Find out yours:`
-    : "I'm mapping my personality on Atlas Of Us, one scenario at a time. Find out yours:";
+    : "I'm mapping my personality on Atlas Of Us, one chapter at a time. Find out yours:";
   const copy = () => run(() => navigator.clipboard.writeText(shareUrl).then(() => setNote('Copied!')));
   //the phone's share sheet, the only way onto Instagram. Closing it without sharing isn't a failure
   const shareSheet = () =>
@@ -162,7 +162,7 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
   return (
     <section style={styles.section} className="comic-panel" role="tabpanel">
       {personality.report && <PersonalityReport report={personality.report} />}
-      {!domains.length && <p>{firstName} hasn't played enough scenarios to be measured yet.</p>}
+      {!domains.length && <p>{firstName} hasn't played enough chapters to be measured yet.</p>}
       {domains.map((domain) => (
         <div key={domain.key} style={styles.domain}>
           <h3 style={styles.domainTitle}>{domain.title}</h3>

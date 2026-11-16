@@ -39,7 +39,7 @@ export default function MyPersonality({ traits, report, onContested }: { traits:
           <PersonalityReport report={report} />
         </section>
       ) : (
-        <p style={styles.traitsIntro}>Finish every scenario and I'll write up your full report.</p>
+        <p style={styles.traitsIntro}>Finish every chapter and I'll write up your full report.</p>
       )}
       <p style={styles.traitsIntro}>Neither end of a bar is the good one. They're just different.</p>
       <div style={styles.compare}>
