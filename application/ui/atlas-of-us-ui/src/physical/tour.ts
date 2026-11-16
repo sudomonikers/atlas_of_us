@@ -169,7 +169,7 @@ function summary(abilities: Ability[], measurements: Measurements) {
 
 //the steps of a chapter on a category of abilities: a test for each measurement asked for one of them, and a rating
 //for each ability nothing measures
-function steps(abilities: Ability[], measurements: Measurements, category: Ability['category']) {
+export function chapterSteps(abilities: Ability[], measurements: Measurements, category: Ability['category']) {
   const group = abilities.filter((a) => a.category === category);
   const tested = [...new Set(group.flatMap((a) => askedFor(a).map((m) => m.id)))].flatMap((m) => measurements.measurements.find((x) => x.id === m) ?? []);
   const untested = group.filter((a) => !askedFor(a).length);
@@ -184,7 +184,7 @@ function abilities(id: string, title: string, category: Ability['category'], mot
     title,
     blurb,
     scenes: ({ abilities, measurements, me }) => {
-      const { group, tested, untested } = steps(abilities, measurements, category);
+      const { group, tested, untested } = chapterSteps(abilities, measurements, category);
       return [
         ...intro.map((text, i): Scene => ({ id: `intro-${i + 1}`, text, stage: { motion } })),
         ...tested.map((m) => measuring(m, group.filter((a) => askedFor(a).some((s) => s.id === m.id)), handOf(me))),
@@ -205,7 +205,7 @@ function abilities(id: string, title: string, category: Ability['category'], mot
       ];
     },
     progress: ({ abilities, measurements }) => {
-      const { tested, untested } = steps(abilities, measurements, category);
+      const { tested, untested } = chapterSteps(abilities, measurements, category);
       const done = tested.filter((m) => m.readings.length).length + untested.filter((a) => a.value !== null).length;
       return `${done} of ${tested.length + untested.length} done`;
     },

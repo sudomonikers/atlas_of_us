@@ -2,6 +2,8 @@ import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react'
 import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, type PersonPersonality } from '../personality/api';
 import { PersonalityReport } from '../personality/report';
+import { SummaryText } from '../physical/summary';
+import type { PhysicalSummary } from '../physical/api';
 import { LEVEL_NAMES, monthYear, type AchievedSkill } from '../skills/api';
 import { BLOOM_NAMES, type EngagedTopic } from '../topics/api';
 import { EvidenceList } from '../shared_components/evidence';
@@ -19,9 +21,10 @@ const blue = 'var(--air-force-blue)';
 const comic = 'var(--font-comic)';
 
 //one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link can open on it
-type Tab = 'personality' | 'topics' | 'skills';
+type Tab = 'personality' | 'physical' | 'topics' | 'skills';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'personality', label: 'Personality' },
+  { id: 'physical', label: 'Physical Traits' },
   { id: 'topics', label: 'Topics' },
   { id: 'skills', label: 'Skills' },
 ];
@@ -140,6 +143,7 @@ export default function Profile({ username }: { username: string }) {
             ))}
           </div>
           {tab === 'personality' && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
+          {tab === 'physical' && <PhysicalSection physical={profile.physical} firstName={profile.first_name} />}
           {tab === 'topics' && <TopicsSection topics={profile.topics} firstName={profile.first_name} />}
           {tab === 'skills' && <SkillsSection skills={profile.skills} firstName={profile.first_name} />}
         </>
@@ -196,6 +200,15 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
           </ul>
         </div>
       ))}
+    </section>
+  );
+}
+
+//Atlas's summary of their physical traits, once they've asked for one
+function PhysicalSection({ physical, firstName }: { physical: PhysicalSummary | null; firstName: string }) {
+  return (
+    <section style={styles.section} className="comic-panel" role="tabpanel">
+      {physical ? <SummaryText summary={physical} /> : <p>{firstName} hasn't had their physical traits written up yet.</p>}
     </section>
   );
 }

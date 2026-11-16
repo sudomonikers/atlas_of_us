@@ -62,6 +62,7 @@ const HEIGHT = 'clamp(420px, calc(100vh - 160px), 900px)';
 
 const styles: Record<string, CSSProperties> = {
   stage: {
+    width: '100%',
     maxWidth: 1400,
     margin: '0 auto 36px',
     display: 'flex',

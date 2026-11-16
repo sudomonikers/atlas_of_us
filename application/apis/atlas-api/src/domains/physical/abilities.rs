@@ -79,7 +79,7 @@ struct Row {
 //better; their rating of themselves; or an impairment in what it rests on, with its extent, noted beside it
 #[derive(Serialize)]
 pub struct Basis {
-    kind: String, //measurement, rating or impairment
+    pub(super) kind: String, //measurement, rating or impairment
     name: String,
     standing: Option<f64>,
     extent: Option<String>,
@@ -88,7 +88,7 @@ pub struct Basis {
 //a measurement that shows an ability, and whether the person has a reading of it that counts
 #[derive(Serialize)]
 pub struct Shows {
-    id: String,
+    pub(super) id: String,
     name: String,
     test: Option<String>, //home, or the test the app runs
     counted: bool,
@@ -106,18 +106,18 @@ pub struct Tip {
 #[derive(Serialize)]
 pub struct Ability {
     id: String,
-    name: String,
-    category: String,
+    pub(super) name: String,
+    pub(super) category: String,
     group: String,
     description: String,
     examples: Vec<String>, //from what takes a little of it to what takes a lot
-    practice: Option<String>, //how much practice changes it: a lot, some or little
+    pub(super) practice: Option<String>, //how much practice changes it: a lot, some or little
     tips: Vec<Tip>,
-    value: Option<f64>, //0 to 1, with 0.5 typical
-    confidence: Option<f64>,
-    basis: Vec<Basis>,
+    pub(super) value: Option<f64>, //0 to 1, with 0.5 typical
+    pub(super) confidence: Option<f64>,
+    pub(super) basis: Vec<Basis>,
     rating: Option<i64>, //the hardest example they say they can do, 1 to 3, or 0 for none of them
-    measurements: Vec<Shows>,
+    pub(super) measurements: Vec<Shows>,
     parts: Vec<String>, //the ids of the body parts it rests on
 }
 
@@ -158,7 +158,7 @@ const ABILITIES: &str = "
 
 //whether the ability `a` rests on the body function or part `t`: the function or one it's part of underlies it, or the
 //part, or a kind of part it is, serves one that does
-const RESTS_ON: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
+pub(super) const RESTS_ON: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
                   OR EXISTS { MATCH (t)-[:PART_SUBTYPE_OF*0..2]->(:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) })";
 
 //where a person stands on one ability: the readings that count, each weighted by how much it says, or else their

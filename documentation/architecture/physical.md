@@ -14,6 +14,7 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 | API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; where a person stands on each ability; the anatomy; impairments; conditions, and adding ones from Mondo and HPO |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
 | Condition links | `application/apis/atlas-jobs/src/events/condition_added/physical.rs` | Links a condition a person added to the body functions and parts it affects |
+| Summary | `application/apis/atlas-jobs/src/jobs/physical_summary.rs` | Writes Atlas's summary of everything a person has added |
 | Seeds | `application/database/physical_abilities_seed.cypher`, `onet_occupations_seed.cypher`, `physical_norms_seed.cypher`, `physical_characteristics_seed.cypher`, `physical_functions_seed.cypher`, `physical_anatomy_seed.cypher`, `physical_conditions_seed.cypher` | The abilities and the occupations rated on them, from O\*NET, the measurements with their norms, from NHANES, the characteristics, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
 | Norms import | `application/database/physical_norms_import/` | Works out the norms from NHANES, adds the self-tests with their published norms, and writes the norms seed |
 | ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions seed |
@@ -79,7 +80,10 @@ the camera flying to the parts it's about. The chapters are:
 - Conditions and disabilities: impairments, then conditions. Each one lights up where it sits and tints the parts of
   the abilities it can affect.
 
-Your results draws every ability on the 3D body, with picking an ability lighting up the parts it uses. Explore is the
+Your results shows everything a person has added as a whole: Atlas's summary of it, their characteristics with their size
+and vitals against people like them, every ability they have a place on laid out by area, the same drawn on the 3D body
+with picking an ability lighting up the parts it uses and what its place comes from, what they live with, and what's
+still to find out, with the chapter that finds it. Explore is the
 3D body to turn around: clicking any part, picking a system, or finding a part by name opens everything about it.
 
 Some home tests can be watched through the camera, so someone can do them alone: standing on one leg, the plank,
@@ -100,7 +104,8 @@ and shows where it sits among people of their sex and age, compared with men, wo
 impairment is in a body function or part, and a condition records how much it affects them, whether it was diagnosed
 and whether it's under control. One search finds both, conditions by any of their names, everyday names and
 abbreviations included, and body functions and parts, through full-text indexes that match plurals, prefixes and typos.
-Measurements, impairments and conditions are private: they're only shown to the person who recorded them.
+Measurements, impairments and conditions are only shown to the person who recorded them. The summary written from them
+shows on their profile too, which others see only when they make it public.
 
 ## The tests
 Each test shows one ability. On screen, the app runs and scores it; at home, the person follows written steps and
@@ -201,6 +206,13 @@ The seeded conditions link to the body functions and parts they affect by hand. 
 the api publishes `ConditionAdded`, and one LLM call reads the condition, its other names and what its broader
 conditions affect, and picks from every body function and the major body parts: the organs, systems and regions. A condition stays usable without its links, and
 a condition that has them is left as it is.
+
+## Summary
+Atlas writes a summary of everything a person has added when they ask for it on Your results. The api gathers what it's
+written from (their characteristics, the latest reading of each measurement with where it sits, where they stand on
+each ability, and their conditions and impairments with the abilities each can affect) and queues the
+`physical_summary` job with it. One LLM call writes it in Atlas's voice, and it's kept with what it was written from, so
+a change to any of that marks it stale and they can ask for it again. It takes a place on a few abilities to ask.
 
 ## Learning about the body
 The 3D body is BodyParts3D's models of a real human body, simplified when the anatomy seed is generated so the whole

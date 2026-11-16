@@ -26,7 +26,7 @@ import BodyStage, { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
 import LivingWith from './living_with';
 import Rating from './rating';
-import Results from './results';
+import YourResults from './your_results';
 import { MotionPanel } from './motion';
 import Sheet from './sheet';
 import { CHAPTERS, type Chapter, type Known, type Scene, type Shot } from './tour';
@@ -183,7 +183,7 @@ function Traits() {
           ) : view === 'explore' ? (
             <Explore loaded={loaded} changes={changes} />
           ) : view === 'results' ? (
-            <BodyStage body={loaded.body} layers={['skeleton', 'muscles', 'nervous', 'organs']} panel={(onLight) => <Results abilities={loaded.abilities} body={loaded.body} onLight={onLight} />} />
+            <YourResults known={loaded} affectedBy={loaded.affectedBy} body={loaded.body} />
           ) : (
             <Chapters loaded={loaded} />
           )}
@@ -220,7 +220,7 @@ const VIEWS: { id: View; label: string; to: string; says: string }[] = [
     id: 'results',
     label: 'Your results',
     to: '/physical?view=results',
-    says: 'Here is everything you have measured, tested and rated, drawn on your body. Red parts are behind your stronger abilities and blue parts are behind the ones that are lower. Pick an ability to see which parts of you it uses.',
+    says: "Here's everything you've added, seen as a whole: what I make of it, the basics, every ability by area and drawn on your body, and what's still to find out. Red parts of your body are behind your stronger abilities and blue parts are behind the lower ones.",
   },
   {
     id: 'explore',

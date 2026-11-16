@@ -240,6 +240,11 @@ export interface Ability {
   parts: string[]; //the ids of the body parts it rests on
 }
 
+//whether an ability has had a test taken that can't place it yet, because there aren't enough people like the user to
+//compare the reading with
+export const waitingToCompare = (a: Ability, measurements: Measurements) =>
+  a.value === null && a.measurements.some((s) => measurements.measurements.find((m) => m.id === s.id)?.readings.length);
+
 //how abilities are grouped on the page, in order
 export const CATEGORIES: { id: Ability['category']; label: string }[] = [
   { id: 'Physical', label: 'Body' },
@@ -524,3 +529,31 @@ export const getPart = (id: string) => request<Part>('GET', `/physical/anatomy/$
 
 //a name to show, with a capital first letter, for the ontologies that have them in lower case
 export const capitalized = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+
+//the four areas abilities fall in, by the key the summary writes about each under
+export type Area = Ability['category'];
+
+//the written summary of everything the user has added, by Atlas
+export interface PhysicalSummary {
+  headline: string;
+  overview: string; //two paragraphs, a blank line between them
+  areas: { key: Area; text: string }[];
+  strengths: string[];
+  work_on: string[]; //the trainable gaps most worth working on
+  working_around: string[]; //planning around their conditions and impairments, empty when they have none
+}
+
+//the user's summary, and where it's at
+export interface SummaryState {
+  summary: PhysicalSummary | null;
+  written_at: string | null;
+  stale: boolean; //whether anything it was written from has changed since
+  writing: boolean;
+  failed: boolean; //whether the last one asked for couldn't be written
+  enough: boolean; //whether there's enough to write about yet
+}
+
+export const getSummary = () => request<SummaryState>('GET', '/physical/summary');
+
+//asks for the summary to be written, from everything the user has added so far
+export const askForSummary = () => request<SummaryState>('POST', '/physical/summary');

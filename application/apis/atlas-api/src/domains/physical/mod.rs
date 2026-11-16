@@ -11,6 +11,9 @@ mod impairments;
 mod me;
 mod norms;
 mod search;
+mod summary;
+
+pub use summary::person_summary;
 
 use axum::{
     Json, Router,
@@ -45,6 +48,7 @@ pub fn router() -> Router<AppState> {
         .merge(conditions::router())
         .merge(anatomy::router())
         .merge(search::router())
+        .merge(summary::router())
 }
 
 /// Healthcheck for the physical router.

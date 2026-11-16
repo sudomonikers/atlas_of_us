@@ -4,7 +4,7 @@ use axum::{Json, Router, extract::{Path, State}, http::StatusCode, response::Htm
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::AuthUser, domains::{personality, skills, topics}, state::AppState};
+use crate::{auth::AuthUser, domains::{personality, physical, skills, topics}, state::AppState};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/{username}", get(get_profile))
@@ -42,6 +42,7 @@ pub struct Profile {
     first_name: String,
     public: bool,
     personality: personality::PersonPersonality,
+    physical: Option<serde_json::Value>, //the summary of their physical traits, once it's been written
     topics: Vec<topics::PersonTopic>, //the topics they've placed themselves on, deepest first
     skills: Vec<skills::PersonSkill>, //the skills they've placed themselves on, deepest first
 }
@@ -58,6 +59,7 @@ pub async fn get_profile(
     };
     Ok(Json(Profile {
         personality: personality::person_personality(&state.graph, &person.id).await?,
+        physical: physical::person_summary(&state.graph, &person.id).await?,
         topics: topics::person_topics(&state.graph, &person.id).await?,
         skills: skills::person_skills(&state.graph, &person.id).await?,
         username: person.username,

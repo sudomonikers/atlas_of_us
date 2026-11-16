@@ -93,10 +93,13 @@ pub async fn set_me(State(state): State<AppState>, user: AuthUser, Json(req): Js
 }
 
 //clears everything the logged in user has entered in Physical Traits, in one go: their characteristics, readings,
-//ratings, impairments and conditions, and where they stand on each ability, which those were all it came from
+//ratings, impairments and conditions, where they stand on each ability, which those were all it came from, and the
+//summary written from them
 pub async fn clear_me(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
     state.graph.run(query("
         MATCH (p:Person {id: $personId})
+        REMOVE p.physicalSummary, p.physicalSummaryInput, p.physicalSummaryAt, p.physicalSummaryAskedAt, p.physicalSummaryFailedAt
+        WITH p
         OPTIONAL MATCH (p)-[r:HAS_CHARACTERISTIC|HAS_MEASUREMENT|RATED_ABILITY|HAS_IMPAIRMENT|HAS_CONDITION|HAS_ABILITY]->()
         DELETE r
     ")

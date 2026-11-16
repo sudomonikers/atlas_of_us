@@ -145,6 +145,12 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 | BodyPart | `id`, `fmaId` (unique), `name`, `definition`, `synonyms`, `elements`, `major` | A part of the body. `fmaId` is its FMA id, such as `FMA7088`, and `elements` the meshes of the 3D body it's drawn with, empty for a part with no model. `major` marks the parts conditions are linked to: organs (which include bones, muscles, joints and named vessels), systems and regions, without the left and right copies of a part |
 | Condition | `id`, `sourceId` (unique), `source`, `name`, `description`, `synonyms`, `everyday`, `plainName`, `checklist`, `checklistOrder`, `ancestors`, `sourceUri`, `addedAt`, `linkedAt` | A disease or feature. `sourceId` is the ontology's id, such as `MONDO:0004979` or `HP:0001382`, `source` is `Mondo` or `HPO`, and `sourceUri` is the ontology's permanent URI for it. `synonyms` are its other names, `everyday` the everyday names and abbreviations people search for it by, and the common ones a person picks from a checklist have a `plainName` they show by, such as "Bad knee", a `checklist` group, such as `Seeing`, and a `checklistOrder` among all of them. `ancestors` are the ids of every class above it in its ontology, which places it among the other conditions. `addedAt` is on the ones people have added, and `linkedAt` on those once atlas-jobs has worked out the body functions and parts they affect |
 
+A Person also carries Atlas's summary of their physical traits, once they've asked for one: `physicalSummary`, a JSON
+string with a headline, an overview, a paragraph per area of abilities, strengths, what's worth working on and working
+around their conditions, `physicalSummaryAt`, and `physicalSummaryInput`, what it was written from, which tells when
+it's stale. `physicalSummaryAskedAt` and `physicalSummaryFailedAt` are when they last asked for one and when one last
+couldn't be written.
+
 
 ## Relationships
 

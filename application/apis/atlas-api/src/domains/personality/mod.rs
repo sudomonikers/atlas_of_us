@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use aws_sdk_lambda::{error::DisplayErrorContext, primitives::Blob, types::InvocationType};
 use axum::{Extension, Json, Router, extract::{Path, Query, State}, http::StatusCode, routing::{get, post, put}};
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::request_id::RequestId;
 
-use crate::{auth::AuthUser, state::AppState};
+use crate::{auth::AuthUser, helpers::jobs::{BoxError, queue}, state::AppState};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -776,8 +775,6 @@ struct ScoringJob {
     batches: Vec<Vec<ScoredAnswer>>, //each batch's answers, ordered by scenario, then question
 }
 
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
-
 //scores one batch, or every batch when it's None
 async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, request_id: &RequestId) -> Result<(), BoxError> {
     let graph = &state.graph;
@@ -831,17 +828,5 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
         graph.run(query("MATCH (j:JobRunning) WHERE j.id = $id DETACH DELETE j").param("id", job.id)).await?;
         return Err(e);
     }
-    Ok(())
-}
-
-//invokes atlas-jobs asynchronously with a job, or logs it to run by hand when there's no function
-async fn queue(state: &AppState, kind: &str, job: impl Serialize) -> Result<(), BoxError> {
-    let body = json!({"kind": kind, "job": job}).to_string();
-    let Some((lambda, function)) = &state.jobs else {
-        tracing::info!("JOBS_FUNCTION isn't set, so run this job through atlas-jobs by hand: {body}");
-        return Ok(());
-    };
-    lambda.invoke().function_name(function).invocation_type(InvocationType::Event).payload(Blob::new(body)).send().await
-        .map_err(|e| DisplayErrorContext(e).to_string())?;
     Ok(())
 }

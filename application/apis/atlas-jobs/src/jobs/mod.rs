@@ -6,6 +6,7 @@ use serde_json::Value;
 pub mod personality_contest;
 pub mod personality_report;
 pub mod personality_scoring;
+pub mod physical_summary;
 
 //every kind of job, as the api sends it: {"kind": "personality_scoring", "job": {...}}
 #[derive(Deserialize)]
@@ -14,6 +15,7 @@ enum Job {
     PersonalityScoring(personality_scoring::ScoringJob),
     PersonalityContest(personality_contest::ContestJob),
     PersonalityReport(personality_report::ReportJob),
+    PhysicalSummary(physical_summary::SummaryJob),
 }
 
 //handlers are picked by kind. Jobs handle their own failures, so a bad one is logged and never retried
@@ -22,6 +24,7 @@ pub async fn handle(graph: &Graph, job: Value) {
         Ok(Job::PersonalityScoring(job)) => personality_scoring::run(graph, job).await,
         Ok(Job::PersonalityContest(job)) => personality_contest::run(graph, job).await,
         Ok(Job::PersonalityReport(job)) => personality_report::run(graph, job).await,
+        Ok(Job::PhysicalSummary(job)) => physical_summary::run(graph, job).await,
         Err(e) => tracing::error!("unreadable job: {e}"),
     }
 }
