@@ -18,7 +18,7 @@ import { CARDS, CARDS_PRACTICE, KEY_CARDS, RUN_TO_CHANGE, SORT_RULES, type Card 
 import { TIMING_PRACTICE, TIMINGS } from '../../src/physical/timing/items.ts';
 import { LEAD, TRACKING_PATH } from '../../src/physical/tracking/items.ts';
 import { BEEPS, TRACK_COUNT_PATH } from '../../src/physical/track_and_count/items.ts';
-import { COLOR_TRIES } from '../../src/physical/odd_color_out/items.ts';
+import { COLOR_PRACTICE, COLOR_TRIES } from '../../src/physical/odd_color_out/items.ts';
 import { SIDE_PRACTICE } from '../../src/physical/side_vision/items.ts';
 import { ITEMS as PROBLEMS, PRACTICE as PROBLEMS_PRACTICE, W, H, type Scene } from '../../src/physical/spot_the_problem/scenes.tsx';
 import { TIMED } from '../../src/physical/timed.ts';
@@ -531,21 +531,29 @@ const hearing: Game = async (page, threshold) => {
   await resume(page);
 };
 
-//spots the odd tile while it's at least the reading's difference from the rest, and misses it below that, so the
-//differences settle around the reading
+//spots the odd tile in every practice try, then in the tries that count spots it while it's at least the reading's
+//difference from the rest, read from the tiles' hues, and misses it below that, so the differences settle around the
+//reading
 const oddColorOut: Game = async (page, threshold) => {
   const tiles = () => page.evaluate(() => [...document.querySelectorAll('[aria-label="Tiles"] button')].map((b) => (b as HTMLElement).style.background));
+  const hue = (c: string) => Number(/oklch\([^ ]+ [^ ]+ ([^)]+)\)/.exec(c)![1]);
+  const odd = (colors: string[]) => colors.findIndex((c) => colors.filter((x) => x === c).length === 1);
   await pause(page);
-  await button(page, 'Start').click();
+  await button(page, 'Start the practice').click();
   await wait(page, COUNT_IN);
-  let difference = 40;
+  for (let i = 0; i < COLOR_PRACTICE.length; i++) {
+    await shows(page, `Practice ${i + 1} of ${COLOR_PRACTICE.length}`);
+    await button(page, `Tile ${odd(await tiles()) + 1}`).click();
+  }
+  await button(page, `Start: ${COLOR_TRIES} tries`).click();
+  await wait(page, COUNT_IN);
   for (let i = 0; i < COLOR_TRIES; i++) {
     await shows(page, `${i + 1} of ${COLOR_TRIES}`);
     const colors = await tiles();
-    const odd = colors.findIndex((c) => colors.filter((x) => x === c).length === 1);
-    const seen = difference >= threshold;
-    await button(page, `Tile ${(seen ? odd : (odd + 1) % colors.length) + 1}`).click();
-    difference = Math.min(120, Math.max(0.5, difference * (seen ? 0.75 : 1.5)));
+    const at = odd(colors);
+    const apart = Math.abs(hue(colors[at]) - hue(colors[(at + 1) % colors.length]));
+    const seen = Math.min(apart, 360 - apart) >= threshold;
+    await button(page, `Tile ${(seen ? at : (at + 1) % colors.length) + 1}`).click();
   }
   await resume(page);
 };

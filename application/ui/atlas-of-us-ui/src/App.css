@@ -275,6 +275,22 @@ body {
 .scene-drop { animation: scene-drop 3s var(--bounce) infinite; }
 .scene-paint { stroke-dasharray: 100; animation: scene-paint 3s ease-in-out infinite both; }
 .scene-brush { animation: scene-wave 0.5s ease-in-out infinite alternate; }
+/* the hearing test's speaker while its sound plays (svg groups): the woofer pumps, the cabinet shakes, waves ripple out */
+.speaker-cone {
+  animation: speaker-cone 0.16s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.speaker-shake { animation: speaker-shake 0.22s linear infinite; }
+.speaker-wave {
+  animation: speaker-wave 0.75s ease-out infinite both;
+  transform-box: view-box;
+  transform-origin: 130px 126px; /* the woofer */
+  fill: none;
+  stroke: var(--gunmetal-black);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
 /* the about page's interviewer: sat on the globe, leaning in, holding the mic out and nodding along (svg groups) */
 .interview-lean {
   animation: interview-lean 4s ease-in-out infinite;
@@ -439,6 +455,21 @@ body {
   0%, 100% { transform: rotate(0); }
   50% { transform: rotate(6deg) translateY(1px); }
 }
+@keyframes speaker-cone {
+  from { transform: scale(0.92); }
+  to { transform: scale(1.1); }
+}
+@keyframes speaker-shake {
+  0%, 100% { translate: 0 0; }
+  25% { translate: -1.5px 1px; }
+  50% { translate: 1px -1px; }
+  75% { translate: 1.5px 1px; }
+}
+@keyframes speaker-wave {
+  0% { opacity: 0; transform: scale(0.8); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
 @keyframes comic-fill {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
@@ -459,7 +490,7 @@ body {
   .comic-pop {
     transform: rotate(var(--tilt, 0deg));
   }
-  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat, .atlas-compass, .atlas-bob, [class^='scene-'], [class^='interview-'] {
+  .atlas-globe, .atlas-hold, .atlas-wipe, .atlas-sweat, .atlas-compass, .atlas-bob, [class^='scene-'], [class^='interview-'], [class^='speaker-'] {
     animation: none;
   }
 }
