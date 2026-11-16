@@ -127,6 +127,7 @@ async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id):
         .param("change", req.change)
     ).await.map_err(internal)?;
     let set: i64 = rows.next().await.map_err(internal)?.map(|r| r.get("set")).transpose().map_err(internal)?.unwrap_or(0);
+    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
     if set == 0 {
         return Err((StatusCode::NOT_FOUND, "That body function or part doesn't exist.".to_string()));
     }

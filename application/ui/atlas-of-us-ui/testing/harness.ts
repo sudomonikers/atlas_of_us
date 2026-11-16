@@ -7,7 +7,7 @@ const API = 'http://localhost:3000/api';
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function call<T = void>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown, token?: string): Promise<T> {
+export async function call<T = void>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown, token?: string): Promise<T> {
   const headers = { 'content-type': 'application/json', ...(token && { 'x-atlas-token': token }) };
   //a minute is far longer than any call should take, so a hung api fails the persona instead of the whole run
   const r = await fetch(API + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000) }).catch((e: Error) => {

@@ -91,3 +91,16 @@ pub async fn set_me(State(state): State<AppState>, user: AuthUser, Json(req): Js
     let abilities = if rescore { Some(abilities::refresh(&state, &user.person_id).await?) } else { None };
     Ok(Json(Changed { me: load(&state, &user.person_id).await?, abilities }))
 }
+
+//clears everything the logged in user has entered in Physical Traits, in one go: their characteristics, readings,
+//ratings, impairments and conditions, and where they stand on each ability, which those were all it came from
+pub async fn clear_me(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
+    state.graph.run(query("
+        MATCH (p:Person {id: $personId})
+        OPTIONAL MATCH (p)-[r:HAS_CHARACTERISTIC|HAS_MEASUREMENT|RATED_ABILITY|HAS_IMPAIRMENT|HAS_CONDITION|HAS_ABILITY]->()
+        DELETE r
+    ")
+        .param("personId", user.person_id)
+    ).await.map_err(internal)?;
+    Ok(StatusCode::NO_CONTENT)
+}

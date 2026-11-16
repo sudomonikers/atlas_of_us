@@ -15,6 +15,35 @@ export interface Account {
 //reasoning, left is the clock's seconds remaining when it's given, and ran_out: true runs the clock out straight after it
 export type Answer = string | { choice: number; text: string; left?: number; ran_out?: boolean };
 
+//an impairment the persona notes, in a body function or a body part, by its name as the ui shows it
+export interface Impairment {
+  in: string;
+  part?: boolean; //a body part rather than a body function
+  extent: 'mild' | 'moderate' | 'severe' | 'complete';
+  change?: string; //for a part, how it has changed, as the ui labels it, such as "Partial absence"
+}
+
+//a condition the persona notes, by its name as the ui shows it
+export interface Condition {
+  name: string;
+  severity?: 'mild' | 'moderate' | 'severe';
+  diagnosed: boolean;
+  managed: boolean;
+}
+
+//the persona's body and what it can do, as it enters them in the physical chapters. Anything left out is skipped
+export interface Physical {
+  targets: Record<string, number>; //ability name to where what the persona enters places it, 0 to 1
+  characteristics: Record<string, string>; //characteristic name to its choice, such as Sex: 'Female'
+  //measurement name to its reading in the measurement's unit. A measurement typed in takes it as it is, and a test the
+  //app runs is played to score it. Sit and Reach is cm past the toes, and negative for short of them
+  readings: Record<string, number>;
+  brick_uses?: string[]; //the uses typed in Brick Uses, which the api scores
+  ratings: Record<string, number>; //ability name to the hardest of its three examples the persona can do, 1 to 3, or 0 for none
+  impairments: Impairment[];
+  conditions: Condition[];
+}
+
 export interface Persona {
   name: string;
   account: Account;
@@ -22,4 +51,5 @@ export interface Persona {
     targets: Record<string, number>; //trait name to the score its answers show, 0 to 1
     answers: Record<string, Record<string, Answer>>; //scene id to prompt id to answer
   };
+  physical?: Physical;
 }

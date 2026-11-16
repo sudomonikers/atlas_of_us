@@ -78,6 +78,7 @@ async fn answers(State(state): State<AppState>, user: AuthUser, Path(id): Path<S
     if row.get::<bool>("out_of_budget").map_err(internal)? {
         return Err((StatusCode::SERVICE_UNAVAILABLE, "Scoring is paused until next month. Try again then.".to_string()));
     }
+    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
 
     let answers: Vec<String> = req.answers.iter()
         .map(|a| a.trim().chars().take(LONGEST_ANSWER).collect::<String>())

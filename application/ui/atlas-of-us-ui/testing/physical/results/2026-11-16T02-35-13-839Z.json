@@ -1,0 +1,191 @@
+{
+ "ruth": {
+  "abilities": {
+   "Category Flexibility": {
+    "value": null,
+    "confidence": null
+   },
+   "Deductive Reasoning": {
+    "value": null,
+    "confidence": null
+   },
+   "Flexibility of Closure": {
+    "value": null,
+    "confidence": null
+   },
+   "Fluency of Ideas": {
+    "value": null,
+    "confidence": null
+   },
+   "Inductive Reasoning": {
+    "value": null,
+    "confidence": null
+   },
+   "Information Ordering": {
+    "value": 0.63,
+    "confidence": 0.4
+   },
+   "Memorization": {
+    "value": 0.6,
+    "confidence": 0.4
+   },
+   "Originality": {
+    "value": null,
+    "confidence": null
+   },
+   "Perceptual Speed": {
+    "value": null,
+    "confidence": null
+   },
+   "Problem Sensitivity": {
+    "value": null,
+    "confidence": null
+   },
+   "Selective Attention": {
+    "value": null,
+    "confidence": null
+   },
+   "Spatial Orientation": {
+    "value": null,
+    "confidence": null
+   },
+   "Speed of Closure": {
+    "value": null,
+    "confidence": null
+   },
+   "Time Sharing": {
+    "value": null,
+    "confidence": null
+   },
+   "Visualization": {
+    "value": null,
+    "confidence": null
+   },
+   "Dynamic Flexibility": {
+    "value": null,
+    "confidence": null
+   },
+   "Dynamic Strength": {
+    "value": 0.1,
+    "confidence": 0.4
+   },
+   "Explosive Strength": {
+    "value": 0.23,
+    "confidence": 0.5
+   },
+   "Extent Flexibility": {
+    "value": 0.44,
+    "confidence": 0.6
+   },
+   "Gross Body Coordination": {
+    "value": null,
+    "confidence": null
+   },
+   "Gross Body Equilibrium": {
+    "value": 0.19,
+    "confidence": 0.5
+   },
+   "Stamina": {
+    "value": 0.2,
+    "confidence": 0.7
+   },
+   "Static Strength": {
+    "value": null,
+    "confidence": null
+   },
+   "Trunk Strength": {
+    "value": null,
+    "confidence": null
+   },
+   "Arm-Hand Steadiness": {
+    "value": null,
+    "confidence": null
+   },
+   "Control Precision": {
+    "value": null,
+    "confidence": null
+   },
+   "Finger Dexterity": {
+    "value": null,
+    "confidence": null
+   },
+   "Manual Dexterity": {
+    "value": null,
+    "confidence": null
+   },
+   "Multilimb Coordination": {
+    "value": null,
+    "confidence": null
+   },
+   "Rate Control": {
+    "value": null,
+    "confidence": null
+   },
+   "Reaction Time": {
+    "value": 0.04,
+    "confidence": 0.4
+   },
+   "Response Orientation": {
+    "value": 0.79,
+    "confidence": 0.4
+   },
+   "Speed of Limb Movement": {
+    "value": null,
+    "confidence": null
+   },
+   "Wrist-Finger Speed": {
+    "value": null,
+    "confidence": null
+   },
+   "Auditory Attention": {
+    "value": 0.25,
+    "confidence": 0.25
+   },
+   "Depth Perception": {
+    "value": 0.55,
+    "confidence": 0.25
+   },
+   "Far Vision": {
+    "value": 0.7,
+    "confidence": 0.6
+   },
+   "Glare Sensitivity": {
+    "value": 0.25,
+    "confidence": 0.25
+   },
+   "Hearing Sensitivity": {
+    "value": 0.72,
+    "confidence": 0.7
+   },
+   "Near Vision": {
+    "value": null,
+    "confidence": null
+   },
+   "Night Vision": {
+    "value": 0.25,
+    "confidence": 0.25
+   },
+   "Peripheral Vision": {
+    "value": null,
+    "confidence": null
+   },
+   "Sound Localization": {
+    "value": 0.55,
+    "confidence": 0.25
+   },
+   "Speech Clarity": {
+    "value": 0.25,
+    "confidence": 0.25
+   },
+   "Speech Recognition": {
+    "value": 0.55,
+    "confidence": 0.25
+   },
+   "Visual Color Discrimination": {
+    "value": null,
+    "confidence": null
+   }
+  },
+  "misses": []
+ }
+}

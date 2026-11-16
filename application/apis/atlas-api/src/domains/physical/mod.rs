@@ -37,7 +37,7 @@ pub fn router() -> Router<AppState> {
         .route("/measurements", get(measurements))
         .route("/measurements/{id}/readings", post(add_reading))
         .route("/readings/{id}", delete(delete_reading))
-        .route("/me", get(me::get_me).put(me::set_me))
+        .route("/me", get(me::get_me).put(me::set_me).delete(me::clear_me))
         .merge(abilities::router())
         .merge(ideas::router())
         .merge(impairments::router())
@@ -277,6 +277,7 @@ async fn record(state: &AppState, person_id: &str, id: &str, value: f64, measure
         .param("answers", answers.to_vec())
     ).await.map_err(internal)?;
     let reading_id: String = created.next().await.map_err(internal)?.ok_or_else(|| internal("the reading wasn't created"))?.get("id").map_err(internal)?;
+    drop(created); //the stream holds its pooled connection until it's dropped, and the next query needs one
     let norms = if row.atlas_norms {
         community::renorm(state, id).await?;
         rows(state, person_id, Some(id)).await?.into_iter().next().map_or(row.norms, |r| r.norms)
@@ -298,6 +299,7 @@ async fn delete_reading(State(state): State<AppState>, user: AuthUser, Path(id):
     ").param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "That reading doesn't exist.".to_string()))?;
+    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
     if row.get::<bool>("atlas_norms").map_err(internal)? {
         community::renorm(&state, &row.get::<String>("measurement").map_err(internal)?).await?;
     }

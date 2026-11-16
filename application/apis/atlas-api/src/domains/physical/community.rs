@@ -50,6 +50,7 @@ pub async fn renorm(state: &AppState, measurement_id: &str) -> Result<(), (Statu
             taken.push((t.sex, age_on(b, on), t.value));
         }
     }
+    drop(result); //the stream holds its pooled connection until it's dropped, and the next query needs one
 
     let mut groups = Vec::new();
     for sex in ["all", "male", "female"] {

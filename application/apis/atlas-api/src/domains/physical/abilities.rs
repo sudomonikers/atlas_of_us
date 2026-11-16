@@ -224,6 +224,7 @@ pub async fn refresh(state: &AppState, person_id: &str) -> Result<Vec<Ability>, 
     while let Some(row) = result.next().await.map_err(internal)? {
         abilities.push(work_out(row.to::<Row>().map_err(internal)?));
     }
+    drop(result); //the stream holds its pooled connection until it's dropped, and the next query needs one
 
     let placed: Vec<HashMap<&str, BoltType>> = abilities.iter().filter_map(|a| Some(HashMap::from([
         ("id", a.id.as_str().into()),
@@ -331,6 +332,7 @@ async fn rate(State(state): State<AppState>, user: AuthUser, Path(id): Path<Stri
         .param("anchor", req.anchor)
     ).await.map_err(internal)?;
     let set: i64 = rows.next().await.map_err(internal)?.map(|r| r.get("set")).transpose().map_err(internal)?.unwrap_or(0);
+    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
     if set == 0 {
         return Err((StatusCode::NOT_FOUND, "That ability doesn't exist.".to_string()));
     }
