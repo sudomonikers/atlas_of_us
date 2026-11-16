@@ -63,8 +63,8 @@ they could be great at, with the real Atlas shown along the way. Anyone can watc
 with, and the chapters take an account. Once a person has seen it, Physical Traits opens on the chapters, and they can
 play it again from there.
 
-Physical Traits is in chapters, taken one at a time from a page that lists them with how far through each the person
-is. Atlas narrates each scene, and each scene holds one thing: something to read, one measurement to take, one ability
+Physical Traits has three tabs: Chapters, Your results and Explore. Chapters lists the chapters, taken one at a time,
+with how far through each the person is. Atlas narrates each scene, and each scene holds one thing: something to read, one measurement to take, one ability
 to rate, or one list to fill in. A scene about a measurement or an ability shows a comic animation of someone doing it,
 drawn in the same marker as the story, and a scene about where things sit in the body shows the 3D model of it, with
 the camera flying to the parts it's about. The chapters are:
@@ -75,10 +75,11 @@ the camera flying to the parts it's about. The chapters are:
   for every ability no measurement shows, and ends on how they did: Atlas sums it up in plain words over a breakdown
   that fills the screen, with every ability's bar out of 100, the results
   waiting on other people to compare with, and the ones still to do a step away.
-- Your results: every ability drawn on the body.
 - Conditions and disabilities: impairments, then conditions. Each one lights up where it sits and tints the parts of
   the abilities it can affect.
-- Explore: clicking any part, picking a system, or finding a part by name opens everything about it.
+
+Your results draws every ability on the 3D body, with picking an ability lighting up the parts it uses. Explore is the
+3D body to turn around: clicking any part, picking a system, or finding a part by name opens everything about it.
 
 Some home tests can be watched through the camera, so someone can do them alone: standing on one leg, the plank,
 plate tapping and the two coin tests are timed, push-ups and bend, twist and touch are counted, and a vertical jump is measured from how long the
@@ -90,7 +91,7 @@ loud, and the best of their tries is recorded.
 The hearing test plays fading tones through headphones, with the volume first set by a noise as loud as normal
 conversation, and estimates the hearing threshold from where each tone stops being heard.
 
-The chapter and scene are kept in the url.
+The tab, chapter and scene are kept in the url.
 
 A measurement shows the steps for its home test or runs its in-app test, records a reading and the day it was taken
 (VO2 max can be worked out from how far someone runs in 12 minutes),

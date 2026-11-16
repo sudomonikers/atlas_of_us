@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react';
-import { LAYERS, getMeshIndex, type LayerId, type MeshIndex } from './anatomy_layers';
+import { getMeshIndex, toggled, useShowing, type LayerId, type MeshIndex } from './anatomy_layers';
 import {
   getAbilities,
   getAffectedBy,
@@ -19,9 +19,10 @@ import {
   type PartSummary,
   type Reading,
 } from './api';
-import BodyMap from './body_map';
 import { HUMAN_BODY, indexBody, meshesOf, notedParts, partIds, type Body, type Light } from './body_parts';
 import { CharacteristicChoice } from './characteristic_choice';
+import BodyMap from './body_map';
+import BodyStage, { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
 import Noting from './noting';
 import Rating from './rating';
@@ -77,7 +78,7 @@ interface Loaded extends Known {
 }
 
 //Physical Traits opens on the story of Andrew and Daniel the first time, for anyone, and on the chapters once they've
-//seen it. ?intro plays it again
+//seen it. ?intro plays it again, ?chapter opens a chapter and ?view one of the page's views
 function Physical() {
   const params = new URLSearchParams(useSearch());
   const session = useSession();
@@ -92,7 +93,7 @@ function Physical() {
   }, [unsaved]);
 
   if (session.status === 'checking') return null;
-  if (params.has('intro') || (!params.has('chapter') && !seen))
+  if (params.has('intro') || (!params.has('chapter') && !params.has('view') && !seen))
     return (
       <Suspense fallback={null}>
         <Intro />
@@ -110,6 +111,7 @@ const shotOf = (scene: Scene): Shot | undefined => ('shot' in scene.stage ? scen
 function Traits() {
   const params = new URLSearchParams(useSearch());
   const chapter = CHAPTERS.find((c) => c.id === params.get('chapter'));
+  const view: View = VIEWS.find((v) => v.id === params.get('view'))?.id ?? 'chapters';
 
   const [anatomy, setAnatomy] = useState<PartSummary[]>();
   const [meshes, setMeshes] = useState<MeshIndex>();
@@ -173,7 +175,18 @@ function Traits() {
       ) : (
         <div style={styles.page} className="comic-page">
           <Nav />
-          {error ? <AtlasError message={error} /> : !loaded ? <Thinking label="Looking you over" /> : <Chapters loaded={loaded} />}
+          <Header view={view} />
+          {error ? (
+            <AtlasError message={error} />
+          ) : !loaded ? (
+            <Thinking label="Looking you over" />
+          ) : view === 'explore' ? (
+            <Explore loaded={loaded} changes={changes} />
+          ) : view === 'results' ? (
+            <BodyStage body={loaded.body} layers={['skeleton', 'muscles', 'nervous', 'organs']} panel={(onLight) => <Results abilities={loaded.abilities} body={loaded.body} onLight={onLight} />} />
+          ) : (
+            <Chapters loaded={loaded} />
+          )}
           <Footer />
         </div>
       )}
@@ -192,12 +205,34 @@ const NAMED: Record<string, string> = {
   results: 'How you did',
   impairments: 'What holds you back',
   conditions: 'Your conditions',
-  explore: 'Explore the body',
 };
 const nameOf = (s: Scene) => s.title ?? NAMED[s.id] ?? (s.id.startsWith('intro') ? 'Introduction' : s.id);
 
-//the chapters to pick from, each with its picture and how far through it the user is
-function Chapters({ loaded }: { loaded: Loaded }) {
+//the page's views: the chapters, the user's results drawn on their body, and the body to explore
+type View = 'chapters' | 'results' | 'explore';
+const VIEWS: { id: View; label: string; to: string; says: string }[] = [
+  {
+    id: 'chapters',
+    label: 'Chapters',
+    to: '/physical',
+    says: "Here we'll find out what your body can do, from your height and weight to your strength, stamina and senses. Pick any chapter to start, and skip anything you'd rather not answer.",
+  },
+  {
+    id: 'results',
+    label: 'Your results',
+    to: '/physical?view=results',
+    says: 'Here is everything you have measured, tested and rated, drawn on your body. Red parts are behind your stronger abilities and blue parts are behind the ones that are lower. Pick an ability to see which parts of you it uses.',
+  },
+  {
+    id: 'explore',
+    label: 'Explore',
+    to: '/physical?view=explore',
+    says: 'Turn the body around and click any part to find out what it does and what depends on it.',
+  },
+];
+
+//the title, Atlas saying what the view is for, and the views to switch between
+function Header({ view }: { view: View }) {
   return (
     <>
       <header style={styles.header}>
@@ -206,29 +241,82 @@ function Chapters({ loaded }: { loaded: Loaded }) {
         </h1>
         <div style={styles.guide}>
           <Mascot />
-          <div style={styles.menuBubble} className="comic-bubble comic-pop">
-            Here we'll find out what your body can do, from your height and weight to your strength, stamina and senses.
-            Pick any chapter to start, and skip anything you'd rather not answer.
+          <div key={view} style={styles.menuBubble} className="comic-bubble comic-pop">
+            {VIEWS.find((v) => v.id === view)!.says}
           </div>
         </div>
-        <button className="comic-lift" style={styles.replay} onClick={() => navigate('/physical?intro')}>
+      </header>
+      <div style={styles.views}>
+        <button className="comic-lift" style={{ ...styles.viewButton, ...styles.replay }} onClick={() => navigate('/physical?intro')}>
           Replay the intro ▶
         </button>
-      </header>
-      <ol style={styles.cards}>
-        {CHAPTERS.map((c, i) => (
-          <li key={c.id}>
-            <button className="comic-lift" style={{ ...styles.card, '--tilt': `${[-0.8, 0.6, -0.4, 0.9][i % 4]}deg` } as CSSProperties} onClick={() => navigate(`/physical?chapter=${c.id}`)}>
-              <span style={styles.number}>Chapter {i + 1}</span>
-              {THUMBS[c.id] && <img src={THUMBS[c.id]} alt="" style={styles.thumb} loading="lazy" />}
-              <span style={styles.cardTitle}>{c.title}</span>
-              <span style={styles.blurb}>{c.blurb}</span>
-              {c.progress && <span style={styles.progress}>{c.progress(loaded)}</span>}
-            </button>
-          </li>
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            className="comic-lift"
+            style={{ ...styles.viewButton, ...(view === v.id ? styles.viewButtonActive : {}) }}
+            aria-pressed={view === v.id}
+            onClick={() => replace(v.to)}
+          >
+            {v.label}
+          </button>
         ))}
-      </ol>
+      </div>
     </>
+  );
+}
+
+//the body to explore: click any part on it, or find it beside it, to light it up and read all about it. Everything the
+//user has noted blushes
+function Explore({ loaded, changes }: { loaded: Loaded; changes: Changes }) {
+  const { anatomy, body, abilities, measurements, impairments, conditions } = loaded;
+  const [picked, setPicked] = useState<string>();
+  const noted = useMemo(() => meshesOf(body, [...notedParts(impairments, conditions).values()].flat()), [body, impairments, conditions]);
+  const byId = useMemo(() => new Map(measurements.measurements.map((m) => [m.id, m])), [measurements]);
+  const pickMesh = (element: string) => {
+    const part = body.byFma.get(body.meshes[element]?.[0] ?? '');
+    if (part) setPicked(part.id);
+  };
+  return (
+    <BodyStage
+      body={body}
+      layers={['skeleton', 'organs']}
+      noted={noted}
+      onPick={pickMesh}
+      panel={(onLight) => (
+        <BodyMap
+          anatomy={anatomy}
+          body={body}
+          impairments={impairments}
+          conditions={conditions}
+          measurements={byId}
+          abilities={abilities}
+          picked={picked}
+          onPick={setPicked}
+          onImpaired={changes.impaired}
+          onLight={onLight}
+        />
+      )}
+    />
+  );
+}
+
+//the chapters to pick from, each with its picture and how far through it the user is
+function Chapters({ loaded }: { loaded: Loaded }) {
+  return (
+    <ol style={styles.cards}>
+      {CHAPTERS.map((c, i) => (
+        <li key={c.id}>
+          <button className="comic-lift" style={{ ...styles.card, '--tilt': `${[-0.8, 0.6, -0.4, 0.9][i % 4]}deg` } as CSSProperties} onClick={() => navigate(`/physical?chapter=${c.id}`)}>
+            <span style={styles.number}>Chapter {i + 1}</span>
+            {THUMBS[c.id] && <img src={THUMBS[c.id]} alt="" style={styles.thumb} loading="lazy" />}
+            <span style={styles.cardTitle}>{c.title}</span>
+            <span style={styles.blurb}>{c.blurb}</span>
+            {c.progress && <span style={styles.progress}>{c.progress(loaded)}</span>}
+          </button>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -268,7 +356,6 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   const [layers, setLayers] = useState<Set<LayerId>>(() => new Set(shotOf(scene)?.layers));
   const [light, setLight] = useState<Light>({});
   const [loading, setLoading] = useState(false);
-  const [picked, setPicked] = useState<string>(); //the part open in the explorer
   const [testStage, setTestStage] = useState<HTMLDivElement | null>(null);
   const [testing, setTesting] = useState(false);
   const [peek, setPeek] = useState<number | null>(null); //the scene dot being pointed at, whose name shows under it
@@ -283,20 +370,13 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   }, [body, abilities, scene]);
   const lit = light.lit ?? shot;
 
-  //the meshes of everything the user has noted, which blush once they're being asked about it or exploring
+  //the meshes of everything the user has noted, which blush once they're being asked about it
   const noted = useMemo(() => {
-    if (scene.panel?.kind !== 'noting' && scene.panel?.kind !== 'explore') return new Set<string>();
+    if (scene.panel?.kind !== 'noting') return new Set<string>();
     return meshesOf(body, [...notedParts(impairments, conditions).values()].flat());
   }, [body, impairments, conditions, scene]);
 
-  //the layer most of what's lit is on, when it isn't showing, so what's lit is never hidden
-  const showing = useMemo(() => {
-    if (!lit.size) return layers;
-    const counts = new Map<LayerId, number>();
-    for (const e of lit) if (meshes[e]) counts.set(meshes[e][1], (counts.get(meshes[e][1]) ?? 0) + 1);
-    const most = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
-    return !most || layers.has(most) ? layers : new Set([...layers, most]);
-  }, [layers, lit, meshes]);
+  const showing = useShowing(layers, lit, meshes);
 
   const tints = useMemo(() => light.tints ?? new Map<string, number>(), [light.tints]);
   const onLight = useCallback((l: Light) => setLight(l), []);
@@ -339,21 +419,10 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   });
 
-  const pickMesh = (element: string) => {
-    if (scene.panel?.kind !== 'explore') return;
-    const part = body.byFma.get(meshes[element]?.[0] ?? '');
-    if (part) setPicked(part.id);
-  };
-  const toggleLayer = (id: LayerId) =>
-    setLayers((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const toggleLayer = (id: LayerId) => setLayers((current) => toggled(current, id));
 
   const panel = scene.panel && (typed || part > 0) && (
-    <ScenePanel scene={scene} loaded={loaded} changes={changes} picked={picked} onPick={setPicked} onLight={onLight} testStage={testStage} onTesting={setTesting} onSkip={next} />
+    <ScenePanel scene={scene} loaded={loaded} changes={changes} onLight={onLight} testStage={testStage} onTesting={setTesting} onSkip={next} />
   );
   //a measurement brings its own card; everything else sits on a plain one
   const card = scene.panel?.kind === 'measurement' ? undefined : styles.panel;
@@ -413,16 +482,9 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
         ) : (
           <div style={styles.viewer}>
             <Suspense fallback={<Thinking label="Building the body" />}>
-              <AnatomyViewer layers={showing} lit={lit} noted={noted} tints={tints} focus={lit} spin={!!shotOf(scene)?.spin} pulse={!!light.pulse} onPick={pickMesh} onLoading={setLoading} />
+              <AnatomyViewer layers={showing} lit={lit} noted={noted} tints={tints} focus={lit} spin={!!shotOf(scene)?.spin} pulse={!!light.pulse} onLoading={setLoading} />
             </Suspense>
-            <div style={styles.layers} role="group" aria-label="Layers">
-              {LAYERS.map((l) => (
-                <button key={l.id} className="comic-lift" style={showing.has(l.id) ? { ...styles.layer, ...styles.layerOn } : styles.layer} aria-pressed={showing.has(l.id)} onClick={() => toggleLayer(l.id)}>
-                  {l.label}
-                </button>
-              ))}
-              {loading && <span style={styles.small}>Loading...</span>}
-            </div>
+            <LayerButtons showing={showing} loading={loading} onToggle={toggleLayer} />
           </div>
         )}
 
@@ -496,8 +558,6 @@ interface ScenePanelProps {
   scene: Scene;
   loaded: Loaded;
   changes: Changes;
-  picked: string | undefined;
-  onPick: (id: string) => void;
   onLight: (light: Light) => void;
   testStage: HTMLElement | null;
   onTesting: (testing: boolean) => void;
@@ -505,7 +565,7 @@ interface ScenePanelProps {
 }
 
 //the one thing the user can do on a scene
-function ScenePanel({ scene, loaded, changes, picked, onPick, onLight, testStage, onTesting, onSkip }: ScenePanelProps) {
+function ScenePanel({ scene, loaded, changes, onLight, testStage, onTesting, onSkip }: ScenePanelProps) {
   const { anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy } = loaded;
   const panel = scene.panel!;
   if (panel.kind === 'characteristic') {
@@ -520,35 +580,19 @@ function ScenePanel({ scene, loaded, changes, picked, onPick, onLight, testStage
     const a = abilities.find((x) => x.id === panel.id);
     return a ? <Rating key={a.id} ability={a} onChanged={changes.rated} /> : null;
   }
-  if (panel.kind === 'results') return <Results key={panel.category ?? 'all'} abilities={abilities} only={panel.category} body={body} onLight={onLight} />;
-  if (panel.kind === 'noting')
-    return (
-      <Noting
-        key={panel.show}
-        show={panel.show}
-        impairments={impairments}
-        conditions={conditions}
-        anatomy={anatomy}
-        abilities={abilities}
-        affectedBy={affectedBy}
-        body={body}
-        onImpaired={changes.impaired}
-        onUnimpaired={changes.unimpaired}
-        onConditions={changes.conditions}
-        onLight={onLight}
-      />
-    );
   return (
-    <BodyMap
-      anatomy={anatomy}
-      body={body}
+    <Noting
+      key={panel.show}
+      show={panel.show}
       impairments={impairments}
       conditions={conditions}
-      measurements={new Map(measurements.measurements.map((m) => [m.id, m]))}
+      anatomy={anatomy}
       abilities={abilities}
-      picked={picked}
-      onPick={onPick}
+      affectedBy={affectedBy}
+      body={body}
       onImpaired={changes.impaired}
+      onUnimpaired={changes.unimpaired}
+      onConditions={changes.conditions}
       onLight={onLight}
     />
   );
@@ -581,17 +625,33 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     gap: 16,
   },
+  views: {
+    maxWidth: 1100,
+    margin: '0 auto 32px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  //at the far end of the row of views
   replay: {
-    padding: '4px 16px',
+    order: 1,
+    marginLeft: 'auto',
+    fontSize: 20,
+  },
+  viewButton: {
+    padding: '4px 20px',
     background: ivory,
     color: gunmetal,
     border: `3px solid ${gunmetal}`,
     borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
     boxShadow: `3px 4px 0 ${gunmetal}`,
     fontFamily: comic,
-    fontSize: 20,
-    letterSpacing: 1,
-    cursor: 'pointer',
+    fontSize: 24,
+    letterSpacing: 1.5,
+  },
+  viewButtonActive: {
+    background: brownRed,
+    color: ivory,
   },
   menuBubble: {
     maxWidth: 520,
@@ -767,35 +827,6 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '12px 0',
-  },
-  layers: {
-    position: 'absolute',
-    left: 0,
-    bottom: 10,
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-    pointerEvents: 'none',
-  },
-  layer: {
-    padding: '2px 10px',
-    background: ivory,
-    color: gunmetal,
-    border: `2px solid ${gunmetal}`,
-    borderRadius: 999,
-    font: 'inherit',
-    fontSize: 13,
-    cursor: 'pointer',
-    pointerEvents: 'auto',
-  },
-  layerOn: {
-    background: brownRed,
-    color: ivory,
-  },
-  small: {
-    margin: 0,
-    fontSize: 13,
   },
   side: {
     flex: '0 0 clamp(340px, 32vw, 460px)',

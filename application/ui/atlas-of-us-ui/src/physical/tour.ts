@@ -18,9 +18,7 @@ export type Panel =
   | { kind: 'characteristic'; id: string }
   | { kind: 'measurement'; id: string }
   | { kind: 'rating'; id: string }
-  | { kind: 'results'; category?: Ability['category'] }
-  | { kind: 'noting'; show: 'impairments' | 'conditions' }
-  | { kind: 'explore' };
+  | { kind: 'noting'; show: 'impairments' | 'conditions' };
 
 //a scene shows someone doing what it's about, the 3D body where what it's about sits in it, or where the user stands on
 //each ability in a category
@@ -110,13 +108,8 @@ const USED: Record<string, MotionName> = {
 };
 const usedBy = (name: string, category: string): MotionName => USED[name] ?? (category === 'Physical' ? 'hello' : 'screen');
 
-const WHOLE: LayerId[] = ['skeleton', 'organs'];
 //what's under the skin, for what someone lives with
 const INSIDE: LayerId[] = ['skeleton', 'organs', 'nervous'];
-
-//how many of the abilities the user has measured or rated, as the results' progress
-const found = (abilities: Ability[], measurements: Measurements) =>
-  `${abilities.filter((a) => a.value !== null || triedFor(a, measurements)).length} of ${abilities.length} abilities done`;
 
 //names run together as people say them: "a, b and c"
 const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
@@ -238,8 +231,7 @@ const BASICS = [
 ];
 const basics = (measurements: Measurements) => BASICS.flatMap((name) => measurements.measurements.find((m) => m.name === name) ?? []);
 
-//the chapters, which the user can take in any order: the basics, what their body can do, the results drawn on the
-//body, what they live with, and the body to explore
+//the chapters, which the user can take in any order: the basics, what their body can do, and what they live with
 export const CHAPTERS: Chapter[] = [
   {
     id: 'basics',
@@ -306,20 +298,6 @@ export const CHAPTERS: Chapter[] = [
     'Puzzles and games for reasoning, memory, patterns and ideas.',
   ),
   {
-    id: 'results',
-    title: 'Your results',
-    blurb: 'Everything you have measured, tested and rated, drawn on your body.',
-    scenes: () => [
-      {
-        id: 'results',
-        text: 'Here is everything you have measured, tested and rated, drawn on your body. Red parts are behind your stronger abilities and blue parts are behind the ones that are lower. Pick an ability to see which parts of you it uses.',
-        stage: { shot: { layers: ['skeleton', 'muscles', 'nervous', 'organs'] } },
-        panel: { kind: 'results' },
-      },
-    ],
-    progress: ({ abilities, measurements }) => found(abilities, measurements),
-  },
-  {
     id: 'living-with',
     title: 'Conditions and disabilities',
     blurb: 'Anything you live with, like asthma, a bad knee or needing glasses.',
@@ -346,18 +324,5 @@ export const CHAPTERS: Chapter[] = [
       const noted = impairments.impairments.length + conditions.mine.length;
       return noted ? `${noted} added` : 'Nothing added';
     },
-  },
-  {
-    id: 'explore',
-    title: 'Explore',
-    blurb: 'Turn the body around, click any part, and learn what it does.',
-    scenes: () => [
-      {
-        id: 'explore',
-        text: 'Turn the body around and click any part to find out what it does and what depends on it.',
-        stage: { shot: { layers: WHOLE } },
-        panel: { kind: 'explore' },
-      },
-    ],
   },
 ];

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { HEX } from '../shared_components/palette';
 
 //the layers of the 3D body, as database/anatomy_import draws them: one model file each, under public/anatomy
@@ -35,3 +36,22 @@ export const getMeshIndex = (): Promise<MeshIndex> =>
     meshIndex = undefined;
     throw e;
   });
+
+//the layers to show: the ones picked, and the layer most of what's lit is on, so what's lit is never hidden
+export function useShowing(layers: Set<LayerId>, lit: Set<string>, meshes: MeshIndex) {
+  return useMemo(() => {
+    if (!lit.size) return layers;
+    const counts = new Map<LayerId, number>();
+    for (const e of lit) if (meshes[e]) counts.set(meshes[e][1], (counts.get(meshes[e][1]) ?? 0) + 1);
+    const most = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+    return !most || layers.has(most) ? layers : new Set([...layers, most]);
+  }, [layers, lit, meshes]);
+}
+
+//a layer turned on or off
+export const toggled = (current: Set<LayerId>, id: LayerId) => {
+  const next = new Set(current);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+};

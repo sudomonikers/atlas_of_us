@@ -23,7 +23,7 @@ interface AnatomyViewerProps {
   focus: Set<string>; //the meshes the camera frames, or the whole body when there are none
   spin: boolean; //turn slowly by itself
   pulse: boolean; //the lit meshes breathe, to draw the eye
-  onPick: (element: string) => void;
+  onPick?: (element: string) => void; //a mesh clicked
   onLoading: (loading: boolean) => void;
 }
 
@@ -333,7 +333,7 @@ export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, o
       ray.setFromCamera(new THREE.Vector2(((e.clientX - box.left) / box.width) * 2 - 1, -((e.clientY - box.top) / box.height) * 2 + 1), camera);
       const visible = [...loaded.current.values()].flatMap((l) => l.meshes).filter((m) => m.visible && m.parent?.visible);
       const hit = ray.intersectObjects(visible, false)[0];
-      if (hit) latest.current.onPick(hit.object.name);
+      if (hit) latest.current.onPick?.(hit.object.name);
     };
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);

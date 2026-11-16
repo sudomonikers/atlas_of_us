@@ -5,16 +5,14 @@ import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 interface ResultsProps {
   abilities: Ability[];
-  only?: Ability['category']; //shows only the abilities in this category, with no way to change it
   body: Body;
   onLight: (light: Light) => void;
 }
 
 //where the user stands on their abilities, drawn on the body in color, with a way to narrow it to one category and to
 //pick an ability to see where it lives
-export default function Results({ abilities, only, body, onLight }: ResultsProps) {
-  const [chosen, setCategory] = useState<Ability['category']>();
-  const category = only ?? chosen;
+export default function Results({ abilities, body, onLight }: ResultsProps) {
+  const [category, setCategory] = useState<Ability['category']>();
   const [picked, setPicked] = useState<string>();
   const shown = useMemo(() => abilities.filter((a) => !category || a.category === category), [abilities, category]);
   const placed = shown.filter((a) => a.value !== null).sort((a, b) => b.value! - a.value!);
@@ -35,24 +33,22 @@ export default function Results({ abilities, only, body, onLight }: ResultsProps
         </div>
       </div>
 
-      {!only && (
-        <div style={styles.chips} role="group" aria-label="Which abilities">
-          {[{ id: undefined, label: 'All' }, ...CATEGORIES].map((c) => (
-            <button
-              key={c.label}
-              className="comic-lift"
-              style={category === c.id ? { ...styles.chip, ...styles.chipOn } : styles.chip}
-              aria-pressed={category === c.id}
-              onClick={() => {
-                setCategory(c.id);
-                setPicked(undefined);
-              }}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div style={styles.chips} role="group" aria-label="Which abilities">
+        {[{ id: undefined, label: 'All' }, ...CATEGORIES].map((c) => (
+          <button
+            key={c.label}
+            className="comic-lift"
+            style={category === c.id ? { ...styles.chip, ...styles.chipOn } : styles.chip}
+            aria-pressed={category === c.id}
+            onClick={() => {
+              setCategory(c.id);
+              setPicked(undefined);
+            }}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
 
       {!placed.length && <p style={styles.text}>You haven't measured or rated any of these yet. Take a test or rate yourself and it will show up here.</p>}
       <ul style={styles.list}>
