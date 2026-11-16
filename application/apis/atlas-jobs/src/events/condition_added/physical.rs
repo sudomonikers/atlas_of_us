@@ -146,8 +146,11 @@ async fn link(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, model: &s
     codes.retain(|c| functions.iter().chain(&parts).any(|p| &p.code == c));
     codes.sort();
     codes.dedup();
+    //linkedAt says it's been worked out, even when it affects none of them
     graph.run(query("
         MATCH (c:Condition {id: $id})
+        SET c.linkedAt = datetime()
+        WITH c
         UNWIND $codes AS code
         CALL (code) {
             MATCH (p:BodyFunction {code: code}) RETURN p

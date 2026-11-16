@@ -2,7 +2,7 @@
 
 Writes `../physical_conditions_seed.cypher`: the conditions chosen in `src/picks.rs`, common ones a person would know
 they have, each with its name, definition and other names from Mondo or HPO, the broader conditions in the seed it's a
-kind of, and the body functions and parts it affects. The seed is generated, so change this and run it again
+kind of, the body functions and parts it affects, and the everyday names from `src/common.rs`. The seed is generated, so change this and run it again
 rather than editing it.
 
 ## Getting Mondo and HPO
@@ -31,5 +31,8 @@ since conditions link to body functions and parts.
   names it best: diseases from Mondo, and features such as joint hypermobility or tinnitus from HPO.
 - **Checks:** every id has to be in its ontology, not obsolete, and under human disease (`MONDO:0700096`) or
   phenotypic abnormality (`HP:0000118`), every code has to be a body function, and every FMA id a part in the anatomy seed.
+- **Everyday names:** `src/common.rs` has the checklist the Conditions and disabilities chapter offers, about sixty
+  common conditions in groups such as Seeing and Mind and focus, each with the everyday name it shows by ("Bad knee",
+  "ADHD"), and the everyday names and abbreviations people search by ("high blood pressure", "MS").
 - **How they nest:** a condition is a SUBTYPE_OF the nearest conditions in the seed that the ontology puts above it,
   and carries the ids of every class above it in its ontology as `ancestors`, which places conditions people add later.

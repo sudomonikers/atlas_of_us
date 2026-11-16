@@ -356,10 +356,18 @@ export interface Condition {
   name: string; //as the ontology has it, which for Mondo is lower case
   description: string | null;
   synonyms: string[];
+  everyday: string[]; //the everyday names and abbreviations people search for it by
+  plain_name: string | null; //the everyday name it shows by on the checklist, for the common ones
+  checklist: string | null; //the checklist group it's offered in, such as Seeing
+  checklist_order: number | null; //its place among all the checklist's conditions
+  pending: boolean; //whether it was just added and what it affects is still being worked out
   broader: string[]; //the ids of the conditions it's a kind of
   functions: Affected[];
   parts: PartRef[];
 }
+
+//a condition as people know it: its everyday name, or its own
+export const conditionName = (c: Condition) => c.plain_name ?? capitalized(c.name);
 
 //a body function a condition affects
 export interface Affected {
@@ -400,8 +408,18 @@ export const SEVERITIES: { value: Severity; label: string }[] = [
 //every condition, with the logged in user's
 export const getConditions = () => request<Conditions>('GET', '/physical/conditions');
 
-//the Mondo and HPO terms closest to what was typed, for adding one we don't have
-export const lookupConditions = (q: string) => request<Candidate[]>('GET', `/physical/conditions/lookup?q=${encodeURIComponent(q)}`);
+//what a search finds, best first: our conditions, Mondo and HPO terms not in the Atlas yet when ours are few, and the body
+//functions and parts an impairment can be in, each by id
+export interface Found {
+  conditions: string[];
+  outside: Candidate[];
+  outside_failed: boolean; //whether Mondo and HPO couldn't be searched
+  functions: string[];
+  parts: string[];
+}
+
+//searches everything someone can live with, or only the body parts
+export const search = (q: string, only?: 'parts') => request<Found>('GET', `/physical/search?q=${encodeURIComponent(q)}${only ? `&only=${only}` : ''}`);
 
 //adds a Mondo or HPO term as a condition, or gives back the one we have
 export const addCondition = (sourceId: string) => request<Condition>('POST', '/physical/conditions', { source_id: sourceId });

@@ -3,7 +3,7 @@
 //Only the person who noted a condition sees that they have it
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     routing::{get, put},
 };
@@ -18,7 +18,6 @@ use super::{bad, internal};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/conditions", get(conditions).post(add_condition))
-        .route("/conditions/lookup", get(lookup))
         .route("/conditions/{id}/mine", put(set_mine).delete(clear_mine))
 }
 
@@ -41,6 +40,11 @@ pub struct Condition {
     name: String,
     description: Option<String>,
     synonyms: Vec<String>,
+    everyday: Vec<String>,          //the everyday names and abbreviations people search for it by
+    plain_name: Option<String>,     //the everyday name it shows by on the checklist, for the common ones
+    checklist: Option<String>,      //the checklist group it's offered in, such as Seeing
+    checklist_order: Option<i64>,   //its place among all the checklist's conditions
+    pending: bool, //whether it was just added and atlas-jobs hasn't yet worked out what it affects
     broader: Vec<String>, //the ids of the conditions it's a kind of
     functions: Vec<Affected>,
     parts: Vec<AffectedPart>,
@@ -81,7 +85,9 @@ async fn fetch(state: &AppState, ids: Option<Vec<String>>) -> Result<Vec<Conditi
         MATCH (c:Condition)
         WHERE $ids IS NULL OR c.id IN $ids
         RETURN c.id AS id, c.sourceId AS source_id, c.source AS source, c.name AS name, c.description AS description,
-               coalesce(c.synonyms, []) AS synonyms,
+               coalesce(c.synonyms, []) AS synonyms, coalesce(c.everyday, []) AS everyday, c.plainName AS plain_name,
+               c.checklist AS checklist, c.checklistOrder AS checklist_order,
+               c.addedAt IS NOT NULL AND c.linkedAt IS NULL AND NOT EXISTS { MATCH (c)-[:AFFECTS]->() } AS pending,
                COLLECT { MATCH (c)-[:SUBTYPE_OF]->(b:Condition) RETURN b.id } AS broader,
                COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyFunction) RETURN {code: p.code, name: p.name} ORDER BY p.code } AS functions,
                COLLECT { MATCH (c)-[:AFFECTS]->(p:BodyPart) RETURN {id: p.id, name: p.name} ORDER BY p.name } AS parts
@@ -143,23 +149,17 @@ pub struct Candidate {
     source: String,
     name: String,
     description: Option<String>,
-    id: Option<String>,
+    pub(super) id: Option<String>,
 }
 
-#[derive(Deserialize)]
-pub struct LookupParams {
-    q: String,
+//a name as it compares with another: lower case, in letters and numbers only
+fn same(name: &str) -> String {
+    name.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect()
 }
 
-//the Mondo and HPO terms closest to what was typed, for adding a condition we don't have
-async fn lookup(State(state): State<AppState>, _user: AuthUser, Query(params): Query<LookupParams>) -> Result<Json<Vec<Candidate>>, (StatusCode, String)> {
-    let q = params.q.trim();
-    if q.is_empty() {
-        return Ok(Json(Vec::new()));
-    }
-    if q.chars().count() > 100 {
-        return Err(bad("That search is too long."));
-    }
+//the Mondo and HPO terms closest to what was typed, for adding a condition we don't have, each with its id here when
+//we have it already. See search.rs
+pub async fn outside(state: &AppState, q: &str) -> Result<Vec<Candidate>, (StatusCode, String)> {
     let roots: Vec<String> = ROOTS.iter().map(|r| uri(r)).collect();
     let answer: Value = state.http.get(format!("{OLS}/search"))
         .query(&[
@@ -180,6 +180,9 @@ async fn lookup(State(state): State<AppState>, _user: AuthUser, Query(params): Q
         }))
         .filter(|c| ontology(&c.source_id).is_some())
         .collect();
+    //a disease both ontologies name comes up twice, so the HPO feature goes when Mondo has one by the same name
+    let mondo: Vec<String> = candidates.iter().filter(|c| c.source == "Mondo").map(|c| same(&c.name)).collect();
+    candidates.retain(|c| c.source == "Mondo" || !mondo.contains(&same(&c.name)));
     let source_ids: Vec<String> = candidates.iter().map(|c| c.source_id.clone()).collect();
     let mut rows = state.graph.execute(query("MATCH (c:Condition) WHERE c.sourceId IN $sourceIds RETURN c.sourceId AS source_id, c.id AS id")
         .param("sourceIds", source_ids)).await.map_err(internal)?;
@@ -189,7 +192,7 @@ async fn lookup(State(state): State<AppState>, _user: AuthUser, Query(params): Q
             c.id = Some(id);
         }
     }
-    Ok(Json(candidates))
+    Ok(candidates)
 }
 
 #[derive(Deserialize)]

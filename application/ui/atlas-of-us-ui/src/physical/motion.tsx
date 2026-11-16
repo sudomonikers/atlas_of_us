@@ -179,6 +179,31 @@ const MOTIONS = {
       );
     },
   },
+  living: {
+    label: 'Someone in glasses walking along with a cane',
+    period: 1.6,
+    still: 0,
+    figure: {
+      view: 'side',
+      frames: [
+        [0, { x: 284, y: 238, t: 182, an: { to: [338, 246], bend: 1 }, af: [10, 20], ln: [-18, -6], lf: [20, 10] }],
+        [0.8, { x: 284, y: 238, t: 182, an: { to: [334, 242], bend: 1 }, af: [-16, -6], ln: [20, 10], lf: [-18, -6] }],
+      ],
+    },
+    under: () => <Floor />,
+    draw: (_, j) => {
+      if (!j) return null;
+      const [hx, hy] = j.hands[0];
+      const [x, y] = j.head;
+      return (
+        <g>
+          <Ink d={line([hx - 14, hy - 4], [hx + 2, hy - 4], [hx + 34, GY])} w={6} />
+          <circle cx={x + 12} cy={y - 3} r={6.5} fill="none" stroke={INK} strokeWidth={3.5} />
+          <Ink d={line([x + 5.5, y - 4], [x - 12, y - 7])} w={3.5} />
+        </g>
+      );
+    },
+  },
   screen: {
     label: 'Someone sitting at a laptop, tapping keys as dots appear on the screen',
     period: 1.6,

@@ -38,12 +38,13 @@ async function reset(token: string) {
 }
 
 async function catalog(token: string): Promise<Catalog> {
-  const [{ measurements }, abilities, { characteristics }] = await Promise.all([
+  const [{ measurements }, abilities, { characteristics }, { conditions }] = await Promise.all([
     call<{ measurements: Measurement[] }>('GET', '/physical/measurements', undefined, token),
     call<Ability[]>('GET', '/physical/abilities', undefined, token),
     call<{ characteristics: Characteristic[] }>('GET', '/physical/me', undefined, token),
+    call<{ conditions: Catalog['conditions'] }>('GET', '/physical/conditions', undefined, token),
   ]);
-  return { measurements, abilities, characteristics };
+  return { measurements, abilities, characteristics, conditions };
 }
 
 for (const [file, persona] of Object.entries(personas)) {

@@ -10,6 +10,7 @@ export interface Catalog {
   measurements: { id: string; name: string; test: string | null }[];
   abilities: { id: string; name: string; examples: string[] }[];
   characteristics: { id: string; name: string; choices: string[] }[];
+  conditions: { name: string; plain_name: string | null; checklist: string | null }[];
 }
 
 //each reading as the api saved it, by its measurement's name
@@ -20,11 +21,11 @@ const TOES = 26;
 
 //Atlas's words: what's been written out so far, then the hidden rest holding its space
 const TEXT = 'p:has(> span[style*="visibility: hidden"])';
+//the chapter's title, over its scenes
+const chapterTitle = (page: Page) => page.locator('header h1').first().textContent({ timeout: STEP_MS });
 //where the player is: "Scene 3 of 9", and the name of the scene, from its dot
 const position = (page: Page) => page.locator('nav[aria-label^="Scene "]').getAttribute('aria-label', { timeout: STEP_MS });
 const sceneName = (page: Page) => page.locator('nav[aria-label^="Scene "] button[aria-current="step"]').getAttribute('aria-label', { timeout: STEP_MS });
-//the chapter's title, over its scenes
-const chapterTitle = (page: Page) => page.locator('header h1').first().textContent({ timeout: STEP_MS });
 
 const capitalized = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -84,37 +85,43 @@ async function rating(page: Page, a: Catalog['abilities'][number], anchor: numbe
   await saving(page, /\/rating$/, 'PUT', () => button(page, 'Save').click());
 }
 
-//finds each impairment by searching for it, and says how much it's impaired
-async function impairments(page: Page, persona: Physical) {
+//picks each condition from the checklist when it's on it, or finds it by searching for it, and says how it affects them.
+//Then finds where each impairment is by searching for it, and says how much it's impaired
+async function livingWith(page: Page, persona: Physical, catalog: Catalog) {
   await read(page);
-  for (const i of persona.impairments) {
-    await button(page, 'Add an impairment').click();
-    await button(page, i.part ? 'Body parts' : 'Body functions').click();
-    await page.locator('#part-search').fill(i.in);
-    await button(page, i.part ? capitalized(i.in) : i.in).first().click();
-    await button(page, capitalized(i.extent)).click();
-    if (i.change) await page.locator('select[id^="change-"]').selectOption({ label: i.change });
-    await saving(page, /\/api\/physical\/impairments\//, 'PUT', () => button(page, 'Save').click());
-  }
-}
-
-//finds each condition by searching for it, and says how it affects them
-async function conditions(page: Page, persona: Physical) {
-  await read(page);
+  const search = page.locator('#living-search');
   for (const c of persona.conditions) {
-    await button(page, 'Add a condition').click();
-    await page.locator('#condition-search').fill(c.name);
-    await button(page, capitalized(c.name)).first().click();
-    if (c.severity) await button(page, capitalized(c.severity)).click();
-    for (const [label, on] of [
+    const known = catalog.conditions.find((x) => x.name === c.name);
+    if (!known) throw new Error(`there's no condition ${c.name}`);
+    const label = known.plain_name ?? capitalized(c.name);
+    if (known.checklist) {
+      await search.fill('');
+      await page.getByRole('group', { name: known.checklist, exact: true }).getByRole('button', { name: label, exact: true }).click();
+    } else {
+      await search.fill(c.name);
+      await button(page, label).first().click();
+    }
+    const form = page.getByRole('group', { name: label, exact: true });
+    if (c.severity) await form.getByRole('button', { name: capitalized(c.severity), exact: true }).click();
+    for (const [name, on] of [
       ['A doctor or other professional diagnosed it', c.diagnosed],
       ["It's under control, with treatment or otherwise", c.managed],
     ] as const) {
-      const box = page.getByRole('checkbox', { name: label });
+      const box = form.getByRole('checkbox', { name });
       if ((await box.getAttribute('aria-checked')) !== String(on)) await box.click();
     }
-    await saving(page, /\/mine$/, 'PUT', () => button(page, 'Save').click());
+    await saving(page, /\/mine$/, 'PUT', () => form.getByRole('button', { name: 'Save', exact: true }).click());
   }
+  for (const i of persona.impairments) {
+    const name = i.part ? capitalized(i.in) : i.in;
+    await search.fill(i.in);
+    await button(page, name).first().click();
+    const form = page.getByRole('group', { name: `Your ${name}`, exact: true });
+    await form.getByRole('button', { name: capitalized(i.extent), exact: true }).click();
+    if (i.change) await form.locator('select[id^="change-"]').selectOption({ label: i.change });
+    await saving(page, /\/api\/physical\/impairments\//, 'PUT', () => form.getByRole('button', { name: 'Save', exact: true }).click());
+  }
+  await search.fill('');
 }
 
 //does what one scene asks, by its name: the measurement, ability or characteristic it's about, or one of the lists
@@ -125,8 +132,7 @@ async function act(page: Page, name: string, persona: Physical, catalog: Catalog
   if (c) return persona.characteristics[name] && characteristic(page, name, persona.characteristics[name]);
   const a = catalog.abilities.find((x) => x.name === name);
   if (a) return persona.ratings[name] !== undefined && rating(page, a, persona.ratings[name]);
-  if (name === 'What holds you back') return impairments(page, persona);
-  if (name === 'Your conditions') return conditions(page, persona);
+  if (name === 'What you live with') return livingWith(page, persona, catalog);
 }
 
 //on to the next scene, the next chapter, or back to the chapters after the last. Says which

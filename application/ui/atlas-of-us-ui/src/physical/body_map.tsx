@@ -2,14 +2,13 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { capitalized, type Ability, type Conditions, type Impairment, type Impairments, type Measurement, type PartSummary } from './api';
 import { HUMAN_BODY, heat, meshesOf, type Body, type Light } from './body_parts';
 import { ImpairmentForm } from './impairment_form';
+import { useFound } from './searching';
 import { PartPanel } from './part_panel';
 import { Checkbox } from '../shared_components/checkbox';
 import { SearchField } from '../shared_components/search_field';
-import { matchesAll, searchWords } from '../shared_components/search';
+import { AtlasError } from '../shared_components/atlas-error';
+import { Thinking } from '../shared_components/thinking';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
-
-//the most search results shown at once
-const MAX_RESULTS = 20;
 
 interface BodyMapProps {
   anatomy: PartSummary[];
@@ -51,9 +50,10 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
     setVersion((v) => v + 1);
   };
 
-  //every word of the search has to be in its name or another name for it
-  const words = searchWords(query);
-  const found = words.length ? anatomy.filter((p) => matchesAll(words, [p.name, ...p.synonyms])) : [];
+  //parts by any of their names, best first
+  const { searched, found: search, error } = useFound(query, 'parts');
+  const byId = new Map(anatomy.map((p) => [p.id, p]));
+  const found = (search?.parts ?? []).flatMap((id) => byId.get(id) ?? []);
 
   return (
     <>
@@ -83,15 +83,16 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
       <section style={styles.section}>
         <h2 style={styles.heading}>Find a part</h2>
         <SearchField id="anatomy-search" query={query} onQuery={setQuery} placeholder="Femur, retina, biceps, vagus nerve..." />
-        {words.length > 0 && !found.length && <p style={styles.text}>Nothing by that name. Try another word.</p>}
+        {searched && !search && !error && <Thinking label="Looking" />}
+        {error && <AtlasError message={error} />}
+        {search && !found.length && <p style={styles.text}>Nothing by that name. Try another word.</p>}
         <div style={styles.chips}>
-          {found.slice(0, MAX_RESULTS).map((p) => (
+          {found.map((p) => (
             <button key={p.id} className="comic-lift" style={styles.part} onClick={() => pick(p.id)}>
               {capitalized(p.name)}
             </button>
           ))}
         </div>
-        {found.length > MAX_RESULTS && <p style={styles.small}>And {found.length - MAX_RESULTS} more. Add a word to narrow it down.</p>}
       </section>
     </>
   );

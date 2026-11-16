@@ -18,15 +18,15 @@ export type Panel =
   | { kind: 'characteristic'; id: string }
   | { kind: 'measurement'; id: string }
   | { kind: 'rating'; id: string }
-  | { kind: 'noting'; show: 'impairments' | 'conditions' };
+  | { kind: 'living' };
 
-//a scene shows someone doing what it's about, the 3D body where what it's about sits in it, or where the user stands on
-//each ability in a category
+//a scene shows someone doing what it's about, the 3D body where what it's about sits in it, where the user stands on
+//each ability in a category, or what the user can do across the whole stage
 export interface Scene {
   id: string; //kept in the url, so a reload comes back to it
   title?: string; //what it's about, such as a test's name, shown over what Atlas says
-  text: string; //what Atlas says
-  stage: { motion: MotionName } | { shot: Shot } | { sheet: Ability['category'] };
+  text?: string; //what Atlas says, on the scenes Atlas speaks on
+  stage: { motion: MotionName } | { shot: Shot } | { sheet: Ability['category'] } | { whole: true };
   panel?: Panel;
 }
 
@@ -107,9 +107,6 @@ const USED: Record<string, MotionName> = {
   'Gross Body Equilibrium': 'oneLeg',
 };
 const usedBy = (name: string, category: string): MotionName => USED[name] ?? (category === 'Physical' ? 'hello' : 'screen');
-
-//what's under the skin, for what someone lives with
-const INSIDE: LayerId[] = ['skeleton', 'organs', 'nervous'];
 
 //names run together as people say them: "a, b and c"
 const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
@@ -304,20 +301,13 @@ export const CHAPTERS: Chapter[] = [
     scenes: () => [
       {
         id: 'intro',
-        text: "Lots of people live with something, like needing glasses, a bad knee, asthma or ADHD. When a skill needs something that one of these can affect, I'll mention it so you can plan around it.",
-        stage: { shot: { layers: INSIDE } },
+        text: "Lots of people live with something, like needing glasses, a bad knee, asthma or ADHD. When a skill needs something one of these can affect, I'll mention it so you can plan around it.",
+        stage: { motion: 'living' },
       },
       {
-        id: 'impairments',
-        text: "First, is there any part of your body or mind that doesn't work as well as it could? Add it here along with how much it holds you back.",
-        stage: { shot: { layers: INSIDE } },
-        panel: { kind: 'noting', show: 'impairments' },
-      },
-      {
-        id: 'conditions',
-        text: 'Next, add any conditions you have been diagnosed with or know you have, and how much each one affects you.',
-        stage: { shot: { layers: INSIDE } },
-        panel: { kind: 'noting', show: 'conditions' },
+        id: 'living',
+        stage: { whole: true },
+        panel: { kind: 'living' },
       },
     ],
     progress: ({ impairments, conditions }) => {

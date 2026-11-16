@@ -105,9 +105,10 @@ async fn main() {
         return;
     }
 
-    // listen globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::info!("Server started successfully at 0.0.0.0:3000");
+    //listen globally, on PORT when it's set, so a second copy can run beside the first
+    let address = format!("0.0.0.0:{}", env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
+    let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
+    tracing::info!("Server started successfully at {address}");
     axum::serve(listener, app).await.unwrap();
 }
 

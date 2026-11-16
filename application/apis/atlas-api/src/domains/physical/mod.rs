@@ -10,6 +10,7 @@ mod ideas;
 mod impairments;
 mod me;
 mod norms;
+mod search;
 
 use axum::{
     Json, Router,
@@ -43,6 +44,7 @@ pub fn router() -> Router<AppState> {
         .merge(impairments::router())
         .merge(conditions::router())
         .merge(anatomy::router())
+        .merge(search::router())
 }
 
 /// Healthcheck for the physical router.

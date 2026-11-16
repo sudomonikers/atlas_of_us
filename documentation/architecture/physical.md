@@ -19,7 +19,7 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 | ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions seed |
 | Anatomy import | `application/database/anatomy_import/` | Reads FMA and BodyParts3D, writes the anatomy seed, and turns BodyParts3D's models into the 3D body |
 | Conditions import | `application/database/conditions_import/` | Reads Mondo and HPO, and writes the conditions seed from a hand-picked list |
-| Ontology search | EBI's Ontology Lookup Service (OLS) | Finds Mondo and HPO terms that aren't seeded, when a person looks for one |
+| Ontology search | EBI's Ontology Lookup Service (OLS) | Finds Mondo and HPO terms that aren't seeded, when a search finds few of ours |
 
 ## What we measure
 The abilities of the O\*NET content model: capacities of the body and mind that make things easier or harder to learn,
@@ -51,8 +51,9 @@ from mild to complete.
 
 Conditions are diseases from Mondo and features from the Human Phenotype Ontology (HPO), the open ontologies used in
 medical research. A few hundred common ones a person would know they have are seeded, each linked to the body functions
-and parts it affects. Mondo and HPO have tens of thousands more, so anything else is looked up in the ontology
-search when a person asks for it, and added as the ontology has it. The ontology's id is a condition's identity, so the
+and parts it affects, and the most common are offered as a checklist under everyday names. Mondo and HPO have tens of
+thousands more, so when a search finds few of ours it looks in the ontology search too, and one picked from there is
+added as the ontology has it. The ontology's id is a condition's identity, so the
 same condition is only ever added once. Every condition carries the ids of everything above it in its ontology, so a new
 one is placed among the ones we have from those alone: under the nearest conditions it's a kind of, and over the nearest
 ones that are kinds of it.
@@ -96,9 +97,9 @@ The tab, chapter and scene are kept in the url.
 A measurement shows the steps for its home test or runs its in-app test, records a reading and the day it was taken
 (VO2 max can be worked out from how far someone runs in 12 minutes),
 and shows where it sits among people of their sex and age, compared with men, women or everyone as they choose. An
-impairment is in a body function or part, found by searching or browsing. A condition records how much it affects
-them, whether it was diagnosed and whether it's under control; a search finds one by any of its names, and looks
-further in Mondo and HPO for one that isn't listed.
+impairment is in a body function or part, and a condition records how much it affects them, whether it was diagnosed
+and whether it's under control. One search finds both, conditions by any of their names, everyday names and
+abbreviations included, and body functions and parts, through full-text indexes that match plurals, prefixes and typos.
 Measurements, impairments and conditions are private: they're only shown to the person who recorded them.
 
 ## The tests
