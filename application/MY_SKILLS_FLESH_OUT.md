@@ -51,7 +51,7 @@ Ideas for making the My Skills tab more useful, to work through one at a time.
 7. **How well backed up each claim is.** Show which levels have evidence and endorsements and which are claims alone,
    with a prompt to add evidence to the ones that matter most.
 8. **Skill families.** Group skills by SPECIALIZATION_OF to show breadth against depth ("T-shaped: deep in Cooking,
-   broad across Crafts"), and suggest neighbouring specializations of skills you're strong in.
+   broad across Crafts"), and suggest neighboring specializations of skills you're strong in.
 9. **(Done) Natural fits.** Compare your traits with REQUIRES_TRAIT to find skills that suit you, ranked by how well your
    trait levels match. Also show skills you got good at despite your traits, as an "against the grain" highlight.
 10. **(Done) Timeline.** Use `since` and `updatedAt` to show progress over time, such as when you went from Competent to
@@ -59,7 +59,7 @@ Ideas for making the My Skills tab more useful, to work through one at a time.
 
 ### Needing small additions
 
-11. **(Done) Goals.** Pick a skill and a target level and track progress towards it. Needs a relationship such as
+11. **(Done) Goals.** Pick a skill and a target level and track progress toward it. Needs a relationship such as
     WANTS_TO_REACH, like CURIOUS_ABOUT on topics.
 12. **Learning path.** For a target, list the ordered chain of requirements: skill levels first, then topics, following
     REQUIRES_KNOWLEDGE down through Ideas.

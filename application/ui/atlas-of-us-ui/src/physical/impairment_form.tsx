@@ -18,7 +18,7 @@ interface ImpairmentFormProps {
   part: Impairable;
   structure: boolean; //whether it's a body part, which can say how it has changed
   impairment: Impairment | null; //what they've said about it already, if anything
-  onSaved: (impairment: Impairment, abilities: Ability[]) => void; //with the user's abilities, which it can hold back
+  onSaved: (impairment: Impairment, abilities: Ability[]) => void; //with the user's abilities, which note it
   onCancel: () => void;
 }
 

@@ -42,10 +42,10 @@ interface FitGraphProps {
   label: string; //what the picture shows, for screen readers
 }
 
-const LOOK: Record<Standing, { colour: string; dash?: string; label: string }> = {
-  ahead: { colour: green, label: 'Ahead of what it takes' },
-  short: { colour: brownRed, dash: '12 8', label: 'Short of what it takes' },
-  affected: { colour: brownRed, dash: '2 8', label: 'Can be affected by what you live with' },
+const LOOK: Record<Standing, { color: string; dash?: string; label: string }> = {
+  ahead: { color: green, label: 'Ahead of what it takes' },
+  short: { color: brownRed, dash: '12 8', label: 'Short of what it takes' },
+  affected: { color: brownRed, dash: '2 8', label: 'Can be affected by what you live with' },
 };
 
 //the drawing's own space, which scales to fit its box
@@ -80,7 +80,7 @@ export function FitGraph({ who, items, targets, links, focus, labels, label }: F
               key={`${link.target}:${link.item}`}
               d={`M ${BOX.x + BOX.w} ${y0} C ${BOX.x + BOX.w + 120} ${y0}, ${TARGET_X - 160} ${y1}, ${TARGET_X - TARGET_R - 4} ${y1}`}
               fill="none"
-              stroke={look.colour}
+              stroke={look.color}
               strokeWidth={2 + link.strength * 5}
               strokeDasharray={look.dash}
               strokeLinecap="round"
@@ -131,7 +131,7 @@ export function FitGraph({ who, items, targets, links, focus, labels, label }: F
         {(Object.keys(LOOK) as Standing[]).filter((standing) => links.some((l) => l.standing === standing)).map((standing) => (
           <span key={standing} style={styles.legendItem}>
             <svg width={44} height={12} aria-hidden>
-              <path d="M 4 6 H 40" stroke={LOOK[standing].colour} strokeWidth={5} strokeDasharray={LOOK[standing].dash} strokeLinecap="round" />
+              <path d="M 4 6 H 40" stroke={LOOK[standing].color} strokeWidth={5} strokeDasharray={LOOK[standing].dash} strokeLinecap="round" />
             </svg>
             {words(standing)}
           </span>

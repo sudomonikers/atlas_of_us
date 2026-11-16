@@ -35,7 +35,7 @@ const C = {
   red: '#e8413c',
   blue: '#3b7fd1',
 };
-type Colour = keyof typeof C;
+type Color = keyof typeof C;
 
 // ---------------------------------------------------------------------------
 // the scenes
@@ -93,10 +93,10 @@ const FIRST_CUE = 'title_card';
 
 //what a part is made of: flat shapes, lines, type, and soft glows. origin is where a cls animation scales from
 type Item =
-  | { fill: Colour; d: string; o?: number; cls?: string; origin?: string }
-  | { line: Colour; d: string; w?: number; o?: number; dash?: string; cls?: string; origin?: string }
-  | { text: string; c: Colour; x: number; y: number; size: number; cls?: string; origin?: string }
-  | { glow: Colour; x: number; y: number; rx: number; ry: number; o?: number; cls?: string; origin?: string };
+  | { fill: Color; d: string; o?: number; cls?: string; origin?: string }
+  | { line: Color; d: string; w?: number; o?: number; dash?: string; cls?: string; origin?: string }
+  | { text: string; c: Color; x: number; y: number; size: number; cls?: string; origin?: string }
+  | { glow: Color; x: number; y: number; rx: number; ry: number; o?: number; cls?: string; origin?: string };
 
 const GAP = 0.06; //seconds between one item fading in and the next
 
@@ -107,7 +107,7 @@ const circle = (x: number, y: number, r: number) => `M ${x - r} ${y} a ${r} ${r}
 const ellipse = (x: number, y: number, rx: number, ry: number) => `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0`;
 const round = (x: number, y: number, w: number, h: number, r: number) =>
   `M ${x + r} ${y} H ${x + w - r} Q ${x + w} ${y} ${x + w} ${y + r} V ${y + h - r} Q ${x + w} ${y + h} ${x + w - r} ${y + h} H ${x + r} Q ${x} ${y + h} ${x} ${y + h - r} V ${y + r} Q ${x} ${y} ${x + r} ${y} Z`;
-const words = (c: Colour, text: string, x: number, y: number, size: number, cls?: string): Item => ({ c, text, x, y, size, cls });
+const words = (c: Color, text: string, x: number, y: number, size: number, cls?: string): Item => ({ c, text, x, y, size, cls });
 
 //pseudo-random but fixed, so a page always comes out the same
 const rand = (i: number) => {
@@ -122,7 +122,7 @@ function body(x: number, y: number, h: number, down = false) {
   const top = y - s * (h - 2 * r - 5);
   return `M ${x - h * 0.21} ${y} Q ${x - h * 0.23} ${top} ${x} ${top} Q ${x + h * 0.23} ${top} ${x + h * 0.21} ${y} Z ${circle(x, y - s * (h - r), r)}`;
 }
-const person = (x: number, y: number, h: number, fill: Colour, cls?: string): Item => ({ fill, d: body(x, y, h), cls });
+const person = (x: number, y: number, h: number, fill: Color, cls?: string): Item => ({ fill, d: body(x, y, h), cls });
 
 //a line of writing in a script the player can't read: loops and dots
 const squiggle = (x: number, y: number, w: number) =>
@@ -131,7 +131,7 @@ const squiggle = (x: number, y: number, w: number) =>
 //someone on the end of a bungee rope from the bridge deck, bouncing
 const DECK = 232;
 const ROPE = 200;
-const bungee = (x: number, fill: Colour): Item[] => [
+const bungee = (x: number, fill: Color): Item[] => [
   { line: 'ink', d: line([x, DECK], [x, DECK + ROPE]), w: 3, cls: 'dr-stretch', origin: `${x}px ${DECK}px` },
   { line: fill, d: `${line([x - 8, DECK + ROPE + 30], [x - 26, DECK + ROPE + 70])} ${line([x + 8, DECK + ROPE + 30], [x + 26, DECK + ROPE + 70])}`, w: 6, cls: 'dr-bounce' },
   { fill, d: body(x, DECK + ROPE, 90, true), cls: 'dr-bounce' },
@@ -165,7 +165,7 @@ const keyring = (x: number, y: number, s: number, tag: string): Item[] => [
 const STARS = Array.from({ length: 50 }, (_, i) => circle(rand(i) * W, rand(i + 70) * 330, 1.2 + rand(i + 9) * 2)).join(' ');
 const RAIN = Array.from({ length: 26 }, (_, i) => line([930 + rand(i) * 340, 110 + rand(i + 30) * 280], [924 + rand(i) * 340, 140 + rand(i + 30) * 280])).join(' ');
 //rows of hill houses, each row a little lower and nearer than the last
-const HOUSES: [y: number, h: number, fill: Colour][] = [
+const HOUSES: [y: number, h: number, fill: Color][] = [
   [380, 90, 'stone'],
   [470, 110, 'sand'],
   [570, 130, 'clay'],
@@ -655,7 +655,7 @@ function KitCam({ animation }: { animation: string }) {
       <style>{keyframes}</style>
       <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
         <defs>
-          {(Object.keys(C) as Colour[]).map((c) => (
+          {(Object.keys(C) as Color[]).map((c) => (
             <radialGradient key={c} id={`dr-glow-${c}`}>
               <stop offset="0%" stopColor={C[c]} stopOpacity={0.9} />
               <stop offset="100%" stopColor={C[c]} stopOpacity={0} />

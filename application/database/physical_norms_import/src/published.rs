@@ -47,14 +47,13 @@ const WOODS: [(u32, u32); 7] = [(18, 24), (25, 31), (32, 38), (39, 45), (46, 51)
 pub const TESTS: &[Test] = &[
     Test {
         name: "Sit and Reach", unit: "cm", better: "higher", group: "Fitness", range: (0.0, 70.0),
-        description: "How far forward you can reach sitting with your legs straight, where touching your toes is 26 cm.",
+        description: "How far you can reach toward your toes – or past them – while sitting with your legs straight.",
         abilities: &["Extent Flexibility"], confidence: 0.6, test: "home", timer: None,
         protocol: &[
-            "Warm up first: two gentle 20 second stretches for each leg.",
-            "Sit on the floor with your shoes off and your legs straight out, soles flat against the bottom stair or a box.",
-            "Lay a ruler or tape along the floor between your legs, with the 26 cm mark level with your soles.",
-            "With one hand on top of the other and your knees straight, reach forward slowly as far as you can and hold for two seconds.",
-            "Read the mark under your fingertips. Do it twice and record the better reach.",
+            "Warm up with a couple of gentle stretches for each leg.",
+            "Sit on the floor without shoes, with your legs straight out in front of you and your feet together.",
+            "Keeping your knees straight, put one hand on top of the other and reach slowly toward your toes as far as you can, holding it for two seconds.",
+            "Have someone measure how far your fingertips reach past your toes, or how far short of them they stop. Try twice and put in your better reach.",
         ],
         source: "Canadian Health Measures Survey cycle 5 (2016 to 2017), from Hoffmann and colleagues, \"Normative-referenced \
             percentile values for physical fitness among Canadians\", Health Reports, Statistics Canada, 2019. Statistics \
@@ -92,14 +91,13 @@ pub const TESTS: &[Test] = &[
     },
     Test {
         name: "Vertical Jump", unit: "cm", better: "higher", group: "Fitness", range: (1.0, 120.0),
-        description: "How high you can jump from standing, swinging your arms. The survey measured it on a force plate, \
-            so a mark on a wall is a close but rougher reading.",
+        description: "How high you can jump from standing, swinging your arms. You measure it with two marks on a wall.",
         abilities: &["Explosive Strength"], confidence: 0.5, test: "home", timer: None,
         protocol: &[
-            "Stand side on to a wall with chalk or a little water on your fingertips.",
-            "With your feet flat, reach up as high as you can and mark the wall.",
-            "Dip and jump as high as you can, swinging your arms, and mark the wall at the top of the jump.",
-            "Measure from the first mark to the second. Jump three times and record the best.",
+            "Stand side on to a wall with a little chalk or water on your fingertips.",
+            "Keeping your feet flat, reach up as high as you can and touch the wall to leave a mark.",
+            "Bend your knees, swing your arms and jump as high as you can, touching the wall again at the top of the jump.",
+            "Measure the gap between the two marks. Jump three times and put in your best.",
         ],
         source: "Canadian Health Measures Survey cycle 5 (2016 to 2017), from Hoffmann and colleagues, \"Normative-referenced \
             percentile values for physical fitness among Canadians\", Health Reports, Statistics Canada, 2019. Statistics \
@@ -137,15 +135,15 @@ pub const TESTS: &[Test] = &[
     },
     Test {
         name: "Push-Ups", unit: "push-ups", better: "higher", group: "Fitness", range: (0.0, 150.0),
-        description: "How many push-ups you can do in a row. Men do them from the toes and women from the knees, the way \
-            the norms were made, so you're compared with men or with women, not everyone.",
+        description: "How many push-ups you can do in a row without resting. Men do them from their toes and women from \
+            their knees, because that is how the comparisons were made.",
         abilities: &["Dynamic Strength"], confidence: 0.4, test: "home", timer: None,
         protocol: &[
-            "Lie face down with your hands under your shoulders. Men go from the toes, women from the knees with the lower legs on the floor.",
-            "Put a rolled towel under your chest.",
-            "Push up until your arms are straight, keeping your back straight, then lower until your chest touches the towel.",
-            "Keep going steadily without resting. Stop when you can't do another, or when your form slips two in a row.",
-            "Record how many full push-ups you did.",
+            "Lie face down with your hands under your shoulders. Men start from their toes, and women from their knees with their lower legs on the floor.",
+            "Put a rolled-up towel under your chest.",
+            "Push up until your arms are straight, keeping your back straight, then lower yourself until your chest touches the towel.",
+            "Keep going at a steady pace until you can't do another one, or until your form slips twice in a row.",
+            "Put in how many full push-ups you did.",
         ],
         source: "CSEP-PATH Resource Manual (2nd edition), Canadian Society for Exercise Physiology, 2019, from Payne and \
             colleagues, Canadian Journal of Applied Physiology, 2000. Its five ratings are read as fifths of people, so \
@@ -167,14 +165,14 @@ pub const TESTS: &[Test] = &[
     },
     Test {
         name: "One-Leg Stand, Eyes Closed", unit: "s", better: "higher", group: "Fitness", range: (0.0, 45.0),
-        description: "How long you can balance on one leg with your eyes shut, up to 45 seconds.",
+        description: "How long you can balance on one leg with your eyes closed, up to 45 seconds.",
         abilities: &["Gross Body Equilibrium"], confidence: 0.5, test: "home", timer: None,
         protocol: &[
-            "Stand barefoot near a wall or a sturdy chair, in case you need it, with someone to time you if you can.",
-            "Cross your arms over your chest, lift one foot so it's near but not touching the other ankle, and close your eyes.",
-            "Start the timer as the foot leaves the floor.",
-            "Stop when you uncross your arms, the raised foot moves or touches down, the standing foot shifts, you open your eyes, or 45 seconds pass.",
-            "Do it three times, resting in between, and record the best time.",
+            "Stand barefoot next to a wall or a sturdy chair in case you need it. It helps to have someone time you.",
+            "Cross your arms over your chest, lift one foot so it's close to your other ankle without touching it, and close your eyes.",
+            "Start the stopwatch as your foot leaves the floor.",
+            "Stop it when you uncross your arms, open your eyes, move your standing foot, put the raised foot down, or reach 45 seconds.",
+            "Try three times with a rest in between and put in your best time.",
         ],
         source: "Springer and colleagues, \"Normative values for the unipedal stance test with eyes open and closed\", \
             Journal of Geriatric Physical Therapy, 2007: 549 healthy adults, best of three trials. Men and women didn't \
@@ -226,8 +224,10 @@ pub const TESTS: &[Test] = &[
     },
     Test {
         name: "Digit Span", unit: "digits", better: "higher", group: "Attention", range: (1.0, 15.0),
-        description: "The longest string of digits you can repeat back after seeing them one at a time. The norms come \
-            from digits heard rather than seen.",
+        description: "This one is about how much you can hold in your head at once. Digits appear one at a time, and when they \
+            stop you type them back in the same order. Each time you get a string right the next one is a digit \
+            longer, and your score is the longest string you got right. The norms come from people who heard the \
+            digits read out rather than seeing them.",
         abilities: &["Memorization"], confidence: 0.4, test: "digit_span", timer: None, protocol: &[],
         source: "Woods and colleagues, \"Improving digit span assessment of short-term verbal memory\", Journal of \
             Clinical and Experimental Neuropsychology, 2011: 763 adults aged 18 to 65, the longest list repeated \
@@ -236,8 +236,10 @@ pub const TESTS: &[Test] = &[
     },
     Test {
         name: "Trail Making", unit: "s", better: "lower", group: "Attention", range: (10.0, 400.0),
-        description: "How long it takes to tap 25 circles in order, switching between numbers and letters: 1, A, 2, B, \
-            3, C and on to 13. The norms come from people drawing the trail with a pencil on paper.",
+        description: "This one is about keeping two sequences going in the right order. You tap 25 circles, switching back and \
+            forth between numbers and letters: 1, then A, then 2, then B and so on up to 13. Your score is how long \
+            it takes you, and a wrong tap costs you time, so it rewards being quick and careful at once. The norms \
+            come from people drawing the same kind of trail with a pencil on paper.",
         abilities: &["Information Ordering"], confidence: 0.4, test: "trail_making", timer: None, protocol: &[],
         source: "Tombaugh, \"Trail Making Test A and B: normative data stratified by age and education\", Archives of \
             Clinical Neuropsychology, 2004: 911 adults aged 18 to 89, Trail B for all levels of education. The 18 to 24 \
@@ -258,87 +260,118 @@ pub const TESTS: &[Test] = &[
         ] },
     },
     //the Atlas's own reasoning tests. Their items are generated in the ui from fixed seeds, so everyone takes the same
-    //test, and the number of items and the time limits here match it (ui/atlas-of-us-ui/src/physical/puzzles.ts)
+    //test, and the number of items and the time limits here match it (ui/atlas-of-us-ui/src/physical/timed.ts)
     Test {
         name: "Matrix Puzzles", unit: "right", better: "higher", group: "Reasoning", range: (0.0, 20.0),
-        description: "How many of 20 picture puzzles you solve in 10 minutes. Each is a grid of shapes that change by \
-            rules across the rows, with one missing: pick the piece that fits.",
+        description: "These picture puzzles are about spotting the rules behind a pattern. Each one is a grid of figures that \
+            change along each row – in their shape, how many there are, how big they are or what color they are – with \
+            the last one missing, and you pick the figure that completes it. You have 10 minutes for 20 puzzles, and \
+            your score is how many you solve.",
         abilities: &["Inductive Reasoning"], confidence: 0.4, test: "matrices", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Number Series", unit: "right", better: "higher", group: "Reasoning", range: (0.0, 16.0),
-        description: "How many of 16 number series you finish in 8 minutes: work out the rule and type the next number.",
+        description: "This one is about finding the rule behind a run of numbers. Each question is a row of numbers built by a \
+            rule – such as adding the same amount each time or doubling – and you type the number that comes next. \
+            You have 8 minutes for 16 of them, and your score is how many you get right.",
         abilities: &["Inductive Reasoning"], confidence: 0.4, test: "series", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Shape Rotation", unit: "right", better: "higher", group: "Reasoning", range: (0.0, 16.0),
-        description: "How many of 16 you get right in 7 minutes: pick which of four block shapes is the first one turned \
-            around. The others are its mirror image.",
+        description: "This one is about turning shapes around in your head. Each question shows a shape made of blocks, and \
+            you pick which of four others is the same shape seen from a different angle. The other three are its \
+            mirror image, which no amount of turning can make match. You have 7 minutes for 16 questions, and your \
+            score is how many you get right.",
         abilities: &["Visualization"], confidence: 0.4, test: "rotation", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Paper Folding", unit: "right", better: "higher", group: "Reasoning", range: (0.0, 14.0),
-        description: "How many of 14 you get right in 7 minutes: a square of paper is folded and a hole punched \
-            through it, and you pick where the holes are once it's unfolded.",
+        description: "This one is about picturing something as it changes step by step. A square of paper is folded, a hole is \
+            punched through all its layers, and you pick what the paper looks like once it's opened out again. You \
+            have 7 minutes for 14 questions, and your score is how many you get right.",
         abilities: &["Visualization"], confidence: 0.4, test: "paper_folding", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Perspective Taking", unit: "degrees off", better: "lower", group: "Reasoning", range: (0.0, 180.0),
-        description: "How far off you point, on average, over 12 tries in 6 minutes: imagine standing at one thing on a \
-            map, facing a second, and point to a third.",
+        description: "This one is about your sense of direction: imagining the world from a spot where you aren't standing. \
+            You see a map of a few things, and for each question you imagine standing at one of them, facing a \
+            second, and point toward a third. There are 12 questions in 6 minutes, and your score is how many \
+            degrees off you point on average – so a smaller number is better.",
         abilities: &["Spatial Orientation"], confidence: 0.4, test: "perspective", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Syllogisms", unit: "right", better: "higher", group: "Reasoning", range: (0.0, 20.0),
-        description: "How many of 20 you judge right in 7 minutes: does the conclusion follow from what's given? The \
-            words are made up, so only the logic counts.",
+        description: "This one is about logic: whether a conclusion really follows from what you're told. Each question gives \
+            you a couple of statements about made-up things and then a conclusion, and you decide whether the \
+            conclusion has to be true if the statements are. The words are invented, so what you know about the real \
+            world can't help or mislead you, and only the reasoning counts. You have 7 minutes for 20 questions, and \
+            your score is how many you judge right.",
         abilities: &["Deductive Reasoning"], confidence: 0.4, test: "syllogisms", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
 
     //the Atlas's own tests of attention, perception, coordination, the senses and ideas, compared with Atlas users
-    //like the reasoning tests. Their counts and time limits match the ui (ui/atlas-of-us-ui/src/physical/puzzles.ts)
+    //like the reasoning tests. Their counts and time limits match the ui (ui/atlas-of-us-ui/src/physical/timed.ts)
     Test {
         name: "Symbol Matching", unit: "right", better: "higher", group: "Attention", range: (0.0, 150.0),
-        description: "How many symbols you match to their digits in 90 seconds, using a key of nine.",
+        description: "This one is about how quickly you take in details and match them up. A key pairs nine symbols with the \
+            digits 1 to 9, and as each symbol appears you press its digit. Your score is how many you match \
+            correctly in 90 seconds.",
         abilities: &["Perceptual Speed"], confidence: 0.4, test: "symbols", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Distracting Arrows", unit: "ms slower", better: "lower", group: "Attention", range: (-300.0, 1000.0),
-        description: "How much slower you are to say which way the middle arrow points when the arrows around it point \
-            the other way, over 48 tries.",
+        description: "This one is about keeping your focus when something tries to pull it away. A row of five arrows appears \
+            and you say which way the middle one points, while the arrows around it sometimes point the same way and \
+            sometimes the opposite way. Over 48 rows, your score is how many milliseconds slower you are when the \
+            outer arrows disagree – so a smaller number means they distracted you less.",
         abilities: &["Selective Attention"], confidence: 0.4, test: "flanker", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
-        name: "Card Sorting", unit: "right", better: "higher", group: "Attention", range: (0.0, 60.0),
-        description: "How many of 60 cards you sort right by a hidden rule, by colour, shape or number, that changes \
-            without warning.",
+        name: "Card Sorting", unit: "mistakes", better: "lower", group: "Attention", range: (0.0, 60.0),
+        description: "This one is about switching to a new way of thinking when the old one stops working. You sort cards onto \
+            one of four by a hidden rule – by color, shape or number – which you work out from being told whether \
+            each sort was right. Every so often the rule changes without warning, and you have to find the new one. \
+            Your score is how many mistakes you could have avoided over 60 cards – so a wrong guess that nobody \
+            could have known better than doesn't count against you.",
         abilities: &["Category Flexibility"], confidence: 0.4, test: "cards", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Broken Words", unit: "right", better: "higher", group: "Attention", range: (0.0, 20.0),
-        description: "How many of 20 words you read in 4 minutes with much of each one hidden.",
+        description: "This one is about making sense of something quickly when you can only see part of it. Each word has much \
+            of it hidden – more as you go along – and you type what the word is. They're all everyday English words. \
+            You have 4 minutes for 20 words, and your score is how many you read correctly.",
         abilities: &["Speed of Closure"], confidence: 0.4, test: "broken_words", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Hidden Shapes", unit: "right", better: "higher", group: "Attention", range: (0.0, 16.0),
-        description: "How many of 16 you get right in 6 minutes: find which drawing has a simple shape hidden in it.",
+        description: "This one is about picking out a shape you know from inside a busier picture. Each question shows a \
+            simple shape, and you find which of four drawings has exactly that shape hidden in it – the same size \
+            and the same way up – among other lines. You have 6 minutes for 16 questions, and your score is how many \
+            you get right.",
         abilities: &["Flexibility of Closure"], confidence: 0.4, test: "hidden_shapes", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Tapping", unit: "taps", better: "higher", group: "Reflexes", range: (0.0, 200.0),
-        description: "The most taps you make in 10 seconds with one finger, the best of three tries.",
+        description: "The most taps you make in 10 seconds with one finger – the best of three tries.",
         abilities: &["Wrist-Finger Speed"], confidence: 0.4, test: "tapping", timer: None, protocol: &[], source: ATLAS,
+        norms: Norms::Atlas,
+    },
+    Test {
+        name: "Steady Hand", unit: "mm", better: "lower", group: "Reflexes", range: (0.0, 100.0),
+        description: "How far your hand wanders on average while you hold your arm straight out as still as you can for 20 \
+            seconds, with your camera watching.",
+        abilities: &["Arm-Hand Steadiness"], confidence: 0.4, test: "camera", timer: Some(20), protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
@@ -349,57 +382,75 @@ pub const TESTS: &[Test] = &[
     },
     Test {
         name: "Timing", unit: "ms off", better: "lower", group: "Reflexes", range: (0.0, 2000.0),
-        description: "How far off you are, on average over 20 tries, stopping a moving dot on a line, some of them \
-            with the end of its path hidden.",
+        description: "How far off you are on average when stopping a moving dot on a line, over 20 tries – some of them with \
+            the end of its path hidden.",
         abilities: &["Rate Control"], confidence: 0.4, test: "timing", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Two-Hand Steering", unit: "targets", better: "higher", group: "Reflexes", range: (0.0, 100.0),
-        description: "How many targets you reach in 60 seconds steering a dot with both hands, one for up and down and \
-            the other for left and right.",
+        description: "How many targets you reach in 60 seconds steering a dot with both hands – one for up and down and the \
+            other for left and right.",
         abilities: &["Multilimb Coordination"], confidence: 0.4, test: "steering", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Track and Count", unit: "points", better: "higher", group: "Reflexes", range: (0.0, 100.0),
-        description: "How well you keep the pointer on a drifting dot while counting high beeps, for 60 seconds: half \
-            for the tracking, half for the count.",
+        description: "This one is about doing two things at once. For 60 seconds you keep the pointer on a dot that drifts \
+            around the screen, and at the same time you count the high beeps you hear while ignoring the low ones. \
+            Your score weighs the two equally: how much of the time you stayed on the dot, and how close your count \
+            was.",
         abilities: &["Time Sharing"], confidence: 0.4, test: "track_count", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Reading Chart", unit: "20/x", better: "lower", group: "Senses", range: (10.0, 400.0),
-        description: "How small you can read up close, at 40 cm with your usual reading glasses, as the bottom of a \
-            Snellen fraction. A screen can only draw letters so small, so a sharp phone screen measures furthest.",
+        description: "How small you can read up close – at 40 cm with your usual reading glasses – as the bottom of a Snellen \
+            fraction. A screen can only draw letters so small, so a sharp phone screen measures furthest.",
         abilities: &["Near Vision"], confidence: 0.4, test: "near_chart", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
-        name: "Odd Colour Out", unit: "hue degrees", better: "lower", group: "Senses", range: (0.5, 180.0),
-        description: "The smallest difference in hue you can spot between tiles. Screens show colour differently, so \
+        name: "Odd Color Out", unit: "hue degrees", better: "lower", group: "Senses", range: (0.5, 180.0),
+        description: "The smallest difference in hue you can spot between tiles. Screens show color differently, so \
             it's rough.",
-        abilities: &["Visual Color Discrimination"], confidence: 0.3, test: "colours", timer: None, protocol: &[], source: ATLAS,
+        abilities: &["Visual Color Discrimination"], confidence: 0.3, test: "colors", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Side Vision", unit: "seen", better: "higher", group: "Senses", range: (0.0, 24.0),
-        description: "How many of 24 flashes you notice off to the side while looking at a dot, out to 30 degrees, on a \
+        description: "How many of 24 flashes you notice off to the side – out to 30 degrees – while looking at a dot on a \
             screen at least 25 cm wide.",
         abilities: &["Peripheral Vision"], confidence: 0.3, test: "side_vision", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
-        name: "Animal Naming", unit: "animals", better: "higher", group: "Reasoning", range: (0.0, 100.0),
-        description: "How many different animals you can type in 60 seconds. Repeats and anything that isn't an animal \
-            don't count.",
-        abilities: &["Fluency of Ideas"], confidence: 0.4, test: "animals", timer: None, protocol: &[], source: ATLAS,
+        name: "Design Fluency", unit: "designs", better: "higher", group: "Reasoning", range: (0.0, 100.0),
+        description: "This one is about how many different ideas you can come up with. Each box has five dots, and you join \
+            them with four straight lines to make a design – each new line starting or ending on a dot the design \
+            already uses. You have 60 seconds to make as many different designs as you can, and your score is how \
+            many you make. A design you've already made doesn't count again, and there are no words or typing \
+            involved.",
+        abilities: &["Fluency of Ideas"], confidence: 0.4, test: "designs", timer: None, protocol: &[], source: ATLAS,
+        norms: Norms::Atlas,
+    },
+    Test {
+        name: "Spot the Problem", unit: "points", better: "higher", group: "Reasoning", range: (0.0, 17.0),
+        description: "This one is about noticing when something is wrong or about to go wrong. You see a run of everyday \
+            pictures – an umbrella, a bike, a clock, a day's plans – and some have one thing wrong with them while \
+            others are fine. Tap the problem when you spot one, or say nothing's wrong. You have 4 minutes for \
+            17 pictures. You get a point for each picture you get right – the problem found, or a fine one \
+            said to be fine – and a tap only counts on the problem itself, so it rewards noticing rather than \
+            guessing.",
+        abilities: &["Problem Sensitivity"], confidence: 0.4, test: "problems", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
     Test {
         name: "Brick Uses", unit: "points", better: "higher", group: "Reasoning", range: (0.0, 100.0),
-        description: "How unusual your ideas are for using a brick, in 2 minutes: how far each one is from a brick \
-            itself and from the uses people think of most, scored on your three most unusual.",
+        description: "This one is about original thinking: how far your ideas go from the obvious. You have 2 minutes to list \
+            as many uses for an ordinary brick as you can. Your score comes from your three most unusual ideas – \
+            judged by how far each one is from a brick itself and from the uses most people think of – so a few \
+            surprising ideas count for more than a long list of ordinary ones.",
         abilities: &["Originality"], confidence: 0.3, test: "uses", timer: None, protocol: &[], source: ATLAS,
         norms: Norms::Atlas,
     },
@@ -407,75 +458,114 @@ pub const TESTS: &[Test] = &[
     //home tests with no published norms that fit, compared with Atlas users. A timed one has the ui's stopwatch
     Test {
         name: "Plank Hold", unit: "s", better: "higher", group: "Fitness", range: (0.0, 900.0),
-        description: "How long you can hold a forearm plank with your body straight.",
+        description: "How long you can hold a plank on your forearms with your body in a straight line.",
         abilities: &["Trunk Strength"], confidence: 0.4, test: "home", timer: None,
         protocol: &[
-            "Lie face down on a mat or carpet. Rest on your forearms, elbows under your shoulders, and come up onto your toes.",
-            "Keep a straight line from your head to your heels: hips neither sagging nor raised.",
-            "Start the stopwatch when you're in position, and hold as long as you can.",
-            "Stop when your hips sag or rise, a knee touches the floor, or you can't hold it any more. Record the time.",
+            "Lie face down on a mat or carpet, rest on your forearms with your elbows under your shoulders, and come up onto your toes.",
+            "Keep your body in a straight line from your head to your heels, without letting your hips sag or stick up.",
+            "Start the stopwatch once you're in position and hold it for as long as you can.",
+            "Stop it when your hips sag or rise, a knee touches the floor, or you can't hold on any longer.",
+        ],
+        source: ATLAS, norms: Norms::Atlas,
+    },
+    Test {
+        name: "Squat One-Rep Max", unit: "kg", better: "higher", group: "Fitness", range: (5.0, 400.0),
+        description: "The heaviest weight you could squat once with good form, with a barbell across your back. Count the \
+            bar and the plates together. If you only know a weight you've squatted for a few reps, I can work it out from that.",
+        abilities: &["Static Strength"], confidence: 0.5, test: "home", timer: None,
+        protocol: &[
+            "Only test a true one-rep max with a spotter or safety bars. On your own, use a weight you can squat for 2 to 10 good reps instead.",
+            "Warm up with a few lighter sets first.",
+            "Squat until the tops of your thighs are level with your knees, then stand back up, keeping your back straight.",
+            "Put in the heaviest weight you managed once, or the weight and how many reps you did, and I'll work out your one-rep max.",
         ],
         source: ATLAS, norms: Norms::Atlas,
     },
     Test {
         name: "Coin Transfer", unit: "s", better: "lower", group: "Fitness", range: (5.0, 300.0),
-        description: "How long it takes to move 20 coins, one at a time, from a pile into a mug with your stronger hand.",
+        description: "How long it takes you to drop 20 coins into a mug one at a time, using your stronger hand.",
         abilities: &["Manual Dexterity"], confidence: 0.3, test: "home", timer: None,
         protocol: &[
-            "Sit at a table. Put 20 small coins in a loose pile in front of you, and a mug about 30 cm (a foot) beyond them.",
-            "Use your stronger hand only, and keep the other in your lap.",
-            "Start the stopwatch and pick up the coins one at a time, dropping each into the mug.",
-            "Stop when the last coin is in. A coin that misses goes back in the pile. Record the time.",
+            "Sit at a table with 20 small coins in a loose pile in front of you and a mug about 30 cm (a foot) to the side of them, on the side of your stronger hand.",
+            "Use only your stronger hand, and keep the other one in your lap.",
+            "Start the stopwatch, then pick the coins up one at a time and drop each one into the mug.",
+            "Stop it when the last coin is in. If a coin misses, put it back on the pile.",
+        ],
+        source: ATLAS, norms: Norms::Atlas,
+    },
+    Test {
+        name: "Arm Span", unit: "cm", better: "neither", group: "Body", range: (100.0, 250.0),
+        description: "How far it is from fingertip to fingertip with your arms stretched out to the sides, which is \
+            usually close to your height. I compare it with other people your age to show how long your reach is.",
+        abilities: &[], confidence: 0.0, test: "home", timer: None,
+        protocol: &[
+            "Stand with your back flat against a wall, without shoes, and stretch both arms out to the sides at shoulder height, palms facing forward.",
+            "Have someone mark the wall at the tip of each middle finger, keeping your arms level and straight.",
+            "Measure between the two marks with a tape measure, in centimeters.",
+        ],
+        source: ATLAS, norms: Norms::Atlas,
+    },
+    Test {
+        name: "Hand Span", unit: "cm", better: "neither", group: "Body", range: (12.0, 30.0),
+        description: "How far it is from the tip of your thumb to the tip of your little finger with your hand spread \
+            as wide as it goes. I compare it with other people your age to show how big your hands are.",
+        abilities: &[], confidence: 0.0, test: "home", timer: None,
+        protocol: &[
+            "Spread your stronger hand as wide as it goes, flat on a table, with the thumb and little finger stretched apart.",
+            "Lay a ruler across the tips of your thumb and little finger.",
+            "Read the distance between the two tips, in centimeters.",
         ],
         source: ATLAS, norms: Norms::Atlas,
     },
     Test {
         name: "Coin Turning", unit: "s", better: "lower", group: "Fitness", range: (3.0, 180.0),
-        description: "How long it takes to turn over 10 coins in a row with the fingers of one hand.",
+        description: "How long it takes you to flip over a row of 10 coins with the fingers of one hand.",
         abilities: &["Finger Dexterity"], confidence: 0.3, test: "home", timer: None,
         protocol: &[
-            "Lay 10 small coins in a row on a table, heads up, about a finger's width apart.",
-            "Use your stronger hand only. Turn each coin over where it lies, picking it up with your fingertips, without sliding it to the edge of the table.",
-            "Start the stopwatch and turn them over, one after another along the row.",
-            "Stop when the last coin is tails up. Record the time.",
+            "Lay 10 small coins in a row on a table, heads up and about a finger's width apart.",
+            "Using only your stronger hand, flip each coin over where it lies by picking it up with your fingertips, without sliding it to the edge of the table.",
+            "Start the stopwatch and flip them one after another along the row.",
+            "Stop it when the last coin shows tails.",
         ],
         source: ATLAS, norms: Norms::Atlas,
     },
     Test {
         name: "Plate Tapping", unit: "s", better: "lower", group: "Fitness", range: (3.0, 60.0),
-        description: "How long it takes to tap two marks 80 cm apart 25 times each with one hand, the Eurofit plate \
-            tapping test.",
+        description: "How long it takes you to tap two spots 80 cm apart 25 times each, going back and forth with one hand.",
         abilities: &["Speed of Limb Movement"], confidence: 0.3, test: "home", timer: None,
         protocol: &[
-            "On a table, put two coasters or paper circles with their centres 80 cm (32 inches) apart, and stand facing the table between them.",
-            "Put your weaker hand flat on the table in the middle, and your stronger hand on the coaster on the other side.",
-            "Start the stopwatch and tap the two coasters in turn, crossing over your weaker hand, as fast as you can.",
-            "Stop after 25 taps on each, 50 in all. Have someone count if you can. Record the time.",
+            "Put two coasters or paper circles on a table with their centers 80 cm (32 inches) apart, and stand facing the table between them.",
+            "Put your weaker hand flat on the table in the middle, and your stronger hand on the coaster on the far side.",
+            "Start the stopwatch and tap the two coasters in turn as fast as you can, reaching over your weaker hand.",
+            "Stop it after 25 taps on each coaster, 50 in all. It helps to have someone count.",
         ],
         source: ATLAS, norms: Norms::Atlas,
     },
     Test {
         name: "Hexagon Jump", unit: "s", better: "lower", group: "Fitness", range: (5.0, 120.0),
-        description: "How long it takes to jump out and back in over each side of a taped hexagon, three times around.",
+        description: "How long it takes you to jump out and back in over each side of a hexagon taped on the floor – three \
+            times around.",
         abilities: &["Gross Body Coordination"], confidence: 0.3, test: "home", timer: None,
         protocol: &[
-            "Clear some floor space and tape a hexagon with sides 60 cm (2 feet) long. Wear shoes with grip.",
+            "Find a clear patch of floor about 2 meters (7 feet) across, and wear shoes with good grip.",
+            "Mark a spot for the middle. Then put six small pieces of tape around it, each 60 cm (2 feet) from the middle, spaced evenly like the numbers 12, 2, 4, 6, 8 and 10 on a clock.",
+            "Join each piece of tape to the next with a straight line of tape. That makes a hexagon with every side 60 cm long.",
             "Stand in the middle facing one side, and keep facing that way the whole time.",
-            "Start the stopwatch. Jump with both feet together out over the side in front of you and back into the middle, then over the next side clockwise and back, and on around.",
-            "Go around three times, 18 jumps out. If you land on a line or lose your balance, start again. Record the time.",
+            "Start the stopwatch, then jump with your feet together out over the side in front of you and back into the middle. Do the same over the next side clockwise, and keep going around.",
+            "Go around three times, which is 18 jumps out. If you land on a line or lose your balance, start again.",
         ],
         source: ATLAS, norms: Norms::Atlas,
     },
     Test {
         name: "Bend, Twist and Touch", unit: "touches", better: "higher", group: "Fitness", range: (0.0, 40.0),
-        description: "How many times in 20 seconds you can bend to touch the floor, then twist to touch the wall behind \
-            you, after Fleishman's test of dynamic flexibility.",
+        description: "How many times in 20 seconds you can bend down to touch the floor, then stand up and twist around to \
+            touch the wall behind you.",
         abilities: &["Dynamic Flexibility"], confidence: 0.3, test: "home", timer: Some(20),
         protocol: &[
-            "Stand with your back to a wall, an arm's length from it, feet shoulder width apart. Put a piece of tape on the wall behind you at shoulder height.",
-            "Bend and touch the floor between your feet with both hands, then stand, twist and touch the tape with both hands. That's one.",
-            "Twist to the other side the next time, and keep alternating.",
-            "Start the countdown and do as many as you can before it beeps. Record how many.",
+            "Stand with your back to a wall, about an arm's length away, with your feet shoulder width apart. Put a piece of tape on the wall behind you at shoulder height.",
+            "Bend down and touch the floor between your feet with both hands, then stand up, twist around and touch the tape with both hands. That counts as one.",
+            "Twist the other way the next time, and keep switching sides.",
+            "Start the countdown and do as many as you can before it beeps.",
         ],
         source: ATLAS, norms: Norms::Atlas,
     },

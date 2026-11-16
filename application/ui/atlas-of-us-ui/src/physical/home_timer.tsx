@@ -1,31 +1,32 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { now, since, testStyles } from './test_kit';
+import { beep, now, since, testStyles, useCountIn } from './test_kit';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
-//a short beep, higher for the start and the end
-function beep(audio: AudioContext, high: boolean) {
-  const tone = audio.createOscillator();
-  const gain = audio.createGain();
-  const at = audio.currentTime;
-  tone.frequency.value = high ? 1100 : 660;
-  gain.gain.setValueAtTime(0.3, at);
-  gain.gain.linearRampToValueAtTime(0, at + (high ? 0.5 : 0.15));
-  tone.connect(gain).connect(audio.destination);
-  tone.start(at);
-  tone.stop(at + 0.55);
-}
-
-//a stopwatch for a timed home test, which fills in the reading with the time when it's stopped
-export function Stopwatch({ onStop }: { onStop: (seconds: number) => void }) {
+//a stopwatch for a timed home test, which fills in the reading with the time when it's stopped. Starting it counts down
+//from three with beeps first, so there's time to get into position. A test that ends at a set time, such as standing
+//on one leg for up to 45 seconds, stops itself there with a beep
+export function Stopwatch({ onStop, limit }: { onStop: (seconds: number) => void; limit?: number }) {
   const [running, setRunning] = useState(false);
   const [shown, setShown] = useState(0);
   const started = useRef(0);
+  const [counting, countIn] = useCountIn();
 
   useEffect(() => {
     if (!running) return;
-    const tick = window.setInterval(() => setShown(since(started.current) / 1000), 100);
+    const tick = window.setInterval(() => {
+      const seconds = since(started.current) / 1000;
+      if (limit !== undefined && seconds >= limit) {
+        setRunning(false);
+        setShown(limit);
+        onStop(limit);
+        const audio = new AudioContext();
+        beep(audio, true);
+        window.setTimeout(() => void audio.close(), 800);
+        navigator.vibrate?.(400);
+      } else setShown(seconds);
+    }, 100);
     return () => clearInterval(tick);
-  }, [running]);
+  }, [running, limit, onStop]);
 
   const toggle = () => {
     if (running) {
@@ -34,18 +35,24 @@ export function Stopwatch({ onStop }: { onStop: (seconds: number) => void }) {
       setShown(seconds);
       onStop(seconds);
     } else {
-      started.current = now();
       setShown(0);
-      setRunning(true);
+      countIn(() => {
+        started.current = now();
+        setRunning(true);
+      });
     }
   };
 
   return (
     <div style={styles.timer}>
-      <span style={styles.time} aria-live="off">{shown.toFixed(1)} s</span>
-      <button type="button" className="comic-lift" style={running ? styles.stop : testStyles.primary} onClick={toggle}>
-        {running ? 'Stop' : shown ? 'Start again' : 'Start the stopwatch'}
-      </button>
+      <span style={styles.time} aria-live={counting === null ? 'off' : 'assertive'}>
+        {counting === null ? `${shown.toFixed(1)} s` : `Get ready: ${counting}`}
+      </span>
+      {counting === null && (
+        <button type="button" className="comic-lift" style={running ? styles.stop : testStyles.primary} onClick={toggle}>
+          {running ? 'Stop' : shown ? 'Start again' : 'Start the stopwatch'}
+        </button>
+      )}
     </div>
   );
 }

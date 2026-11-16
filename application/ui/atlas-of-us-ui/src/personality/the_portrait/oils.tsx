@@ -3,7 +3,7 @@ import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Portrait is painted in loose oils: every wall, face and floorboard is laid down as short, thick brushstrokes in
-// a few tints of one colour, like a painting seen close up. You're the sitter, so for most of the scene you see what
+// a few tints of one color, like a painting seen close up. You're the sitter, so for most of the scene you see what
 // a sitter sees: Nell peering round the back of her canvas, and never the front. You're never drawn, and neither is
 // the portrait: it goes face in against the wall to dry. A cue names a view and the parts to show: a new view washes in, and new parts in the same view fade in after
 // it. The brushwork is seeded, so it lands the same way every time. Everything is SVG in a fixed 1600x900 space,
@@ -41,7 +41,7 @@ const HAND = '"Bradley Hand", "Segoe Print", "Comic Sans MS", cursive';
 // drawing
 // ---------------------------------------------------------------------------
 
-//a shape, or a stroke when it has a line colour; lettering; or a group of either, moved by an svg transform
+//a shape, or a stroke when it has a line color; lettering; or a group of either, moved by an svg transform
 type Shape = { d: string; fill: string; line?: string; w?: number; op?: number; cls?: string };
 type Words = { text: string; x: number; y: number; size: number; fill?: string; anchor?: 'start' | 'middle' | 'end'; font?: string; italic?: boolean; op?: number };
 type Group = { t: string; items: Item[]; cls?: string; clip?: { id: string; d: string } };
@@ -96,7 +96,7 @@ function inside(a: Area, [x, y]: Pt) {
 type Brush = { len?: number; w?: number; angle?: number; wobble?: number; op?: number; seed?: number };
 
 //n short, slightly curved brushstrokes over an area, about len long and w wide, laid at angle degrees give or take
-//wobble, in turns of each colour. Each colour is one path, so a whole wall is only a few elements
+//wobble, in turns of each color. Each color is one path, so a whole wall is only a few elements
 function strokes(a: Area, colors: string[], n: number, { len = 30, w = 10, angle = 0, wobble = 25, op = 0.85, seed = 1 }: Brush = {}): Shape[] {
   const rand = random(seed);
   const [x0, y0, x1, y1] = bounds(a);
@@ -114,7 +114,7 @@ function strokes(a: Area, colors: string[], n: number, { len = 30, w = 10, angle
   return colors.map((c, k) => stroke(paths[k].join(' '), c, w, { op })).filter((s) => s.d);
 }
 
-//an area filled with its first colour, then brushed over with the rest. n defaults to how big the area is
+//an area filled with its first color, then brushed over with the rest. n defaults to how big the area is
 function daub(a: Area, [base, ...tints]: string[], brush: Brush & { n?: number } = {}): Shape[] {
   const [x0, y0, x1, y1] = bounds(a);
   const len = brush.len ?? 30;
@@ -351,7 +351,7 @@ const EASEL: Record<string, Item[]> = {
   ],
 };
 
-//the palette from above: a ring of paint, a warm skin colour being mixed, and the brush going round in it
+//the palette from above: a ring of paint, a warm skin color being mixed, and the brush going round in it
 const PAINTS = ['#fbf7ee', '#e9c46a', '#f2a530', '#d8432f', '#9c2a3c', '#2f4fa0', '#2f7a5c', '#6b4a32', '#2b2420'];
 const PALETTE: Record<string, Item[]> = {
   _table: daub({ box: [0, 0, W, H] }, ['#7f5a36', '#9a7046', '#6e4c2c', '#8a6544'], { len: 220, w: 18, angle: 4, wobble: 3, seed: 40 }),

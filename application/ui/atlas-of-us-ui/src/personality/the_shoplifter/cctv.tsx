@@ -18,7 +18,7 @@ const VIEW = `0 0 ${W} ${H}`;
 type Pt = [number, number];
 type V3 = [number, number, number];
 
-//the greys of the feed, darkest first, with a hint of green
+//the grays of the feed, darkest first, with a hint of green
 const G = ['#121614', '#232926', '#363d39', '#4b534e', '#626a64', '#7b837c', '#959d96', '#b0b7b0', '#cbd1ca', '#e6eae4', '#f7f9f5'];
 const RED = '#ff3b30'; //your tracking box, and nothing else
 const AMBER = '#f2c14e';
@@ -43,7 +43,7 @@ const ellipse = (x: number, y: number, rx: number, ry: number) => `M ${x - rx} $
 const circle = (x: number, y: number, r: number) => ellipse(x, y, r, r);
 const words = (text: string, x: number, y: number, size: number, more: Partial<{ c: string; bold: boolean; anchor: 'start' | 'end'; m: string }> = {}): Item => ({ text, x, y, size, c: G[1], ...more });
 
-//a grey lightened (k > 0) or darkened (k < 0)
+//a gray lightened (k > 0) or darkened (k < 0)
 const shade = (hex: string, k: number) => {
   const n = parseInt(hex.slice(1), 16);
   const f = (v: number) => Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k);
@@ -231,7 +231,7 @@ function lens(at: V3, look: V3) {
     ];
     return faces.filter(([n, pts]) => facing(n, pts[2])).map(([, pts, k]) => face([pts], shade(col, k)));
   };
-  //a transform that lays shapes and lettering, in centimetres, onto a surface: o is the top left corner, u runs along
+  //a transform that lays shapes and lettering, in centimeters, onto a surface: o is the top left corner, u runs along
   //it to the right, and down runs down it
   const onto = (o: V3, u: V3, down: V3 = [0, 0, -1]) => {
     const [ox, oy] = P(...o);
@@ -240,7 +240,7 @@ function lens(at: V3, look: V3) {
     const k = (n: number) => +(n / 100).toFixed(4);
     return `matrix(${k(ax - ox)} ${k(ay - oy)} ${k(bx - ox)} ${k(by - oy)} ${+ox.toFixed(1)} ${+oy.toFixed(1)})`;
   };
-  //someone standing at x, y, about tall metres high
+  //someone standing at x, y, about tall meters high
   const person = (x: number, y: number, who: Look, pose: Pose = 'stand', dir: Dir = 1, tall = 1.7) => {
     const [fx, fy] = P(x, y);
     const k = (fy - P(x, y, tall)[1]) / 100;

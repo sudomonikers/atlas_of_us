@@ -36,7 +36,7 @@ export const theCommittee: Script = {
           facets: ['Assertiveness'],
           choices: [
             { label: "Stand up and say I'll run it.", next: 'you_chair' },
-            { label: 'Get things moving: a list on the whiteboard, and a name next to every job.', next: 'you_organise' },
+            { label: 'Get things moving: a list on the whiteboard, and a name next to every job.', next: 'you_organize' },
             { label: 'Offer to do one job, and let someone else lead.', next: 'you_one_job' },
             { label: 'Keep quiet, and wait to see who steps up.', next: 'you_wait' },
             { label: 'Something else.', next: 'the_chat', other: true },
@@ -50,7 +50,7 @@ export const theCommittee: Script = {
       next: 'the_chat',
     },
 
-    you_organise: {
+    you_organize: {
       steps: [{ text: "By eight thirty, there's a list on the whiteboard with a name next to every job, and yours is next to the programs. People keep looking over at you to see what comes next.", animation: 'whiteboard' }],
       next: 'the_chat',
     },
@@ -89,33 +89,33 @@ export const theCommittee: Script = {
 
     pub_late: {
       steps: [{ text: "By closing time, Barry is teaching everyone a song from 1987, and you know all the words now.", animation: 'pub_late' }],
-      next: 'the_programmes',
+      next: 'the_programs',
     },
 
     pub_one: {
       steps: [{ text: 'You have one drink, learn a few names, and you\'re home by nine.', animation: 'pub' }],
-      next: 'the_programmes',
+      next: 'the_programs',
     },
 
     pub_skip: {
       steps: [{ text: 'You go home, put the kettle on, and read sixty messages about the bounce house.', animation: 'chat_home' }],
-      next: 'the_programmes',
+      next: 'the_programs',
     },
 
     pub_mute: {
       steps: [{ text: 'You mute the chat. The sixty messages about the bounce house can wait.', animation: 'chat_muted' }],
-      next: 'the_programmes',
+      next: 'the_programs',
     },
 
     // -------------------------------------------------------------------------
-    // the programmes
+    // the programs
     // -------------------------------------------------------------------------
-    the_programmes: {
+    the_programs: {
       steps: [
         { text: 'It\'s midnight, the night before the festival, and the programs have to be at the printer by eight in the morning.', animation: 'desk' },
         { text: "They're fine. The times are right, and the map more or less works. But the layout is cramped, there's probably a typo in there somewhere, and doing them properly would take another two hours.", animation: 'desk_draft' },
         {
-          id: 'the_programmes',
+          id: 'the_programs',
           prompt: 'What do you do? Pick one, and tell me why.',
           animation: 'desk_draft',
           facets: ['Achievement-Striving'],

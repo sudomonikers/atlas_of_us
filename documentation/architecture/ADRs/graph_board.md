@@ -13,7 +13,7 @@ things from it:
 
 - **The whole shape.** Every node at once, to see how big the sub-graph is, how it's divided, and where they are in it.
   Skills alone has about 5,700 nodes today and will pass 14,000.
-- **The links up close.** Start from one node, expand it to bring in its neighbours the way Neo4j Bloom works, and keep
+- **The links up close.** Start from one node, expand it to bring in its neighbors the way Neo4j Bloom works, and keep
   expanding what interests them.
 
 Both have to work with a mouse, a trackpad and touch, in the Atlas's hand-drawn comic style, and keep their state when
@@ -40,9 +40,9 @@ Positions are fixed. The map looks the same every visit, and zooming never loses
 ### Levels of detail
 The board is one canvas, so thousands of nodes stay smooth.
 
-- **Zoomed out**, every node is a dot in its field's colour, paler when it isn't filled in, with each field's name
+- **Zoomed out**, every node is a dot in its field's color, paler when it isn't filled in, with each field's name
   over its flower. Clicking a name zooms to the flower.
-- **Zoomed in**, the dots in view crossfade into hand-drawn nodes with a hard shadow, filled in the field's colour when
+- **Zoomed in**, the dots in view crossfade into hand-drawn nodes with a hard shadow, filled in the field's color when
   ready and dashed for a stub, with their names and the lines to what they sit under.
 - **At any zoom**, the selected node is drawn as a node with its name and the links to what it sits under.
 - **The close-up.** Once anything is expanded, the map gives way to just the nodes the expanded links touch and the
@@ -55,7 +55,7 @@ The board is one canvas, so thousands of nodes stay smooth.
 |---|---|
 | `items` | The map: every node, with `{id, name, broader, filled}` |
 | `visitors` | Nodes that aren't on the map, `{id, label, look, shape?, from?}`, such as traits on the skills board or Ideas on the topics board. They float beside `from` and can be dragged |
-| `links`, `kinds` | The links expanding brought on, and each kind's label, line, arrow, colour and how long it likes to be. The legend has a button for each kind on the board, which turns it on and off |
+| `links`, `kinds` | The links expanding brought on, and each kind's label, line, arrow, color and how long it likes to be. The legend has a button for each kind on the board, which turns it on and off |
 | `hierarchy` | The kind the map's own broader links are drawn as |
 | `layout` | A `BoardLayout`: the view and where the visitors are. The owner keeps it, so the board comes back as it was left |
 | `selected`, `focus`, `opened` | The selected node, a node to glide to (once for each new focus, even one passed before the board has a size), and the expanded nodes, marked with a dot |

@@ -1,37 +1,50 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { Suspense, lazy, useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { addReading, comparedWith, deleteReading, standing, today, withUnit, type Ability, type Measurement, type Reading, type Recorded } from './api';
+import { addReading, deleteReading, inYourHands, shownReading, standing, standingBriefly, today, type Ability, type Measurement, type Reading, type Recorded } from './api';
+import { WATCHED } from './pose_tests';
 import { ReadingForm } from './reading_form';
 import { Scale } from './scale';
+import { type Scored, ScoredView } from './scored';
 import { SelfTest } from './self_tests';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
 import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 import { failure } from '../shared_components/use_save';
 
+//a home test watched through the camera, loaded with the pose model only when one starts
+const CameraTest = lazy(() => import('./camera_test'));
+
 //a date as the user reads dates, such as "Oct 30, 2026"
 const shortDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
 interface MeasurementCardProps {
   measurement: Measurement;
+  hand: string | null; //the hand they use most, left or right, to name in the steps
   onChanged: (readings: Reading[], abilities: Ability[]) => void; //with the user's abilities, which a reading can move
-  stage: HTMLElement | null; //where a test the app runs takes place, front and centre
+  stage: HTMLElement | null; //where a test the app runs takes place, front and center
   onTesting: (testing: boolean) => void; //whether one is running
+  onSkip: () => void; //moves on without recording one
 }
 
 //a measurement, once Atlas has said what it is: the user's latest reading and where it sits among people like them, a
 //form for a new reading (or the test that takes one, for a test the app runs, and the steps for one done at home), and
-//their earlier readings. A reading from the eye chart can also be typed in, from an optician's test. A test the app runs
-//takes the stage while it runs
-export function MeasurementCard({ measurement, onChanged, stage, onTesting }: MeasurementCardProps) {
-  const [adding, setAdding] = useState<'test' | 'form' | null>(null);
+//their earlier readings. With nothing recorded yet the form is already out, or the test ready to start, and they can
+//skip it. A reading from the eye chart can also be typed in, from an optician's test. A home test the camera can watch
+//offers to time or count it for them, and one only the camera can watch starts it. A test the app runs, or the camera
+//watches, takes the stage while it runs
+export function MeasurementCard({ measurement, hand, onChanged, stage, onTesting, onSkip }: MeasurementCardProps) {
+  const [adding, setAdding] = useState<'test' | 'form' | 'camera' | null>(null);
   const [history, setHistory] = useState(false);
   const [error, setError] = useState<string>();
-  const { id, unit, better, test, protocol, source, ages, readings } = measurement;
+  const [scored, setScored] = useState<Scored>(); //how the test just taken was scored, until it's taken again
+  const { id, better, test, protocol, source, ages, readings } = measurement;
   const latest = readings[0];
   const inApp = !!test && test !== 'home';
-  const typedToo = test === 'eye_chart';
-  const testing = adding === 'test' && inApp;
+  const typedToo = test === 'eye_chart' || test === 'hearing'; //a reading from an optician's or a hearing test can be typed in too
+  const onlyCamera = test === 'camera';
+  const watchable = WATCHED[measurement.name];
+  const testing = (adding === 'test' && inApp) || adding === 'camera';
+  const asking = !latest && !inApp && adding === null; //nothing recorded yet, so the form is already out
 
   useEffect(() => {
     onTesting(testing);
@@ -44,9 +57,12 @@ export function MeasurementCard({ measurement, onChanged, stage, onTesting }: Me
     onChanged([reading, ...readings].sort((a, b) => b.measured_on.localeCompare(a.measured_on)), abilities);
   };
   //a test the app ran is recorded as taken today
-  const tested = (value: number) => {
+  const tested = (value: number, how?: Scored) => {
     setError(undefined);
-    addReading(id, value, today()).then(saved, (e) => {
+    addReading(id, value, today()).then((r) => {
+      setScored(how);
+      saved(r);
+    }, (e) => {
       setAdding(null);
       setError(failure(e));
     });
@@ -62,10 +78,10 @@ export function MeasurementCard({ measurement, onChanged, stage, onTesting }: Me
   return (
     <article style={styles.card}>
       {test === 'home' && !!protocol.length && (
-        <Disclosure label="How to do it at home">
+        <Disclosure label="How to do it at home" defaultOpen={!latest}>
           <ol style={styles.steps}>
             {protocol.map((step) => (
-              <li key={step}>{step}</li>
+              <li key={step}>{inYourHands(step, hand)}</li>
             ))}
           </ol>
         </Disclosure>
@@ -73,13 +89,13 @@ export function MeasurementCard({ measurement, onChanged, stage, onTesting }: Me
 
       {latest ? (
         <div style={styles.latest}>
-          <span style={styles.value}>{withUnit(latest.value, unit)}</span>
+          <span style={styles.value}>{shownReading(latest.value, measurement)}</span>
           <span style={styles.date}>on {shortDate(latest.measured_on)}</span>
           {latest.percentile !== null && latest.compared_with ? (
             <>
               <Scale percentile={latest.percentile} better={better} />
               <p style={styles.standing}>
-                {standing(latest.percentile, better)} {comparedWith(latest.compared_with)}.
+                {standing(latest.percentile, better, latest.compared_with)}
               </p>
             </>
           ) : (
@@ -90,19 +106,46 @@ export function MeasurementCard({ measurement, onChanged, stage, onTesting }: Me
             </p>
           )}
         </div>
-      ) : (
-        <p style={styles.note}>Not measured yet.</p>
+      ) : null}
+
+      {scored && latest && adding === null && <ScoredView scored={scored} />}
+
+      {watchable && !onlyCamera && adding !== 'camera' && (
+        <div style={styles.camera}>
+          <p style={styles.cameraText}>
+            Doing this on your own? Your camera can {{ s: 'time it', count: 'count it', cm: 'measure it', mm: 'measure it' }[watchable.records]} for you and tell you out loud how you did.
+          </p>
+          <button className="comic-lift" style={styles.primary} onClick={() => setAdding('camera')}>
+            Use my camera
+          </button>
+        </div>
       )}
 
-      {adding === 'test' && test && test !== 'home' ? (
+      {adding === 'camera' ? (
+        stage &&
+        createPortal(
+          <Suspense fallback={null}>
+            <CameraTest measurement={measurement} hand={hand} onDone={tested} onCancel={() => setAdding(null)} />
+          </Suspense>,
+          stage,
+        )
+      ) : adding === 'test' && test && test !== 'home' && test !== 'camera' ? (
         stage && createPortal(<SelfTest test={test} measurement={id} onDone={tested} onSaved={saved} onCancel={() => setAdding(null)} />, stage)
-      ) : adding ? (
-        <ReadingForm measurement={measurement} onSaved={saved} onCancel={() => setAdding(null)} />
+      ) : adding || asking ? (
+        <ReadingForm measurement={measurement} onSaved={saved} onCancel={asking ? onSkip : () => setAdding(null)} cancel={asking ? 'Skip' : 'Cancel'} />
       ) : (
         <div style={styles.buttons}>
-          <button className="comic-lift" style={styles.primary} onClick={() => setAdding(inApp ? 'test' : 'form')}>
+          <button className="comic-lift" style={styles.primary} onClick={() => {
+              setScored(undefined);
+              setAdding(onlyCamera ? 'camera' : inApp ? 'test' : 'form');
+            }}>
             {inApp ? (latest ? 'Take it again' : 'Take the test') : latest ? 'Add a new reading' : 'Add a reading'}
           </button>
+          {!latest && (
+            <button className="comic-lift" style={styles.secondary} onClick={onSkip}>
+              Skip
+            </button>
+          )}
           {typedToo && (
             <button className="comic-lift" style={styles.secondary} onClick={() => setAdding('form')}>
               Type one in
@@ -127,8 +170,8 @@ export function MeasurementCard({ measurement, onChanged, stage, onTesting }: Me
           {readings.map((r) => (
             <li key={r.id} style={styles.reading}>
               <span>
-                <strong>{withUnit(r.value, unit)}</strong> on {shortDate(r.measured_on)}
-                {r.percentile !== null && better !== 'neither' && ` · ${standing(r.percentile, better).toLowerCase().replace(/ of$/, '')}`}
+                <strong>{shownReading(r.value, measurement)}</strong> on {shortDate(r.measured_on)}
+                {r.percentile !== null && better !== 'neither' && ` · ${standingBriefly(r.percentile, better)}`}
               </span>
               <button className="comic-lift" style={styles.remove} aria-label={`Remove the reading from ${shortDate(r.measured_on)}`} onClick={() => remove(r.id)}>
                 Remove
@@ -223,6 +266,21 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     paddingBottom: 6,
     borderBottom: `1px dashed ${gunmetal}`,
+  },
+  camera: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 6,
+    padding: '8px 12px',
+    background: ivory,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 10,
+  },
+  cameraText: {
+    margin: 0,
+    fontSize: 14,
+    lineHeight: 1.4,
   },
   steps: {
     margin: '4px 0 0',

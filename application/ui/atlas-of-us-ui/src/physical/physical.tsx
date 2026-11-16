@@ -6,24 +6,29 @@ import {
   getAnatomy,
   getConditions,
   getImpairments,
+  getMe,
+  handOf,
   getMeasurements,
   type Ability,
   type AffectedBy,
   type Conditions,
   type Impairment,
   type Impairments,
+  type Me,
   type Measurements,
   type PartSummary,
   type Reading,
 } from './api';
 import BodyMap from './body_map';
 import { HUMAN_BODY, indexBody, meshesOf, notedParts, partIds, type Body, type Light } from './body_parts';
-import Compare from './compare';
+import { CharacteristicChoice } from './characteristic_choice';
 import { MeasurementCard } from './measurement_card';
 import Noting from './noting';
 import Rating from './rating';
 import Results from './results';
-import { CHAPTERS, type Chapter, type Known, type Scene } from './tour';
+import { MotionPanel } from './motion';
+import Sheet from './sheet';
+import { CHAPTERS, type Chapter, type Known, type Scene, type Shot } from './tour';
 import { setConfig, useConfig, useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 import { noteWatched, useWatched } from './intro/watched';
@@ -52,6 +57,17 @@ const subscribeWide = (listener: () => void) => {
   return () => query.removeEventListener('change', listener);
 };
 const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches);
+
+//the most Atlas says at once, in characters: a scene's words are split, between sentences, into parts no longer than
+//this where they can be, so the box stays a few lines high
+const PART = 200;
+const parted = (text: string) =>
+  text.split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/).reduce<string[]>((parts, sentence) => {
+    const last = parts[parts.length - 1];
+    if (last !== undefined && last.length + sentence.length + 1 <= PART) parts[parts.length - 1] = `${last} ${sentence}`;
+    else parts.push(sentence);
+    return parts;
+  }, []);
 
 //everything the chapters show and change
 interface Loaded extends Known {
@@ -85,9 +101,12 @@ function Physical() {
   return <Traits />;
 }
 
-//the chapters: a walk through the user's body beside a 3D model of it, taken one at a time. Each chapter is a run of
-//scenes, and each scene is one thing: Atlas saying something with the parts it's about lit up, one measurement to take,
-//one ability to rate, or one list to fill in
+//what the 3D body shows on a scene, on the scenes that show it
+const shotOf = (scene: Scene): Shot | undefined => ('shot' in scene.stage ? scene.stage.shot : undefined);
+
+//the chapters, taken one at a time. Each chapter is a run of scenes, and each scene is one thing: Atlas saying
+//something, one measurement to take, one ability to rate, or one list to fill in, beside a comic of someone doing it or
+//the 3D body with the parts it's about lit up
 function Traits() {
   const params = new URLSearchParams(useSearch());
   const chapter = CHAPTERS.find((c) => c.id === params.get('chapter'));
@@ -96,6 +115,7 @@ function Traits() {
   const [meshes, setMeshes] = useState<MeshIndex>();
   const [abilities, setAbilities] = useState<Ability[]>();
   const [measurements, setMeasurements] = useState<Measurements>();
+  const [me, setMe] = useState<Me>();
   const [impairments, setImpairments] = useState<Impairments>();
   const [conditions, setConditions] = useState<Conditions>();
   const [affectedBy, setAffectedBy] = useState<AffectedBy[]>();
@@ -107,6 +127,7 @@ function Traits() {
     getMeshIndex().then(setMeshes, failed);
     getAbilities().then(setAbilities, failed);
     getMeasurements().then(setMeasurements, failed);
+    getMe().then(setMe, failed);
     getImpairments().then(setImpairments, failed);
     getConditions().then(setConditions, failed);
     getAffectedBy().then(setAffectedBy, failed);
@@ -114,8 +135,8 @@ function Traits() {
 
   const body = useMemo(() => (anatomy && meshes ? indexBody(anatomy, meshes) : undefined), [anatomy, meshes]);
   const loaded = useMemo<Loaded | undefined>(
-    () => (anatomy && body && abilities && measurements && impairments && conditions && affectedBy ? { anatomy, body, abilities, measurements, impairments, conditions, affectedBy } : undefined),
-    [anatomy, body, abilities, measurements, impairments, conditions, affectedBy],
+    () => (anatomy && body && abilities && measurements && me && impairments && conditions && affectedBy ? { anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy } : undefined),
+    [anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy],
   );
 
   //a save that moves where the user stands on their abilities gives them back, worked out again, with what it saved.
@@ -131,6 +152,7 @@ function Traits() {
       setMeasurements(data);
       setAbilities(abilities);
     },
+    me: setMe,
     readings: (id, readings, abilities) => {
       setMeasurements((data) => data && { ...data, measurements: data.measurements.map((m) => (m.id === id ? { ...m, readings } : m)) });
       setAbilities(abilities);
@@ -159,7 +181,22 @@ function Traits() {
   );
 }
 
-//the chapters to pick from, each with how far through it the user is
+//each chapter's picture, a still of its opening scene, by its id
+const THUMBS = Object.fromEntries(
+  Object.entries(import.meta.glob<string>('./chapters/*.jpg', { eager: true, import: 'default' })).map(([path, url]) => [path.split('/')[2].replace('.jpg', ''), url]),
+);
+
+//a scene's name, for its dot: a test's or ability's name, or what the scene is
+const NAMED: Record<string, string> = {
+  intro: 'Introduction',
+  results: 'How you did',
+  impairments: 'What holds you back',
+  conditions: 'Your conditions',
+  explore: 'Explore the body',
+};
+const nameOf = (s: Scene) => s.title ?? NAMED[s.id] ?? (s.id.startsWith('intro') ? 'Introduction' : s.id);
+
+//the chapters to pick from, each with its picture and how far through it the user is
 function Chapters({ loaded }: { loaded: Loaded }) {
   return (
     <>
@@ -170,9 +207,8 @@ function Chapters({ loaded }: { loaded: Loaded }) {
         <div style={styles.guide}>
           <Mascot />
           <div style={styles.menuBubble} className="comic-bubble comic-pop">
-            Your body is where everything you do starts. Walk through it with me and we'll find out what you have to work
-            with, so every skill can show you how you measure up. Pick a chapter and we'll take it one thing at a time.
-            If you're new, start with the first.
+            Here we'll find out what your body can do, from your height and weight to your strength, stamina and senses.
+            Pick any chapter to start, and skip anything you'd rather not answer.
           </div>
         </div>
         <button className="comic-lift" style={styles.replay} onClick={() => navigate('/physical?intro')}>
@@ -184,6 +220,7 @@ function Chapters({ loaded }: { loaded: Loaded }) {
           <li key={c.id}>
             <button className="comic-lift" style={{ ...styles.card, '--tilt': `${[-0.8, 0.6, -0.4, 0.9][i % 4]}deg` } as CSSProperties} onClick={() => navigate(`/physical?chapter=${c.id}`)}>
               <span style={styles.number}>Chapter {i + 1}</span>
+              {THUMBS[c.id] && <img src={THUMBS[c.id]} alt="" style={styles.thumb} loading="lazy" />}
               <span style={styles.cardTitle}>{c.title}</span>
               <span style={styles.blurb}>{c.blurb}</span>
               {c.progress && <span style={styles.progress}>{c.progress(loaded)}</span>}
@@ -198,6 +235,7 @@ function Chapters({ loaded }: { loaded: Loaded }) {
 //what a scene's panel can change, passed up so everything showing it stays the same
 export interface Changes {
   measurements: (data: Measurements, abilities: Ability[]) => void;
+  me: (me: Me) => void; //their own physical attributes
   readings: (id: string, readings: Reading[], abilities: Ability[]) => void; //a measurement's readings
   rated: (abilities: Ability[]) => void;
   impaired: (saved: Impairment, abilities: Ability[]) => void; //an impairment noted or changed
@@ -212,28 +250,34 @@ interface PlayerProps {
   changes: Changes;
 }
 
-//one chapter, a scene at a time, across the whole screen: the 3D body takes the stage with Atlas talking in a box along
-//the bottom, and what the user can do on a scene sits beside the body, or in Atlas's box on narrow screens. A test the
-//app runs takes the stage from the body while it runs
+//one chapter, a scene at a time, across the whole screen: a comic of someone doing what the scene is about, or the 3D
+//body, takes the stage with Atlas talking in a box along the bottom, and what the user can do on a scene sits beside it,
+//or in Atlas's box on narrow screens. A test the app runs takes the stage while it runs
 function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
-  const { body, abilities, impairments, conditions } = loaded;
+  const { body, abilities, measurements, impairments, conditions } = loaded;
   const { meshes } = body;
   const scenes = useMemo(() => chapter.scenes(loaded), [chapter, loaded]);
   const at = Math.max(0, scenes.findIndex((s) => s.id === sceneId));
   const scene = scenes[at];
   const following = CHAPTERS[CHAPTERS.indexOf(chapter) + 1];
   const wide = useWide();
-  const { shown, typed, setShown } = useTypewriter(scene.text);
-  const [layers, setLayers] = useState<Set<LayerId>>(() => new Set(scene.shot.layers));
+  const parts = useMemo(() => parted(scene.text), [scene.text]);
+  const [part, setPart] = useState(0); //which part of what Atlas says is showing
+  const says = parts[Math.min(part, parts.length - 1)];
+  const { shown, typed, setShown } = useTypewriter(says);
+  const [layers, setLayers] = useState<Set<LayerId>>(() => new Set(shotOf(scene)?.layers));
   const [light, setLight] = useState<Light>({});
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState<string>(); //the part open in the explorer
   const [testStage, setTestStage] = useState<HTMLDivElement | null>(null);
   const [testing, setTesting] = useState(false);
+  const [peek, setPeek] = useState<number | null>(null); //the scene dot being pointed at, whose name shows under it
 
   //what the scene lights up: its parts, or every part its category's abilities rest on, never the whole body, which would light up everything
   const shot = useMemo(() => {
-    const { category, parts, ids } = scene.shot;
+    const s = shotOf(scene);
+    if (!s) return new Set<string>();
+    const { category, parts, ids } = s;
     const lit = category ? abilities.filter((a) => a.category === category).flatMap((a) => a.parts) : [...partIds(body, parts ?? []), ...(ids ?? [])];
     return meshesOf(body, lit.filter((id) => id !== body.byFma.get(HUMAN_BODY)?.id));
   }, [body, abilities, scene]);
@@ -257,16 +301,32 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   const tints = useMemo(() => light.tints ?? new Map<string, number>(), [light.tints]);
   const onLight = useCallback((l: Light) => setLight(l), []);
 
+  //to a scene, at its first part, or written out at its last when going back to it
   const go = (index: number, read = false) => {
     if (index < 0 || index >= scenes.length) return;
     replace(`/physical?chapter=${chapter.id}&scene=${scenes[index].id}`);
-    setLayers(new Set(scenes[index].shot.layers));
+    setLayers(new Set(shotOf(scenes[index])?.layers));
     setLight({});
+    setPart(read ? parted(scenes[index].text).length - 1 : 0);
     setShown(read ? Infinity : 0);
   };
   //the first press finishes writing out what Atlas says, the next moves on
-  const forward = () => (typed ? go(at + 1) : setShown(Infinity));
-  const back = () => go(at - 1, true);
+  const last = at === scenes.length - 1;
+  //on to the next scene, or the next chapter after the last
+  const next = () => (!last ? go(at + 1) : navigate(following ? `/physical?chapter=${following.id}` : '/physical'));
+  const forward = () => {
+    if (!typed) return setShown(Infinity);
+    if (part < parts.length - 1) {
+      setPart(part + 1);
+      return setShown(0);
+    }
+    go(at + 1);
+  };
+  const back = () => {
+    if (part === 0) return go(at - 1, true);
+    setPart(part - 1);
+    setShown(Infinity);
+  };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -291,10 +351,9 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
       else next.add(id);
       return next;
     });
-  const last = at === scenes.length - 1;
 
-  const panel = scene.panel && typed && (
-    <ScenePanel scene={scene} loaded={loaded} changes={changes} picked={picked} onPick={setPicked} onLight={onLight} testStage={testStage} onTesting={setTesting} />
+  const panel = scene.panel && (typed || part > 0) && (
+    <ScenePanel scene={scene} loaded={loaded} changes={changes} picked={picked} onPick={setPicked} onLight={onLight} testStage={testStage} onTesting={setTesting} onSkip={next} />
   );
   //a measurement brings its own card; everything else sits on a plain one
   const card = scene.panel?.kind === 'measurement' ? undefined : styles.panel;
@@ -309,32 +368,73 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
           {chapter.title}
         </h1>
         {scenes.length > 1 && (
-          <div style={styles.dots} role="progressbar" aria-valuemin={1} aria-valuemax={scenes.length} aria-valuenow={at + 1} aria-label={`Scene ${at + 1} of ${scenes.length}`}>
+          <nav style={styles.dots} aria-label={`Scene ${at + 1} of ${scenes.length}`}>
             {scenes.map((s, i) => (
-              <span key={s.id} style={{ ...styles.dot, ...(i <= at ? styles.dotDone : {}) }} />
+              <span key={s.id} style={styles.dotSlot}>
+                <button
+                  type="button"
+                  style={{ ...styles.dot, ...(i <= at ? styles.dotDone : {}), ...(i === at ? styles.dotHere : {}) }}
+                  aria-label={nameOf(s)}
+                  aria-current={i === at ? 'step' : undefined}
+                  disabled={testing}
+                  onClick={() => i !== at && go(i)}
+                  onMouseEnter={() => setPeek(i)}
+                  onMouseLeave={() => setPeek(null)}
+                  onFocus={() => setPeek(i)}
+                  onBlur={() => setPeek(null)}
+                />
+                {peek === i && !testing && (
+                  <span style={{ ...styles.peek, ...(i > scenes.length / 2 ? { right: -6 } : { left: -6 }) }} role="tooltip">
+                    {nameOf(s)}
+                  </span>
+                )}
+              </span>
             ))}
-          </div>
+          </nav>
         )}
       </header>
 
       <div style={styles.middle}>
-        <div style={styles.viewer}>
-          <Suspense fallback={<Thinking label="Building the body" />}>
-            <AnatomyViewer layers={showing} lit={lit} noted={noted} tints={tints} focus={lit} spin={!!scene.shot.spin} pulse={!!light.pulse} onPick={pickMesh} onLoading={setLoading} />
-          </Suspense>
-          <div style={styles.layers} role="group" aria-label="Layers">
-            {LAYERS.map((l) => (
-              <button key={l.id} className="comic-lift" style={showing.has(l.id) ? { ...styles.layer, ...styles.layerOn } : styles.layer} aria-pressed={showing.has(l.id)} onClick={() => toggleLayer(l.id)}>
-                {l.label}
-              </button>
-            ))}
-            {loading && <span style={styles.small}>Loading...</span>}
+        {'motion' in scene.stage ? (
+          <div style={styles.motion}>
+            <MotionPanel key={scene.stage.motion} name={scene.stage.motion} />
           </div>
-        </div>
+        ) : 'sheet' in scene.stage ? (
+          <div style={styles.sheet}>
+            <div key={scene.id} style={{ ...styles.panel, ...styles.sheetCard }} className="comic-settle">
+              <Sheet
+                key={scene.stage.sheet}
+                abilities={abilities.filter((a) => 'sheet' in scene.stage && a.category === scene.stage.sheet)}
+                measurements={measurements.measurements}
+                onGo={(id) => go(scenes.findIndex((s) => s.id === id), true)}
+              />
+            </div>
+          </div>
+        ) : (
+          <div style={styles.viewer}>
+            <Suspense fallback={<Thinking label="Building the body" />}>
+              <AnatomyViewer layers={showing} lit={lit} noted={noted} tints={tints} focus={lit} spin={!!shotOf(scene)?.spin} pulse={!!light.pulse} onPick={pickMesh} onLoading={setLoading} />
+            </Suspense>
+            <div style={styles.layers} role="group" aria-label="Layers">
+              {LAYERS.map((l) => (
+                <button key={l.id} className="comic-lift" style={showing.has(l.id) ? { ...styles.layer, ...styles.layerOn } : styles.layer} aria-pressed={showing.has(l.id)} onClick={() => toggleLayer(l.id)}>
+                  {l.label}
+                </button>
+              ))}
+              {loading && <span style={styles.small}>Loading...</span>}
+            </div>
+          </div>
+        )}
 
-        {wide && panel && (
+        {/* the side is always there on wide screens, so the stage keeps its size from scene to scene, except beside a
+            breakdown of abilities, which takes the whole stage */}
+        {wide && !('sheet' in scene.stage) && (
           <aside style={styles.side}>
-            <div style={card}>{panel}</div>
+            {panel && (
+              <div key={scene.id} style={card} className="comic-settle">
+                {panel}
+              </div>
+            )}
           </aside>
         )}
 
@@ -344,23 +444,26 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
         </div>
       </div>
 
-      {/* the outer div places the box so the panel inside is free to animate its own transform */}
-      <div style={styles.dock}>
+      {/* Atlas, out of the way while a test runs, which says what to do itself. The outer div places the box so the panel inside is free to animate its own transform */}
+      <div style={testing ? styles.hidden : styles.dock}>
         <div style={styles.box} className="comic-panel comic-pop">
           <div style={styles.speaker}>Atlas</div>
           <div key={scene.id} style={styles.scroll}>
             <div style={styles.says}>
               {wide && <Mascot size={64} />}
-              <p style={styles.text} aria-live="polite">
-                <Typed text={scene.text} shown={shown} />
-              </p>
+              <div style={styles.words}>
+                {scene.title && <h2 style={styles.about}>{scene.title}</h2>}
+                <p style={styles.text} aria-live="polite">
+                  <Typed text={says} shown={shown} />
+                </p>
+              </div>
             </div>
             {!wide && panel && <div style={testing ? styles.hidden : { ...card, ...styles.inline }}>{panel}</div>}
           </div>
 
           {!testing && (
             <div style={styles.controls}>
-              {at > 0 && (
+              {(at > 0 || part > 0) && (
                 <button className="comic-lift" style={styles.back} onClick={back}>
                   ◀ Back
                 </button>
@@ -368,7 +471,7 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
               <span style={styles.hint}>
                 <span className="keyboard-only">← back · → next</span>
               </span>
-              {!last ? (
+              {!last || part < parts.length - 1 ? (
                 <button className="comic-lift" style={styles.next} onClick={forward}>
                   Next ▶
                 </button>
@@ -398,16 +501,20 @@ interface ScenePanelProps {
   onLight: (light: Light) => void;
   testStage: HTMLElement | null;
   onTesting: (testing: boolean) => void;
+  onSkip: () => void;
 }
 
 //the one thing the user can do on a scene
-function ScenePanel({ scene, loaded, changes, picked, onPick, onLight, testStage, onTesting }: ScenePanelProps) {
-  const { anatomy, body, abilities, measurements, impairments, conditions, affectedBy } = loaded;
+function ScenePanel({ scene, loaded, changes, picked, onPick, onLight, testStage, onTesting, onSkip }: ScenePanelProps) {
+  const { anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy } = loaded;
   const panel = scene.panel!;
-  if (panel.kind === 'compare') return <Compare data={measurements} onChange={changes.measurements} />;
+  if (panel.kind === 'characteristic') {
+    const c = me.characteristics.find((x) => x.id === panel.id);
+    return c ? <CharacteristicChoice key={c.id} characteristic={c} onMe={changes.me} onMeasurements={changes.measurements} /> : null;
+  }
   if (panel.kind === 'measurement') {
     const m = measurements.measurements.find((x) => x.id === panel.id);
-    return m ? <MeasurementCard key={m.id} measurement={m} stage={testStage} onTesting={onTesting} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
+    return m ? <MeasurementCard key={m.id} measurement={m} hand={handOf(me)} stage={testStage} onTesting={onTesting} onSkip={onSkip} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
   }
   if (panel.kind === 'rating') {
     const a = abilities.find((x) => x.id === panel.id);
@@ -521,6 +628,15 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 14,
     color: 'var(--air-force-blue)',
   },
+  thumb: {
+    width: '100%',
+    aspectRatio: '16 / 10',
+    objectFit: 'cover',
+    marginTop: 4,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
+    background: '#fbfbf6',
+  },
   cardTitle: {
     fontFamily: comic,
     fontSize: 30,
@@ -581,15 +697,39 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'flex-end',
     gap: 6,
   },
+  dotSlot: {
+    position: 'relative',
+    display: 'flex',
+  },
   dot: {
     width: 12,
     height: 12,
+    padding: 0,
     border: `2px solid ${gunmetal}`,
     borderRadius: 999,
     background: '#fff',
+    cursor: 'pointer',
   },
   dotDone: {
     background: brownRed,
+  },
+  dotHere: {
+    transform: 'scale(1.35)',
+  },
+  //a scene's name, under its dot
+  peek: {
+    position: 'absolute',
+    top: 20,
+    zIndex: 5,
+    padding: '3px 10px',
+    background: ivory,
+    color: gunmetal,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 8,
+    boxShadow: `2px 3px 0 ${gunmetal}`,
+    fontSize: 14,
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
   },
   //the body, with what the user can do beside it on wide screens
   middle: {
@@ -604,6 +744,29 @@ const styles: Record<string, CSSProperties> = {
     flex: '1 1 0',
     minWidth: 0,
     position: 'relative',
+  },
+  //where the user stands on a category of abilities, across the whole stage, scrolling when it's long
+  sheet: {
+    flex: '1 1 0',
+    minWidth: 0,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '12px 8px 12px 0', //room for the card's shadow inside the scrolling layer
+  },
+  sheetCard: {
+    gap: 22,
+    maxWidth: 1400,
+    margin: '0 auto',
+  },
+  //a comic of someone doing what the scene is about, as big as the stage allows
+  motion: {
+    flex: '1 1 0',
+    minWidth: 0,
+    minHeight: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '12px 0',
   },
   layers: {
     position: 'absolute',
@@ -650,11 +813,13 @@ const styles: Record<string, CSSProperties> = {
     border: `3px solid ${gunmetal}`,
     boxShadow: `4px 5px 0 ${gunmetal}`,
   },
-  //a running test, over the body and what's beside it
+  //a running test, over the body and what's beside it, laid out as they are. Its height is there for a test to size itself to, so a box to
+  //play in fits on the screen with its instructions and controls
   testing: {
     position: 'absolute',
     inset: 0,
     zIndex: 15,
+    containerType: 'size',
     overflowY: 'auto',
     display: 'flex',
     justifyContent: 'center',
@@ -663,7 +828,7 @@ const styles: Record<string, CSSProperties> = {
     background: `radial-gradient(rgba(106, 142, 174, 0.22) 1.6px, transparent 1.8px) 0 0 / 14px 14px, ${ivory}`,
   },
   test: {
-    width: 'min(760px, 100%)',
+    width: '100%',
   },
   hidden: {
     display: 'none',
@@ -677,7 +842,7 @@ const styles: Record<string, CSSProperties> = {
     zIndex: 10,
   },
   box: {
-    width: 'min(860px, 100%)',
+    width: 'min(1160px, 100%)',
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
@@ -685,7 +850,7 @@ const styles: Record<string, CSSProperties> = {
     padding: '22px 26px 14px',
     background: ivory,
     borderRadius: 'var(--wobbly)',
-    '--panel-fill': 'var(--pale-blue)', //the colour wash that spills out from behind the box
+    '--panel-fill': 'var(--pale-blue)', //the color wash that spills out from behind the box
     '--tilt': '-0.4deg',
   } as CSSProperties,
   speaker: {
@@ -704,7 +869,7 @@ const styles: Record<string, CSSProperties> = {
     textTransform: 'uppercase',
     transform: 'rotate(-3deg)',
   },
-  //the box's colour wash and speaker tag spill outside it, so the scrolling happens on a layer inside
+  //the box's color wash and speaker tag spill outside it, so the scrolling happens on a layer inside
   scroll: {
     flex: 1,
     minHeight: 0,
@@ -715,6 +880,18 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 16,
+  },
+  words: {
+    minWidth: 0,
+  },
+  //the name of what the scene is about, over what Atlas says
+  about: {
+    margin: '0 0 4px',
+    fontFamily: comic,
+    fontSize: 'clamp(17px, 1.8vw, 20px)',
+    fontWeight: 400,
+    letterSpacing: 1,
+    color: brownRed,
   },
   text: {
     margin: 0,

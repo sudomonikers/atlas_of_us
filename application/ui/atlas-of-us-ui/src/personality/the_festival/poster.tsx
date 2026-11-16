@@ -149,7 +149,7 @@ function hung(from: Pt, mid: Pt, to: Pt, count: number, inks: Ink[], piece: (p: 
 const flag = ([x, y]: Pt) => shape([x - 16, y], [x + 16, y], [x, y + 38]);
 const lantern = ([x, y]: Pt) => `${rect(x - 6, y, 12, 8)} ${ellipse(x, y + 30, 22, 24)}`;
 
-//a crowd seen from behind: rows of heads and shoulders, smaller towards the back
+//a crowd seen from behind: rows of heads and shoulders, smaller toward the back
 function crowd(): Item[] {
   const inks: Ink[] = ['pink', 'blue', 'yellow'];
   return [

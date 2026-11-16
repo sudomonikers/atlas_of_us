@@ -17,7 +17,7 @@ fix by tuning:
   Perfectionism blends Orderliness with Anxiety, and Stubbornness is partly low Cooperation. One answer moved several
   traits at once (trait bleed), and the scorer needed rules to keep them apart.
 - **The scoring prompt carried 43 sets of hand-written criteria,** with high and low ends, preconditions and "belongs to
-  a neighbouring trait" notes. It was long, hard to read and hard to change safely.
+  a neighboring trait" notes. It was long, hard to read and hard to change safely.
 - **Nothing outside our own work could check the results.** No questionnaire measures our 13 traits, so there was no way
   to validate them against real people.
 
@@ -44,9 +44,9 @@ fix by tuning:
 ### The scoring
 - Scenes are scored in batches of 6, by play order, with one Bedrock call per batch.
 - The prompt gives each facet a one-sentence definition of its high end. The low end is its opposite. A few facets have
-  short notes on what belongs to a neighbouring facet instead. The 43 sets of criteria are gone.
+  short notes on what belongs to a neighboring facet instead. The 43 sets of criteria are gone.
 - Evidence from all of a person's answers is combined as a plain weighted average in log-odds. We tried raising the
-  combined evidence to a power, to push confident scores further from the middle. Every regression run favoured no power
+  combined evidence to a power, to push confident scores further from the middle. Every regression run favored no power
   at all, so there is none.
 
 ## Evidence

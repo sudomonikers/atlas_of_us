@@ -161,7 +161,7 @@ MATCH (s:PersonalityScenario {name: 'the_committee'})
 UNWIND [
   {order: 0, key: 'the_meeting', prompt: 'What do you do? Pick one, and tell me what you say to the room, if anything.'},
   {order: 1, key: 'the_group', prompt: 'How do you feel about being part of all this: the chat, the bar, fourteen new people in your life? Pick one, and tell me honestly.'},
-  {order: 2, key: 'the_programmes', prompt: 'What do you do? Pick one, and tell me why.'},
+  {order: 2, key: 'the_programs', prompt: 'What do you do? Pick one, and tell me why.'},
   {order: 3, key: 'ten_things', prompt: "Ten things need doing, and you've got three hours. What do you do? Pick one, then walk me through the next hour."},
   {order: 4, key: 'the_banner', prompt: 'What do you do about it? Pick one, and tell me why.'},
   {order: 5, key: 'the_cakes', prompt: 'What do you do? Pick one, and tell me why.'},
@@ -280,7 +280,7 @@ UNWIND [
   {order: 0, key: 'the_fence', prompt: "He's standing very close, waiting. What do you do? Pick one, tell me what you say, and how it feels standing there."},
   {order: 1, key: 'the_why', prompt: 'Why do you think Graham moved the fence? Pick the closest, and tell me why.'},
   {order: 2, key: 'the_war', prompt: 'What do you do now? Pick one, and tell me why. And be honest: is any part of you enjoying this?'},
-  {order: 3, key: 'the_favour', prompt: "He's holding out his spare key. What do you do? Pick one, and tell me why."},
+  {order: 3, key: 'the_favor', prompt: "He's holding out his spare key. What do you do? Pick one, and tell me why."},
   {order: 4, key: 'looking_back', prompt: 'Looking back over the year: who was in the right? Was any of it worth it? And if this happened to you for real, what would you do differently?'},
   {order: 5, real_life: true, key: 'last_pushed', prompt: "Think of the last time someone pushed you, face to face: a neighbor, a coworker, a stranger, family. What happened, what did you say, and how did you feel, during it and after? If you can't think of one, tell me what you usually do."},
   {order: 6, real_life: true, key: 'last_wronged', prompt: 'And the last time someone did you wrong: did you get even, have it out, or let it go? In the last month, how many times did you wonder what someone was really after when they did something nice for you?'}

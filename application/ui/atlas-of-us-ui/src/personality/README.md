@@ -27,7 +27,7 @@ We aim to solve these problems by doing a few things:
 ## Scenes are built from the IPIP-NEO
 We keep the questionnaire's content and throw away its format. The IPIP-NEO is the public-domain questionnaire behind
 the 30 facets, with ten statements ("items") per facet, like "I worry about things" or "I love large parties". Each
-item describes a behaviour the research has validated as a sign of its facet.
+item describes a behavior the research has validated as a sign of its facet.
 
 So every scene is written to a set of those items:
 - **We test 150 items, 5 per facet,** spread over 18 scenes. Each item is in exactly one scene, and every facet is in at

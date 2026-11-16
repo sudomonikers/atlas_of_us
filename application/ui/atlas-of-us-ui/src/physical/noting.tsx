@@ -5,7 +5,7 @@ import {
   SEVERITIES,
   clearImpairment,
   clearMyCondition,
-  capitalised,
+  capitalized,
   type Ability,
   type AffectedBy,
   type Condition,
@@ -24,7 +24,7 @@ import { AtlasError } from '../shared_components/atlas-error';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 import { failure } from '../shared_components/use_save';
 
-//the colour of the parts an impairment or condition can reach through the abilities it can affect, as hex
+//the color of the parts an impairment or condition can reach through the abilities it can affect, as hex
 const REACH = 0xa77464;
 
 //something an impairment can be in, as the cards show it
@@ -43,7 +43,7 @@ interface NotingProps {
   abilities: Ability[];
   affectedBy: AffectedBy[];
   body: Body;
-  onImpaired: (saved: Impairment, abilities: Ability[]) => void; //with the user's abilities, which impairments hold back
+  onImpaired: (saved: Impairment, abilities: Ability[]) => void; //with the user's abilities, which note impairments
   onUnimpaired: (id: string, abilities: Ability[]) => void;
   onConditions: (data: Conditions) => void;
   onLight: (light: Light) => void;
@@ -78,7 +78,7 @@ export default function Noting({ show, impairments, conditions, anatomy, abiliti
 
   const found = new Map<string, Found>([
     ...impairments.functions.map((f): [string, Found] => [f.id, { part: f, structure: false, group: f.group, personality: f.personality.map((t) => `${t.opposite ? 'Low ' : ''}${t.name}`) }]),
-    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: capitalised(p.name) }, structure: true, group: 'Body part', personality: [] }]),
+    ...anatomy.map((p): [string, Found] => [p.id, { part: { id: p.id, name: capitalized(p.name) }, structure: true, group: 'Body part', personality: [] }]),
   ]);
   const byId = new Map(conditions.conditions.map((c) => [c.id, c]));
   const failed = (e: unknown) => setError(failure(e));
@@ -184,8 +184,8 @@ export default function Noting({ show, impairments, conditions, anatomy, abiliti
 
       <p style={styles.how}>
         {show === 'impairments'
-          ? "Only you can see these. Body functions come from the WHO's International Classification of Functioning, Disability and Health (ICF), © World Health Organization, used under CC BY-ND 3.0 IGO. Body parts come from the Foundational Model of Anatomy, used under CC BY 3.0."
-          : 'Only you can see these. Conditions come from the Mondo Disease Ontology, used under CC BY 4.0, and the Human Phenotype Ontology (hpo.jax.org).'}
+          ? "Body functions come from the WHO's International Classification of Functioning, Disability and Health (ICF), © World Health Organization, used under CC BY-ND 3.0 IGO. Body parts come from the Foundational Model of Anatomy, used under CC BY 3.0."
+          : 'Conditions come from the Mondo Disease Ontology, used under CC BY 4.0, and the Human Phenotype Ontology (hpo.jax.org).'}
       </p>
     </>
   );
@@ -255,10 +255,10 @@ function ImpairmentCard({ found, impairment, affects, ...actions }: CardActions 
 function ConditionCard({ condition, mine, affects, ...actions }: CardActions & { condition: Condition; mine: MyCondition }) {
   const severity = SEVERITIES.find((s) => s.value === mine.severity);
   const notes = [mine.diagnosed ? 'Diagnosed' : 'Not diagnosed', ...(mine.managed ? ['Under control'] : [])];
-  const parts = [...condition.functions.map((f) => ({ key: f.code, name: f.name })), ...condition.parts.map((p) => ({ key: p.id, name: capitalised(p.name) }))];
+  const parts = [...condition.functions.map((f) => ({ key: f.code, name: f.name })), ...condition.parts.map((p) => ({ key: p.id, name: capitalized(p.name) }))];
   return (
     <article style={actions.showing ? { ...styles.card, ...styles.cardShowing } : styles.card}>
-      <h3 style={styles.name}>{capitalised(condition.name)}</h3>
+      <h3 style={styles.name}>{capitalized(condition.name)}</h3>
       <p style={styles.extent}>
         {severity?.label ?? 'Noted'}
         <span style={styles.notes}> · {notes.join(' · ')}</span>

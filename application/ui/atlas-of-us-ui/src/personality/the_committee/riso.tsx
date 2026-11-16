@@ -3,8 +3,8 @@ import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Committee is printed like the festival's own flyer: a risograph, in a few bright inks on cream paper. Inks
-// multiply where they overlap, each colour sits a couple of pixels off true like a real riso pass, and a fine grain of
-// paper shows through everything. There's no white ink, so anything paper-coloured is the paper, knocked out on top.
+// multiply where they overlap, each color sits a couple of pixels off true like a real riso pass, and a fine grain of
+// paper shows through everything. There's no white ink, so anything paper-colored is the paper, knocked out on top.
 // The player is always in pink. A cue names a page and the parts of it to show: parts already on the page stay put, new
 // ones fade in after them, and turning to a new page fades the old one out. Everything is SVG in a fixed 1600x900
 // space, scaled to cover the screen. The pictures keep to the top two thirds, clear of the text box.
@@ -25,10 +25,10 @@ const C = {
   federal: '#3d5588',
   black: '#3a3a42',
 };
-type Colour = keyof typeof C;
+type Color = keyof typeof C;
 
 //each ink's pass lands a little off, the same way every time
-const SHIFT: Record<Colour, Pt> = {
+const SHIFT: Record<Color, Pt> = {
   paper: [0, 0],
   pink: [3, -2],
   teal: [-2, 2],
@@ -102,9 +102,9 @@ const FIRST_CUE = 'title_card';
 
 //what a part is made of: flat shapes, lines and type
 type Item =
-  | { fill: Colour; d: string; o?: number; cls?: string }
-  | { line: Colour; d: string; w?: number; o?: number; dash?: string; cls?: string }
-  | { text: string; c: Colour; x: number; y: number; size: number; cls?: string };
+  | { fill: Color; d: string; o?: number; cls?: string }
+  | { line: Color; d: string; w?: number; o?: number; dash?: string; cls?: string }
+  | { text: string; c: Color; x: number; y: number; size: number; cls?: string };
 
 const GAP = 0.06; //seconds between one item fading in and the next
 
@@ -115,7 +115,7 @@ const circle = (x: number, y: number, r: number) => `M ${x - r} ${y} a ${r} ${r}
 const ellipse = (x: number, y: number, rx: number, ry: number) => `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0`;
 const round = (x: number, y: number, w: number, h: number, r: number) =>
   `M ${x + r} ${y} H ${x + w - r} Q ${x + w} ${y} ${x + w} ${y + r} V ${y + h - r} Q ${x + w} ${y + h} ${x + w - r} ${y + h} H ${x + r} Q ${x} ${y + h} ${x} ${y + h - r} V ${y + r} Q ${x} ${y} ${x + r} ${y} Z`;
-const words = (c: Colour, text: string, x: number, y: number, size: number, cls?: string): Item => ({ c, text, x, y, size, cls });
+const words = (c: Color, text: string, x: number, y: number, size: number, cls?: string): Item => ({ c, text, x, y, size, cls });
 
 //pseudo-random but fixed, so a page always comes out the same
 const rand = (i: number) => {
@@ -123,7 +123,7 @@ const rand = (i: number) => {
   return x - Math.floor(x);
 };
 
-const INKS: Colour[] = ['teal', 'blue', 'orange', 'green', 'yellow', 'federal'];
+const INKS: Color[] = ['teal', 'blue', 'orange', 'green', 'yellow', 'federal'];
 
 //a cut-out person: a round head on a rounded body, feet at (x, y)
 function body(x: number, y: number, h: number) {
@@ -131,15 +131,15 @@ function body(x: number, y: number, h: number) {
   const top = y - (h - 2 * r - 5);
   return `M ${x - h * 0.21} ${y} Q ${x - h * 0.23} ${top} ${x} ${top} Q ${x + h * 0.23} ${top} ${x + h * 0.21} ${y} Z ${circle(x, y - (h - r), r)}`;
 }
-const person = (x: number, y: number, h: number, fill: Colour, cls?: string): Item => ({ fill, d: body(x, y, h), cls });
+const person = (x: number, y: number, h: number, fill: Color, cls?: string): Item => ({ fill, d: body(x, y, h), cls });
 //someone on a plastic chair: the chair's back and legs behind them
-const seated = (x: number, y: number, h: number, fill: Colour): Item[] => [
+const seated = (x: number, y: number, h: number, fill: Color): Item[] => [
   { line: 'black', d: `${line([x - h * 0.28, y - h * 0.55], [x - h * 0.28, y + h * 0.3])} ${line([x - h * 0.28, y], [x + h * 0.28, y], [x + h * 0.28, y + h * 0.3])}`, w: 5, o: 0.7 },
   person(x, y, h, fill),
 ];
 
 //a string of bunting from x1 to x2, sagging in the middle, flags cycling through the inks
-function bunting(x1: number, x2: number, y: number, sag: number, n: number, inks: Colour[] = ['pink', 'teal', 'yellow']): Item[] {
+function bunting(x1: number, x2: number, y: number, sag: number, n: number, inks: Color[] = ['pink', 'teal', 'yellow']): Item[] {
   const at = (t: number): Pt => [x1 + (x2 - x1) * t, y + sag * 4 * t * (1 - t)];
   const flags = inks.map((fill, k): Item => ({
     fill,
@@ -165,7 +165,7 @@ const note = (i: number, label: string): Item[] => {
     words('black', label, x + 84, y + 72, 28),
   ];
 };
-const JOBS = ['GENERATOR', 'BUNTING', 'POLES??', 'BAND LOST', 'RAFFLE', 'SIGNS', 'VAN!', 'BINS?', 'TABLES', 'FLOAT'];
+const JOBS = ['GENERATOR', 'BUNTING', 'POLES??', 'BAND LOST', 'RAFFLE', 'SIGNS', 'VAN!', 'TRASH?', 'TABLES', 'FLOAT'];
 
 //a trestle table under a gazebo
 const GAZEBOS = [230, 600, 1000, 1370];
@@ -207,14 +207,14 @@ const DOWNHILL = (last: string): Item[] => [
 // ---------------------------------------------------------------------------
 
 const STARS = Array.from({ length: 30 }, (_, i) => circle(1130 + rand(i) * 340, 110 + rand(i + 70) * 260, 1.5 + rand(i + 9) * 2)).join(' ');
-const HOUSE_INKS: [Colour, number][] = [
+const HOUSE_INKS: [Color, number][] = [
   ['pink', 0.3],
   ['yellow', 0.55],
   ['teal', 0.25],
   ['orange', 0.35],
   ['blue', 0.25],
 ];
-const DOOR_INKS: Colour[] = ['teal', 'pink', 'federal', 'green', 'orange'];
+const DOOR_INKS: Color[] = ['teal', 'pink', 'federal', 'green', 'orange'];
 
 const ART: Record<Page, Record<string, Item[]>> = {
   flyer: {
@@ -347,7 +347,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
       { fill: 'orange', d: rect(0, 0, W, 660), o: 0.5 },
       { fill: 'black', d: rect(0, 330, W, 330), o: 0.22 },
       { fill: 'black', d: `${rect(940, 90, 560, 14)} ${rect(940, 200, 560, 14)}`, o: 0.6 },
-      ...(['green', 'teal', 'yellow', 'pink', 'blue'] as Colour[]).map((fill, k): Item => ({
+      ...(['green', 'teal', 'yellow', 'pink', 'blue'] as Color[]).map((fill, k): Item => ({
         fill,
         d: Array.from({ length: 12 }, (_, i) => i)
           .filter((i) => i % 5 === k)
@@ -554,7 +554,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
 function partLayers(part: string, items: Item[], start: number): Layer[] {
   return items.map((item, i) => {
     let mark;
-    let ink: Colour;
+    let ink: Color;
     if ('text' in item) {
       ink = item.c;
       mark = (

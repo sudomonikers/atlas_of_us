@@ -7,7 +7,7 @@ import type { Report } from '../api';
 // supporter, and both of them believed it. Sam looks the part: loud, quick, full of ideas. But the Atlas finds he's short
 // on the steady, careful side a business runs on, and shows him exactly where. Priya looks like someone who'd never
 // want to be in charge. But the Atlas finds she has nearly everything running a business takes, and is short only on
-// speaking up and taking a leap, which she can practise. The point for the player: a quiz that asks you to rate statements can't tell two
+// speaking up and taking a leap, which she can practice. The point for the player: a quiz that asks you to rate statements can't tell two
 // people apart when they tick the same box, and a story that asks them why can.
 // Between the story's parts, interludes step out of it to show how the Atlas works: a real scene being played, the
 // traits it reads, the evidence behind a trait and contesting it, the report, and the Small Business Management skill
@@ -185,7 +185,7 @@ const priyaReport: Report = {
     "Priya is at her best when something needs to be done properly and nobody else has noticed. She plans ahead, finishes what she starts, and holds herself to a high standard without needing anyone to check on her.\n\nShe keeps a low profile. She'd rather earn trust by being reliable than win people over by talking, and it means she's often underestimated, sometimes by herself.",
   domains: [
     { key: 'openness', text: "Practical more than dreamy. She's curious about how things work and moved by things done well, but she likes a tried method over a leap into the unknown." },
-    { key: 'conscientiousness', text: 'Her strongest suit by a distance. Organised, persistent and ambitious, with a strong sense of what she owes the people who rely on her.' },
+    { key: 'conscientiousness', text: 'Her strongest suit by a distance. Organized, persistent and ambitious, with a strong sense of what she owes the people who rely on her.' },
     { key: 'extraversion', text: "Quiet and self-contained. She's warm one to one, but crowds and the spotlight drain her, and she rarely pushes herself forward." },
     { key: 'agreeableness', text: 'Kind and fair. She notices when someone is struggling and acts on it, and she is straight with people even when it costs her.' },
     { key: 'neuroticism', text: 'Calm under pressure. When something goes wrong she gets on with fixing it, and she bounces back quickly, though she can feel self-conscious when all eyes are on her.' },
@@ -287,7 +287,7 @@ export const sameAnswer: Script = {
     // -------------------------------------------------------------------------
     sam: {
       steps: [
-        { text: "This is Sam. He works the counter at Rosa's Bakery, and regulars come in just to talk to him. He knows every dog in the neighbourhood by name.", animation: 'sam_counter' },
+        { text: "This is Sam. He works the counter at Rosa's Bakery, and regulars come in just to talk to him. He knows every dog in the neighborhood by name.", animation: 'sam_counter' },
         { text: 'He has an idea a week. Sourdough pizza on Fridays. A bread subscription. A stall at the night market. Customers love every one of them.', animation: 'sam_ideas' },
         { text: 'Years ago an online quiz told him he was a born leader. Everybody he has ever met agrees.', animation: 'sam_quiz' },
         { speaker: SAM, text: 'People keep telling me I should open my own place. And I keep thinking, yeah. Why not me?', animation: 'sam_thinking' },
@@ -379,7 +379,7 @@ export const sameAnswer: Script = {
         { text: 'An early read comes from only a scene or two, and some traits have not come up yet. As he plays on, every scene adds evidence, and the picture fills in and firms up.', stage: { kind: 'traits', person: samEarly } },
         { text: "After all eighteen, every trait has been seen in several different situations. Here's Sam.", stage: { kind: 'traits', person: sam } },
         { text: 'High Assertiveness, Gregariousness and Excitement-Seeking. He takes charge, loves a crowd, and chases the new thing.', stage: { kind: 'traits', person: sam, picked: ['Assertiveness', 'Gregariousness', 'Excitement-Seeking'] } },
-        { text: 'And Priya. High Orderliness, Self-Discipline and Achievement-Striving, and low Anxiety. Organised, persistent, ambitious, and calm when things go wrong.', stage: { kind: 'traits', person: priya, picked: ['Orderliness', 'Self-Discipline', 'Achievement-Striving', 'Anxiety'] } },
+        { text: 'And Priya. High Orderliness, Self-Discipline and Achievement-Striving, and low Anxiety. Organized, persistent, ambitious, and calm when things go wrong.', stage: { kind: 'traits', person: priya, picked: ['Orderliness', 'Self-Discipline', 'Achievement-Striving', 'Anxiety'] } },
         { text: "You can set your bars against everyone the Atlas has measured. And neither end of a bar is the good one. A low score just means you're nearer the other end.", stage: { kind: 'traits', person: priya, compare: true } },
       ],
       next: 'why',
@@ -464,7 +464,7 @@ export const sameAnswer: Script = {
         { speaker: SAM, text: 'So the guy everyone called a born leader is the one who would sink the place.', animation: 'sam_counter_quiet' },
         { text: "Not sink it. Personality changes slowly, but it isn't the whole story. It tells you where something will come easily, and where you'll be fighting yourself.", animation: 'sam_counter_quiet' },
         { text: "Sam's gaps are the kind you plan around: systems, habits, and someone beside you who loves what you hate.", animation: 'sam_plan' },
-        { text: "And Priya's gaps are the kind you can practise. She doesn't need to become loud. She needs to be able to ask for what the bakery needs, and mean it. As for the leap, buying the bakery would be it.", animation: 'priya_plan' },
+        { text: "And Priya's gaps are the kind you can practice. She doesn't need to become loud. She needs to be able to ask for what the bakery needs, and mean it. As for the leap, buying the bakery would be it.", animation: 'priya_plan' },
       ],
       next: 'other_way',
     },
@@ -493,7 +493,7 @@ export const sameAnswer: Script = {
         { text: 'Priya runs it: the books, the stock, the ovens at five. Sam runs the front: the regulars, the Friday pizza, the stall at the night market, which turns out to be a very good idea.', animation: 'both_bakery_open' },
         { text: "Once a month, Priya calls the flour supplier herself. The first time, she wrote out what she'd say on an index card. Now she doesn't need the card.", animation: 'priya_phone' },
         { speaker: ROSA, text: 'I should have known it would take both of you.', animation: 'rosa_visit' },
-        { speaker: SAM, text: 'In my defence, a quiz told me I could do it all myself.', animation: 'rosa_visit' },
+        { speaker: SAM, text: 'In my defense, a quiz told me I could do it all myself.', animation: 'rosa_visit' },
       ],
       next: 'the_point',
     },

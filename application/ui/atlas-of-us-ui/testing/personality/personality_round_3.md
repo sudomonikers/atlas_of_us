@@ -7,7 +7,7 @@ Sam is 52 and teaches art at a secondary school. Sam paints in the shed at weeke
 - **Open:** a daydreamer who invents stories about strangers on the bus and is moved by beauty. Sam spent a year painting in Portugal on the money from selling a flat.
 - **Warm:** trusting, kind and forgiving, and thinks rules are there to help people.
 - **Steady:** calm in a crisis, rarely anxious or self-conscious, and quick to recover.
-- **Disorganised:** not a planner, late with paperwork, and unbothered by flaws.
+- **Disorganized:** not a planner, late with paperwork, and unbothered by flaws.
 - **Not competitive:** cheerful and playful, with no interest in the spotlight.
 
 **Why this persona:**
@@ -65,7 +65,7 @@ Sam is 52 and teaches art at a secondary school. Sam paints in the shed at weeke
   - The clock runs out there, with 61 seconds showing at the last answer, so the last crate is never reached.
   - "No regrets."
 - **Proven Wrong:** tells the group chat now.
-- **The Stolen Idea:** steps back into the dark, tells Fitch it's theirs without asking for anything, turns Marvello's favour down.
+- **The Stolen Idea:** steps back into the dark, tells Fitch it's theirs without asking for anything, turns Marvello's favor down.
 - **The Rule That Doesn't Fit:** asks what's happened, asks the passengers (Mr Doyle gives up his place).
 - **The Offer:** asks for the details, meets the crew, "with training", goes.
 - **The Water:** wades with Faisal.
@@ -76,7 +76,7 @@ Sam is 52 and teaches art at a secondary school. Sam paints in the shed at weeke
 - **What was scored:** 110 answers across 14 scenes, giving 406 per-answer scores ("shifts").
   - 108 of the answers are Sam's.
   - The other 2 are Dev's round 2 answers on branches Sam didn't take. They are still stored and still scored; see finding 1.
-- **Scoring:** with the round 2 changes: Introspection removed, the Emotionality, Anxiety and neighbouring-traits rules, the two new Water prompts, and The Owambe.
+- **Scoring:** with the round 2 changes: Introspection removed, the Emotionality, Anxiety and neighboring-traits rules, the two new Water prompts, and The Owambe.
 - **Error:** the average gap between score and target is **0.13**. Every trait has evidence.
 - In the table:
   - **W** is the total weight of all answers that scored the trait, before real-life answers are doubled.
@@ -185,7 +185,7 @@ Sam is 52 and teaches art at a secondary school. Sam paints in the shed at weeke
 3. **Sensory Sensitivity was misread:** 0.70 against a target of 0.30.
    - "I can sleep through most things… the rain on the roof is quite soothing" was scored +0.3, as noticing different noises. It should have scored strongly low.
    - Noticing Juno's body language was also scored high, because the description includes "subtle cues". That makes it an empathy trait as well as a sensory one.
-   - **Fix:** drop "and subtle cues" from the description, and add "noticing people's feelings is Sympathy" to the neighbouring-traits rule.
+   - **Fix:** drop "and subtle cues" from the description, and add "noticing people's feelings is Sympathy" to the neighboring-traits rule.
 
 4. **Stubbornness reads high on principled people.**
    - Results so far: Ruth 0.82 against 0.30, Dev 0.78 against 0.70, Sam 0.74 against 0.25.
@@ -198,17 +198,17 @@ Sam is 52 and teaches art at a secondary school. Sam paints in the shed at weeke
 5. **Misreading where an answer comes from.**
    - **Story taken as the person:** "I'd never have gone so loud on it" was scored as high Assertiveness, citing the signatures and group-chat campaign. Those are the scene's backstory, not Sam's.
    - **Curiosity taken as craving:** reading the letter and the grandmother's letters were scored as Immoderation, which is about cravings and urges. Immoderation came out at 0.62 against a target of 0.35.
-   - **Fix:** add "curiosity is Intellect or Adventurousness, not Immoderation" to the neighbouring-traits rule.
+   - **Fix:** add "curiosity is Intellect or Adventurousness, not Immoderation" to the neighboring-traits rule.
 
 6. **Some targets were mine to get wrong again, despite setting them after the answers.**
-   - **Boldness** (0.91 against 0.55): Sam apologised in front of fifty people, sold a flat to paint in Portugal, stayed behind in the flood, and went to Mars. Under a definition that includes moral courage, that is bold.
+   - **Boldness** (0.91 against 0.55): Sam apologized in front of fifty people, sold a flat to paint in Portugal, stayed behind in the flood, and went to Mars. Under a definition that includes moral courage, that is bold.
    - **Assertiveness** (0.78 against 0.45): Sam asked a colleague directly, corrected the record with Ms. Kuroda, and started the sing-along. Gentle, but direct.
    - **Cautiousness** (0.60 against 0.35): Sam rationed the water, waited for the kiln, had a splash at the toast, and read the Mars contract first.
    - **Perfectionism** (0.59 against 0.15): I wrote Sam saying "I'm too precious about the good ones".
    - **The lesson:** I keep picturing the persona, not reading the answers. The fix for the next round is a second pass, scoring each target from the answer text alone.
 
 7. **Boldness is becoming a catch-all for any costly good deed.** Sam scored 0.91 and Dev 0.92, with opposite personalities.
-   - Most of the evidence for both is doing the right thing at a cost: telling the truth, apologising, staying behind to help.
+   - Most of the evidence for both is doing the right thing at a cost: telling the truth, apologizing, staying behind to help.
    - Including moral courage makes Boldness move with Morality and Altruism.
    - This is the trade-off chosen in round 1, but three rounds show that it stops Boldness telling people apart.
    - **Fix:** take moral courage back out, and keep Boldness to social and physical risk.
@@ -220,7 +220,7 @@ Sam is 52 and teaches art at a secondary school. Sam paints in the shed at weeke
    - **Sensory Sensitivity:** drop "and subtle cues".
    - **Stubbornness:** add "despite good reasons to change".
 4. **Reverse round 1's Boldness decision:** social and physical risk only. Doing the right thing despite fear is evidence for whatever made it right.
-5. **Add to the neighbouring-traits rule:**
+5. **Add to the neighboring-traits rule:**
    - Curiosity is not Immoderation.
    - Noticing feelings is Sympathy, not Sensory Sensitivity.
    - The scene's backstory isn't the person's.
@@ -245,7 +245,7 @@ Recommendations 1, 3, 4 and 5 were made. Recommendation 2 (enforcing Emotionalit
 
 **5. Scoring rules** (`SCORING_PROMPT` in `apis/atlas-jobs/src/personality.rs`)
 - **The story bullet:** now says that nothing the scene says the person did before it began is evidence about them (finding 5).
-- **Keeping neighbouring traits apart:** three new distinctions.
+- **Keeping neighboring traits apart:** three new distinctions.
   - **Immoderation** (finding 5): curiosity is never Immoderation, which is cravings and urges like food, drink and spending.
   - **Sensory Sensitivity** (finding 3): noticing how other people feel is Sympathy, not Sensory Sensitivity.
   - **Stubbornness** (finding 4): holding to the truth or one's values under pressure is not Stubbornness.

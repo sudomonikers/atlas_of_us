@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { capitalised, type Ability, type Conditions, type Impairment, type Impairments, type Measurement, type PartSummary } from './api';
+import { capitalized, type Ability, type Conditions, type Impairment, type Impairments, type Measurement, type PartSummary } from './api';
 import { HUMAN_BODY, heat, meshesOf, type Body, type Light } from './body_parts';
 import { ImpairmentForm } from './impairment_form';
 import { PartPanel } from './part_panel';
@@ -20,7 +20,7 @@ interface BodyMapProps {
   abilities: Ability[];
   picked: string | undefined; //the id of the part open, picked here or on the 3D body
   onPick: (id: string) => void;
-  onImpaired: (saved: Impairment, abilities: Ability[]) => void; //with the user's abilities, which impairments hold back
+  onImpaired: (saved: Impairment, abilities: Ability[]) => void; //with the user's abilities, which note impairments
   onLight: (light: Light) => void;
 }
 
@@ -61,7 +61,7 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
 
       {part ? (
         noting ? (
-          <ImpairmentForm part={{ id: part.id, name: capitalised(part.name) }} structure impairment={mine.get(part.id) ?? null} onSaved={saved} onCancel={() => setNoting(false)} />
+          <ImpairmentForm part={{ id: part.id, name: capitalized(part.name) }} structure impairment={mine.get(part.id) ?? null} onSaved={saved} onCancel={() => setNoting(false)} />
         ) : (
           <PartPanel key={`${part.id}-${version}`} id={part.id} myConditions={myConditions} measurements={measurements} onPick={pick} onNote={() => setNoting(true)} />
         )
@@ -74,7 +74,7 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
         <div style={styles.chips}>
           {systems.map((s) => (
             <button key={s.id} className="comic-lift" style={picked === s.id ? { ...styles.chip, ...styles.chipOn } : styles.chip} onClick={() => pick(s.id)}>
-              {capitalised(s.name)}
+              {capitalized(s.name)}
             </button>
           ))}
         </div>
@@ -87,7 +87,7 @@ export default function BodyMap({ anatomy, body, impairments, conditions, measur
         <div style={styles.chips}>
           {found.slice(0, MAX_RESULTS).map((p) => (
             <button key={p.id} className="comic-lift" style={styles.part} onClick={() => pick(p.id)}>
-              {capitalised(p.name)}
+              {capitalized(p.name)}
             </button>
           ))}
         </div>

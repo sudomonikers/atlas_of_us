@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-// The marker the stories that open a module are drawn in: the board's space and colours, the paths it draws, and the
+// The marker the stories that open a module are drawn in: the board's space and colors, the paths it draws, and the
 // cues that say what's on the board. The drawing itself is in marker.tsx.
 
 export const W = 1600;

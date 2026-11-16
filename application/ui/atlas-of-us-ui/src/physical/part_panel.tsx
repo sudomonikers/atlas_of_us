@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { EXTENTS, comparedWith, capitalised, getPart, standing, withUnit, type Measurement, type Part, type PartRef } from './api';
+import { EXTENTS, capitalized, getPart, shownReading, standing, type Measurement, type Part, type PartRef } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
 import { Thinking } from '../shared_components/thinking';
@@ -22,7 +22,7 @@ interface PartPanelProps {
 
 //where a related thing comes from, when it isn't the part itself
 function Through({ through }: { through: string | null }) {
-  return through ? <span style={styles.through}>through {capitalised(through)}</span> : null;
+  return through ? <span style={styles.through}>through {capitalized(through)}</span> : null;
 }
 
 //a list that shows the first few, with the rest behind a toggle
@@ -68,7 +68,7 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
         <div style={styles.links}>
           {refs.slice(0, LINKS).map((r) => (
             <button key={r.id} className="comic-lift" style={styles.part} onClick={() => onPick(r.id)}>
-              {capitalised(r.name)}
+              {capitalized(r.name)}
             </button>
           ))}
           {refs.length > LINKS && <span style={styles.small}>and {refs.length - LINKS} more</span>}
@@ -77,7 +77,7 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
     );
   return (
     <article style={styles.panel}>
-      <h2 style={styles.name}>{capitalised(part.name)}</h2>
+      <h2 style={styles.name}>{capitalized(part.name)}</h2>
       {!part.elements.length && <p style={styles.small}>The 3D body has no model of this one, so it's lit up by what it belongs to.</p>}
       {part.definition && <p style={styles.definition}>{part.definition}</p>}
       {!!part.synonyms.length && (
@@ -94,11 +94,11 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
           <li key={c.id} style={styles.item}>
             <span style={styles.row}>
               {c.description ? (
-                <Disclosure label={capitalised(c.name)}>
+                <Disclosure label={capitalized(c.name)}>
                   <p style={styles.small}>{c.description}</p>
                 </Disclosure>
               ) : (
-                <span>{capitalised(c.name)}</span>
+                <span>{capitalized(c.name)}</span>
               )}
               {myConditions.has(c.id) && <span className="comic-chip">You have this</span>}
             </span>
@@ -120,9 +120,9 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
               <Through through={m.through} />
               {full && latest ? (
                 <span style={styles.small}>
-                  You: {withUnit(latest.value, full.unit)}
+                  You: {shownReading(latest.value, full)}
                   {latest.percentile !== null && latest.compared_with && full.better !== 'neither' && (
-                    <>. {standing(latest.percentile, full.better)} {comparedWith(latest.compared_with)}</>
+                    <>. {standing(latest.percentile, full.better, latest.compared_with)}</>
                   )}
                 </span>
               ) : (
@@ -134,13 +134,13 @@ export function PartPanel({ id, myConditions, measurements, onPick, onNote }: Pa
       />
 
       <h3 style={styles.heading}>Your impairments</h3>
-      {!part.impairments.length && <p style={styles.text}>You haven't noted any here. Only you see what you note.</p>}
+      {!part.impairments.length && <p style={styles.text}>You haven't added any here.</p>}
       <Some
         items={part.impairments}
         render={(i) => (
           <li key={i.id} style={styles.item}>
             <span>
-              <span style={styles.itemName}>{capitalised(i.name)}</span>: {EXTENTS.find((e) => e.value === i.extent)?.label.toLowerCase()}
+              <span style={styles.itemName}>{capitalized(i.name)}</span>: {EXTENTS.find((e) => e.value === i.extent)?.label.toLowerCase()}
             </span>
             {!!i.through && <span style={styles.through}>in a related part or function</span>}
           </li>

@@ -1,7 +1,7 @@
 # QA round 2: "Dev"
 
 ## The persona
-Dev is 29 and works in sales at a startup. Dev lives with two flatmates, plays five-a-side football twice a week, and is always the one organising the group trip.
+Dev is 29 and works in sales at a startup. Dev lives with two roommates, plays pickup soccer twice a week, and is always the one organizing the group trip.
 
 **What Dev is like:**
 - Loud, warm, funny and restless. Very competitive.
@@ -68,7 +68,7 @@ The traits in the middle are Intellect, Fairness and Sympathy.
 - **The Rule That Doesn't Fit:** lets Nessa on, tells the captain "120".
 - **The Offer:** "When do I leave?", goes out on the hull, "I've handled worse", goes.
 - **The Water:** goes for water alone.
-- **The Black Clay:** says yes to all forty, opens the kiln at first grey, asks Mariana for two more weeks.
+- **The Black Clay:** says yes to all forty, opens the kiln at first gray, asks Mariana for two more weeks.
 
 ## Results (14 Oct 2026)
 - **What was scored:** 100 answers across 13 scenes, giving 362 per-answer scores ("shifts").
@@ -151,7 +151,7 @@ The traits in the middle are Intellect, Fairness and Sympathy.
    - Both traits are mostly products of the question format, not of the person.
 2. **Anxious-but-bold doesn't come through.** Anxiety came out at 0.53 against 0.75, and Vulnerability at 0.14 against 0.45. Dev's mean level for Anxiety is exactly 0.00.
    - Dev's two real-life admissions ("replaying the call keeps me up", "i get anxious and stressed, lie awake") each scored +0.6 at weight 0.8.
-   - Six in-scene answers cancelled them out by reading a confident choice as low Anxiety:
+   - Six in-scene answers canceled them out by reading a confident choice as low Anxiety:
      - "When do I leave?" scored −0.6, with the evidence "no hesitation or worry expressed".
      - Walking into the party scored −0.6.
      - The breezy logbook entry scored −0.5.
@@ -192,7 +192,7 @@ The traits in the middle are Intellect, Fairness and Sympathy.
   - Add to the scoring rules: "Anxiety is felt, not done. A bold or calm choice is not evidence of low Anxiety; only what they say about worrying is."
   - Expect this to fix anxious-but-bold players.
 - **Watch Morality.** It's the IPIP definition (frankness), and that's working as designed. If you'd rather it meant honest with the truth, the description needs to change, not the scorer.
-- **Orderliness, Patience, Artistic Interests:** add them to the "keep neighbouring traits apart" rule. A quick plan isn't Orderliness, and curiosity isn't Artistic Interests.
+- **Orderliness, Patience, Artistic Interests:** add them to the "keep neighboring traits apart" rule. A quick plan isn't Orderliness, and curiosity isn't Artistic Interests.
 - **Thin traits:** the light-hearted scene suggested in round 1 would cover Artistic Interests and Liberalism. Patience and Sensory Sensitivity each need one more prompt somewhere.
 - **No change to `PRIOR` or `REAL_LIFE`.** With both personas, consistent evidence reaches the ends and small amounts of evidence stay nearer the middle.
 
@@ -215,7 +215,7 @@ To be tested in round 3.
 **Scoring rules (`SCORING_PROMPT` in `apis/atlas-jobs/src/personality.rs`)**
 - **Emotionality** (finding 1): scored only from what people say about their own real life. Naming a feeling because the question asked for one doesn't count.
 - **Anxiety is felt, not done** (finding 2): a bold, calm or quick choice is no longer evidence of low Anxiety. Only what people say about worrying counts.
-- **Keeping neighbouring traits apart** (finding 4) gained three distinctions:
+- **Keeping neighboring traits apart** (finding 4) gained three distinctions:
   - A quick practical plan in a crisis is Self-Efficacy, not Orderliness.
   - Patience is bearing delay calmly, not holding a grudge.
   - Curiosity about how something works is Intellect or Imagination, not Artistic Interests.

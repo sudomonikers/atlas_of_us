@@ -6,5 +6,5 @@ export const gunmetal = 'var(--gunmetal-black)';
 export const ivory = 'var(--ivory-white)';
 export const comic = 'var(--font-comic)';
 
-//the same colours as numbers, for three.js
+//the same colors as numbers, for three.js
 export const HEX = { blue: 0x6a8eae, brownRed: 0xad2831, gunmetal: 0x393d3f, ivory: 0xfffce8 };

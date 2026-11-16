@@ -42,17 +42,17 @@ The harness tests more than one module. `testing/` holds what they share, and ea
   |---|---|
   | Ruth | an anxious, rule-bound, kind introvert |
   | Dev | a loud, warm, competitive salesperson who answers in one-liners |
-  | Sam | a calm, imaginative, disorganised art teacher |
-  | Morgan | a blunt, sceptical, stubborn operations manager |
+  | Sam | a calm, imaginative, disorganized art teacher |
+  | Morgan | a blunt, skeptical, stubborn operations manager |
   | Jules | a low, stuck, impulsive 24-year-old dropout |
   | Chris | deliberately ordinary and middle of the road |
   | Kai | a carefree, thrill-seeking surf instructor |
   | Noor | an analytical, unconventional, independent physicist |
-  | Grace | a warm, generous retired nurse and community organiser |
+  | Grace | a warm, generous retired nurse and community organizer |
   | Ray | a short-fused, suspicious, stubborn trucker |
 
 - **Answers come before targets.** A persona's answers are written in character first. Its targets are then set trait by trait from what those answers actually show. Picturing the persona instead of reading the answers was the biggest source of error in every early round.
-- The targets were checked by **blind raters**: ten independent subagents scored anonymised answer sheets without seeing the targets. They agreed with the targets to within 4.6 points on average.
+- The targets were checked by **blind raters**: ten independent subagents scored anonymized answer sheets without seeing the targets. They agreed with the targets to within 4.6 points on average.
 
 ### The personality run (`personality/personality.test.ts`)
 Every persona is a test, and they all run at once:

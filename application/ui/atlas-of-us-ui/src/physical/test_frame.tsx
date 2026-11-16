@@ -1,16 +1,31 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { clock, testStyles, useCountdown } from './test_kit';
-import { blue, gunmetal, ivory } from '../shared_components/palette';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { type Part, type Scored } from './scored';
+import { clock, testStyles, useCountdown, useCountIn } from './test_kit';
+import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
-//the frame every test runs in: what to do, the test itself, and a way out
-export function Frame({ intro, children, onCancel }: { intro: ReactNode; children: ReactNode; onCancel: () => void }) {
+//the frame every test runs in: the test where the scene's animation was, and what to do, with a way out, in the column
+//beside it where the scene's card was. On a narrow screen what to do goes on top. While a test counts down to
+//beginning, the count is shown big over the test
+export function Frame({ intro, children, onCancel, count = null }: { intro: ReactNode; children: ReactNode; onCancel: () => void; count?: number | null }) {
   return (
-    <div style={testStyles.frame}>
-      <div style={testStyles.intro}>{intro}</div>
-      {children}
-      <button type="button" className="comic-lift" style={testStyles.secondary} onClick={onCancel}>
-        Stop
-      </button>
+    <div style={frameStyles.side}>
+      <div style={frameStyles.aside}>
+        <div style={{ ...testStyles.intro, ...frameStyles.intro }}>{intro}</div>
+        <button type="button" className="comic-lift" style={{ ...testStyles.secondary, alignSelf: 'flex-start' }} onClick={onCancel}>
+          Stop
+        </button>
+      </div>
+      <div style={{ ...testStyles.frame, ...frameStyles.play }}>
+        {children}
+        {count !== null && (
+          <div style={frameStyles.count} aria-live="assertive">
+            <span key={count} style={frameStyles.number} className="comic-pop">
+              {count}
+            </span>
+            <span style={frameStyles.ready}>Get ready</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -23,6 +38,7 @@ export interface Item {
   answer: number;
   word?: string;
   columns?: number; //how many choices to a row, at most
+  font?: string; //the font the answer is typed in, when it's not the page's
 }
 
 interface ItemTestProps {
@@ -30,25 +46,46 @@ interface ItemTestProps {
   practice: Item[]; //tried first, with the answer shown after each
   items: Item[]; //the ones that count
   seconds: number; //the time allowed for the ones that count
-  onDone: (right: number) => void;
+  onDone: (right: number, scored: Scored) => void;
   onCancel: () => void;
 }
 
-//a test of questions with a time limit: a few to practise on, told whether each was right, then the ones that count, one
+//a choice by its place, as the user sees them: A, B, C...
+const letter = (i: number) => String.fromCharCode(65 + i);
+
+//a test of questions with a time limit: a few to practice on, told whether each was right, then the ones that count, one
 //after another until they're done or the time's up. The score is how many were right, and any not reached are wrong
 export function ItemTest({ intro, practice, items, seconds, onDone, onCancel }: ItemTestProps) {
+  const [counting, countIn] = useCountIn();
   const [phase, setPhase] = useState<'ready' | 'practice' | 'between' | 'timed' | 'done'>('ready');
   const [at, setAt] = useState(0);
   const [told, setTold] = useState<{ right: boolean } | null>(null); //after a practice answer
   const [typed, setTyped] = useState('');
   const right = useRef(0);
+  const given = useRef<(number | string)[]>([]); //each answer to the ones that count, in order
   const finished = useRef(false);
+  const box = useRef<HTMLInputElement>(null);
 
   const finish = () => {
     if (finished.current) return;
     finished.current = true;
     setPhase('done');
-    onDone(right.current);
+    const parts = items.map((it, i): Part => {
+      const label = `${i + 1}`;
+      if (i >= given.current.length) return { label, right: false, note: 'Not reached in time' };
+      const said = given.current[i];
+      const correct = it.word ? String(said).trim().toLowerCase() === it.word : said === it.answer;
+      const shown = (v: number | string) => {
+        const c = it.choices?.[Number(v)];
+        return !it.choices ? String(v) : typeof c === 'string' ? `"${c}"` : letter(Number(v));
+      };
+      const answer = it.word ?? it.answer;
+      return { label, right: correct, note: correct ? `You said ${shown(said)}` : `You said ${shown(said)}, it was ${shown(answer)}` };
+    });
+    onDone(right.current, {
+      how: `One point for each one right: ${right.current} of ${items.length}. Any not reached before the time ran out count as wrong.${items[0]?.choices && typeof items[0].choices[0] !== 'string' ? ' The letters are the ones in the corners of the choices.' : ''}`,
+      parts,
+    });
   };
   const left = useCountdown(seconds, phase === 'timed', finish);
 
@@ -59,6 +96,7 @@ export function ItemTest({ intro, practice, items, seconds, onDone, onCancel }: 
     const correct = item.word ? String(said).trim().toLowerCase() === item.word : said === item.answer;
     setTyped('');
     if (phase === 'practice') return setTold({ right: correct });
+    given.current.push(said);
     if (correct) right.current += 1;
     if (at + 1 < items.length) setAt(at + 1);
     else finish();
@@ -73,8 +111,12 @@ export function ItemTest({ intro, practice, items, seconds, onDone, onCancel }: 
   };
 
   const asking = (phase === 'practice' || phase === 'timed') && item;
+  //the box to type in is ready for the next answer whenever a question comes up
+  useEffect(() => {
+    if (asking && !told) box.current?.focus();
+  }, [asking, told, at]);
   return (
-    <Frame onCancel={onCancel} intro={intro}>
+    <Frame count={counting} onCancel={onCancel} intro={intro}>
       {!asking && (
         <div style={testStyles.arena}>
           {phase === 'done' ? (
@@ -84,10 +126,12 @@ export function ItemTest({ intro, practice, items, seconds, onDone, onCancel }: 
               type="button"
               className="comic-lift"
               style={testStyles.primary}
-              onClick={() => {
-                setAt(0);
-                setPhase(phase === 'ready' ? 'practice' : 'timed');
-              }}
+              onClick={() =>
+                countIn(() => {
+                  setAt(0);
+                  setPhase(phase === 'ready' ? 'practice' : 'timed');
+                })
+              }
             >
               {phase === 'ready' ? 'Start the practice' : `Start: ${items.length} in ${clock(seconds)}`}
             </button>
@@ -109,6 +153,7 @@ export function ItemTest({ intro, practice, items, seconds, onDone, onCancel }: 
                   style={{ ...styles.choice, ...(told && i === item.answer ? { border: `3px solid ${blue}`, background: ivory, boxShadow: `0 0 0 3px ${blue}` } : {}) }}
                   onClick={() => answer(i)}
                 >
+                  {typeof c !== 'string' && <span style={styles.letter}>{letter(i)}</span>}
                   {c}
                 </button>
               ))}
@@ -122,8 +167,9 @@ export function ItemTest({ intro, practice, items, seconds, onDone, onCancel }: 
               }}
             >
               <input
+                ref={box}
                 aria-label="Your answer"
-                style={testStyles.input}
+                style={item.font ? { ...testStyles.input, fontFamily: item.font, fontSize: 28 } : testStyles.input}
                 inputMode={item.word ? 'text' : 'numeric'}
                 autoComplete="off"
                 autoFocus
@@ -173,8 +219,19 @@ const styles: Record<string, CSSProperties> = {
     display: 'grid',
     gap: 10,
   },
+  //a picture choice's letter, in its corner, for telling them apart afterwards
+  letter: {
+    position: 'absolute',
+    top: 4,
+    left: 7,
+    fontSize: 13,
+    fontWeight: 700,
+    color: gunmetal,
+    opacity: 0.7,
+  },
   choice: {
     ...testStyles.choice,
+    position: 'relative',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -193,5 +250,59 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     gap: 12,
     fontSize: 15,
+  },
+};
+
+const frameStyles: Record<string, CSSProperties> = {
+  //the test and what to do, side by side when there's room, what to do on the right in a column as wide as the scene's
+  //card. It comes first, so when they wrap it goes on top
+  side: {
+    display: 'flex',
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  play: {
+    flex: '999 1 440px',
+    minWidth: 0,
+    position: 'relative',
+  },
+  aside: {
+    flex: '1 1 clamp(300px, 32vw, 460px)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  intro: {
+    padding: '12px 14px',
+    background: ivory,
+    border: `2px solid ${gunmetal}`,
+    borderRadius: 10,
+  },
+  //the count, over the test
+  count: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    background: 'rgba(255, 253, 240, 0.88)',
+    borderRadius: 12,
+  },
+  number: {
+    fontFamily: comic,
+    fontSize: 'clamp(80px, 14vw, 160px)',
+    lineHeight: 1,
+    color: brownRed,
+  },
+  ready: {
+    fontFamily: comic,
+    fontSize: 24,
+    letterSpacing: 1,
+    color: gunmetal,
   },
 };

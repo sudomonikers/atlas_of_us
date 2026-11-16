@@ -8,6 +8,7 @@ mod community;
 mod conditions;
 mod ideas;
 mod impairments;
+mod me;
 mod norms;
 
 use axum::{
@@ -15,7 +16,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
 };
 use chrono::{Datelike, NaiveDate, Utc};
 use neo4rs::query;
@@ -26,13 +27,17 @@ use crate::{auth::AuthUser, state::AppState};
 
 use norms::Norm;
 
+//the sex a person (p) is compared with, male or female, from their answer to the Sex characteristic. null, with no
+//answer, compares them with everyone
+pub const SEX: &str = r#"toLower(COLLECT { MATCH (p)-[s:HAS_CHARACTERISTIC]->(:Characteristic {name: "Sex"}) RETURN s.value }[0])"#;
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(health_check))
         .route("/measurements", get(measurements))
         .route("/measurements/{id}/readings", post(add_reading))
         .route("/readings/{id}", delete(delete_reading))
-        .route("/me", put(set_me))
+        .route("/me", get(me::get_me).put(me::set_me))
         .merge(abilities::router())
         .merge(ideas::router())
         .merge(impairments::router())
@@ -105,7 +110,6 @@ pub struct Ages {
 
 #[derive(Serialize)]
 pub struct Measurements {
-    norm_sex: Option<String>, //the sex whose norms they're compared with. None compares them with everyone
     measurements: Vec<Measurement>,
 }
 
@@ -118,7 +122,7 @@ struct RawReading {
 
 #[derive(Deserialize)]
 struct Row {
-    norm_sex: Option<String>,
+    sex: Option<String>, //the sex they're compared with, male or female, or None for everyone
     birthday: Option<String>,
     id: String,
     name: String,
@@ -164,7 +168,7 @@ fn reading(raw: RawReading, norms: &[Norm], sex: Option<&str>, birthday: Option<
 const MEASUREMENTS: &str = "
     MATCH (p:Person {id: $personId}), (m:PhysicalMeasurement)
     WHERE $id IS NULL OR m.id = $id
-    RETURN p.normSex AS norm_sex, toString(p.birthday) AS birthday,
+    RETURN {SEX} AS sex, toString(p.birthday) AS birthday,
            m.id AS id, m.name AS name, m.unit AS unit, m.better AS better, m.group AS group, m.description AS description,
            m.min AS min, m.max AS max, m.test AS test, m.timer AS timer, coalesce(m.protocol, []) AS protocol, m.source AS source,
            coalesce(m.atlasNorms, false) AS atlas_norms,
@@ -183,7 +187,7 @@ const MEASUREMENTS: &str = "
 ";
 
 async fn rows(state: &AppState, person_id: &str, id: Option<&str>) -> Result<Vec<Row>, (StatusCode, String)> {
-    let mut result = state.graph.execute(query(MEASUREMENTS).param("personId", person_id).param("id", id)).await.map_err(internal)?;
+    let mut result = state.graph.execute(query(&MEASUREMENTS.replace("{SEX}", SEX)).param("personId", person_id).param("id", id)).await.map_err(internal)?;
     let mut rows = Vec::new();
     while let Some(row) = result.next().await.map_err(internal)? {
         rows.push(row.to::<Row>().map_err(internal)?);
@@ -194,10 +198,9 @@ async fn rows(state: &AppState, person_id: &str, id: Option<&str>) -> Result<Vec
 //every measurement, with the logged in user's readings and where each sits
 async fn measurements(State(state): State<AppState>, user: AuthUser) -> Result<Json<Measurements>, (StatusCode, String)> {
     let rows = rows(&state, &user.person_id, None).await?;
-    let norm_sex = rows.first().and_then(|r| r.norm_sex.clone());
     let measurements = rows.into_iter().map(|row| {
         let birthday = row.birthday.as_deref().and_then(date);
-        let sex = row.norm_sex.as_deref();
+        let sex = row.sex.as_deref();
         let ages = row.norms.iter().map(|n| n.age_from).min().map(|from| Ages {
             from,
             to: row.norms.iter().map(|n| n.age_to).max_by_key(|to| to.unwrap_or(i64::MAX)).flatten(),
@@ -221,7 +224,7 @@ async fn measurements(State(state): State<AppState>, user: AuthUser) -> Result<J
             ages,
         }
     }).collect();
-    Ok(Json(Measurements { norm_sex, measurements }))
+    Ok(Json(Measurements { measurements }))
 }
 
 #[derive(Deserialize)]
@@ -282,7 +285,7 @@ async fn record(state: &AppState, person_id: &str, id: &str, value: f64, measure
     };
     let abilities = abilities::refresh(state, person_id).await?;
     let raw = RawReading { id: reading_id, value, measured_on: measured_on.to_string() };
-    Ok((reading(raw, &norms, row.norm_sex.as_deref(), birthday), abilities))
+    Ok((reading(raw, &norms, row.sex.as_deref(), birthday), abilities))
 }
 
 //removes one of the logged in user's readings, working out the norms again for a test compared with Atlas users, and
@@ -298,25 +301,5 @@ async fn delete_reading(State(state): State<AppState>, user: AuthUser, Path(id):
     if row.get::<bool>("atlas_norms").map_err(internal)? {
         community::renorm(&state, &row.get::<String>("measurement").map_err(internal)?).await?;
     }
-    Ok(Json(abilities::refresh(&state, &user.person_id).await?))
-}
-
-//the logged in user's own physical attributes, the ones that are set rather than recorded as readings. Every field is
-//sent, and replaces what they had
-#[derive(Deserialize)]
-struct MeRequest {
-    norm_sex: Option<String>, //the sex whose norms they're compared with, male or female. None compares them with everyone
-}
-
-//sets the logged in user's own physical attributes
-async fn set_me(State(state): State<AppState>, user: AuthUser, Json(req): Json<MeRequest>) -> Result<Json<Vec<abilities::Ability>>, (StatusCode, String)> {
-    if req.norm_sex.as_deref().is_some_and(|s| s != "male" && s != "female") {
-        return Err(bad("Pick men, women or everyone to be compared with."));
-    }
-    state.graph.run(query("MATCH (p:Person {id: $personId}) SET p.normSex = $normSex")
-        .param("personId", user.person_id.as_str())
-        .param("normSex", req.norm_sex)
-    ).await.map_err(internal)?;
-    //who they're compared with moves every reading's percentile, and so their abilities, which come back
     Ok(Json(abilities::refresh(&state, &user.person_id).await?))
 }

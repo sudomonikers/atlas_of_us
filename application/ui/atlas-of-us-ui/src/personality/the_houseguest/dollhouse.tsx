@@ -145,7 +145,7 @@ const stroke = (c: string, d: string, w = 2, cls?: string): Item => ({ d, stroke
 const words = (text: string, x: number, y: number, size: number, more: Partial<{ c: string; hand: boolean; bold: boolean; anchor: 'start' | 'end' }> = {}): Item => ({ text, x, y, size, c: C.ink, ...more });
 const glow = (kind: 'warm' | 'cool' | 'dawn', [x, y]: Pt, r: number, cls?: string): Item => ({ glow: kind, x, y, r, cls });
 
-//a colour lightened (k > 0) or darkened (k < 0)
+//a color lightened (k > 0) or darkened (k < 0)
 const shade = (hex: string, k: number) => {
   const n = parseInt(hex.slice(1), 16);
   const f = (v: number) => Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k);

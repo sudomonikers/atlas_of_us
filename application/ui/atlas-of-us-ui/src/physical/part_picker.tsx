@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { capitalised, type BodyFunction, type PartSummary } from './api';
+import { capitalized, type BodyFunction, type PartSummary } from './api';
 import { Disclosure } from '../shared_components/disclosure';
 import { SearchField } from '../shared_components/search_field';
 import { matchesAll, searchWords } from '../shared_components/search';
@@ -73,7 +73,7 @@ export function PartPicker({ functions, parts, onPick }: PartPickerProps) {
             {results.slice(0, MAX_RESULTS).map((r) => (
               <li key={r.item.id} style={styles.node}>
                 <button className="comic-lift" style={styles.pick} onClick={() => onPick(r)}>
-                  {r.kind === 'part' ? capitalised(r.item.name) : r.item.name}
+                  {r.kind === 'part' ? capitalized(r.item.name) : r.item.name}
                 </button>
                 {r.kind === 'function' && <span style={styles.where}>{r.item.group}</span>}
               </li>
@@ -96,7 +96,7 @@ export function PartPicker({ functions, parts, onPick }: PartPickerProps) {
       ) : (
         <ul style={styles.list}>
           {roots.map((p) => (
-            <Branch key={p.id} id={p.id} label={capitalised(p.name)} depth={0} childrenOf={(id) => (partChildren.get(id) ?? []).map((c) => ({ id: c.id, label: capitalised(c.name) }))} onPick={(id) => onPick({ kind: 'part', item: parts.find((x) => x.id === id)! })} />
+            <Branch key={p.id} id={p.id} label={capitalized(p.name)} depth={0} childrenOf={(id) => (partChildren.get(id) ?? []).map((c) => ({ id: c.id, label: capitalized(c.name) }))} onPick={(id) => onPick({ kind: 'part', item: parts.find((x) => x.id === id)! })} />
           ))}
         </ul>
       )}

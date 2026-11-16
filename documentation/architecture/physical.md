@@ -7,12 +7,14 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: a guided walk through the body beside a 3D model of it, covering measurements and self-tests, abilities, where they stand drawn on the body, impairments and conditions, and the body to explore |
+| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: chapters of measurements, self-tests and abilities shown as comic animations of someone doing them, results and conditions drawn on a 3D model of the body, and the body to explore |
+| Pose models | `application/ui/atlas-of-us-ui/public/pose/` | MediaPipe's pose and hand landmarkers, which find where someone's body or hands are in each camera frame, in the browser |
+| Speech model | `application/ui/atlas-of-us-ui/public/speech/` | TensorFlow's speech commands model, which hears short words such as up, down, left and right, in the browser, for answering the far eye chart out loud |
 | 3D body | `application/ui/atlas-of-us-ui/public/anatomy/` | The models of the body, one file per layer, and which part each mesh is, served with the site |
 | API | `application/apis/atlas-api/src/domains/physical/` | Readings, their percentiles, and who a person is compared with; where a person stands on each ability; the anatomy; impairments; conditions, and adding ones from Mondo and HPO |
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/physical.rs` | Links a filled skill's levels to the abilities they take |
 | Condition links | `application/apis/atlas-jobs/src/events/condition_added/physical.rs` | Links a condition a person added to the body functions and parts it affects |
-| Seeds | `application/database/physical_abilities_seed.cypher`, `onet_occupations_seed.cypher`, `physical_norms_seed.cypher`, `physical_functions_seed.cypher`, `physical_anatomy_seed.cypher`, `physical_conditions_seed.cypher` | The abilities and the occupations rated on them, from O\*NET, the measurements with their norms, from NHANES, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
+| Seeds | `application/database/physical_abilities_seed.cypher`, `onet_occupations_seed.cypher`, `physical_norms_seed.cypher`, `physical_characteristics_seed.cypher`, `physical_functions_seed.cypher`, `physical_anatomy_seed.cypher`, `physical_conditions_seed.cypher` | The abilities and the occupations rated on them, from O\*NET, the measurements with their norms, from NHANES, the characteristics, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
 | Norms import | `application/database/physical_norms_import/` | Works out the norms from NHANES, adds the self-tests with their published norms, and writes the norms seed |
 | ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions seed |
 | Anatomy import | `application/database/anatomy_import/` | Reads FMA and BodyParts3D, writes the anatomy seed, and turns BodyParts3D's models into the 3D body |
@@ -24,14 +26,19 @@ The abilities of the O\*NET content model: capacities of the body and mind that 
 such as strength, eyesight and memory. A person's place on each is a **value** from 0 to 1, a percentile among people
 where 0.5 is typical, with a **confidence**, as for personality traits.
 
-Measurements, such as height and grip strength, are numbers a person records. Most have norms from NHANES, the US
+Measurements, such as height and push-ups, are numbers a person records. Most have norms from NHANES, the US
 national health survey: the value at each percentile, by sex and age band. Self-tests are measurements a person takes
 themselves, at home by following written steps or in the app, which times and scores them, with norms from published
 surveys and studies. The Atlas's own tests are compared with Atlas users: the api works out their norms from
-everyone's readings as readings come in. Two of them, of typed answers, are scored by the api with Bedrock: a fast model
+everyone's readings as readings come in. One of them, of typed answers, is scored by the api with Bedrock: a fast model
 reads the answers, and embeddings measure how unusual they are. A person's percentile is worked out when
 it's read, from their reading, their age when they took it and their sex for norms, so better norms update everyone at
-once. Measurements that show an ability, such as grip strength for Static Strength, are linked to it.
+once. Measurements that show an ability, such as push-ups for Dynamic Strength, are linked to it.
+
+Characteristics, such as a person's sex, which hand they use, their eye color and their blood type, are facts about a
+body that are one of a few choices rather than a number. A person answers each once, and can change it. Their sex also
+decides who their readings are compared with, or everyone their age when they haven't said, so changing it works out
+their abilities again. Which hand they use names the hand in the steps of the tests done with one.
 
 Body functions are the WHO's ICF, the international standard for describing how a body works. Functions are linked to
 the abilities they underlie and the measurements that read them, so an impairment shows which abilities it can hold
@@ -56,28 +63,110 @@ they could be great at, with the real Atlas shown along the way. Anyone can watc
 with, and the chapters take an account. Once a person has seen it, Physical Traits opens on the chapters, and they can
 play it again from there.
 
-Physical Traits is a walk through the person's body in chapters, taken one at a time from a page that lists them with
-how far through each the person is. A chapter plays as scenes beside a 3D model of the body. Atlas narrates each scene,
-the body lights up and the camera flies to the parts it's about, and each scene holds one thing: something to read, one
-measurement to take, one ability to rate, or one list to fill in. The chapters are:
-- Your body: a tour of the body's systems and how each shapes who someone is.
-- Size and vitals: who they're compared with, then a scene for each body size and vitals measurement.
-- Body, Coordination and speed, Senses, Mind: one chapter for each category of abilities. Each opens on what its
-  abilities are and why they're worth finding out, then has a scene for every measurement that shows one of its abilities and a rating scene for every ability no measurement shows, and ends on
-  where they stand, drawn on the body in colour.
+Physical Traits is in chapters, taken one at a time from a page that lists them with how far through each the person
+is. Atlas narrates each scene, and each scene holds one thing: something to read, one measurement to take, one ability
+to rate, or one list to fill in. A scene about a measurement or an ability shows a comic animation of someone doing it,
+drawn in the same marker as the story, and a scene about where things sit in the body shows the 3D model of it, with
+the camera flying to the parts it's about. The chapters are:
+- Physical Characteristics: their sex, which hand they use and their other characteristics, then their size and shape (height,
+  weight, body fat, waist, arm span, upper arm and leg lengths, hand span), resting heart rate and blood pressure.
+- Strength and fitness, Coordination and speed, Senses, Mind: one chapter for each category of abilities. Each opens
+  on what its abilities are, then has a scene for every measurement that shows one of its abilities and a rating scene
+  for every ability no measurement shows, and ends on how they did: Atlas sums it up in plain words over a breakdown
+  that fills the screen, with every ability's bar out of 100, the results
+  waiting on other people to compare with, and the ones still to do a step away.
 - Your results: every ability drawn on the body.
-- What you live with: impairments, then conditions. Each one lights up where it sits and tints the parts of the
-  abilities it can affect.
+- Conditions and disabilities: impairments, then conditions. Each one lights up where it sits and tints the parts of
+  the abilities it can affect.
 - Explore: clicking any part, picking a system, or finding a part by name opens everything about it.
+
+Some home tests can be watched through the camera, so someone can do them alone: standing on one leg, the plank,
+plate tapping and the two coin tests are timed, push-ups and bend, twist and touch are counted, and a vertical jump is measured from how long the
+toes are off the ground. Steady hand is a test only the camera can take: how far a hand held out at arm's length
+wanders in 20 seconds. A pose model finds the body, or the hands up close, in each frame in the browser,
+and the video stays on the device. The test starts and stops on what the body does, beeps, and says the result out
+loud, and the best of their tries is recorded.
+
+The hearing test plays fading tones through headphones, with the volume first set by a noise as loud as normal
+conversation, and estimates the hearing threshold from where each tone stops being heard.
 
 The chapter and scene are kept in the url.
 
-A measurement shows the steps for its home test or runs its in-app test, records a reading and the day it was taken,
+A measurement shows the steps for its home test or runs its in-app test, records a reading and the day it was taken
+(VO2 max can be worked out from how far someone runs in 12 minutes),
 and shows where it sits among people of their sex and age, compared with men, women or everyone as they choose. An
 impairment is in a body function or part, found by searching or browsing. A condition records how much it affects
 them, whether it was diagnosed and whether it's under control; a search finds one by any of its names, and looks
 further in Mondo and HPO for one that isn't listed.
 Measurements, impairments and conditions are private: they're only shown to the person who recorded them.
+
+## The tests
+Each test shows one ability. On screen, the app runs and scores it; at home, the person follows written steps and
+records the result, and some of those the camera can time or count instead.
+
+**Reasoning**
+| Test | How | What the person does | Score | Ability |
+|---|---|---|---|---|
+| Matrix Puzzles | On screen | Picks the figure that completes a grid of figures | right | Inductive Reasoning |
+| Number Series | On screen | Types the next number of a series | right | Inductive Reasoning |
+| Shape Rotation | On screen | Picks which block shape is the same one turned, with the rest mirrored | right | Visualization |
+| Paper Folding | On screen | Picks how folded, punched paper looks opened out | right | Visualization |
+| Perspective Taking | On screen | Imagines standing at one thing on a map and points to another | degrees off | Spatial Orientation |
+| Syllogisms | On screen | Judges whether a conclusion follows from statements about made-up things | right | Deductive Reasoning |
+| Design Fluency | On screen | Joins five dots into as many different designs as they can | designs | Fluency of Ideas |
+| Brick Uses | On screen, scored by the api | Lists uses for a brick | points for the most unusual ideas | Originality |
+| Spot the Problem | On screen | Taps what's wrong in everyday pictures, or says nothing is | pictures right | Problem Sensitivity |
+
+**Attention**
+| Test | How | What the person does | Score | Ability |
+|---|---|---|---|---|
+| Digit Span | On screen | Types back digits in order, one longer each time | digits | Memorization |
+| Trail Making | On screen | Taps numbers and letters in turn: 1, A, 2, B and on | seconds | Information Ordering |
+| Symbol Matching | On screen | Presses the digit a key pairs with each symbol | right | Perceptual Speed |
+| Distracting Arrows | On screen | Says which way the middle of a row of arrows points | ms slower when the outer arrows disagree | Selective Attention |
+| Card Sorting | On screen | Sorts cards by a hidden rule that changes | avoidable mistakes | Category Flexibility |
+| Broken Words | On screen | Types words with parts of them hidden | right | Speed of Closure |
+| Hidden Shapes | On screen | Finds which drawing hides a given shape | right | Flexibility of Closure |
+
+**Reflexes and coordination**
+| Test | How | What the person does | Score | Ability |
+|---|---|---|---|---|
+| Reaction Time | On screen | Presses when a target appears | ms | Reaction Time |
+| Choice Reaction Time | On screen | Presses one button for a blue P and the other for anything else | ms | Response Orientation |
+| Tapping | On screen | Taps one finger as fast as they can | taps | Wrist-Finger Speed |
+| Tracking | On screen | Keeps the pointer on a drifting dot | % on target | Control Precision |
+| Timing | On screen | Stops a moving dot at a mark, sometimes with the end of its path hidden | ms off | Rate Control |
+| Two-Hand Steering | On screen | Steers a dot with one hand for each direction | targets | Multilimb Coordination |
+| Track and Count | On screen | Tracks a dot while counting high beeps | points | Time Sharing |
+| Steady Hand | Camera | Holds an arm out as still as they can | mm wandered | Arm-Hand Steadiness |
+
+**Senses**
+| Test | How | What the person does | Score | Ability |
+|---|---|---|---|---|
+| Visual Acuity | On screen, or a result typed in | Reads the eye chart from across the room | 20/x | Far Vision |
+| Reading Chart | On screen | Reads small letters up close | 20/x | Near Vision |
+| Hearing Threshold | On screen with headphones, or a result typed in | Says when each fading tone is gone | dB HL | Hearing Sensitivity |
+| Odd Color Out | On screen | Spots the tile of a slightly different hue | hue degrees | Visual Color Discrimination |
+| Side Vision | On screen | Notices flashes off to the side while looking at a dot | flashes seen | Peripheral Vision |
+
+**Fitness**
+| Test | How | What the person does | Score | Ability |
+|---|---|---|---|---|
+| Push-Ups | At home or camera | Push-ups in a row | push-ups | Dynamic Strength |
+| Vertical Jump | At home or camera | Jumps from standing | cm | Explosive Strength |
+| Plank Hold | At home or camera | Holds a forearm plank | seconds | Trunk Strength |
+| One-Leg Stand, Eyes Closed | At home or camera | Balances on one leg with eyes closed | seconds | Gross Body Equilibrium |
+| Plate Tapping | At home or camera | Taps two spots far apart in turn | seconds | Speed of Limb Movement |
+| Coin Transfer | At home or camera | Drops coins into a mug one at a time | seconds | Manual Dexterity |
+| Coin Turning | At home or camera | Flips a row of coins | seconds | Finger Dexterity |
+| Bend, Twist and Touch | At home or camera | Touches the floor, then twists to touch the wall behind | touches | Dynamic Flexibility |
+| Hexagon Jump | At home | Jumps out and back over each side of a taped hexagon | seconds | Gross Body Coordination |
+| Sit and Reach | At home | Reaches toward their toes with legs straight | cm | Extent Flexibility |
+| Squat One-Rep Max | At home | Squats the heaviest they can, or a few reps worked out to one | kg | Static Strength |
+| Grip Strength | A result typed in | Squeezes a hand dynamometer | kg | Static Strength |
+| VO2 Max | A result typed in | From a fitness watch or a 12-minute run | ml/kg/min | Stamina |
+
+Inductive Reasoning, Visualization and Static Strength each have two tests. The abilities with no test, which are all senses a screen can't measure well, are rated by the person.
 
 ## Abilities
 A person's place on each ability is worked out from what they've recorded, by the api, whenever a reading, their sex
@@ -85,8 +174,10 @@ for norms, an impairment or a rating changes, and whenever they open Physical Tr
 people take the tests reach them. Every ability is worked out together in one query, and a change returns the result
 with what it saved. The latest reading of each
 measurement that shows an ability counts, weighted by how much that measurement says about it. With no reading, their
-own rating on the ability's examples stands in, with little confidence. An impairment in what the ability rests on
-holds it back. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's
+own rating on the ability's examples stands in, with little confidence. An impairment in what the ability rests on is
+noted beside it, and leaves where they stand as it is. Each ability has tips on working on it, one on what to do and one on working
+around an impairment, and how much practice changes it. A chapter's breakdown offers the first on an ability where the
+person is below typical, and the second wherever an impairment is noted. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's
 abilities show beside where the person stands, as its personality traits do, along with the person's conditions and
 impairments in the functions and parts each ability rests on.
 
@@ -111,7 +202,7 @@ a condition that has them is left as it is.
 
 ## Learning about the body
 The 3D body is BodyParts3D's models of a real human body, simplified when the anatomy seed is generated so the whole
-body loads in a browser, and drawn in the browser with three.js as a comic x-ray: the skin is an inked figure, and the parts inside it are drawn in flat colour with ink between them. Each layer is its own file,
+body loads in a browser, and drawn in the browser with three.js as a comic x-ray: the skin is an inked figure, and the parts inside it are drawn in flat color with ink between them. Each layer is its own file,
 loaded the first time it's shown. Every mesh is named, and a file beside the models says which part each one is, so a
 click opens that part. A part's page shows its FMA definition and other names, the wholes it belongs to and the parts
 it's made of, the kinds of part it is, the functions it serves with the abilities they underlie and the measurements

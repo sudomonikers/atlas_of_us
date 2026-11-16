@@ -3,7 +3,7 @@ import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Emergency is told on a fire safety card, the kind tucked in a seat pocket: a laminated card with a red header,
-// numbered panels and captions in capitals, flat isometric rooms, faceless people in plain colours, ISO signs and
+// numbered panels and captions in capitals, flat isometric rooms, faceless people in plain colors, ISO signs and
 // thick red arrows. You're always the one in yellow. A cue names a room, its panel number and caption, and the parts
 // to show: a new panel slides in, and new parts in the same panel pop in after it. While the real clock runs, smoke
 // fills the panel. Everything is SVG in a fixed 1600x900 space, scaled to cover the screen, and the people keep to
@@ -46,7 +46,7 @@ const HAND = '"Bradley Hand", "Segoe Print", "Comic Sans MS", cursive';
 // drawing
 // ---------------------------------------------------------------------------
 
-//a shape, outlined in ink when it's filled, or a stroke when it has a line colour; or lettering. t is an svg transform
+//a shape, outlined in ink when it's filled, or a stroke when it has a line color; or lettering. t is an svg transform
 type Shape = { d: string; fill?: string; line?: string; w?: number; dash?: string; cls?: string; t?: string };
 type Words = { text: string; x: number; y: number; size: number; fill?: string; weight?: number; anchor?: 'start' | 'middle' | 'end'; font?: string; t?: string };
 type Item = Shape | Words;
@@ -61,7 +61,7 @@ const circle = (x: number, y: number, r: number) => `M ${r1(x - r)} ${r1(y)} a $
 const ellipse = (x: number, y: number, rx: number, ry: number) => `M ${r1(x - rx)} ${r1(y)} a ${r1(rx)} ${r1(ry)} 0 1 0 ${r1(2 * rx)} 0 a ${r1(rx)} ${r1(ry)} 0 1 0 ${r1(-2 * rx)} 0`;
 const say = (text: string, x: number, y: number, size: number, more: Partial<Words> = {}): Words => ({ text, x, y, size, ...more });
 
-//a colour mixed towards white (k > 0) or black (k < 0)
+//a color mixed toward white (k > 0) or black (k < 0)
 const shade = (hex: string, k: number) => {
   const n = parseInt(hex.slice(1), 16);
   const ch = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
@@ -173,7 +173,7 @@ function tickSign(x: number, y: number, s: number): Item[] {
 const callout = (x: number, y: number, n: string): Item[] => [{ d: circle(x, y, 22), fill: RED, w: 3 }, say(n, x, y + 9, 26, { fill: WHITE, weight: 900 })];
 
 // ---------------------------------------------------------------------------
-// people: faceless, in plain colours, posed in centimetres from the feet, facing right
+// people: faceless, in plain colors, posed in centimeters from the feet, facing right
 // ---------------------------------------------------------------------------
 
 type Pose = { head: Pt; torso: Pt[]; legs: Pt[][]; arms: Pt[][] };
@@ -191,7 +191,7 @@ const IVY: Who = { shirt: '#e07a95', legs: '#9fb3c4' };
 const NELL_COAT: Who = { shirt: '#6f675e', legs: '#9fb3c4' };
 const OKAFOR: Who = { shirt: '#8b6b4a' };
 const TEAL: Who = { shirt: '#3c9c9c' };
-const GREY: Who = { shirt: '#8f98a3' };
+const GRAY: Who = { shirt: '#8f98a3' };
 const FIREFIGHTER: Who = { shirt: '#2c3a52', legs: '#2c3a52', helmet: true };
 
 const LEGS: Pt[][] = [[[-5, -92], [-6, -48], [-7, -3]], [[5, -92], [6, -48], [7, -3]]];
@@ -215,7 +215,7 @@ const POSES = {
 } satisfies Record<string, Pose>;
 type PoseName = keyof typeof POSES;
 
-const K = 0.92; //centimetres to pixels, matching the rooms' scale
+const K = 0.92; //centimeters to pixels, matching the rooms' scale
 
 function figure([x, y]: Pt, pose: Pose, who: Who, flip = false, cls?: string): Item[] {
   const t = `translate(${r1(x)} ${r1(y)}) scale(${flip ? -K : K} ${K})`;
@@ -239,10 +239,10 @@ function figure([x, y]: Pt, pose: Pose, who: Who, flip = false, cls?: string): I
 }
 
 // ---------------------------------------------------------------------------
-// rooms: isometric, in metres, with the back corner at ox, oy
+// rooms: isometric, in meters, with the back corner at ox, oy
 // ---------------------------------------------------------------------------
 
-const S = 92; //pixels per metre
+const S = 92; //pixels per meter
 const ISO_X = S * 0.866;
 const ISO_Y = S * 0.5;
 
@@ -250,7 +250,7 @@ function iso(ox: number, oy: number) {
   const P = (x: number, y: number, z = 0): Pt => [ox + (x - y) * ISO_X, oy + (x + y) * ISO_Y - z * S];
   const face = (...vs: V[]) => poly(...vs.map((v) => P(...v)));
   const path = (...vs: V[]) => line(...vs.map((v) => P(...v)));
-  //a box from x, y, z, dx by dy by dz: its top, its face towards the bottom left, and its darker face towards the bottom right
+  //a box from x, y, z, dx by dy by dz: its top, its face toward the bottom left, and its darker face toward the bottom right
   const box = (x: number, y: number, z: number, dx: number, dy: number, dz: number, c: string): Shape[] => [
     { d: face([x, y + dy, z], [x + dx, y + dy, z], [x + dx, y + dy, z + dz], [x, y + dy, z + dz]), fill: c, w: 2.5 },
     { d: face([x + dx, y, z], [x + dx, y + dy, z], [x + dx, y + dy, z + dz], [x + dx, y, z + dz]), fill: shade(c, -0.16), w: 2.5 },
@@ -364,7 +364,7 @@ const KITCHEN: Record<string, Item[]> = {
     { d: line(k.P(1.72, 0.6, 0.97), k.P(1.72, 0.95, 1.0)), line: INK, w: 7 },
   ],
   window_open: windowOpen(k, 3.5, 4.25, 0.95, 1.85),
-  burnt: k.cyl(1.72, 0.44, 0.91, 0.15, 0.09, '#2b2b2b', '#151515'),
+  burned: k.cyl(1.72, 0.44, 0.91, 0.15, 0.09, '#2b2b2b', '#151515'),
   heat: [{ d: [-14, 0, 14].map((dx) => `M ${PAN[0] + dx} ${PAN[1] - 14} q 7 -10 0 -20 q -7 -10 0 -20`).join(' '), line: '#9aa0a6', w: 3, cls: 'ec-smoke' }],
   fire: [...flame(PAN[0] - 20, PAN[1], 40, 70), ...flame(PAN[0] + 18, PAN[1], 44, 82), ...flame(PAN[0], PAN[1] + 2, 60, 104)],
   tray: k.box(1.52, 0.24, 1.0, 0.42, 0.42, 0.03, '#9aa3ad'),
@@ -414,7 +414,7 @@ const KITCHEN: Record<string, Item[]> = {
 //the dining room: six round the table, a window with curtains, a picture on the wall
 const d = iso(760, 350);
 const BACK_ROW: [number, Who][] = [[1.35, TESS], [2.1, TEAL], [2.85, FEMI]];
-const FRONT_ROW: [number, Who][] = [[1.35, SIS], [2.1, YOU], [2.85, GREY]];
+const FRONT_ROW: [number, Who][] = [[1.35, SIS], [2.1, YOU], [2.85, GRAY]];
 const plate = (x: number, y: number) => [d.disc(x, y, 0.755, 0.13, WHITE), d.disc(x, y, 0.756, 0.08, '#efe9dd')];
 
 const DINING: Record<string, Item[]> = {
@@ -495,7 +495,7 @@ const STAIRS: Record<string, Item[]> = {
   bubble: bubble(NELL_AT[0] + 150, NELL_AT[1] - 230, 210, "IT'S FINE!"),
 };
 
-//the street: the front of your building, the pavement, and a fire engine at the kerb
+//the street: the front of your building, the pavement, and a fire engine at the curb
 const st = iso(670, 345);
 const STREET: Record<string, Item[]> = {
   _room: [
@@ -623,7 +623,7 @@ const cues: Record<string, Cue> = {
   water: { room: 'stairs', n: 8, caption: 'KEEP THEM WARM', parts: ['nell_coat', 'you_go'], mix: LANDING },
   jo_nell: { room: 'stairs', n: 8, caption: 'ASK FOR HELP', parts: ['smoke_door', 'nell_still', 'jo_sit', 'you_go'], mix: LANDING },
   tell: { room: 'stairs', n: 8, caption: "IT'S OUT. IT'S FINE.", parts: ['smoke_door', 'nell', 'breath', 'you_tell', 'bubble'], mix: LANDING },
-  clear: { room: 'kitchen', n: 9, caption: 'ALL CLEAR', parts: ['window_open', 'burnt', 'tray', 'you_stand', 'tick'], mix: QUIET },
+  clear: { room: 'kitchen', n: 9, caption: 'ALL CLEAR', parts: ['window_open', 'burned', 'tray', 'you_stand', 'tick'], mix: QUIET },
   late: { room: 'kitchen', n: 9, caption: 'GET OUT AND STAY OUT', parts: ['tray', 'smoke', 'smoke_thick', 'alarm', 'exit'], mix: { alarm: 0.8, kitchen: 0.3 } },
   engine: { room: 'street', n: 10, caption: 'CALL 911', parts: ['smoke', 'crowd', 'firefighter', 'engine', 'lights'], mix: { kitchen: 0.25 } },
   chips: { room: 'dining', n: 1, caption: 'ENJOY YOUR MEAL (AGAIN)', parts: ['breeze', 'chairs_back', 'back_row', 'table', 'chips', 'front_seats', 'front_row'], mix: { dinner: 0.45 } },
@@ -726,7 +726,7 @@ function Card() {
         IN CASE OF FIRE
       </text>
       <text x={1320} y={66} textAnchor="end" fill={WHITE} style={{ fontFamily: SANS, fontWeight: 700, fontSize: 24, letterSpacing: 2 }}>
-        FLAT 2 · SAFETY CARD
+        APT 2 · SAFETY CARD
       </text>
       <path d={round(64, 112, 1472, 760, 16)} fill={PANEL} stroke={INK} strokeWidth={4} />
     </g>

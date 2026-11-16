@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { addCondition, capitalised, lookupConditions, type Candidate, type Condition } from './api';
+import { addCondition, capitalized, lookupConditions, type Candidate, type Condition } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { SearchField } from '../shared_components/search_field';
 import { matchesAll, searchWords } from '../shared_components/search';
@@ -74,7 +74,7 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
             {results.slice(0, MAX_RESULTS).map((c) => (
               <li key={c.id} style={styles.item}>
                 <button className="comic-lift" style={styles.pick} onClick={() => onPick(c)}>
-                  {capitalised(c.name)}
+                  {capitalized(c.name)}
                 </button>
               </li>
             ))}
@@ -97,7 +97,7 @@ export function ConditionPicker({ conditions, onPick, onAdded }: ConditionPicker
                 {candidates.map((c) => (
                   <li key={c.source_id} style={styles.item}>
                     <button className="comic-lift" style={styles.pick} disabled={!!adding} onClick={() => pickCandidate(c)}>
-                      {adding === c.source_id ? 'Adding...' : capitalised(c.name)}
+                      {adding === c.source_id ? 'Adding...' : capitalized(c.name)}
                     </button>
                     {c.description && <span style={styles.where}>{c.description}</span>}
                   </li>

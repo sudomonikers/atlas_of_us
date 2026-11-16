@@ -18,7 +18,7 @@
 - **Liberalism is the exception.**
   - The 120's two voting items ("Tend to vote for liberal / conservative political candidates") are dropped.
   - The trait itself is global: being willing to question authority, tradition and fixed moral rules.
-  - The party labels aren't. "Liberal" means the centre-right in Australia and free-market in much of Europe.
+  - The party labels aren't. "Liberal" means the center-right in Australia and free-market in much of Europe.
   - So we keep five items that test the attitude without the labels.
 
 | Facet | Items | Fifth item, and why |
@@ -209,7 +209,7 @@ A trip abroad with a friend who chases adrenaline.
 - **The bungee bridge**
   - `E5.9` − Would never go hang gliding or bungee jumping.
   - `C6.4` − Jump into things without thinking. ★
-- **On the back of Kit's motorbike at night, and Kit asks if you want to go faster**
+- **On the back of Kit's motorcycle at night, and Kit asks if you want to go faster**
   - `E5.5` + Enjoy being reckless. ★
   - `C6.9` − Act without thinking. ★
 
@@ -232,7 +232,7 @@ You work in a small shop with a strict "always call the police" policy, and you 
 ### 9. The Committee
 *Story*
 
-A neighbourhood committee is putting on a street festival, and nobody is in charge.
+A neighborhood committee is putting on a street festival, and nobody is in charge.
 
 - **The first meeting**
   - `E3.1` + Take charge. ★
@@ -357,7 +357,7 @@ A grease fire breaks out in the kitchen during a dinner you're hosting, and the 
 ### 16. The Feud
 *Story*
 
-A neighbour builds a fence a metre onto your land.
+A neighbor builds a fence a meter onto your land.
 
 - **The first conversation, where they push hard**
   - `N4.10` − Am able to stand up for myself.
@@ -368,7 +368,7 @@ A neighbour builds a fence a metre onto your land.
   - `A1.8` − Suspect hidden motives in others.
 - **It escalates**
   - `A4.6` − Love a good fight. ★
-- **Months later, they need a favour**
+- **Months later, they need a favor**
   - `A4.9` − Get back at others. ★
 
 ### 17. The Cabin

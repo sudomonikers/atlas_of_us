@@ -33,7 +33,7 @@ const C = {
   tan: '#c69c6d',
   skin: '#efc4a1',
   pink: '#e594a2',
-  grey: '#8b8f96',
+  gray: '#8b8f96',
   white: '#fbf9f2',
   ink: '#2e2826',
 };
@@ -172,7 +172,7 @@ const bubble = (x: number, y: number, w: number, h: number, tip: Pt, lines: stri
   const outline = `M ${x + r} ${y} H ${x + w - r} A ${r} ${r} 0 0 1 ${x + w} ${y + r} V ${y + h - r} A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} H ${x + r} A ${r} ${r} 0 0 1 ${x} ${y + h - r} V ${y + r} A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
   const foot = Math.min(Math.max(tip[0], x + 40), x + w - 60);
   const tail = shape([foot, y + h - 2], [foot + 30, y + h - 2], tip);
-  return [fill(c, outline), fill(c, tail), back('grey', outline, 3), ...lines.map((t, i) => words('ink', t, x + 22, y + 34 + i * 30, 23, 'start'))];
+  return [fill(c, outline), fill(c, tail), back('gray', outline, 3), ...lines.map((t, i) => words('ink', t, x + 22, y + 34 + i * 30, 23, 'start'))];
 };
 
 //a round tree, trunk at x on the ground at y
@@ -185,11 +185,11 @@ const tree = (x: number, y: number, s: number, seed: number): Item[] => [
 //a puffy cloud
 const cloud = (x: number, y: number, s: number, cls?: string): Item => fill('white', [circle(x, y, 34 * s), circle(x + 40 * s, y - 14 * s, 40 * s), circle(x + 82 * s, y, 32 * s), rect(x, y - 4 * s, 82 * s, 34 * s)].join(' '), cls);
 
-//a boat on the water at y, centred on x
+//a boat on the water at y, centered on x
 const hull = (x: number, y: number, s: number): Item[] => [
   fill('white', shape([x - 160 * s, y - 40 * s], [x + 170 * s, y - 40 * s], [x + 130 * s, y + 10 * s], [x - 140 * s, y + 10 * s])),
   fill('navy', shape([x - 152 * s, y - 28 * s], [x + 161 * s, y - 28 * s], [x + 155 * s, y - 18 * s], [x - 146 * s, y - 18 * s])),
-  back('grey', shape([x - 160 * s, y - 40 * s], [x + 170 * s, y - 40 * s], [x + 130 * s, y + 10 * s], [x - 140 * s, y + 10 * s]), 3),
+  back('gray', shape([x - 160 * s, y - 40 * s], [x + 170 * s, y - 40 * s], [x + 130 * s, y + 10 * s], [x - 140 * s, y + 10 * s]), 3),
 ];
 
 //short glinting dashes on water, from x1 to x2 between y1 and y2
@@ -216,7 +216,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
       fill('brown', rect(100, FLOOR - 20, 1400, 20)),
       back('brown', `M 100 ${FLOOR + 50} H 1500 M 100 ${FLOOR + 100} H 1500 M 420 ${FLOOR} v 50 M 880 ${FLOOR} v 50 M 1260 ${FLOOR} v 50 M 640 ${FLOOR + 50} v 50 M 1100 ${FLOOR + 50} v 50`, 3),
     ],
-    window: [fill('white', rect(750, 110, 240, 270)), back('grey', rect(750, 110, 240, 270), 3)],
+    window: [fill('white', rect(750, 110, 240, 270)), back('gray', rect(750, 110, 240, 270), 3)],
     curtains: [
       fill('blue', `${shape([712, 96], [772, 96], [762, 250], [778, 400], [706, 400], [720, 250])} ${shape([968, 96], [1028, 96], [1020, 250], [1034, 400], [962, 400], [978, 250])}`),
       fill('navy', rect(696, 90, 348, 14)),
@@ -254,14 +254,14 @@ const ART: Record<Page, Record<string, Item[]>> = {
     calendar: [
       fill('white', rect(1060, 140, 120, 150)),
       fill('blue', rect(1060, 140, 120, 34)),
-      back('grey', `${rect(1060, 140, 120, 150)} M 1060 210 H 1180 M 1060 250 H 1180 M 1100 174 V 290 M 1140 174 V 290`, 2),
+      back('gray', `${rect(1060, 140, 120, 150)} M 1060 210 H 1180 M 1060 250 H 1180 M 1100 174 V 290 M 1140 174 V 290`, 2),
       words('white', 'JUNE', 1120, 165, 18),
       back('red', ellipse(1160, 230, 22, 16), 3.5),
       words('ink', 'H 9am', 1160, 278, 14),
     ],
     fridge: [
       fill('white', rect(1220, 190, 120, 280)),
-      back('grey', `${rect(1220, 190, 120, 280)} M 1220 290 H 1340 M 1326 220 v 50 M 1326 310 v 70`, 3),
+      back('gray', `${rect(1220, 190, 120, 280)} M 1220 290 H 1340 M 1326 220 v 50 M 1326 310 v 70`, 3),
     ],
     list: [
       fill('yellow', rect(1238, 300, 74, 100)),
@@ -271,20 +271,20 @@ const ART: Record<Page, Record<string, Item[]>> = {
     ticks: [back('red', 'M 1242 318 l 5 6 l 10 -12 M 1242 338 l 5 6 l 10 -12 M 1242 358 l 5 6 l 10 -12 M 1242 378 l 5 6 l 10 -12', 3)],
     you_stand: person(640, FLOOR, FIG, YOU, { pose: 'phone' }),
     chat: [
-      ...bubble(470, 110, 230, 52, [652, 302], ["pub lunch? 1pm"]),
+      ...bubble(470, 110, 230, 52, [652, 302], ["lunch? 1pm"]),
       ...bubble(500, 176, 230, 52, [652, 302], ["who's about??"]),
     ],
     you_gym: [...person(640, FLOOR, FIG, YOU, { pose: 'walk' }), fill('blue', `${rect(590, FLOOR - 100, 60, 34)}`), back('navy', `M 600 ${FLOOR - 100} q 20 -26 40 0`, 3)],
     headphones: [back('ink', 'M 403 324 a 20 24 0 0 1 40 0', 5), fill('ink', `${rect(397, 318, 12, 18)} ${rect(437, 318, 12, 18)}`), back('navy', 'M 490 220 v 40 a 8 7 0 1 1 -6 -6 M 530 190 v 40 a 8 7 0 1 1 -6 -6 M 530 190 l 24 -8 v 40 a 8 7 0 1 1 -6 -6', 3, 'fw-float')],
     you_lying: person(360, FLOOR - 70, FIG, YOU, { pose: 'lie' }),
-    mug: [fill('white', rect(660, FLOOR - 30, 26, 30)), back('grey', `M 686 ${FLOOR - 24} a 8 9 0 0 1 0 18`, 3), back('grey', 'M 668 425 q 6 -10 0 -20 M 680 425 q 6 -10 0 -20', 2, 'fw-float')],
+    mug: [fill('white', rect(660, FLOOR - 30, 26, 30)), back('gray', `M 686 ${FLOOR - 24} a 8 9 0 0 1 0 18`, 3), back('gray', 'M 668 425 q 6 -10 0 -20 M 680 425 q 6 -10 0 -20', 2, 'fw-float')],
     you_call: [...person(560, FLOOR, FIG, YOU, { pose: 'phone' }), fill('brown', rect(510, FLOOR - 82, 30, 40))],
     ring: [back('ink', 'M 600 290 a 24 24 0 0 1 0 34 M 616 278 a 40 40 0 0 1 0 58', 3, 'fw-twinkle')],
   },
 
   move: {
     sun: [fill('yellow', circle(300, 190, 40)), back('gold', 'M 300 128 v -24 M 300 252 v 24 M 238 190 h -24 M 362 190 h 24 M 256 146 l -16 -16 M 344 146 l 16 -16 M 256 234 l -16 16 M 344 234 l 16 16', 4)],
-    pavement: [fill('grey', rect(100, GROUND, 1400, 200)), back('white', `M 100 ${GROUND + 2} H 1500`, 3)],
+    pavement: [fill('gray', rect(100, GROUND, 1400, 200)), back('white', `M 100 ${GROUND + 2} H 1500`, 3)],
     building: [
       fill('tan', rect(820, 110, 360, GROUND - 110)),
       fill('sky', [0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => rect(850 + c * 115, 140 + r * 110, 70, 70))).join(' ')),
@@ -296,7 +296,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
       fill('white', `${rect(440, GROUND - 170, 290, 140)} ${shape([440, GROUND - 120], [440, GROUND - 30], [360, GROUND - 30], [360, GROUND - 90], [390, GROUND - 120])}`),
       fill('sky', shape([382, GROUND - 112], [430, GROUND - 112], [430, GROUND - 82], [370, GROUND - 82])),
       fill('ink', `${circle(410, GROUND - 22, 22)} ${circle(670, GROUND - 22, 22)}`),
-      back('grey', `${rect(440, GROUND - 170, 290, 140)} M 440 ${GROUND - 120} L 390 ${GROUND - 120} L 360 ${GROUND - 90} V ${GROUND - 30} H 440`, 3),
+      back('gray', `${rect(440, GROUND - 170, 290, 140)} M 440 ${GROUND - 120} L 390 ${GROUND - 120} L 360 ${GROUND - 90} V ${GROUND - 30} H 440`, 3),
       words('blue', 'TRUCK RENTAL', 585, GROUND - 95, 26),
     ],
     sofa_out: [
@@ -315,7 +315,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
       fill('green', shape([514, 164], [560, 130], [610, 150], [650, 124], [686, 164])),
       fill('blue', rect(514, 164, 172, 46)),
       fill('white', shape([590, 184], [630, 184], [622, 196], [598, 196])),
-      back('grey', rect(500, 80, 200, 160), 2),
+      back('gray', rect(500, 80, 200, 160), 2),
     ],
   },
 
@@ -357,14 +357,14 @@ const ART: Record<Page, Record<string, Item[]>> = {
       fill('ink', `${rect(790, LAWN - 34, 10, 34)} ${rect(940, LAWN - 34, 10, 34)}`),
     ],
     heron: [
-      fill('grey', `M 600 ${LAWN + 20} q -40 -20 -10 -60 q 30 -10 50 10 q 10 30 -40 50 Z`),
-      back('grey', `M 610 ${LAWN - 30} q -10 -30 6 -50`, 6),
-      fill('grey', circle(618, LAWN - 84, 9)),
+      fill('gray', `M 600 ${LAWN + 20} q -40 -20 -10 -60 q 30 -10 50 10 q 10 30 -40 50 Z`),
+      back('gray', `M 610 ${LAWN - 30} q -10 -30 6 -50`, 6),
+      fill('gray', circle(618, LAWN - 84, 9)),
       back('ink', `M 624 ${LAWN - 86} l 28 6 M 596 ${LAWN + 12} v 50 M 610 ${LAWN + 12} v 50`, 3),
     ],
     you_walk: person(1000, LAWN + 25, FIG, YOU, { dir: -1, pose: 'walk' }),
     you_bench: person(860, LAWN, FIG, YOU, { pose: 'sit' }),
-    book: [fill('white', shape([890, LAWN - 72], [920, LAWN - 80], [950, LAWN - 72], [950, LAWN - 50], [920, LAWN - 58], [890, LAWN - 50])), back('grey', `M 920 ${LAWN - 80} V ${LAWN - 58}`, 2)],
+    book: [fill('white', shape([890, LAWN - 72], [920, LAWN - 80], [950, LAWN - 72], [950, LAWN - 50], [920, LAWN - 58], [890, LAWN - 50])), back('gray', `M 920 ${LAWN - 80} V ${LAWN - 58}`, 2)],
     you_grass: person(1200, LAWN + 30, FIG, YOU, { dir: -1, pose: 'lie' }),
     cloud_ship: [
       fill('white', `${shape([640, 170], [900, 170], [860, 215], [680, 215])} ${shape([760, 160], [760, 70], [840, 160])} ${shape([745, 160], [745, 90], [690, 160])}`, 'fw-drift'),
@@ -548,7 +548,7 @@ function Sampler({ animation }: { animation: string }) {
       <style>{keyframes}</style>
       <svg style={styles.layer} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
         <defs>
-          {/* snaps shapes to the cloth: each cell takes the colour at its middle */}
+          {/* snaps shapes to the cloth: each cell takes the color at its middle */}
           <filter id="fw-grid" filterUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
             <feFlood x={CELL / 2 - 1} y={CELL / 2 - 1} width="2" height="2" />
             <feComposite width={CELL} height={CELL} />

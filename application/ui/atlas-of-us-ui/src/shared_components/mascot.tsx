@@ -22,10 +22,10 @@ export function Mascot({ size = 96 }: { size?: number }) {
   //flex: none, so a speech bubble beside him in a flex row never squeezes him
   return (
     <svg width={size} height={size * 1.2} viewBox="0 0 100 120" style={{ flex: 'none' }} aria-hidden>
-      {/* colours go through style rather than fill/stroke attributes so the css variables resolve */}
+      {/* colors go through style rather than fill/stroke attributes so the css variables resolve */}
       <g style={{ stroke: gunmetal }} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8 18 L16 21 M6 30 L14 30 M92 18 L84 21 M94 30 L86 30" fill="none" strokeWidth="2.5" />
-        {/* the world, with its colour bleeding past the outline */}
+        {/* the world, with its color bleeding past the outline */}
         <g className="atlas-globe">
           <circle cx="50" cy="24" r="20" style={{ fill: blue, stroke: 'none' }} transform="translate(3 3)" opacity="0.75" />
           <circle cx="50" cy="24" r="20" style={{ fill: paleBlue }} />

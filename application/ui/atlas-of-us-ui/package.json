@@ -15,6 +15,12 @@
     "deploy:site": "aws s3 sync dist s3://atlas-of-us-site --exclude 'assets/*' --delete --cache-control no-cache"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.1",
+    "@tensorflow-models/speech-commands": "^0.5.4",
+    "@tensorflow/tfjs-backend-webgl": "^3.21.0",
+    "@tensorflow/tfjs-core": "^3.21.0",
+    "@tensorflow/tfjs-data": "^3.21.0",
+    "@tensorflow/tfjs-layers": "^3.21.0",
     "d3-force": "^3.0.0",
     "flag-icons": "^7.5.0",
     "react": "^19.2.8",

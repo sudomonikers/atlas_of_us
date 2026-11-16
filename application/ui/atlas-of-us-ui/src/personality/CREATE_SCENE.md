@@ -3,7 +3,7 @@ Every scene is written to a set of IPIP-NEO items (see `README.md`). When creati
 1. Find the scene's items in `scene_grouping.md`: which items it tests, its mode (story, live or interview) and its beats. The items' full wording is in `ipip_neo_items.md`
 2. Create a new folder and file in the atlas_of_us/application/ui/atlas-of-us-ui/src/personality path
 3. Write the script for the scene:
-   - Turn each item into a moment where the player can show the behaviour it describes, without being asked to describe themselves. Never put the item's wording in a prompt
+   - Turn each item into a moment where the player can show the behavior it describes, without being asked to describe themselves. Never put the item's wording in a prompt
    - Make both ends look reasonable, so there's no right answer to give
    - One prompt can test several items. Its `facets` are the facets of the items it tests. Don't add fixed trait scores for choices: every answer is scored by the llm from the choice and the user's reasoning
    - End with a real-life question about the player's own life, with any frequency pinned down ("on how many of the last 7 days", not "often")

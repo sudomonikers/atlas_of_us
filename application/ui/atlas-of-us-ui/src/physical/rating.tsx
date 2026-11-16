@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
-import { EXTENTS, rateAbility, unrateAbility, type Ability, type Basis } from './api';
+import { rateAbility, unrateAbility, type Ability, type Basis } from './api';
+import { Impaired } from './impaired';
 import { Scale } from './scale';
 import { AtlasError } from '../shared_components/atlas-error';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
@@ -15,7 +16,6 @@ function sureness(confidence: number) {
 //what a place on an ability comes from, in words
 function because(b: Basis) {
   if (b.kind === 'rating') return 'your own rating';
-  if (b.kind === 'impairment') return `held back by your ${EXTENTS.find((e) => e.value === b.extent)?.label.toLowerCase() ?? ''} impairment in ${b.name.toLowerCase()}`;
   return b.standing === null ? `your ${b.name.toLowerCase()}` : `your ${b.name.toLowerCase()}, which scores ${Math.round(b.standing)}`;
 }
 
@@ -35,12 +35,13 @@ export default function Rating({ ability, onChanged }: { ability: Ability; onCha
           <Scale percentile={value * 100} better="higher" />
           <p style={styles.standing}>
             About {Math.round(value * 100)} out of 100. This is {sureness(confidence)}, from{' '}
-            {basis.map(because).join(', and ')}.
+            {basis.filter((b) => b.kind !== 'impairment').map(because).join(', and ')}.
           </p>
         </>
       ) : (
-        <p style={styles.note}>Nothing says where you stand yet.</p>
+        <p style={styles.note}>You haven't rated this yet.</p>
       )}
+      <Impaired basis={basis} />
 
       {examples.length === 3 && (
         <fieldset style={styles.rating}>

@@ -25,7 +25,7 @@ Sources ruled out by their license:
 | Information Ordering | Trail Making B: tap 1, A, 2, B and on to 13 | App | Tombaugh 2004, ages 18 to 89 | Done |
 | Far Vision | Eye chart: tumbling E on a screen sized with a bank card, from 3 m | App | NHANES visual acuity (the existing measurement) | Done |
 | Speech Recognition, Hearing Sensitivity | Digits in noise: three digits in rising background noise, with headphones | App | Smits 2004 and the WHO's hearWHO | Needs recordings of the digits, made for the Atlas |
-| Fluency of Ideas | Type as many animals as you can in 60 s | App | Tombaugh, Kozak and Rees 1999, or the NACC's UDS 3 norms (Weintraub 2018) | Built as Animal Naming, compared with Atlas users. Needs the norm tables (paywalled or image-only) to compare with the published study |
+| Fluency of Ideas | Join five dots with four lines into as many different designs as you can in 60 s | App | Ruff Figural Fluency Test and D-KEFS Design Fluency | Built as Design Fluency, compared with Atlas users |
 | Wrist-Finger Speed | Finger tapping, 10 s tries | App | Hubel and colleagues 2013 (Woods lab, the same keyboard test) | Built as Tapping, compared with Atlas users. Needs the paper's tables (paywalled) to compare with the published study |
 | Trunk Strength | Partial curl-ups to a beat | Home | CSEP-PATH, ages 15 to 69 | Plank Hold is built, compared with Atlas users. Curl-ups need the CSEP manual's table |
 | Stamina (a second test) | YMCA 3-minute step test, then a 1-minute pulse count | Home | YMCA | Published copies of the table disagree; needs the YMCA manual |
@@ -59,10 +59,11 @@ Done:
 | Multilimb Coordination | Two-Hand Steering | 60 seconds, keyboard or touch screen |
 | Time Sharing | Track and Count | 60 seconds of tracking while counting high beeps |
 | Near Vision | Reading Chart | the eye chart at 40 cm, down to the smallest line the screen can draw |
-| Visual Color Discrimination | Odd Colour Out | 30 goes, a staircase on hue |
+| Visual Color Discrimination | Odd Color Out | 30 goes, a staircase on hue |
 | Peripheral Vision | Side Vision | 24 flashes out to 30 degrees and 4 blanks, on a screen 29 cm wide or more |
-| Fluency of Ideas | Animal Naming | 60 seconds, an LLM keeps the different animals |
+| Fluency of Ideas | Design Fluency | 60 seconds of designs joining five dots with four lines, counted by the different sets of lines |
 | Originality | Brick Uses | 2 minutes, an LLM keeps the genuine uses, scored on the three furthest from a brick and the most common uses (embeddings) |
+| Problem Sensitivity | Spot the Problem | 17 everyday pictures in 4 minutes, about a third with nothing wrong, scored on pictures right, a tap counting only on the problem itself |
 
 | Trunk Strength | Plank Hold (home) | as long as you can hold it, with the app's stopwatch |
 | Manual Dexterity | Coin Transfer (home) | 20 coins into a mug, one at a time |
@@ -83,7 +84,7 @@ To build:
   accents, so the wording needs care.
 
 ## Tier 3: a short questionnaire in place of the self-rating
-For Night Vision, Glare Sensitivity, Depth Perception and Problem Sensitivity, which no screen or house can test, and as
+For Night Vision, Glare Sensitivity and Depth Perception, which no screen or house can test, and as
 the fallback for every ability until it has a test: 4 or 5 everyday questions answered on a scale, in place of one pick.
 The Low Luminance Questionnaire (Owsley 2006) covers night vision and glare. A questionnaire stays the lowest confidence,
 and any test outranks it.

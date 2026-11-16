@@ -4,10 +4,10 @@
 Morgan is 58 and runs operations at a logistics firm. Morgan lives alone, keeps a tidy house and a tight budget, goes to the gym at seven on Saturdays, and has been regional director for twelve years.
 
 **What Morgan is like:**
-- **Blunt and sceptical.** Morgan doesn't give second chances, especially with money.
+- **Blunt and skeptical.** Morgan doesn't give second chances, especially with money.
 - **Unsentimental.** Not moved by art or by other people's troubles.
 - **Traditional and fond of rules.** Same Christmas menu every year. Keep the rule because people drowned.
-- **Ambitious, competitive and organised.**
+- **Ambitious, competitive and organized.**
 - **Calm in a crisis**, but quick to cold anger.
 - **Really stubborn.** Morgan keeps blaming Walt after two lab results say otherwise, and is still unconvinced by electric cars after ten years of evidence.
 
@@ -53,7 +53,7 @@ Morgan is 58 and runs operations at a logistics firm. Morgan lives alone, keeps 
 **Notes on the harder targets:**
 - **Morality (0.50):** Morgan is frank to a fault, which counts high on IPIP's definition. But in Proven Wrong Morgan keeps the letters out of the meeting to get the ban through, which is a deliberate omission.
 - **Fairness (0.60):** equal rations, and "search me first". But hiding the evidence is unfair to Walt.
-- **Boldness (0.60):** Morgan tells the theatre the trick is theirs, confronts a manager in front of the team, and wades out alone. But Morgan also avoids the light, the sledding and Mars.
+- **Boldness (0.60):** Morgan tells the theater the trick is theirs, confronts a manager in front of the team, and wades out alone. But Morgan also avoids the light, the sledding and Mars.
 - **Decisiveness (0.55):** Morgan ended a partnership within a week, but spent three months deciding on a move.
 
 ## Key choices
@@ -64,7 +64,7 @@ Morgan is 58 and runs operations at a logistics firm. Morgan lives alone, keeps 
 - **Let Down:** helps Juno work out what to do.
 - **The Archive:** plans first, files the letter, crates the sketchbook, labels the orrery, labels every plate, finishes, satisfied.
 - **Proven Wrong:** sends a second sample, then pushes the ban without mentioning the letters.
-- **The Stolen Idea:** tells the theatre it's theirs, claims the headline, wants their name on the bill.
+- **The Stolen Idea:** tells the theater it's theirs, claims the headline, wants their name on the bill.
 - **The Rule That Doesn't Fit:** "we're full", keeps the rule.
 - **The Offer:** asks for the details, reads the lander report, "with training", stays.
 - **The Water:** goes for water alone.
@@ -165,7 +165,7 @@ Morgan is 58 and runs operations at a logistics firm. Morgan lives alone, keeps 
 
 1. **Modesty, 0.65 against a target of 0.15: the description mixes two things.**
    - Modesty is "not wanting to be the center of attention or to seem superior".
-   - Morgan doesn't want attention but thinks they're better than everyone. "A plain cut… I'm not interested in standing out" scored +0.8, and handing the microphone straight back scored +0.6. Both outweighed "being recognised as better" (−0.7) and "someone competent… may as well be me".
+   - Morgan doesn't want attention but thinks they're better than everyone. "A plain cut… I'm not interested in standing out" scored +0.8, and handing the microphone straight back scored +0.6. Both outweighed "being recognized as better" (−0.7) and "someone competent… may as well be me".
    - Shyness about attention belongs to Gregariousness and Self-Consciousness. Modesty should be about how someone ranks themselves against others.
    - **Fix:** change the description to "not believing oneself better than others, or needing to be seen that way".
 
@@ -224,10 +224,10 @@ Morgan is 58 and runs operations at a logistics firm. Morgan lives alone, keeps 
 ## Changes made as a result (14 Oct 2026)
 **Per-trait scoring criteria, hard-coded in the job** (`criteria()` in `apis/atlas-jobs/src/personality.rs`). They're stored with the prompt, not on the `PersonalityTrait` nodes.
 - **What it is:**
-  - Every one of the 43 traits gets a few lines on what high and low look like, any conditions it needs, and which neighbouring trait an answer belongs to instead.
+  - Every one of the 43 traits gets a few lines on what high and low look like, any conditions it needs, and which neighboring trait an answer belongs to instead.
   - The criteria are sent to the scorer under each trait's description, about 1,700 words in total.
   - Every database trait name has an entry; this was checked.
-- **What moved out of `SCORING_PROMPT`:** the neighbouring-traits paragraph, and the Emotionality, Anxiety and Decisiveness bullets. They now live with their traits. One bullet replaces them: "use a trait only when the answer fits its criteria".
+- **What moved out of `SCORING_PROMPT`:** the neighboring-traits paragraph, and the Emotionality, Anxiety and Decisiveness bullets. They now live with their traits. One bullet replaces them: "use a trait only when the answer fits its criteria".
 - **Round 4's recommendations, folded into the criteria:**
   - **Modesty** is about ranking yourself above others, not disliking the spotlight (recommendation 2).
   - **Sympathy** needs the person to be moved, not just to notice (recommendation 3).
@@ -266,7 +266,7 @@ Rounds 3 (Sam) and 4 (Morgan) were replayed with their original answer files aft
 | Sympathy | Morgan | 0.38 | 0.30 | 0.15 |
 
 - **Decisiveness** now weighs Morgan's three months of deliberation (−0.5) against ending a partnership within a week (+0.8).
-- **Modesty** now scores wanting to be "recognised as better" at −0.8. The "plain cut, not standing out" answer still scores +0.6, so the criteria only half-worked there.
+- **Modesty** now scores wanting to be "recognized as better" at −0.8. The "plain cut, not standing out" answer still scores +0.6, so the criteria only half-worked there.
 
 **Made worse by the criteria:**
 
@@ -278,7 +278,7 @@ Rounds 3 (Sam) and 4 (Morgan) were replayed with their original answer files aft
 | Playfulness | Morgan | 0.39 | 0.49 | 0.20 |
 
 - **Fairness:** hiding the lab letters now scores only against Morality. Fairness's criteria say "Not: honesty in general (Morality)", so the scorer stopped counting it there too, even though the same criteria say "hides what would help the other side" is low Fairness. Meanwhile "equal portions" and "search me first" each scored +0.8.
-- **Altruism:** refusing the rum and arguing it should be kept for everyone's wounds now scores +0.6, as does letting the neighbours in. That reads ordinary decency and prudence as altruism.
+- **Altruism:** refusing the rum and arguing it should be kept for everyone's wounds now scores +0.6, as does letting the neighbors in. That reads ordinary decency and prudence as altruism.
 - **Playfulness:** Morgan's dry note and the joke at the microphone read as playful. That's arguably right, which would mean the target of 0.20 was too low.
 
 **Depression (Morgan):** no evidence at all this run, so it sits at 0.5 and shows as unmeasured. That's correct under the rule against counting absence.

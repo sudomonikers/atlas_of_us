@@ -28,8 +28,8 @@ const ivory = "var(--ivory-white)";
 const comic = "var(--font-comic)";
 const corners = "14px 8px 16px 10px / 8px 16px 10px 14px";
 
-//the flowers' colours, by their variable in App.css, biggest flower first
-const FIELD_COLOURS = [
+//the flowers' colors, by their variable in App.css, biggest flower first
+const FIELD_COLORS = [
   "--cinnamon-wood",
   "--air-force-blue",
   "--brown-red",
@@ -59,7 +59,7 @@ const BLOOM_MS = 1100;
 //how many of the nodes in view get a focusable button, for keyboards and screen readers
 const REACHABLE = 60;
 
-//a hand-drawn blob of radius R, centred on 0,0, and a hand-drawn diamond and hexagon of about the same size
+//a hand-drawn blob of radius R, centered on 0,0, and a hand-drawn diamond and hexagon of about the same size
 const BLOB =
   "M0 -18 C11 -18.5 18.5 -10 18 0 C17.5 11 10 18.5 0 18 C-11 17.5 -18.5 10 -18 0 C-17.5 -10.5 -10 -18 0 -18 Z";
 const DIAMOND =
@@ -91,7 +91,7 @@ export interface LinkKind {
   label: string;
   line: "solid" | "dashed" | "dotted";
   arrow: boolean;
-  colour: string; //a palette variable, such as 'var(--gunmetal-black)'
+  color: string; //a palette variable, such as 'var(--gunmetal-black)'
   length: number; //how long a link to a floating node likes to be
 }
 
@@ -260,7 +260,7 @@ export function GraphBoard(props: GraphBoardProps) {
     if (!el || !ctx) return;
     const css = getComputedStyle(el);
     const cache = new Map<string, string>();
-    const colour = (v: string) => {
+    const color = (v: string) => {
       let c = cache.get(v);
       if (c === undefined) {
         c = css
@@ -270,9 +270,9 @@ export function GraphBoard(props: GraphBoardProps) {
       }
       return c;
     };
-    const font = colour("--font-comic");
-    const ink = colour("--gunmetal-black");
-    const red = colour("--brown-red");
+    const font = color("--font-comic");
+    const ink = color("--gunmetal-black");
+    const red = color("--brown-red");
     const { w, h } = size.current;
     const { x: vx, y: vy, k } = layout.current();
     const dpr = window.devicePixelRatio || 1;
@@ -287,23 +287,23 @@ export function GraphBoard(props: GraphBoardProps) {
     const inView = (p: { x: number; y: number }, pad: number) =>
       p.x > -pad && p.x < w + pad && p.y > -pad && p.y < h + pad;
     const kindOf = new Map(kinds.map((kd) => [kd.id, kd]));
-    const fieldColour = (s: Seed) =>
-      colour(
+    const fieldColor = (s: Seed) =>
+      color(
         fields[s.field].id
-          ? FIELD_COLOURS[s.field % FIELD_COLOURS.length]
+          ? FIELD_COLORS[s.field % FIELD_COLORS.length]
           : "--gunmetal-black",
       );
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    //far: every seed as a dot, a field at a time so each colour is filled once. Ones not filled in yet are paler
+    //far: every seed as a dot, a field at a time so each color is filled once. Ones not filled in yet are paler
     if (near < 1 && !closeUp) {
       const r = Math.max(1.3, R * k * 0.6);
       fields.forEach((field, f) => {
-        ctx.fillStyle = colour(
+        ctx.fillStyle = color(
           field.id
-            ? FIELD_COLOURS[f % FIELD_COLOURS.length]
+            ? FIELD_COLORS[f % FIELD_COLORS.length]
             : "--gunmetal-black",
         );
         for (const filled of [false, true]) {
@@ -355,7 +355,7 @@ export function GraphBoard(props: GraphBoardProps) {
       const s = toward(a, ra + 2);
       const e = toward(b, rb + (kind.arrow ? 4 : 2));
       ctx.globalAlpha = alpha;
-      ctx.strokeStyle = colour(kind.colour);
+      ctx.strokeStyle = color(kind.color);
       ctx.lineWidth = width;
       ctx.lineCap = "round";
       ctx.setLineDash(
@@ -497,14 +497,14 @@ export function GraphBoard(props: GraphBoardProps) {
         s.id,
         screen(where(s.id)!),
         radius(s.id),
-        s.filled ? fieldColour(s) : colour("--ivory-white"),
+        s.filled ? fieldColor(s) : color("--ivory-white"),
         s.filled ? "filled" : "hollow",
         "blob",
         alpha,
       );
     if (near > 0)
       for (const s of close) if (s.id !== selected) seedNode(s, near);
-    //a floating node from the map keeps its field's colour
+    //a floating node from the map keeps its field's color
     const floatNode = (v: BoardNode) => {
       const s = seedOf.get(v.id);
       if (s) seedNode(s, 1);
@@ -513,7 +513,7 @@ export function GraphBoard(props: GraphBoardProps) {
           v.id,
           screen(where(v.id)!),
           radius(v.id),
-          colour(FILLS[v.look]),
+          color(FILLS[v.look]),
           v.look,
           v.shape ?? "blob",
           1,
@@ -1233,7 +1233,7 @@ export function GraphBoard(props: GraphBoardProps) {
                       <path
                         d={kd.arrow ? "M2 6 L18 6" : "M2 6 L22 6"}
                         fill="none"
-                        style={{ stroke: kd.colour }}
+                        style={{ stroke: kd.color }}
                         strokeWidth="2.5"
                         strokeDasharray={DASHES[kd.line].join(" ") || undefined}
                         strokeLinecap="round"
@@ -1242,7 +1242,7 @@ export function GraphBoard(props: GraphBoardProps) {
                         <path
                           d="M15 2 L21 6 L15 10"
                           fill="none"
-                          style={{ stroke: kd.colour }}
+                          style={{ stroke: kd.color }}
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"

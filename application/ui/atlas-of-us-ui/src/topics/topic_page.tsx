@@ -231,11 +231,11 @@ function learningOrder(ideas: Idea[]): Idea[] {
   return [...ideas].sort((a, b) => depth(a, new Set()) - depth(b, new Set()) || a.name.localeCompare(b.name));
 }
 
-//a chip naming an Idea's type, in that type's colour
+//a chip naming an Idea's type, in that type's color
 export function TypeChip({ type }: { type: IdeaType }) {
-  const { label, tell, colour } = IDEA_TYPES[type];
+  const { label, tell, color } = IDEA_TYPES[type];
   return (
-    <span className="comic-chip" style={{ ...styles.typeChip, background: colour }} title={tell}>
+    <span className="comic-chip" style={{ ...styles.typeChip, background: color }} title={tell}>
       {label}
     </span>
   );

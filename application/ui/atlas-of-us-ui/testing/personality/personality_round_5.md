@@ -20,7 +20,7 @@ Jules is 24 and dropped out of university last year. Jules lives back at a paren
   - **Depression and Optimism:** with this persona, both should finally reach the ends of the scale.
   - **Decisiveness:** "I didn't decide so much as stop going" is real-life evidence of low Decisiveness.
   - **Morality:** a conflict-avoidant lie ("120" to the captain) and "buys me time, I don't have to admit it yet" should count against it.
-  - **Playfulness:** Jules's dark, self-deprecating humour should register even while Cheerfulness stays low.
+  - **Playfulness:** Jules's dark, self-deprecating humor should register even while Cheerfulness stays low.
 
 **How the targets were set:** after the answers were written, by going through every trait against the answer text alone.
 
@@ -76,7 +76,7 @@ Jules is 24 and dropped out of university last year. Jules lives back at a paren
 - **The Rule That Doesn't Fit:** asks what's happened, lets Nessa on, tells the captain "120".
 - **The Offer:** "Why me?", meets the crew, "Honestly, I don't know", takes the next ship.
 - **The Water:** stays put and waits for help.
-- **The Black Clay:** sleeps on the order, opens the kiln at first grey, asks for two more weeks.
+- **The Black Clay:** sleeps on the order, opens the kiln at first gray, asks for two more weeks.
 - **The Owambe:** both ways, one song for Grandma, candles.
 
 ## Results (14 Oct 2026)
@@ -281,7 +281,7 @@ Rounds 3, 4 and 5 were replayed with their original answer files and compared wi
 - **Cheerfulness:** improved, but still has little evidence.
 - **Emotionality:**
   - It now comes only from real-life answers.
-  - Sam's grief and Jules's "grey and heavy" are rich, articulate real-life answers, so the high values are now honest.
+  - Sam's grief and Jules's "gray and heavy" are rich, articulate real-life answers, so the high values are now honest.
   - The targets of 0.75 and 0.65 were probably set too low.
 
 **Untouched traits moved too, all with little evidence:**

@@ -377,7 +377,7 @@ pub struct Group {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Centre {
+pub struct Center {
     id: String,
     name: String,
     description: Option<String>,
@@ -415,7 +415,7 @@ pub struct TopicLink {
 
 #[derive(Serialize)]
 pub struct Neighbors {
-    skill: Centre,
+    skill: Center,
     broader: Group, //the skills it's a kind of
     narrower: Group, //the skills that are kinds of it
     needs: Group, //skills its levels require
@@ -480,7 +480,7 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
                s.vector AS vector
     ", groups.join(", "))).param("id", id.as_str()).param("skip", 0).param("limit", NEIGHBOR_PAGE)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
-    let skill: Centre = row.get("skill").map_err(internal)?;
+    let skill: Center = row.get("skill").map_err(internal)?;
     let group = |name: &str| row.get::<Group>(name).map_err(internal);
     let (broader, narrower, needs, leads_to) = (group("broader")?, group("narrower")?, group("needs")?, group("leads_to")?);
     let traits: Vec<TraitLink> = row.get("traits").map_err(internal)?;

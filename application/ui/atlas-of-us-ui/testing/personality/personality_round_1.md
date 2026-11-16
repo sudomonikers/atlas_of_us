@@ -1,7 +1,7 @@
 # QA round 1: "Ruth"
 
 ## The persona
-Ruth is 38 and has done payroll at the same council office for fifteen years. She lives with her partner in the town she grew up in. She has two close friends, whom she sees one at a time. She gardens, does jigsaws and reads crime novels.
+Ruth is 38 and has done payroll at the same county office for fifteen years. She lives with her partner in the town she grew up in. She has two close friends, whom she sees one at a time. She gardens, does jigsaws and reads crime novels.
 
 **What she's like:**
 - She's a worrier. She's easily embarrassed, and she assumes a hidden laugh is about her.
@@ -148,7 +148,7 @@ The middle values (Intellect, Depression, Friendliness, Artistic Interests, Achi
 
 2. **Boldness is measured partly by courage on principle.** It came out at 0.51 against a target of 0.10. Its evidence splits two ways:
    - Strongly low on social risk: stepped back into the dark, passed on the karaoke, stayed on the porch.
-   - Strongly high on moral courage: apologised in front of fifty people with shaking hands, waded into the flood.
+   - Strongly high on moral courage: apologized in front of fifty people with shaking hands, waded into the flood.
    - That fits Boldness's own description, "acting despite fear or social risk". The scorer is following the definition, and Ruth's answers really do do both.
    - Averaged together, the two sides cancel out to 0.5, which looks like a typical person rather than one with two clear sides.
    - Two things contribute:
@@ -157,7 +157,7 @@ The middle values (Intellect, Depression, Friendliness, Artistic Interests, Achi
    - It's worth deciding whether Boldness is meant to cover moral courage.
 
 3. **The scorer mixes up nearby conscientiousness traits.** Achievement-Striving came out at 0.92 against 0.55.
-   - All seven of its scores were really about high standards or finishing the job: sanding the jar back, labelling every plate, "the job comes first". They count as Perfectionism or Self-Discipline evidence too.
+   - All seven of its scores were really about high standards or finishing the job: sanding the jar back, labeling every plate, "the job comes first". They count as Perfectionism or Self-Discipline evidence too.
    - Its description says "high standards and ambitious goals", and the "high standards" part overlaps with Perfectionism.
    - Ruth said "Honestly I nearly didn't apply" for the senior job, which is direct evidence of low ambition. It was scored as low Boldness, never as Achievement-Striving.
 
@@ -165,7 +165,7 @@ The middle values (Intellect, Depression, Friendliness, Artistic Interests, Achi
    - Introspection came out at 0.93 against 0.70, from 24 answers, and Emotionality at 0.92 against 0.75.
    - Many prompts ask "what's going through your head, how do you feel". Any answer that does what the prompt asks gets scored as Introspection.
    - The prompt produces the trait, so these two will rise for nearly every player.
-   - The scoring rules guard against scoring something that's missing. They don't guard against scoring behaviour the question asked for.
+   - The scoring rules guard against scoring something that's missing. They don't guard against scoring behavior the question asked for.
 
 5. **The choice format makes everyone look decisive.** Decisiveness came out at 0.44 against 0.20.
    - In-scene choices were scored as decisive: "picks a firm counter-offer immediately", "picks the honest option immediately".
@@ -207,7 +207,7 @@ Tested in round 2.
   - `recombine` multiplies their weight by a new `REAL_LIFE` of 2.0.
   - It reads a new `real_life` flag on the question.
 - **Three new bullets in `SCORING_PROMPT`:**
-  - **Keep neighbouring traits apart** (findings 3 and 8). Achievement-Striving is ambition, not standards (Perfectionism) or finishing the job (Self-Discipline). Being moved by people is Sympathy or Emotionality, not Artistic Interests. Boldness includes doing the right thing despite fear.
+  - **Keep neighboring traits apart** (findings 3 and 8). Achievement-Striving is ambition, not standards (Perfectionism) or finishing the job (Self-Discipline). Being moved by people is Sympathy or Emotionality, not Artistic Interests. Boldness includes doing the right thing despite fear.
   - **Doing what the question asks isn't evidence** (finding 4). Answering a feelings question isn't Introspection or Emotionality.
   - **Picking from a list says nothing about Decisiveness** (finding 5). Only how the player describes deciding counts.
 - **Check:** re-scoring this round's evidence with `PRIOR` 3 and real-life answers counted double lowers the average error from 0.118 to 0.101. The new scoring rules can't be checked this way, because the evidence would have to be re-scored.

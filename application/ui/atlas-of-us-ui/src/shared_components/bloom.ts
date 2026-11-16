@@ -30,7 +30,7 @@ export interface Field extends SimulationNodeDatum {
   y: number;
 }
 
-//the seeds' spiral constant, in board units. Neighbouring seeds end up about 1.8 times this apart, room for a node
+//the seeds' spiral constant, in board units. Neighboring seeds end up about 1.8 times this apart, room for a node
 export const SPACING = 50;
 const SMALLEST_FIELD = 3; //a broadest node with fewer under it goes in "Everything else"
 

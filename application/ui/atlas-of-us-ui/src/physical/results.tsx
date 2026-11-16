@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { CATEGORIES, type Ability } from './api';
-import { STANDING, heat, hex, meshesOf, standingColour, type Body, type Light } from './body_parts';
+import { STANDING, heat, hex, meshesOf, standingColor, type Body, type Light } from './body_parts';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 interface ResultsProps {
@@ -10,7 +10,7 @@ interface ResultsProps {
   onLight: (light: Light) => void;
 }
 
-//where the user stands on their abilities, drawn on the body in colour, with a way to narrow it to one category and to
+//where the user stands on their abilities, drawn on the body in color, with a way to narrow it to one category and to
 //pick an ability to see where it lives
 export default function Results({ abilities, only, body, onLight }: ResultsProps) {
   const [chosen, setCategory] = useState<Ability['category']>();
@@ -54,7 +54,7 @@ export default function Results({ abilities, only, body, onLight }: ResultsProps
         </div>
       )}
 
-      {!placed.length && <p style={styles.text}>Nothing here has a place yet. Take a test or rate yourself, and it will show up here.</p>}
+      {!placed.length && <p style={styles.text}>You haven't measured or rated any of these yet. Take a test or rate yourself and it will show up here.</p>}
       <ul style={styles.list}>
         {placed.map((a) => (
           <li key={a.id}>
@@ -62,7 +62,7 @@ export default function Results({ abilities, only, body, onLight }: ResultsProps
               <span
                 style={{
                   ...styles.swatch,
-                  background: hex(standingColour(a.value!)),
+                  background: hex(standingColor(a.value!)),
                 }}
               />
               <span style={styles.name}>{a.name}</span>
@@ -73,7 +73,7 @@ export default function Results({ abilities, only, body, onLight }: ResultsProps
       </ul>
       {shown.length > placed.length && !!placed.length && (
         <p style={styles.small}>
-          {shown.length - placed.length} more {shown.length - placed.length === 1 ? "doesn't" : "don't"} have a place yet.
+          {shown.length - placed.length} more {shown.length - placed.length === 1 ? "hasn't" : "haven't"} been measured or rated yet.
         </p>
       )}
     </>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 //the ms since a time from performance.now(), called from handlers, effects and timers
@@ -159,3 +159,58 @@ export const testStyles: Record<string, CSSProperties> = {
     cursor: 'pointer',
   },
 };
+
+//a short beep, higher for the start and the end
+export function beep(audio: AudioContext, high: boolean) {
+  const tone = audio.createOscillator();
+  const gain = audio.createGain();
+  const at = audio.currentTime;
+  tone.frequency.value = high ? 1100 : 660;
+  gain.gain.setValueAtTime(0.3, at);
+  gain.gain.linearRampToValueAtTime(0, at + (high ? 0.5 : 0.15));
+  tone.connect(gain).connect(audio.destination);
+  tone.start(at);
+  tone.stop(at + 0.55);
+}
+
+//how many seconds are counted down after Start is pressed, before a test begins
+export const COUNT_IN = 3;
+
+//a count of three, with a beep at each number and a higher one as it ends, between pressing Start and a test
+//beginning, so they're ready for it. Gives the number being counted, or null when it isn't counting, for the test's
+//frame to show, and a way to start something after the count. Pressing Start again while it counts does nothing
+export function useCountIn(): [number | null, (start: () => void) => void] {
+  const [count, setCount] = useState<number | null>(null);
+  const timers = useRef<number[]>([]);
+  const audio = useRef<AudioContext | null>(null);
+  const counting = useRef(false);
+  useEffect(
+    () => () => {
+      timers.current.forEach(clearTimeout);
+      void audio.current?.close();
+    },
+    [],
+  );
+  const countIn = useCallback((start: () => void) => {
+    if (counting.current) return;
+    counting.current = true;
+    audio.current ??= new AudioContext();
+    const sound = audio.current;
+    const say = (n: number) => {
+      setCount(n);
+      beep(sound, false);
+    };
+    say(COUNT_IN);
+    timers.current = Array.from({ length: COUNT_IN }, (_, i) =>
+      window.setTimeout(() => {
+        const left = COUNT_IN - i - 1;
+        if (left) return say(left);
+        counting.current = false;
+        setCount(null);
+        beep(sound, true);
+        start();
+      }, (i + 1) * 1000),
+    );
+  }, []);
+  return [count, countIn];
+}

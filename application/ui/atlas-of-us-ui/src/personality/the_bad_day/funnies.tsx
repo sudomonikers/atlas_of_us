@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Layers, Sheet } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
-// The Bad Day is drawn like the Sunday funnies: thick black ink, flat colour printed in Ben-Day dots and slightly out
+// The Bad Day is drawn like the Sunday funnies: thick black ink, flat color printed in Ben-Day dots and slightly out
 // of register with the line work, sound effects in big outlined lettering, and speech balloons. The player is the one
 // in a solid red jumper, never dotted, so they stand out on every panel. A cue names a page and the parts of it to
 // show: parts already up stay put, new ones pop in after them, and turning to a new page knocks the old one off. While
@@ -22,12 +22,12 @@ const C = {
   magenta: '#d9467e',
   yellow: '#f2c230',
   green: '#3fa34d',
-  grey: '#6d6a66',
+  gray: '#6d6a66',
   navy: '#2a3a6b',
   skin: '#f1c39a',
 };
-type Colour = keyof typeof C;
-const DOTTED = Object.keys(C).filter((k) => !['paper', 'black', 'red', 'skin'].includes(k)) as Colour[];
+type Color = keyof typeof C;
+const DOTTED = Object.keys(C).filter((k) => !['paper', 'black', 'red', 'skin'].includes(k)) as Color[];
 
 // ---------------------------------------------------------------------------
 // the scenes
@@ -91,15 +91,15 @@ const FIRST_CUE = 'title_card';
 // drawing
 // ---------------------------------------------------------------------------
 
-//what a part is made of: ink lines, colour (flat or in dots, printed a little out of register) and lettering. A
+//what a part is made of: ink lines, color (flat or in dots, printed a little out of register) and lettering. A
 //sound effect is big yellow lettering outlined in black. t is an svg transform, for anything at an angle
 type Item =
-  | { ink: string; w?: number; c?: Colour; cls?: string; t?: string }
-  | { fill: Colour; d: string; dots?: boolean; cls?: string; t?: string }
-  | { text: string; x: number; y: number; size: number; c?: Colour; sfx?: boolean; anchor?: 'start' | 'middle' | 'end'; cls?: string; t?: string };
+  | { ink: string; w?: number; c?: Color; cls?: string; t?: string }
+  | { fill: Color; d: string; dots?: boolean; cls?: string; t?: string }
+  | { text: string; x: number; y: number; size: number; c?: Color; sfx?: boolean; anchor?: 'start' | 'middle' | 'end'; cls?: string; t?: string };
 
 const GAP = 0.16; //seconds between one part popping in and the next
-const OFF = 'translate(5 4)'; //how far out of register the colour is printed
+const OFF = 'translate(5 4)'; //how far out of register the color is printed
 
 const line = (...pts: Pt[]) => `M ${pts.map((p) => p.join(' ')).join(' L ')}`;
 const poly = (...pts: Pt[]) => `${line(...pts)} Z`;
@@ -118,9 +118,9 @@ const jag = (x: number, y: number, rx: number, ry: number, n: number) =>
 //a cloud, its flat bottom from x to x + 400 at y
 const cloud = (x: number, y: number) => `M ${x} ${y} a 70 70 0 0 1 30 -120 a 90 90 0 0 1 160 -40 a 80 80 0 0 1 150 30 a 75 75 0 0 1 60 130 Z`;
 
-//a coloured shape, inked round
-const shape = (d: string, c: Colour, dots = false, w = 6): Item[] => [{ fill: c, d, dots }, { ink: d, w }];
-const say = (text: string, x: number, y: number, size: number, c: Colour = 'black', anchor?: 'start' | 'end'): Item => ({ text, x, y, size, c, anchor });
+//a colored shape, inked round
+const shape = (d: string, c: Color, dots = false, w = 6): Item[] => [{ fill: c, d, dots }, { ink: d, w }];
+const say = (text: string, x: number, y: number, size: number, c: Color = 'black', anchor?: 'start' | 'end'): Item => ({ text, x, y, size, c, anchor });
 const sfx = (text: string, x: number, y: number, size: number, rot: number, cls?: string): Item => ({ text, x, y, size, sfx: true, t: `rotate(${rot} ${x} ${y})`, cls });
 
 //a speech balloon, its tail pointing at tip. The tail's base is covered so the balloon reads as one outline
@@ -149,13 +149,13 @@ function face(x: number, y: number, r: number, mouth: Mouth): Item[] {
   return [{ fill: 'black', d: `${circle(x - r * 0.35, y + r * 0.02, r * e)} ${circle(x + r * 0.35, y + r * 0.02, r * e)}` }, mouths[mouth]];
 }
 //a head of size r at x, y, with a cap of hair unless it's bald
-const head = (x: number, y: number, r: number, mouth: Mouth, hair: Colour | null = 'black'): Item[] => [
+const head = (x: number, y: number, r: number, mouth: Mouth, hair: Color | null = 'black'): Item[] => [
   ...shape(circle(x, y, r), 'skin'),
   ...(hair ? shape(`M ${x - r} ${y} A ${r} ${r} 0 0 1 ${x + r} ${y} Q ${x} ${y - r * 0.45} ${x - r} ${y} Z`, hair, hair !== 'black') : []),
   ...face(x, y, r, mouth),
 ];
 //head and shoulders, h tall, the shoulders' bottom edge at y. Everyone's shirt is dotted but the player's
-function person(x: number, y: number, h: number, shirt: Colour, mouth: Mouth, hair: Colour | null = 'black'): Item[] {
+function person(x: number, y: number, h: number, shirt: Color, mouth: Mouth, hair: Color | null = 'black'): Item[] {
   const body = `M ${x - h * 0.3} ${y} Q ${x - h * 0.3} ${y - h * 0.45} ${x} ${y - h * 0.45} Q ${x + h * 0.3} ${y - h * 0.45} ${x + h * 0.3} ${y} Z`;
   return [...shape(body, shirt, shirt !== 'red'), ...head(x, y - h * 0.72, h * 0.22, mouth, hair)];
 }
@@ -175,12 +175,12 @@ const speed = (x: number, y: number, dir: 1 | -1): Item => ({ ink: [0, 1, 2].map
 // ---------------------------------------------------------------------------
 
 //Gary, bald but for two tufts, leaning over the partition
-const gary = (mouth: Mouth) => [...person(1120, 580, 430, 'cyan', mouth, null), ...shape(`${ellipse(1027, 262, 14, 28)} ${ellipse(1213, 262, 14, 28)}`, 'grey', true, 4)];
+const gary = (mouth: Mouth) => [...person(1120, 580, 430, 'cyan', mouth, null), ...shape(`${ellipse(1027, 262, 14, 28)} ${ellipse(1213, 262, 14, 28)}`, 'gray', true, 4)];
 const PRAWNS = (pts: Pt[]) => pts.flatMap(([x, y]): Item[] => shape(`M ${x - 22} ${y} a 22 16 0 1 1 44 0 l -12 0 a 10 8 0 1 0 -20 0 Z`, 'magenta', false, 3));
 
 const ART: Record<Page, Record<string, Item[]>> = {
   title: {
-    cloud: shape(cloud(1100, 330), 'grey', true),
+    cloud: shape(cloud(1100, 330), 'gray', true),
     rain: [{ ink: [1140, 1190, 1240, 1290, 1340, 1390, 1440].map((x, i) => line([x, 350 + (i % 2) * 20], [x - 10, 380 + (i % 2) * 20])).join(' '), w: 5, c: 'cyan', cls: 'bd-fall' }],
     you: you(1300, 660, 260, 'frown'),
     sun: [
@@ -223,10 +223,10 @@ const ART: Record<Page, Record<string, Item[]>> = {
   car: {
     sky: shape(rect(40, 40, 1520, 300), 'cyan', true, 0),
     road: [
-      ...shape(poly([740, 340], [860, 340], [1340, 580], [260, 580]), 'grey', true),
+      ...shape(poly([740, 340], [860, 340], [1340, 580], [260, 580]), 'gray', true),
       { fill: 'paper', d: [rect(797, 350, 6, 16), rect(795, 385, 10, 26), rect(793, 430, 14, 38), rect(790, 495, 20, 56)].join(' ') },
     ],
-    dash: shape(poly([0, 560], [1600, 560], [1600, 900], [0, 900]), 'grey', true),
+    dash: shape(poly([0, 560], [1600, 560], [1600, 900], [0, 900]), 'gray', true),
     //the cab driver, from the back seat
     driver: [
       ...shape(poly([230, 900], [280, 650], [620, 650], [670, 900]), 'navy', false),
@@ -239,16 +239,16 @@ const ART: Record<Page, Record<string, Item[]>> = {
       say('9:26', 330, 324, 76),
     ],
     light: [
-      ...shape(rect(1230, 430, 20, 130), 'grey'),
+      ...shape(rect(1230, 430, 20, 130), 'gray'),
       ...shape(round(1180, 120, 120, 310, 24), 'black'),
-      ...[190, 280, 370].flatMap((y): Item[] => shape(circle(1240, y, 36), 'grey', true, 4)),
+      ...[190, 280, 370].flatMap((y): Item[] => shape(circle(1240, y, 36), 'gray', true, 4)),
     ],
     green: [...shape(circle(1240, 370, 36), 'green', false, 4), { ink: 'M 1306 340 l 30 -14 M 1310 372 h 34 M 1306 402 l 30 14', w: 5 }],
     red: [...shape(circle(1240, 190, 36), 'magenta', false, 4), { ink: 'M 1306 160 l 30 -14 M 1310 192 h 34 M 1306 222 l 30 14', w: 5 }],
     front: [
       ...shape(poly([680, 250], [920, 250], [960, 336], [640, 336]), 'paper'),
       ...shape(poly([700, 262], [900, 262], [930, 326], [670, 326]), 'cyan', true, 4),
-      ...shape(circle(790, 300, 30), 'grey', true, 4),
+      ...shape(circle(790, 300, 30), 'gray', true, 4),
       { fill: 'yellow', d: rect(818, 296, 18, 26) },
       ...shape(round(580, 330, 440, 170, 36), 'cyan', true),
       ...shape(rect(600, 362, 60, 34), 'magenta', false, 4),
@@ -260,7 +260,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
       { ...say('ha ha!', 880, 226, 34), cls: 'bd-bob' },
     ],
     honk: [sfx('HONK!', 400, 220, 130, -10, 'bd-shake')],
-    creep: [...[[560, 520, 26], [520, 492, 34], [470, 456, 42]].flatMap(([x, y, r]) => shape(circle(x, y, r), 'grey', true, 4)), say('4 mph', 1080, 520, 44)],
+    creep: [...[[560, 520, 26], [520, 492, 34], [470, 456, 42]].flatMap(([x, y, r]) => shape(circle(x, y, r), 'gray', true, 4)), say('4 mph', 1080, 520, 44)],
   },
 
   printer: {
@@ -274,7 +274,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
     you: you(330, 680, 420, 'flat'),
     printer: [
       ...shape(poly([700, 190], [1140, 190], [1180, 240], [660, 240]), 'paper'),
-      ...shape(round(640, 240, 560, 330, 24), 'grey', true),
+      ...shape(round(640, 240, 560, 330, 24), 'gray', true),
       { ink: line([720, 215], [1120, 215]), w: 5 },
       ...shape(rect(1030, 280, 130, 64), 'cyan', true, 4),
       ...shape(rect(680, 380, 480, 150), 'paper', false, 5),
@@ -300,7 +300,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
     you: you(330, 700, 460, 'flat'),
     gary: gary('smile'),
     gary_sad: gary('frown'),
-    partition: [...shape(rect(620, 400, 940, 260), 'grey', true), ...shape(rect(606, 386, 968, 22), 'black')],
+    partition: [...shape(rect(620, 400, 940, 260), 'gray', true), ...shape(rect(606, 386, 968, 22), 'black')],
     mug: [
       { ink: 'M 1364 326 q 36 0 36 26 q 0 26 -36 26', w: 7 },
       ...shape(rect(1290, 308, 74, 80), 'yellow'),
@@ -425,7 +425,7 @@ function Mark({ item }: { item: Item }) {
   if ('ink' in item) {
     return <path d={item.ink} transform={item.t} fill="none" stroke={C[item.c ?? 'black']} strokeWidth={item.w ?? 6} strokeLinecap="round" strokeLinejoin="round" />;
   }
-  //colour is printed a little out of register with the ink, except paper and black
+  //color is printed a little out of register with the ink, except paper and black
   const off = item.fill === 'paper' || item.fill === 'black' ? item.t : `${OFF} ${item.t ?? ''}`;
   return (
     <g transform={off}>

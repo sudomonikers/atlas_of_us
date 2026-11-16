@@ -37,7 +37,7 @@ export default function MySkills() {
   const [affectedBy, setAffectedBy] = useState<Map<string, AffectedBy>>(); //the user's conditions and impairments, by the ability they can affect
   const [open, setOpen] = useState<Set<string>>(new Set()); //the rows whose requirements are showing, by key
   const [setting, setSetting] = useState<string>(); //the skill a goal is being set for
-  const [practising, setPractising] = useState<string>(); //the skill whose practice is being set
+  const [practicing, setPracticing] = useState<string>(); //the skill whose practice is being set
   const [feeling, setFeeling] = useState<string>(); //the skill whose feelings are being set
   const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0); //counts up to load it all again, after the user adds a suggested skill
@@ -64,7 +64,7 @@ export default function MySkills() {
 
   const reload = () => {
     setSetting(undefined);
-    setPractising(undefined);
+    setPracticing(undefined);
     setFeeling(undefined);
     setLoads((n) => n + 1);
   };
@@ -130,7 +130,7 @@ export default function MySkills() {
                           )}
                           {rank < LEVEL_NAMES.length && skill.status === 'ready' && !hasGoal.has(skill.id) && goalButton(skill.id)}
                           {practice && (
-                            <button className="comic-lift" style={styles.toggle} aria-expanded={practising === skill.id} onClick={() => setPractising(practising === skill.id ? undefined : skill.id)}>
+                            <button className="comic-lift" style={styles.toggle} aria-expanded={practicing === skill.id} onClick={() => setPracticing(practicing === skill.id ? undefined : skill.id)}>
                               {practiceLabel(hours.get(skill.id) ?? null)}
                             </button>
                           )}
@@ -141,8 +141,8 @@ export default function MySkills() {
                           )}
                         </div>
                         {goalForm(skill.id, rank)}
-                        {practising === skill.id && (
-                          <PracticeForm skillId={skill.id} hours={hours.get(skill.id) ?? null} onSaved={reload} onCancel={() => setPractising(undefined)} />
+                        {practicing === skill.id && (
+                          <PracticeForm skillId={skill.id} hours={hours.get(skill.id) ?? null} onSaved={reload} onCancel={() => setPracticing(undefined)} />
                         )}
                         {feeling === skill.id && (
                           <FeelingsForm skillId={skill.id} feelings={feelings?.get(skill.id) ?? []} onSaved={reload} onCancel={() => setFeeling(undefined)} />
@@ -285,9 +285,9 @@ function FitList({ label, intro, fits }: { label: string; intro: string; fits: F
 //where the user's practice time goes, each skill's hours as a share of the most practiced one's, then the skills that
 //look rusty, with no practice at Proficient or above, or stuck, with lots of practice and no new level in a long time
 function TimeSpent({ practice }: { practice: Practice[] }) {
-  const practised = practice.filter(({ hours_per_week }) => !!hours_per_week);
-  const most = Math.max(...practised.map(({ hours_per_week }) => hours_per_week!));
-  const total = practised.reduce((sum, { hours_per_week }) => sum + hours_per_week!, 0);
+  const practiced = practice.filter(({ hours_per_week }) => !!hours_per_week);
+  const most = Math.max(...practiced.map(({ hours_per_week }) => hours_per_week!));
+  const total = practiced.reduce((sum, { hours_per_week }) => sum + hours_per_week!, 0);
   const unsaid = practice.filter(({ hours_per_week }) => hours_per_week === null).length;
   const rusty = practice.filter(({ flag }) => flag === 'rusty');
   const plateaus = practice.filter(({ flag }) => flag === 'plateau');
@@ -295,16 +295,16 @@ function TimeSpent({ practice }: { practice: Practice[] }) {
   return (
     <section style={styles.group} aria-label="Where your time goes">
       <h3 style={styles.groupHeading}>Where your time goes</h3>
-      {practised.length ? (
+      {practiced.length ? (
         <p style={styles.text}>
-          {hoursAWeek(total)} across {practised.length} skill{practised.length === 1 ? '' : 's'}.
+          {hoursAWeek(total)} across {practiced.length} skill{practiced.length === 1 ? '' : 's'}.
         </p>
       ) : (
         <p style={styles.text}>Say how much you practice each of your skills above, and this shows where your time goes.</p>
       )}
-      {!!practised.length && (
+      {!!practiced.length && (
         <ul style={styles.bars}>
-          {practised.map(({ skill, hours_per_week }) => (
+          {practiced.map(({ skill, hours_per_week }) => (
             <li key={skill.id} style={styles.barRow}>
               <button className="comic-lift" style={{ ...styles.link, ...styles.barName }} onClick={() => open(skill.id)}>
                 {skill.name}

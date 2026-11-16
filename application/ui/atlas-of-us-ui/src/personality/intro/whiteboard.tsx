@@ -322,7 +322,7 @@ const CUES: Record<string, Cue> = {
   },
   priya_plan: {
     board: 'plans',
-    parts: [SAM('point', 330), part('title', <Say x={680} y={160} text="Sam's plan" size={56} c={ORANGE} anchor="start" />), part('list', <List x={680} y={210} items={['Checklists for the boring stuff', 'Alarms, and habits that stick', 'A partner who loves the books']} done={3} />), part('priya', <Person x={1440} c={BLUE} pose="hold" s={0.9} flip />), part('card', <Card x={700} y={460} w={600} title="Priya: practise the ask" lines={[]} c={BLUE} />)],
+    parts: [SAM('point', 330), part('title', <Say x={680} y={160} text="Sam's plan" size={56} c={ORANGE} anchor="start" />), part('list', <List x={680} y={210} items={['Checklists for the boring stuff', 'Alarms, and habits that stick', 'A partner who loves the books']} done={3} />), part('priya', <Person x={1440} c={BLUE} pose="hold" s={0.9} flip />), part('card', <Card x={700} y={460} w={600} title="Priya: practice the ask" lines={[]} c={BLUE} />)],
   },
 
   both_keys: {

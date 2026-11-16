@@ -47,7 +47,7 @@ and attach evidence that they're at it, so each level has to say clearly what so
 You get the skill's name, description, the other names it goes by, and the broader skills it's a kind of, if any. Write all five \
 levels of the Dreyfus model for it:
 1. Novice: follows rules and instructions to the letter, with no judgment of their own.
-2. Advanced Beginner: starts to recognise situations from experience, and bends the rules a little.
+2. Advanced Beginner: starts to recognize situations from experience, and bends the rules a little.
 3. Competent: plans, makes deliberate choices, troubleshoots, and owns the outcome.
 4. Proficient: sees the whole situation at once and knows what matters, though still works out how to act.
 5. Expert: acts fluidly from deep, intuitive understanding, and can invent, adapt and teach.

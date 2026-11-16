@@ -82,7 +82,7 @@ export function notedParts(impairments: Impairments, conditions: Conditions) {
   return of;
 }
 
-//what a step's panel shows on the body over what the step itself does: meshes lit up and flown to, meshes in colours of
+//what a step's panel shows on the body over what the step itself does: meshes lit up and flown to, meshes in colors of
 //their own, and whether the lit ones pulse
 export interface Light {
   lit?: Set<string>;
@@ -90,21 +90,21 @@ export interface Light {
   pulse?: boolean;
 }
 
-//the colours where someone stands is drawn in on the body: well behind most people, typical, and well ahead, as hex
+//the colors where someone stands is drawn in on the body: well behind most people, typical, and well ahead, as hex
 export const STANDING = { low: HEX.blue, typical: HEX.ivory, high: HEX.brownRed };
 
-//a colour part way from one to another
+//a color part way from one to another
 function mix(from: number, to: number, t: number) {
   const channel = (shift: number) => Math.round(((from >> shift) & 255) + (((to >> shift) & 255) - ((from >> shift) & 255)) * t);
   return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
 
-//the colour of a place on an ability, 0 to 1 with 0.5 typical
-export const standingColour = (value: number) => (value < 0.5 ? mix(STANDING.low, STANDING.typical, value / 0.5) : mix(STANDING.typical, STANDING.high, (value - 0.5) / 0.5));
+//the color of a place on an ability, 0 to 1 with 0.5 typical
+export const standingColor = (value: number) => (value < 0.5 ? mix(STANDING.low, STANDING.typical, value / 0.5) : mix(STANDING.typical, STANDING.high, (value - 0.5) / 0.5));
 
-export const hex = (colour: number) => `#${colour.toString(16).padStart(6, '0')}`;
+export const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-//every mesh the abilities with a place rest on, in the colour of the user's places on them, averaged where several rest
+//every mesh the abilities with a place rest on, in the color of the user's places on them, averaged where several rest
 //on the same mesh
 export function heat(abilities: Ability[], body: Body): Map<string, number> {
   const sums = new Map<string, { total: number; count: number }>();
@@ -115,5 +115,5 @@ export function heat(abilities: Ability[], body: Body): Map<string, number> {
       sums.set(element, { total: sum.total + a.value, count: sum.count + 1 });
     }
   }
-  return new Map([...sums].map(([element, { total, count }]) => [element, standingColour(total / count)]));
+  return new Map([...sums].map(([element, { total, count }]) => [element, standingColor(total / count)]));
 }

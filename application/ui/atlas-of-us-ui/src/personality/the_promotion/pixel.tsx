@@ -4,7 +4,7 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Promotion is played as an old 16-bit office game: chunky pixel rooms seen side-on, like a point-and-click
 // adventure, under a bar giving the day, the time and the place. Everyone is built from the same blocky body in their
-// own colours, and you're the one in the orange jumper. Game touches carry the story: a NEW QUEST banner when the job
+// own colors, and you're the one in the orange jumper. Game touches carry the story: a NEW QUEST banner when the job
 // goes up, name tags and a VS for the rivalry, pixel speech bubbles, ! marks when everyone turns to look at you, and
 // confetti when Priya gets it. A cue names a room, the day and time, and the parts to show: a new room steps up from
 // black, and new parts in the same room blink in after it. Everything is SVG in a fixed 1600x900 space, drawn on an
@@ -47,7 +47,7 @@ const GINGER = '#c45a2c';
 // drawing
 // ---------------------------------------------------------------------------
 
-//everything is blocks: x, y, w, h in screen pixels, a colour, and a class for anything that moves
+//everything is blocks: x, y, w, h in screen pixels, a color, and a class for anything that moves
 type Item = { r: [number, number, number, number]; c: string; cls?: string; op?: number };
 type Rect = [number, number, number, number, string, string?];
 
@@ -59,7 +59,7 @@ const fine = (x: number, y: number, w: number, h: number, c: string, cls?: strin
 const piece = (x: number, gy: number, dir: Dir, rects: Rect[]): Item[] =>
   rects.map(([dx, dy, w, h, c, cls]) => px(x + (dir === 1 ? dx : -dx - w), gy + dy, w, h, c, cls));
 
-//a colour mixed towards white (k > 0) or black (k < 0)
+//a color mixed toward white (k > 0) or black (k < 0)
 const shade = (hex: string, k: number) => {
   const n = parseInt(hex.slice(1), 16);
   const f = (v: number) => Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k);
@@ -72,8 +72,8 @@ const rand = (i: number) => {
   return v - Math.floor(v);
 };
 
-//a little picture from rows of letters, each letter a colour from pal and anything else see-through, s screen pixels
-//to one of its pixels. Its pixels never overlap, so they're sorted by colour into as few shapes as possible
+//a little picture from rows of letters, each letter a color from pal and anything else see-through, s screen pixels
+//to one of its pixels. Its pixels never overlap, so they're sorted by color into as few shapes as possible
 function sprite(x: number, y: number, rows: string[], pal: Record<string, string>, s = C, cls?: string, flip = false): Item[] {
   const out: Item[] = [];
   rows.forEach((row, j) => {
@@ -112,7 +112,7 @@ function words(text: string, x: number, y: number, s: number, c: string, cls?: s
   );
 }
 const wide = (text: string, s: number) => (Math.max(...text.split('\n').map((l) => l.length)) * 4 - 1) * s;
-const centred = (text: string, cx: number, y: number, s: number, c: string, cls?: string) =>
+const centered = (text: string, cx: number, y: number, s: number, c: string, cls?: string) =>
   text.split('\n').flatMap((line, j) => words(line, cx - wide(line, s) / 2, y + j * 7 * s, s, c, cls));
 
 //a speech bubble with its top left at x, y in screen pixels, and its tail on the left or right of its bottom edge
@@ -130,7 +130,7 @@ function bubble(x: number, y: number, text: string, tail: 'l' | 'r' = 'l', s = 4
   ];
 }
 
-//a name tag, centred on cx
+//a name tag, centered on cx
 function tag(cx: number, y: number, text: string, c: string, ink = WHITE, cls?: string): Item[] {
   const w = wide(text, 3) + 16;
   return [fine(cx - w / 2 - 4, y - 4, w + 8, 35, INK, cls), fine(cx - w / 2, y, w, 27, c, cls), ...words(text, cx - w / 2 + 8, y + 6, 3, ink, cls)];
@@ -301,7 +301,7 @@ const STUDIO: Record<string, Item[]> = {
     ...[59, 63, 68, 74].map((y) => px(0, y, 200, 1, shade(SLATE, -0.12))),
     ...pane(12, 14, 34, 24),
     ...pane(152, 14, 26, 24),
-    ...centred('PEMBERTON CARDS', 70 * C, 96, 3, WOOD_D),
+    ...centered('PEMBERTON CARDS', 70 * C, 96, 3, WOOD_D),
     px(54, 15, 32, 19, WOOD_D),
     px(55, 16, 30, 17, CORK),
     ...[RED, YELLOW, SKY, GREEN, ORANGE, PLUM, CYAN, LIME].flatMap((c, i) => {
@@ -372,7 +372,7 @@ const STUDIO: Record<string, Item[]> = {
   you_clap: figure(62, FRONT, YOU, 'clap', 1),
   you_slice: [...figure(62, FRONT, YOU, 'hold', 1, 'smile'), ...sprite(68 * C, (FRONT - 18) * C, ['www', 'sss', 'jjj', 'sss'], CAKE_PAL)],
   tags: [...tag(72.5 * C, 41 * C, 'YOU', ORANGE, INK), ...tag(128.5 * C, 41 * C, 'PRIYA', TEAL)],
-  vs: [...centred('VS', 806, 334, 8, INK), ...centred('VS', 800, 328, 8, RED)],
+  vs: [...centered('VS', 806, 334, 8, INK), ...centered('VS', 800, 328, 8, RED)],
   promo_tag: tag(120.5 * C, 39 * C, 'PROMOTED!', YELLOW, INK, 'pp-bob'),
   confetti: CONFETTI,
   looks: [...bang(43, 42), ...bang(99, 33), ...bang(119, 42), ...bang(139, 42), ...bang(157, 42)],
@@ -436,12 +436,12 @@ const KITCHEN: Record<string, Item[]> = {
   notice_paper: [
     px(128, 17, 36, 23, WHITE),
     px(145, 16, 2, 2, RED),
-    ...centred('SENIOR\nDESIGNER\nWANTED', 146 * C, 20 * C, 4, INK),
-    ...centred('INTERVIEWS NEXT WEEK', 146 * C, 36 * C, 3, RED),
+    ...centered('SENIOR\nDESIGNER\nWANTED', 146 * C, 20 * C, 4, INK),
+    ...centered('INTERVIEWS NEXT WEEK', 146 * C, 36 * C, 3, RED),
   ],
   you_mug: [...figure(36, KG, YOU, 'hold', 1), px(43, KG - 16, 2, 2, ORANGE)],
   tom_mug: [...figure(58, KG, TOM, 'hold', -1), px(49, KG - 16, 2, 2, GREEN)],
-  quest: [fine(556, 76, 488, 72, YELLOW), fine(560, 80, 480, 64, INK), ...centred('NEW QUEST!', 800, 88, 4, YELLOW), ...centred('SENIOR DESIGNER', 800, 116, 4, WHITE)],
+  quest: [fine(556, 76, 488, 72, YELLOW), fine(560, 80, 480, 64, INK), ...centered('NEW QUEST!', 800, 88, 4, YELLOW), ...centered('SENIOR DESIGNER', 800, 116, 4, WHITE)],
   ask_bubble: bubble(240, 250, 'BACK ME UP?'),
   sure_bubble: bubble(452, 286, '...SURE.'),
 };
@@ -494,7 +494,7 @@ const OFFICE: Record<string, Item[]> = {
   margaret_wave: figure(130, OG, JOAN, 'sit_wave', -1, 'smile'),
   margaret_write: [...figure(130, OG, JOAN, 'type', -1), px(118, OG - 10, 5, 1, WHITE)],
   portfolio_desk: [px(95, OG - 11, 9, 2, BLUE), px(95, OG - 11, 9, 1, SKY)],
-  robin_popup: [fine(652, 100, 296, 224, YELLOW), fine(656, 104, 288, 216, INK), ...robin(728, 128, 12), ...centred('BEST SELLER', 800, 276, 3, YELLOW)],
+  robin_popup: [fine(652, 100, 296, 224, YELLOW), fine(656, 104, 288, 216, INK), ...robin(728, 128, 12), ...centered('BEST SELLER', 800, 276, 3, YELLOW)],
   tom_tag: tag(14.5 * C, 29 * C, 'TOM', GREEN),
   beam: [...sparkle(122, 47), ...sparkle(135, 45), ...sparkle(128, 43)],
   stars: [...sparkle(64, 47), ...sparkle(78, 45), ...sparkle(70, 43)],
@@ -532,7 +532,7 @@ const SCREEN: Record<string, Item[]> = {
     px(64, 18, 80, 37, TEAL),
     ...sprite(70 * C, 22 * C, ['.yyy..', 'yyy...', 'yy....', 'yy....', 'yyy...', '.yyy..'], { y: YELLOW }),
     ...Array.from({ length: 14 }, (_, i) => px(68 + Math.floor(rand(i + 7) * 72), 20 + Math.floor(rand(i + 31) * 32), 1, 1, WHITE)),
-    ...centred('SWEET\nDREAMS', 640, 34 * C, 6, WHITE),
+    ...centered('SWEET\nDREAMS', 640, 34 * C, 6, WHITE),
     px(25, 58, 150, 3, NAVY),
     px(26, 58, 6, 3, GREEN),
     px(50, 72, 100, 4, SILVER),
@@ -658,8 +658,8 @@ const COVER: Record<string, Item[]> = {
     ...Array.from({ length: 40 }, (_, i) => px(Math.floor(rand(i) * 200), Math.floor(rand(i + 77) * 70), 1, 1, i % 4 ? WHITE : CYAN, i % 3 ? undefined : 'pp-twinkle')),
     px(0, 72, 200, 41, DUSK),
   ],
-  title: [...centred('THE', 800, 68, 6, YELLOW), ...centred('PROMOTION', 808, 120, 14, INK), ...centred('PROMOTION', 800, 112, 14, ORANGE)],
-  start: centred('PRESS START', 800, 224, 4, WHITE, 'pp-blink'),
+  title: [...centered('THE', 800, 68, 6, YELLOW), ...centered('PROMOTION', 808, 120, 14, INK), ...centered('PROMOTION', 800, 112, 14, ORANGE)],
+  start: centered('PRESS START', 800, 224, 4, WHITE, 'pp-blink'),
   stairs: [
     ...Array.from({ length: 8 }, (_, i) => [px(70 + i * 6, 69 - i * 3, 6, 3 + i * 3, SLATE), px(70 + i * 6, 69 - i * 3, 6, 1, SILVER)]).flat(),
     px(118, 48, 14, 24, SLATE),
@@ -679,7 +679,7 @@ const BACK: Record<string, Item[]> = {
   menu: [
     px(64, 14, 72, 44, WHITE),
     px(65, 15, 70, 42, INK),
-    ...centred('PAUSED', 800, 15 * C + 20, 6, YELLOW),
+    ...centered('PAUSED', 800, 15 * C + 20, 6, YELLOW),
     px(70, 26, 60, 1, SLATE),
     ...words('RESUME', 80 * C, 31 * C, 5, SLATE),
     ...words('ABOUT YOU', 80 * C, 38 * C, 5, WHITE),
@@ -697,10 +697,10 @@ const CARD: Record<string, Item[]> = {
     ...Array.from({ length: 24 }, (_, i) => px(38 + Math.floor(rand(i + 40) * 58), 14 + Math.floor(rand(i + 90) * 30), 1, 1, WHITE)),
     px(36, 52, 62, 12, WHITE),
     ...robin(440, 196, 16),
-    ...centred("SEASON'S GREETINGS", 536, 468, 3, NAVY),
+    ...centered("SEASON'S GREETINGS", 536, 468, 3, NAVY),
     px(98, 12, 62, 52, '#ebe6d8'),
     px(97, 12, 2, 52, SILVER),
-    ...centred("COULDN'T HAVE\nDONE IT\nWITHOUT YOU.\n\nDRINKS FRIDAY?\nP X", 1032, 156, 5, NAVY),
+    ...centered("COULDN'T HAVE\nDONE IT\nWITHOUT YOU.\n\nDRINKS FRIDAY?\nP X", 1032, 156, 5, NAVY),
   ],
 };
 
@@ -799,7 +799,7 @@ const CROSSFADE = 1.2; //seconds
 
 const GAP = 0.25; //seconds between one part blinking in and the next
 
-//each part's blocks, merged into one shape wherever neighbours in painter's order share a colour
+//each part's blocks, merged into one shape wherever neighbors in painter's order share a color
 type Run = { d: string; c: string; cls?: string; op?: number };
 function runs(items: Item[]): Run[] {
   const out: Run[] = [];
@@ -884,7 +884,7 @@ function Hud({ cue }: { cue: Cue }) {
     <g>
       <rect width={W} height={56} fill={INK} />
       <rect y={52} width={W} height={4} fill={DUSK} />
-      {runs(centred(`${cue.day}  ·  ${PLACE[cue.room]}`, 800, 18, 4, WHITE)).map(draw)}
+      {runs(centered(`${cue.day}  ·  ${PLACE[cue.room]}`, 800, 18, 4, WHITE)).map(draw)}
     </g>
   );
 }

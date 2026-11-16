@@ -7,7 +7,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 
 export interface Layer {
   key: string;
-  //what it moves with: neighbouring layers that move the same way share an svg. Left out for something that holds still
+  //what it moves with: neighboring layers that move the same way share an svg. Left out for something that holds still
   moving?: string;
   //a blend can't reach past its own svg, so blended shapes get an svg of their own and the whole svg is blended
   blend?: 'screen' | 'multiply';
@@ -37,7 +37,7 @@ interface Group {
   layers: Layer[];
 }
 
-//the layers in order, with neighbours that move, blend and wrap the same way sharing an svg. wrap puts each svg's
+//the layers in order, with neighbors that move, blend and wrap the same way sharing an svg. wrap puts each svg's
 //content inside whatever its kind needs, such as a filter that has to see all of it at once. className and style go on
 //the wrapper, for fading a whole page in or out.
 //A layer keeps the svg it was first drawn in while parts come and go around it, since moving it to another svg would

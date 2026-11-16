@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { LAYER_COLOURS, type LayerId } from './anatomy_layers';
+import { LAYER_COLORS, type LayerId } from './anatomy_layers';
 import { HEX } from '../shared_components/palette';
 
 //what's lit up, and what the user has noted, which blushes
@@ -19,7 +19,7 @@ interface AnatomyViewerProps {
   layers: Set<LayerId>; //the layers showing
   lit: Set<string>; //the meshes lit up, by element id
   noted: Set<string>; //the meshes with something the user has noted
-  tints: Map<string, number>; //meshes drawn in a colour of their own, such as where the user stands on what they rest on
+  tints: Map<string, number>; //meshes drawn in a color of their own, such as where the user stands on what they rest on
   focus: Set<string>; //the meshes the camera frames, or the whole body when there are none
   spin: boolean; //turn slowly by itself
   pulse: boolean; //the lit meshes breathe, to draw the eye
@@ -32,14 +32,14 @@ const tones = new THREE.DataTexture(new Uint8Array([170, 255]), 2, 1, THREE.RedF
 tones.needsUpdate = true;
 const litMaterial = new THREE.MeshToonMaterial({ color: LIT, emissive: LIT, emissiveIntensity: 0.2, gradientMap: tones });
 const toons = new Map<number, THREE.Material>();
-const toon = (colour: number) => {
-  let material = toons.get(colour);
-  if (!material) toons.set(colour, (material = new THREE.MeshToonMaterial({ color: colour, gradientMap: tones })));
+const toon = (color: number) => {
+  let material = toons.get(color);
+  if (!material) toons.set(color, (material = new THREE.MeshToonMaterial({ color: color, gradientMap: tones })));
   return material;
 };
 //the figure's shape, for its fill and outline
 const shellMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-//each mesh drawn in a colour of its own for the ink pass: its number in red and green, and what it's drawn as in blue,
+//each mesh drawn in a color of its own for the ink pass: its number in red and green, and what it's drawn as in blue,
 //so lines fall between parts and between what's drawn differently, and never across a part's own faces
 const ids = new Map<string, THREE.Material>();
 const idOf = (n: number, group: number) => {
@@ -52,8 +52,8 @@ const idOf = (n: number, group: number) => {
 //strong ones against anything else
 const GROUP = { ghost: 0, base: 1, noted: 2, tint: 3, lit: 4 } as const;
 
-//how a mesh is drawn: lit ones in red over everything, tinted ones in their colour, and when anything's lit the rest
-//fade to pencil lines; otherwise noted ones blush and the rest take their layer's colour
+//how a mesh is drawn: lit ones in red over everything, tinted ones in their color, and when anything's lit the rest
+//fade to pencil lines; otherwise noted ones blush and the rest take their layer's color
 interface Look {
   group: number;
   fill?: THREE.Material;
@@ -62,22 +62,22 @@ interface Look {
 //one layer's meshes, each with its number for the ink pass
 interface Loaded {
   meshes: THREE.Mesh[];
-  colour: number;
+  color: number;
 }
 
 function paint(layers: Map<LayerId, Loaded>, lit: Set<string>, noted: Set<string>, tints: Map<string, number>) {
   for (const layer of layers.values()) {
     for (const mesh of layer.meshes) {
-      const colour = tints.get(mesh.name);
+      const color = tints.get(mesh.name);
       const look: Look = lit.has(mesh.name)
         ? { group: GROUP.lit, fill: litMaterial }
-        : colour !== undefined
-          ? { group: GROUP.tint, fill: toon(colour) }
+        : color !== undefined
+          ? { group: GROUP.tint, fill: toon(color) }
           : lit.size
             ? { group: GROUP.ghost }
             : noted.has(mesh.name)
               ? { group: GROUP.noted, fill: toon(NOTED) }
-              : { group: GROUP.base, fill: toon(layer.colour) };
+              : { group: GROUP.base, fill: toon(layer.color) };
       mesh.userData.look = look;
     }
   }
@@ -96,7 +96,7 @@ function show(layers: Map<LayerId, Loaded>, on: Set<LayerId>) {
 const inkShader = {
   vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
   fragmentShader: `
-    uniform sampler2D tShell, tColour, tSolid, tGhost;
+    uniform sampler2D tShell, tColor, tSolid, tGhost;
     uniform vec2 px;
     uniform float scale;
     varying vec2 vUv;
@@ -129,19 +129,19 @@ const inkShader = {
     }
     void main() {
       vec4 shell = texture2D(tShell, vUv);
-      vec4 fill = texture2D(tColour, vUv + vec2(2.0, -2.0) * scale * px);
+      vec4 fill = texture2D(tColor, vUv + vec2(2.0, -2.0) * scale * px);
       float solid = texture2D(tSolid, vUv).a;
-      vec3 colour = FIGURE;
+      vec3 color = FIGURE;
       float alpha = shell.a;
       if (fill.a > 0.5) {
-        colour = pow(fill.rgb, vec3(1.0 / 2.2));
+        color = pow(fill.rgb, vec3(1.0 / 2.2));
         alpha = 1.0;
       }
       float ink = max(lines(tSolid, vUv, 1.2 * scale), lines(tGhost, vUv, 1.0 * scale) * 0.3 * (1.0 - solid));
       ink = max(ink, outline(vUv, 3.5 * scale));
-      colour = mix(colour, INK, ink);
+      color = mix(color, INK, ink);
       alpha = max(alpha, ink);
-      gl_FragColor = vec4(colour * alpha, alpha);
+      gl_FragColor = vec4(color * alpha, alpha);
     }`,
 };
 
@@ -153,7 +153,7 @@ interface Flight {
 }
 
 //the 3D body, drawn as a comic x-ray: the skin is a flat figure with a thick ink outline, and the layers showing are
-//drawn inside it in flat colour with ink between their parts. Each layer is loaded the first time it's shown, and the
+//drawn inside it in flat color with ink between their parts. Each layer is loaded the first time it's shown, and the
 //body is turned with the mouse or a finger. A lit mesh is drawn in red and everything else fades to pencil lines so it
 //stands out, and the camera flies to whatever's in focus
 export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, onPick, onLoading }: AnatomyViewerProps) {
@@ -212,14 +212,14 @@ export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, o
       //nothing in focus frames the whole of what's showing
       if (box.isEmpty()) for (const layer of loaded.current.values()) if (layer.meshes[0]?.parent?.visible) box.expandByObject(layer.meshes[0].parent);
       if (box.isEmpty()) return;
-      const centre = box.getCenter(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const fov = THREE.MathUtils.degToRad(camera.fov);
       const fit = Math.max(NEAREST, (Math.max(size.y, size.x / camera.aspect, size.z) / 2 / Math.tan(fov / 2)) * 1.3);
       const side = camera.position.clone().sub(orbit.target).normalize();
       flight = {
         from: { target: orbit.target.clone(), position: camera.position.clone() },
-        to: { target: centre, position: centre.clone().addScaledVector(side, fit) },
+        to: { target: center, position: center.clone().addScaledVector(side, fit) },
         start: performance.now(),
       };
       draw();
@@ -246,12 +246,12 @@ export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, o
     };
 
     //the passes the ink shader puts together, each drawn at the canvas's own size
-    const targets = { shell: new THREE.WebGLRenderTarget(), colour: new THREE.WebGLRenderTarget(), solid: new THREE.WebGLRenderTarget(), ghost: new THREE.WebGLRenderTarget() };
+    const targets = { shell: new THREE.WebGLRenderTarget(), color: new THREE.WebGLRenderTarget(), solid: new THREE.WebGLRenderTarget(), ghost: new THREE.WebGLRenderTarget() };
     const ink = new THREE.ShaderMaterial({
       ...inkShader,
       uniforms: {
         tShell: { value: targets.shell.texture },
-        tColour: { value: targets.colour.texture },
+        tColor: { value: targets.color.texture },
         tSolid: { value: targets.solid.texture },
         tGhost: { value: targets.ghost.texture },
         px: { value: new THREE.Vector2() },
@@ -298,7 +298,7 @@ export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, o
         renderer.render(world, camera);
         if (skin[0]?.parent) skin[0].parent.visible = skinShown;
       }
-      pass(targets.colour, (_, look) => look.fill);
+      pass(targets.color, (_, look) => look.fill);
       pass(targets.solid, (mesh, look) => look.fill && idOf(mesh.userData.n, look.group));
       pass(targets.ghost, (mesh, look) => (look.group === GROUP.ghost ? idOf(mesh.userData.n, 0) : undefined));
       for (const layer of layers.values()) for (const mesh of layer.meshes) mesh.visible = true;
@@ -380,7 +380,7 @@ export function AnatomyViewer({ layers, lit, noted, tints, focus, spin, pulse, o
         const { layers: on, focus } = latest.current;
         gltf.scene.visible = on.has(id);
         world.add(gltf.scene);
-        loaded.current.set(id, { meshes, colour: LAYER_COLOURS[id] });
+        loaded.current.set(id, { meshes, color: LAYER_COLORS[id] });
         paint(loaded.current, latest.current.lit, latest.current.noted, latest.current.tints);
         //the camera flies in once there's a body to see, and again when what it frames has just grown: the whole body
         //by a layer, or what's in focus by its meshes arriving

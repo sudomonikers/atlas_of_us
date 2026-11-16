@@ -15,12 +15,12 @@ import { useSkills } from './use_skills';
 
 //how the board draws the ways skills link, as the Skills page does
 const KINDS: LinkKind[] = [
-  { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
-  { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, colour: 'var(--cinnamon-wood)', length: 130 },
-  { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, colour: blue, length: 150 },
-  { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, colour: brownRed, length: 120 },
-  { id: 'able', label: 'Abilities needed', line: 'solid', arrow: true, colour: 'var(--cinnamon-wood)', length: 120 },
-  { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, colour: blue, length: 120 },
+  { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, color: gunmetal, length: 90 },
+  { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, color: 'var(--cinnamon-wood)', length: 130 },
+  { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, color: blue, length: 150 },
+  { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, color: brownRed, length: 120 },
+  { id: 'able', label: 'Abilities needed', line: 'solid', arrow: true, color: 'var(--cinnamon-wood)', length: 120 },
+  { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, color: blue, length: 120 },
 ];
 
 const NONE: string[] = [];

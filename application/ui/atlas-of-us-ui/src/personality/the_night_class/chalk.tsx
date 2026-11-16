@@ -3,7 +3,7 @@ import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Night Class is drawn in chalk on Room 14's blackboard. Lines are drawn stroke by stroke, with a faint halo of chalk
-// dust round each one, shapes are coloured in as soft smudges, and writing is chalked on left to right. A grain of board
+// dust round each one, shapes are colored in as soft smudges, and writing is chalked on left to right. A grain of board
 // shows through all of it, and old wiped-off chalk ghosts the board behind. The player is always in yellow. A cue names a
 // page and the parts of it to show: parts already up stay put, new ones are drawn after them, and turning to a new page
 // wipes the old one off. Everything is SVG in a fixed 1600x900 space, scaled to cover the screen. The pictures keep to

@@ -11,7 +11,7 @@ detail behind it is in `personality_round_1.md` to `personality_round_5.md` and 
 - **What each scoring sets:** a value and a confidence for each of the 43 traits, plus up to three answers per trait that show it most clearly. Those answers become the "Why?" on My Personality.
 - **What the scorer works from:**
   - the scoring prompt;
-  - per-trait criteria: what high and low look like, and which neighbouring trait an answer belongs to instead;
+  - per-trait criteria: what high and low look like, and which neighboring trait an answer belongs to instead;
   - the "typical is the baseline" rule;
   - the facets, as evidence of what a person had a chance to show.
 - **UI:** traits with confidence below 0.5 are shown faded, with an "Early read" tag.

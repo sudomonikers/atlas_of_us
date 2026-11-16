@@ -35,7 +35,7 @@ const LEVELS = [
   {
     name: 'Understand',
     gist: 'Explains the Ideas in their own words, and how they connect.',
-    board: 'Explains why both sides fight for the centre in the opening, and what developing a piece is for.',
+    board: 'Explains why both sides fight for the center in the opening, and what developing a piece is for.',
     detail: 'Understanding is being able to say what something means: putting it another way, giving an example, telling it apart from what it resembles. The Ideas start to hang together, so one makes sense of another.',
   },
   {
@@ -47,7 +47,7 @@ const LEVELS = [
   {
     name: 'Analyze',
     gist: 'Breaks the topic into parts and sees how they relate.',
-    board: 'Looks at a game and shows where the opening went wrong, and which move gave the other side the centre.',
+    board: 'Looks at a game and shows where the opening went wrong, and which move gave the other side the center.',
     detail: 'Analyzing is taking the topic apart: telling what matters from what doesn\'t, seeing how the parts depend on each other, and finding the assumptions underneath. From here on, knowing is about the topic as a whole more than any one Idea in it.',
   },
   {
@@ -99,7 +99,7 @@ const IN_THE_ATLAS = [
 
 //the Topics Explained view: why what you know matters, over a map of every topic, what Bloom's taxonomy is, each of its levels, the kinds of Idea, then how the Atlas uses them
 //how the map draws a topic's link to the broader topic it's part of, as the explorer's board does
-const PART_OF: LinkKind[] = [{ id: 'part_of', label: 'Part of', line: 'solid', arrow: true, colour: gunmetal, length: 90 }];
+const PART_OF: LinkKind[] = [{ id: 'part_of', label: 'Part of', line: 'solid', arrow: true, color: gunmetal, length: 90 }];
 
 interface ExplainedProps {
   onExplore: (topic: TopicRef) => void; //a topic or a field on the map was clicked, to explore from it
@@ -205,7 +205,7 @@ export default function Explained({ onExplore }: ExplainedProps) {
       <ul style={styles.types}>
         {(Object.keys(IDEA_TYPES) as IdeaType[]).map((type, i) => (
           <li key={type} style={{ ...styles.type, '--tilt': `${i % 2 ? 0.3 : -0.3}deg` } as CSSProperties} className="comic-panel comic-pop">
-            <span className="comic-chip" style={{ ...styles.typeChip, background: IDEA_TYPES[type].colour }}>
+            <span className="comic-chip" style={{ ...styles.typeChip, background: IDEA_TYPES[type].color }}>
               {IDEA_TYPES[type].label}
             </span>
             <p style={styles.gist}>{IDEA_TYPES[type].tell}</p>

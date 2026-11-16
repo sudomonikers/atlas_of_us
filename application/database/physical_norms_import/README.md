@@ -67,7 +67,7 @@ where the best readings bunch up.
 The Atlas's own tests (the reasoning tests, the tests of attention, coordination, the senses and ideas, and the home
 tests after them in `src/published.rs`) have `Norms::Atlas`: the seed writes them with `atlasNorms` and no norms, and the api works out their norms
 from Atlas users' readings (`apis/atlas-api/src/domains/physical/community.rs`). Re-running the seed keeps those norms.
-Their item counts and time limits match the ui's `src/physical/puzzles.ts`.
+Their item counts and time limits match the ui's `src/physical/timed.ts`.
 
 Visual Acuity, from NHANES, can also be measured in the app: its `test` is `eye_chart`, set in `src/measurements.rs`.
 

@@ -7,12 +7,12 @@ export type IdeaType = 'concept' | 'claim' | 'norm' | 'value';
 //a topic's six levels, Bloom's taxonomy, by rank
 export const BLOOM_NAMES = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'];
 
-//the four kinds of Idea, how to tell each one, and the colour its chip is drawn in
-export const IDEA_TYPES: Record<IdeaType, { label: string; tell: string; colour: string }> = {
-  concept: { label: 'Concept', tell: 'Something you grasp. It is not true or false.', colour: 'var(--air-force-blue)' },
-  claim: { label: 'Claim', tell: 'Something that is either true or false, whether or not it can be proved.', colour: 'var(--cinnamon-wood)' },
-  norm: { label: 'Norm', tell: 'Something that tells you what to do.', colour: 'var(--brown-red)' },
-  value: { label: 'Value', tell: 'A good someone holds dear, more or less strongly.', colour: 'var(--gunmetal-black)' },
+//the four kinds of Idea, how to tell each one, and the color its chip is drawn in
+export const IDEA_TYPES: Record<IdeaType, { label: string; tell: string; color: string }> = {
+  concept: { label: 'Concept', tell: 'Something you grasp. It is not true or false.', color: 'var(--air-force-blue)' },
+  claim: { label: 'Claim', tell: 'Something that is either true or false, whether or not it can be proved.', color: 'var(--cinnamon-wood)' },
+  norm: { label: 'Norm', tell: 'Something that tells you what to do.', color: 'var(--brown-red)' },
+  value: { label: 'Value', tell: 'A good someone holds dear, more or less strongly.', color: 'var(--gunmetal-black)' },
 };
 
 export interface TopicRef {

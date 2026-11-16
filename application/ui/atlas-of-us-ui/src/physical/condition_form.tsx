@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { SEVERITIES, capitalised, setMyCondition, type Condition, type MyCondition, type Severity } from './api';
+import { SEVERITIES, capitalized, setMyCondition, type Condition, type MyCondition, type Severity } from './api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Checkbox } from '../shared_components/checkbox';
 import { Disclosure } from '../shared_components/disclosure';
@@ -24,8 +24,8 @@ export function ConditionForm({ condition, mine, onSaved, onCancel }: ConditionF
   const save = () => run(setMyCondition(condition.id, severity, diagnosed, managed), () => onSaved({ id: condition.id, severity, diagnosed, managed }));
 
   return (
-    <div style={styles.form} role="group" aria-label={capitalised(condition.name)}>
-      <p style={styles.title}>{capitalised(condition.name)}</p>
+    <div style={styles.form} role="group" aria-label={capitalized(condition.name)}>
+      <p style={styles.title}>{capitalized(condition.name)}</p>
       {condition.description && <p style={styles.text}>{condition.description}</p>}
       {!!condition.synonyms.length && (
         <Disclosure label="Other names">

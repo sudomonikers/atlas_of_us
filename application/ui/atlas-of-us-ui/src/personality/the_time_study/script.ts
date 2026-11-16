@@ -23,7 +23,7 @@ export const theTimeStudy: Script = {
     opening: {
       steps: [
         { text: 'The Time Study', animation: 'title_card' },
-        { text: 'The psychology building smells of floor polish and burnt coffee. A sign on the third door down says: TIME STUDY. PARTICIPANTS, PLEASE KNOCK.', animation: 'door' },
+        { text: 'The psychology building smells of floor polish and burned coffee. A sign on the third door down says: TIME STUDY. PARTICIPANTS, PLEASE KNOCK.', animation: 'door' },
         { text: 'Dr. Osei opens it with a mug in each hand. She has spent twenty years studying how people spend their days, and she still sounds delighted by it.', animation: 'office' },
         { speaker: OSEI, text: "Thank you for coming in. There are no right answers here, and nothing gets graded. I want to know how your days really go, not how they're supposed to go.", animation: 'office' },
         { speaker: OSEI, text: "We'll start with a little homework. Here's a diary page for your last seven days. One day is a fluke, but a week is a pattern. Fill it in as roughly as you like.", animation: 'diary' },

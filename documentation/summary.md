@@ -1,7 +1,7 @@
 # The Atlas Of Us
 The Atlas of Us is an application for figuring out who you are and better yet who you could become. To do this the app walks the user through figuring out who they are first. How do we do that? And how do we know who they could become?
 
-Correctly modeling all that a person is is a very tall task. Before we can even get to modelling a specific person, we need to have an understanding of all that any human could be. What makes a person a person? Each person unique? Is it their personality? Their specific set of knowledge or skills? Is it the things they do on a day to day basis or moreso what they are capable of doing in different situations? How do we figure out who a person ACTUALLY is versus who they think they are? We all have our biases and self-indulgent lies after all.
+Correctly modeling all that a person is is a very tall task. Before we can even get to modeling a specific person, we need to have an understanding of all that any human could be. What makes a person a person? Each person unique? Is it their personality? Their specific set of knowledge or skills? Is it the things they do on a day to day basis or moreso what they are capable of doing in different situations? How do we figure out who a person ACTUALLY is versus who they think they are? We all have our biases and self-indulgent lies after all.
 
 So to figure out what an individual can possible be, the Atlas Of Us has a comprehensive graph of what can make up a person. This is in fact a combination of many things, and we are adding on new layers as we discover them. For now we model the following:
 

@@ -63,7 +63,7 @@ pub struct TraitSkill {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct TraitCentre {
+pub struct TraitCenter {
     id: String,
     name: String,
     description: Option<String>, //its overview, or its one-line description where it has none
@@ -74,7 +74,7 @@ pub struct TraitCentre {
 #[derive(Serialize)]
 pub struct TraitSkills {
     #[serde(rename = "trait")]
-    r#trait: TraitCentre,
+    r#trait: TraitCenter,
     skills: Vec<TraitSkill>,
     total: i64,
 }

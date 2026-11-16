@@ -12,8 +12,8 @@ export const LAYERS: { id: LayerId; label: string }[] = [
   { id: 'skin', label: 'Skin' },
 ];
 
-//each layer's colour, in the palette's spirit
-export const LAYER_COLOURS: Record<LayerId, number> = {
+//each layer's color, in the palette's spirit
+export const LAYER_COLORS: Record<LayerId, number> = {
   skin: 0xefd9cf,
   skeleton: HEX.ivory,
   muscles: 0xc98a7a,

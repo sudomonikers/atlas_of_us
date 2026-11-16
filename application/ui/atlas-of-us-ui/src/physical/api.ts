@@ -1,14 +1,16 @@
 import { request } from '../auth/api';
 
 export type NormSex = 'male' | 'female';
-//a test a person takes themselves: at home, following its steps, or one the app runs
+//a test a person takes themselves: at home, following its steps, one the app runs, or one only the camera can watch
 export type Test =
   | 'home'
+  | 'camera'
   | 'simple_reaction'
   | 'choice_reaction'
   | 'digit_span'
   | 'trail_making'
   | 'eye_chart'
+  | 'hearing'
   | 'matrices'
   | 'series'
   | 'rotation'
@@ -26,9 +28,10 @@ export type Test =
   | 'steering'
   | 'track_count'
   | 'near_chart'
-  | 'colours'
+  | 'colors'
   | 'side_vision'
-  | 'animals'
+  | 'designs'
+  | 'problems'
   | 'uses';
 export type Better = 'higher' | 'lower' | 'neither';
 
@@ -80,7 +83,6 @@ export interface Measurement {
 }
 
 export interface Measurements {
-  norm_sex: NormSex | null; //null compares them with everyone
   measurements: Measurement[];
 }
 
@@ -97,7 +99,7 @@ export interface Recorded {
 export const addReading = (id: string, value: number, measuredOn: string) =>
   request<Recorded>('POST', `/physical/measurements/${encodeURIComponent(id)}/readings`, { value, measured_on: measuredOn });
 
-//has the api score typed answers, for a test such as Animal Naming, and record the score as a reading. Returns the
+//has the api score typed answers, for a test such as Brick Uses, and record the score as a reading. Returns the
 //reading, the answers that counted and the user's abilities
 export const scoreAnswers = (id: string, answers: string[], measuredOn: string) =>
   request<Recorded & { counted: string[] }>('POST', `/physical/measurements/${encodeURIComponent(id)}/answers`, { answers, measured_on: measuredOn });
@@ -105,14 +107,44 @@ export const scoreAnswers = (id: string, answers: string[], measuredOn: string) 
 //removes a reading, returning the user's abilities
 export const deleteReading = (id: string) => request<Ability[]>('DELETE', `/physical/readings/${encodeURIComponent(id)}`);
 
-//the user's own physical attributes, the ones that are set rather than recorded as readings
-export interface Me {
-  norm_sex: NormSex | null; //the sex whose norms they're compared with. null compares them with everyone
+//a fact about the user's body that's one of a few choices, such as which hand they use, with their answer
+export interface Characteristic {
+  id: string;
+  name: string;
+  question: string; //what Atlas asks
+  choices: string[];
+  value: string | null; //one of the choices, or null when they haven't said
 }
 
-//sets the user's own physical attributes. Every field is sent, and replaces what they had. Returns the user's
-//abilities, which who they're compared with moves
-export const setMe = (me: Me) => request<Ability[]>('PUT', '/physical/me', me);
+//the user's own physical attributes that are set rather than recorded as readings
+export interface Me {
+  characteristics: Characteristic[]; //in the order they're asked
+}
+
+export const getMe = () => request<Me>('GET', '/physical/me');
+
+//the characteristics to change, by id, each to one of its choices or to null to take the answer back. The rest stay
+//as they are
+export interface MeChange {
+  characteristics: Record<string, string | null>;
+}
+
+//changes the user's characteristics. Returns them, and the user's abilities when their sex changed, since who they're
+//compared with moves every percentile
+export const setMe = (change: MeChange) => request<{ me: Me; abilities: Ability[] | null }>('PUT', '/physical/me', change);
+
+//the hand the user uses most, left or right, when they've said it's one of them
+export const handOf = (me: Me) => {
+  const said = me.characteristics.find((c) => c.name === 'Handedness')?.value;
+  return said === 'Left' || said === 'Right' ? said.toLowerCase() : null;
+};
+
+//words about a stronger and weaker hand or arm, with the user's own hands named when they're known
+export const inYourHands = (text: string, hand: string | null) => {
+  if (!hand) return text;
+  const other = hand === 'left' ? 'right' : 'left';
+  return text.replace(/\b(your|the) stronger (hand|arm)\b/g, (_, w, part) => `${w} ${hand} ${part}`).replace(/\b(your|the) weaker (hand|arm)\b/g, (_, w, part) => `${w} ${other} ${part}`);
+};
 
 //who a reading was compared with, such as "women aged 30 to 39"
 export function comparedWith(c: ComparedWith) {
@@ -120,19 +152,45 @@ export function comparedWith(c: ComparedWith) {
   return c.age_to === null ? `${who} aged ${c.age_from} and over` : `${who} aged ${c.age_from} to ${c.age_to}`;
 }
 
-//where a reading sits, in words, ending before who it's compared with. Where lower is better, such as resting heart
-//rate, it says how many people it's better than
-export function standing(percentile: number, better: Better) {
-  const share = better === 'lower' ? 100 - percentile : percentile;
-  const pct = share < 1 ? 'under 1%' : share > 99 ? 'over 99%' : `${Math.round(share)}%`;
-  return better === 'lower' ? `Better than ${pct} of` : `Higher than ${pct} of`;
+//how many people a share is, said as so many in 100 rather than a percentage so it doesn't read like the reading itself,
+//which can be a percentage
+const inHundred = (share: number) => (share < 1 ? 'hardly any' : share > 99 ? 'nearly all' : `about ${Math.round(share)} in 100`);
+
+//where a reading sits among who it's compared with, in a sentence. Where one way is better it says how many people it
+//beats, and where neither is, such as height or body fat, how far from typical it is
+export function standing(percentile: number, better: Better, c: ComparedWith) {
+  const who = comparedWith(c);
+  if (better !== 'neither') return `Better than ${inHundred(better === 'lower' ? 100 - percentile : percentile)} ${who}.`;
+  const band = percentile < 20 ? 'Well below typical' : percentile < 40 ? 'Below typical' : percentile <= 60 ? 'About typical' : percentile <= 80 ? 'Above typical' : 'Well above typical';
+  return `${band} for ${who}, where ${inHundred(percentile)} measure lower than you.`;
+}
+
+//where a reading sits, in a few words, for a list of earlier readings
+export function standingBriefly(percentile: number, better: Better) {
+  return `better than ${inHundred(better === 'lower' ? 100 - percentile : percentile)}`;
 }
 
 //a value with its unit, such as "48.1 kg" or "20/25"
 export function withUnit(value: number, unit: string) {
   const v = Number.isInteger(value) ? String(value) : value.toFixed(1);
   if (unit === '20/x') return `20/${v}`;
-  return unit === '%' ? `${v}%` : `${v} ${unit}`;
+  if (unit === '%') return `${v}%`;
+  //one of a counted thing, such as 1 mistake or 1 touch
+  const one = value === 1 && /^[a-z-]{3,}s$/.test(unit) ? unit.replace(/(ch|sh|x)es$/, '$1').replace(/s$/, '') : unit;
+  return `${v} ${one}`;
+}
+
+//where the soles of the feet sit on the ruler of the sit and reach box its norms were measured on, so a reach that stops
+//short of the toes is still above 0. People are asked how far past or short of their toes they reached, and the
+//reading is kept on the box's scale
+export const TOES = 26;
+export const fromToes = (name: string) => name === 'Sit and Reach';
+
+//a reading as the user would say it: with its unit, or for sit and reach, how far past or short of their toes
+export function shownReading(value: number, m: { name: string; unit: string }) {
+  if (!fromToes(m.name)) return withUnit(value, m.unit);
+  const past = Math.round((value - TOES) * 10) / 10;
+  return past === 0 ? 'Right at your toes' : `${withUnit(Math.abs(past), 'cm')} ${past > 0 ? 'past' : 'short of'} your toes`;
 }
 
 //today, as YYYY-MM-DD in the user's own time zone
@@ -142,7 +200,7 @@ export function today() {
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits (0 to 100, higher
-//better), their rating of themselves, or an impairment holding it back
+//better), their rating of themselves, or an impairment in what it rests on, noted beside it
 export interface Basis {
   kind: 'measurement' | 'rating' | 'impairment';
   name: string;
@@ -159,6 +217,12 @@ export interface Shows {
 }
 
 //an ability from O*NET, with where the user stands on it, if anything says
+//a tip on working on an ability: what to do, or how to work on it around an impairment in what it rests on
+export interface Tip {
+  kind: 'practice' | 'impairment';
+  text: string;
+}
+
 export interface Ability {
   id: string;
   name: string;
@@ -166,6 +230,8 @@ export interface Ability {
   group: string;
   description: string;
   examples: string[]; //from what takes a little of it to what takes a lot
+  practice: 'a lot' | 'some' | 'little' | null; //how much practice changes it
+  tips: Tip[];
   value: number | null; //0 to 1, with 0.5 typical
   confidence: number | null;
   basis: Basis[];
@@ -275,7 +341,7 @@ export const CHANGES: { value: Change; label: string }[] = [
 //every body function, with the logged in user's impairments. The parts come from getAnatomy
 export const getImpairments = () => request<Impairments>('GET', '/physical/impairments');
 
-//notes or changes an impairment. change only applies to parts. Returns the user's abilities, which it can hold back
+//notes or changes an impairment. change only applies to parts. Returns the user's abilities, which note it
 export const setImpairment = (id: string, extent: Extent, change: Change | null) =>
   request<Ability[]>('PUT', `/physical/impairments/${encodeURIComponent(id)}`, { extent, change });
 
@@ -439,4 +505,4 @@ export const getAnatomy = () => request<PartSummary[]>('GET', '/physical/anatomy
 export const getPart = (id: string) => request<Part>('GET', `/physical/anatomy/${encodeURIComponent(id)}`);
 
 //a name to show, with a capital first letter, for the ontologies that have them in lower case
-export const capitalised = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+export const capitalized = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);

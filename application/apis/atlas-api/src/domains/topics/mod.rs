@@ -336,7 +336,7 @@ pub struct Group {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Centre {
+pub struct Center {
     id: String,
     name: String,
     description: Option<String>,
@@ -345,7 +345,7 @@ pub struct Centre {
 
 #[derive(Serialize)]
 pub struct Neighbors {
-    topic: Centre,
+    topic: Center,
     broader: Group, //the topics it's a subtopic of
     narrower: Group, //its subtopics
     ideas: Group, //the Ideas it includes
@@ -357,7 +357,7 @@ pub struct Neighbors {
 const NEIGHBOR_PAGE: i64 = 12;
 const SIMILAR: i64 = 8;
 
-//a kind of link that's paged through: its name, the pattern from the centre `c` to a linked node `o`, the order they
+//a kind of link that's paged through: its name, the pattern from the center `c` to a linked node `o`, the order they
 //come in, and what each is returned as
 type GroupQuery = (&'static str, &'static str, &'static str, &'static str);
 
@@ -413,7 +413,7 @@ pub async fn get_neighbors(State(state): State<AppState>, Path(id): Path<String>
         RETURN {{id: c.id, name: c.name, description: c.description, status: c.status}} AS topic, {}, c.vector AS vector
     ", all_group_columns(&GROUPS))).param("id", id.as_str()).param("skip", 0).param("limit", NEIGHBOR_PAGE)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
-    let topic: Centre = row.get("topic").map_err(internal)?;
+    let topic: Center = row.get("topic").map_err(internal)?;
     let group = |name: &str| read_group(&row, name);
     let (broader, narrower, ideas, needed_by) = (group("broader")?, group("narrower")?, group("ideas")?, group("needed_by")?);
     let vector: Option<Vec<f64>> = row.get("vector").map_err(internal)?;
@@ -462,7 +462,7 @@ pub async fn get_neighbor_page(State(state): State<AppState>, Path((id, group)):
 
 #[derive(Serialize)]
 pub struct IdeaNeighbors {
-    idea: IdeaCentre,
+    idea: IdeaCenter,
     topics: Group, //the topics that include it
     requires: Group, //the Ideas to understand first
     required_by: Group, //the Ideas that build on it
@@ -470,7 +470,7 @@ pub struct IdeaNeighbors {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct IdeaCentre {
+pub struct IdeaCenter {
     id: String,
     name: String,
     #[serde(rename = "type")]

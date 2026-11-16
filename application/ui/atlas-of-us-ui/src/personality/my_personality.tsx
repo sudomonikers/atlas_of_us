@@ -619,7 +619,7 @@ const styles: Record<string, CSSProperties> = {
     background: gunmetal,
     borderRadius: 2,
   },
-  //centred with margins, since comic-pop animates the transform
+  //centered with margins, since comic-pop animates the transform
   barThumb: {
     position: 'absolute',
     top: '50%',

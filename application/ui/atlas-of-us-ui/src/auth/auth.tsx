@@ -166,7 +166,7 @@ function Page({ title, error, children }: { title: string; error?: string; child
 
 type FieldProps = { label: string; hint?: string; error?: string } & (
   | { group?: false; children: ReactNode }
-  //several controls under one label (a <label> can only hold one), labelled by id instead
+  //several controls under one label (a <label> can only hold one), labeled by id instead
   | { group: true; children: (labelId: string) => ReactNode }
 );
 
@@ -218,7 +218,7 @@ const styles: Record<string, CSSProperties> = {
   },
   card: {
     width: 'min(520px, 100%)',
-    margin: 'auto 0', //centred in the space under the nav
+    margin: 'auto 0', //centered in the space under the nav
     padding: '28px 30px 22px',
     background: '#fff',
     borderRadius: 'var(--wobbly)',

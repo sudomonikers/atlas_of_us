@@ -3,7 +3,7 @@ import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Stranger is sprayed through stencils onto the concrete wall by the station, like street art: flat black for most
-// things, grey and amber where a second stencil went on, white for highlights. The player is always in red, and so is
+// things, gray and amber where a second stencil went on, white for highlights. The player is always in red, and so is
 // anything they do. Every shape has the rough edge of paint through card, a fine mist of overspray around it, and the
 // odd drip; the gaps between head, body and legs are the bridges that hold a stencil together. A cue names a page and
 // the parts of it to show: parts already up stay put, new ones are sprayed after them, and turning to a new page fades
@@ -21,7 +21,7 @@ const C = {
   red: '#d7262e',
   amber: '#f0a12a',
   white: '#f4f1ea',
-  grey: '#6e6f73',
+  gray: '#6e6f73',
 };
 type Ink = Exclude<keyof typeof C, 'wall'>;
 
@@ -37,7 +37,7 @@ interface Cue {
   card?: [kicker: string, name: string];
 }
 
-const STREET = ['kerb', 'station', 'atm', 'lamp', 'step'];
+const STREET = ['curb', 'station', 'atm', 'lamp', 'step'];
 const WET = [...STREET, 'rain'];
 const COLD = [...STREET, 'frost'];
 const DOORWAY = ['columns', 'sign', 'doorway', 'cardboard', 'bag', 'rain'];
@@ -203,7 +203,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
   },
 
   street: {
-    kerb: [
+    curb: [
       { line: 'black', d: line([40, 600], [1560, 600]), w: 8 },
       { line: 'black', d: line([40, 624], [1560, 624]), w: 3, o: 0.5 },
     ],
@@ -216,14 +216,14 @@ const ART: Record<Page, Record<string, Item[]>> = {
       { paint: 'black', d: ARCH, o: 0.92 },
     ],
     atm: [
-      { paint: 'grey', d: rect(560, 300, 130, 130) },
+      { paint: 'gray', d: rect(560, 300, 130, 130) },
       { paint: 'black', d: rect(578, 318, 94, 50) },
       { line: 'black', d: `${rect(560, 300, 130, 130)} M 590 386 h 70 M 590 404 h 70`, w: 5 },
       words('black', 'ATM', 625, 290, 24, 6),
     ],
     lamp: lamp(1500, 1450, 130, 1),
     step: [
-      { paint: 'grey', d: rect(500, 556, 340, 44), o: 0.8 },
+      { paint: 'gray', d: rect(500, 556, 340, 44), o: 0.8 },
       { line: 'black', d: line([500, 556], [840, 556]), w: 5 },
     ],
     rain: [rain(0, 0, W, 600, 80, 34)],
@@ -233,8 +233,8 @@ const ART: Record<Page, Record<string, Item[]>> = {
     you_door: paint('red', standing(300, 590, 380)),
     man: [...paint('black', standing(860, 590, 440, { coat: true, man: true })), ...drips('black', 810, 910, 476, 2, 7)],
     man_sitting: paint('black', seated(700, 556, 270, 1, true)),
-    stranger: paint('grey', standing(1080, 590, 420)),
-    crowd: [...paint('grey', standing(320, 590, 400, { head: 9 }), 0.85), ...paint('grey', standing(1340, 590, 380, { head: 9 }), 0.85)].map((it) => ({ ...it, cls: 'st-pass' })),
+    stranger: paint('gray', standing(1080, 590, 420)),
+    crowd: [...paint('gray', standing(320, 590, 400, { head: 9 }), 0.85), ...paint('gray', standing(1340, 590, 380, { head: 9 }), 0.85)].map((it) => ({ ...it, cls: 'st-pass' })),
     bubble: bubble(600, 30, 560, 120, [850, 165]),
     bubble_low: bubble(440, 180, 560, 120, [690, 360]),
     say_fare: [words('black', 'BUS FARE HOME?', 880, 106, 44)],
@@ -279,16 +279,16 @@ const ART: Record<Page, Record<string, Item[]>> = {
       ...drips('red', 950, 1290, 274, 3, 31),
     ],
     blanket: [
-      { paint: 'grey', d: rect(640, 510, 150, 14) },
+      { paint: 'gray', d: rect(640, 510, 150, 14) },
       { paint: 'amber', d: rect(640, 524, 150, 16) },
-      { paint: 'grey', d: rect(640, 540, 150, 16) },
+      { paint: 'gray', d: rect(640, 540, 150, 16) },
     ],
   },
 
   doorway: {
     columns: [330, 1080].flatMap((x): Item[] => [
       { paint: 'black', d: `${rect(x, 200, 90, 380)} ${rect(x - 15, 180, 120, 20)} ${rect(x - 15, 580, 120, 20)}` },
-      { line: 'grey', d: `M ${x + 30} 210 V 570 M ${x + 60} 210 V 570`, w: 4 },
+      { line: 'gray', d: `M ${x + 30} 210 V 570 M ${x + 60} 210 V 570`, w: 4 },
     ]),
     sign: [
       { line: 'black', d: rect(270, 120, 960, 56), w: 8 },
@@ -297,7 +297,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
     doorway: [{ paint: 'black', d: rect(470, 200, 560, 400), o: 0.88 }, ...drips('black', 480, 1020, 600, 3, 51)],
     cardboard: [{ paint: 'amber', d: shape([500, 560], [1000, 560], [1030, 600], [470, 600]) }],
     bag: [
-      { paint: 'grey', d: round(540, 500, 420, 75, 36) },
+      { paint: 'gray', d: round(540, 500, 420, 75, 36) },
       { line: 'white', d: 'M 660 506 V 568 M 820 506 V 568', w: 4 },
     ],
     wallet: [
@@ -319,14 +319,14 @@ const ART: Record<Page, Record<string, Item[]>> = {
   flat: {
     window: [
       { paint: 'black', d: rect(140, 90, 420, 300) },
-      { line: 'grey', d: 'M 350 90 V 390 M 140 240 H 560', w: 8 },
+      { line: 'gray', d: 'M 350 90 V 390 M 140 240 H 560', w: 8 },
       { line: 'black', d: rect(140, 90, 420, 300), w: 10 },
     ],
     rain: [rain(150, 100, 550, 380, 22, 16)],
     temp: [words('white', '2°', 245, 362, 70, 0)],
     sofa: [
-      { paint: 'grey', d: `${round(700, 360, 760, 140, 30)} ${rect(700, 480, 760, 60)}` },
-      { paint: 'grey', d: `${round(660, 420, 70, 170, 24)} ${round(1430, 420, 70, 170, 24)}` },
+      { paint: 'gray', d: `${round(700, 360, 760, 140, 30)} ${rect(700, 480, 760, 60)}` },
+      { paint: 'gray', d: `${round(660, 420, 70, 170, 24)} ${round(1430, 420, 70, 170, 24)}` },
       { line: 'black', d: 'M 720 540 V 590 M 1440 540 V 590', w: 10 },
     ],
     telly: [

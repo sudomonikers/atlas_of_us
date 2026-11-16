@@ -26,12 +26,12 @@ const RESULTS = 6;
 //how topics, Ideas and the skills that need them link, as the board draws them. "Part of" points to the broader topic,
 //"Includes" from a topic to its Idea, "Needs first" to the Idea needed, and "Needs knowledge" from a skill to the topic
 const KINDS: LinkKind[] = [
-  { id: 'part_of', label: 'Part of', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
-  { id: 'includes', label: 'Includes', line: 'dotted', arrow: false, colour: gunmetal, length: 80 },
-  { id: 'needs_first', label: 'Needs first', line: 'dashed', arrow: true, colour: cinnamon, length: 110 },
-  { id: 'analogous', label: 'Analogous', line: 'dotted', arrow: false, colour: blue, length: 150 },
-  { id: 'similar', label: 'Similar', line: 'dotted', arrow: false, colour: paleBlue, length: 150 },
-  { id: 'needs_knowledge', label: 'Needs knowledge', line: 'solid', arrow: true, colour: brownRed, length: 130 },
+  { id: 'part_of', label: 'Part of', line: 'solid', arrow: true, color: gunmetal, length: 90 },
+  { id: 'includes', label: 'Includes', line: 'dotted', arrow: false, color: gunmetal, length: 80 },
+  { id: 'needs_first', label: 'Needs first', line: 'dashed', arrow: true, color: cinnamon, length: 110 },
+  { id: 'analogous', label: 'Analogous', line: 'dotted', arrow: false, color: blue, length: 150 },
+  { id: 'similar', label: 'Similar', line: 'dotted', arrow: false, color: paleBlue, length: 150 },
+  { id: 'needs_knowledge', label: 'Needs knowledge', line: 'solid', arrow: true, color: brownRed, length: 130 },
 ];
 
 //the ways a topic and an Idea link, as the inspector counts them

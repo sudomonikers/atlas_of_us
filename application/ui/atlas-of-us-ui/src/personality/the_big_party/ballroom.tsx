@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
-// The Big Party is a dark ballroom under a mirror ball. Everyone is a flat silhouette cut from coloured card, lit by
+// The Big Party is a dark ballroom under a mirror ball. Everyone is a flat silhouette cut from colored card, lit by
 // pools of pink, teal and gold stage light, with the mirror ball's flecks drifting over everything. The player is
 // always the gold one. A cue names a page and the parts of it to show: parts already on the page stay put, new ones
 // fade in after them, and turning to a new page fades the old one out. Lights-up at the end is a pale wash over it all.
@@ -29,7 +29,7 @@ const C = {
   cream: '#fbeedb',
   green: '#4fe08f',
 };
-type Colour = keyof typeof C;
+type Color = keyof typeof C;
 
 // ---------------------------------------------------------------------------
 // the scenes
@@ -87,10 +87,10 @@ const FIRST_CUE = 'title_card';
 
 //what a part is made of: flat shapes, lines, type, and soft pools of stage light
 type Item =
-  | { fill: Colour; d: string; o?: number; glow?: boolean; cls?: string }
-  | { line: Colour; d: string; w?: number; o?: number; glow?: boolean; cls?: string }
-  | { text: string; c: Colour; x: number; y: number; size: number; glow?: boolean }
-  | { pool: Colour; x: number; y: number; rx: number; ry: number; o?: number; cls?: string };
+  | { fill: Color; d: string; o?: number; glow?: boolean; cls?: string }
+  | { line: Color; d: string; w?: number; o?: number; glow?: boolean; cls?: string }
+  | { text: string; c: Color; x: number; y: number; size: number; glow?: boolean }
+  | { pool: Color; x: number; y: number; rx: number; ry: number; o?: number; cls?: string };
 
 const GAP = 0.06; //seconds between one item fading in and the next
 
@@ -103,7 +103,7 @@ const pill = (x: number, y: number, w: number, h: number) => {
   const r = h / 2;
   return `M ${x + r} ${y} H ${x + w - r} a ${r} ${r} 0 0 1 0 ${h} H ${x + r} a ${r} ${r} 0 0 1 0 ${-h} Z`;
 };
-const words = (c: Colour, text: string, x: number, y: number, size: number, glow = false): Item => ({ c, text, x, y, size, glow });
+const words = (c: Color, text: string, x: number, y: number, size: number, glow = false): Item => ({ c, text, x, y, size, glow });
 
 //pseudo-random but fixed, so a page always comes out the same
 const rand = (i: number) => {
@@ -117,19 +117,19 @@ function body(x: number, y: number, h: number) {
   const top = y - h + 2 * r + 5;
   return `M ${x - h * 0.21} ${y} Q ${x - h * 0.23} ${top} ${x} ${top} Q ${x + h * 0.23} ${top} ${x + h * 0.21} ${y} Z ${circle(x, y - h + r, r)}`;
 }
-const person = (x: number, y: number, h: number, fill: Colour, cls?: string): Item => ({ fill, d: body(x, y, h), cls });
+const person = (x: number, y: number, h: number, fill: Color, cls?: string): Item => ({ fill, d: body(x, y, h), cls });
 //both arms up, for dancing
-const arms = (x: number, y: number, h: number, c: Colour, cls?: string): Item => ({
+const arms = (x: number, y: number, h: number, c: Color, cls?: string): Item => ({
   line: c,
   d: `${line([x - h * 0.15, y - h * 0.62], [x - h * 0.3, y - h * 0.98])} ${line([x + h * 0.15, y - h * 0.62], [x + h * 0.3, y - h * 0.98])}`,
   w: h * 0.08,
   cls,
 });
 
-//rows of people, smaller towards the back, one path per colour. gap leaves room for someone in the front row
+//rows of people, smaller toward the back, one path per color. gap leaves room for someone in the front row
 function crowd(rows: [y: number, scale: number][], from: number, to: number, gap?: [number, number], cls?: string): Item[] {
-  const fills: Colour[] = ['shadow', 'plum', 'wine'];
-  const paths: Partial<Record<Colour, string>> = {};
+  const fills: Color[] = ['shadow', 'plum', 'wine'];
+  const paths: Partial<Record<Color, string>> = {};
   rows.forEach(([y, s], row) => {
     for (let i = 0, x = from + row * 17; x < to; i++, x += (60 + rand(i + row * 40) * 40) * s) {
       if (gap && row === rows.length - 1 && x > gap[0] && x < gap[1]) continue;
@@ -137,11 +137,11 @@ function crowd(rows: [y: number, scale: number][], from: number, to: number, gap
       paths[fill] = `${paths[fill] ?? ''} ${body(x, y - rand(i + row * 9) * 10 * s, (140 + rand(i * 5 + row) * 40) * s)}`;
     }
   });
-  return (Object.entries(paths) as [Colour, string][]).map(([fill, d]): Item => ({ fill, d, cls }));
+  return (Object.entries(paths) as [Color, string][]).map(([fill, d]): Item => ({ fill, d, cls }));
 }
 
 //the mirror ball's flecks of light, scattered over the whole picture
-const SPARKLES: Item[] = (['cream', 'pink', 'teal', 'gold'] as Colour[]).map((fill, k) => ({
+const SPARKLES: Item[] = (['cream', 'pink', 'teal', 'gold'] as Color[]).map((fill, k) => ({
   fill,
   d: Array.from({ length: 16 }, (_, i) => rect(rand(i + k * 50) * W, rand(i * 7 + k * 13) * 620, 7, 7)).join(' '),
   o: 0.85,
@@ -167,8 +167,8 @@ function bunting(from: Pt, mid: Pt, to: Pt, count: number): Item[] {
     const u = 1 - t;
     return [u * u * from[0] + 2 * u * t * mid[0] + t * t * to[0], u * u * from[1] + 2 * u * t * mid[1] + t * t * to[1]];
   };
-  const flags: Partial<Record<Colour, string>> = {};
-  const fills: Colour[] = ['pink', 'gold', 'teal'];
+  const flags: Partial<Record<Color, string>> = {};
+  const fills: Color[] = ['pink', 'gold', 'teal'];
   for (let i = 0; i < count; i++) {
     const [x, y] = at((i + 0.5) / count);
     const fill = fills[i % 3];
@@ -176,7 +176,7 @@ function bunting(from: Pt, mid: Pt, to: Pt, count: number): Item[] {
   }
   return [
     { line: 'cream', d: `M ${from.join(' ')} Q ${mid.join(' ')} ${to.join(' ')}`, w: 2, o: 0.5 },
-    ...(Object.entries(flags) as [Colour, string][]).map(([fill, d]): Item => ({ fill, d, o: 0.85, cls: 'bp-sway' })),
+    ...(Object.entries(flags) as [Color, string][]).map(([fill, d]): Item => ({ fill, d, o: 0.85, cls: 'bp-sway' })),
   ];
 }
 
@@ -184,7 +184,7 @@ function bunting(from: Pt, mid: Pt, to: Pt, count: number): Item[] {
 // the pages
 // ---------------------------------------------------------------------------
 
-const BALLOONS: [x: number, y: number, r: number, fill: Colour][] = [
+const BALLOONS: [x: number, y: number, r: number, fill: Color][] = [
   [250, 250, 70, 'pink'],
   [400, 170, 60, 'teal'],
   [1220, 190, 70, 'gold'],
@@ -193,7 +193,7 @@ const BALLOONS: [x: number, y: number, r: number, fill: Colour][] = [
 ];
 const UPPER_WINDOWS = [360, 560, 920, 1120];
 const PARQUET = Array.from({ length: 17 }, (_, i) => line([i * 100, 440], [800 + (i * 100 - 800) * 2.2, H])).join(' ');
-const TILES = (['pink', 'teal', 'gold'] as Colour[]).map((fill, k): Item => {
+const TILES = (['pink', 'teal', 'gold'] as Color[]).map((fill, k): Item => {
   const d = [];
   for (let row = 0; row < 4; row++) {
     const y0 = 400 + row * 60;
@@ -207,7 +207,7 @@ const TILES = (['pink', 'teal', 'gold'] as Colour[]).map((fill, k): Item => {
   }
   return { fill, d: d.join(' '), o: 0.4, cls: `bp-flicker-${k}` };
 });
-const DANCERS: [x: number, y: number, h: number, fill: Colour][] = [
+const DANCERS: [x: number, y: number, h: number, fill: Color][] = [
   [180, 520, 150, 'plum'],
   [330, 560, 170, 'wine'],
   [480, 500, 130, 'shadow'],
@@ -220,7 +220,7 @@ const DANCERS: [x: number, y: number, h: number, fill: Colour][] = [
 
 const ART: Record<Page, Record<string, Item[]>> = {
   invite: {
-    confetti: (['pink', 'teal', 'gold', 'cream'] as Colour[]).map((fill, k) => ({
+    confetti: (['pink', 'teal', 'gold', 'cream'] as Color[]).map((fill, k) => ({
       fill,
       d: Array.from({ length: 14 }, (_, i) => rect(rand(i + k * 30) * W, rand(i * 3 + k * 7) * 640, 10, 6)).join(' '),
       o: 0.8,
@@ -686,7 +686,7 @@ function Ballroom({ animation }: { animation: string }) {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          {(Object.keys(C) as Colour[]).map((c) => (
+          {(Object.keys(C) as Color[]).map((c) => (
             <radialGradient key={c} id={`bp-pool-${c}`}>
               <stop offset="0%" stopColor={C[c]} stopOpacity={0.9} />
               <stop offset="100%" stopColor={C[c]} stopOpacity={0} />

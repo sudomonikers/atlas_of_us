@@ -287,8 +287,7 @@ The cognitive abilities carry a second label, `Cognitive`. A person's place on a
 personality traits, with a confidence. It's worked out from what they've recorded: the latest reading of each
 measurement that shows the ability, weighted by how much that measurement says about it; or, when no reading counts,
 their own rating of themselves on the ability's three examples, which says little. An impairment in a body function the
-ability rests on, or in a part that serves one, holds it back to at most a share set by the impairment's extent, and on
-its own says the person is about there. O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown.
+ability rests on, or in a part that serves one, is noted beside it and leaves the place as it is. O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown.
 
 #### Measurements
 A measurement is something about a body with a number and a unit, such as height, grip strength or resting heart rate.
@@ -313,11 +312,12 @@ coordination) and bend, twist and touch (dynamic flexibility). The rest run in t
   (category flexibility), broken words (speed of closure) and hidden shapes (flexibility of closure);
 - coordination: tapping (wrist-finger speed), tracking (control precision), timing (rate control), two-hand steering
   (multilimb coordination) and track and count (time sharing);
-- the senses: a reading chart (near vision), odd colour out (visual color discrimination) and side vision (peripheral
+- the senses: a reading chart (near vision), odd color out (visual color discrimination) and side vision (peripheral
   vision);
-- ideas: animal naming (fluency of ideas) and brick uses (originality), typed answers that the api scores. An LLM keeps
-  the different animals, or the genuine uses; each use is then embedded and scored by how far it is from a brick itself
-  and from the uses people give most often, on the person's three most unusual.
+- ideas: design fluency (fluency of ideas), how many different designs of four lines joining five dots a person makes
+  in a minute, and brick uses (originality), typed answers that the api scores. An LLM keeps the genuine uses; each
+  use is then embedded and scored by how far it is from a brick itself and from the uses people give most often, on
+  the person's three most unusual.
 
 The app's items are generated from fixed seeds, so everyone takes the same test. They're all compared with Atlas users
 (`atlasNorms`): their norms are worked out from everyone's latest reading whenever a reading of one is added or
@@ -384,27 +384,30 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 
 | Label | Key properties | What it is |
 |---|---|---|
-| Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples`, `anchorLevels` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot, and `anchorLevels` is where each sits on the level scale, over 7, in the same order. Cognitive abilities have a second label, `Cognitive` |
+| Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples`, `anchorLevels`, `practice` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot, and `anchorLevels` is where each sits on the level scale, over 7, in the same order. Cognitive abilities have a second label, `Cognitive`. `practice` is how much practice changes the ability: `a lot`, `some` or `little` |
+| AbilityTip | `id`, `kind`, `text` | How a person can work on an ability, written for the Atlas. `kind` is `practice`, for what to do, or for an ability practice barely changes how to correct, protect or make up for it; or `impairment`, for working on it around an impairment in what it rests on |
 | Occupation | `id`, `onetSoc` (unique), `title`, `description`, `alternateTitles`, `vector` | One of the 894 occupations O\*NET rates on its abilities. `onetSoc` is its O\*NET-SOC code, and `vector` is an embedding of its title, description and alternate titles, which skills find it by |
-| PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 50 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colours`, `side_vision`, `animals`, `uses`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
+| Characteristic | `id`, `name` (unique), `order`, `question`, `choices` | A fact about a body that's one of a few choices rather than a number: sex, handedness, eye color, hair color or blood type. Sex also decides who a person's readings are compared with: people of that sex and their age, or everyone their age when they haven't said. `question` is what Atlas asks, `choices` what can be answered, and `order` the order they're asked in |
+| PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 55 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colors`, `side_vision`, `designs`, `uses`, `problems`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values`, `fromAtlas`, `people` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists, and the percentiles can differ between measurements. `fromAtlas` is true on a norm worked out from Atlas users, with how many `people` it's from; the norms seed keeps these |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
 | BodyPart | `id`, `fmaId` (unique), `name`, `definition`, `synonyms`, `elements`, `major` | A part of the body. `fmaId` is its FMA id, such as `FMA7088`, and `elements` the meshes of the 3D body it's drawn with, empty for a part with no model. `major` marks the parts conditions are linked to: organs (which include bones, muscles, joints and named vessels), systems and regions, without the left and right copies of a part |
 | Condition | `id`, `sourceId` (unique), `source`, `name`, `description`, `synonyms`, `ancestors`, `sourceUri`, `addedAt` | A disease or feature. `sourceId` is the ontology's id, such as `MONDO:0004979` or `HP:0001382`, `source` is `Mondo` or `HPO`, and `sourceUri` is the ontology's permanent URI for it. `synonyms` are its other names, and `ancestors` the ids of every class above it in its ontology, which places it among the other conditions. `addedAt` is on the ones people have added |
 
-A Person carries `normSex`, `male` or `female`, when they've given it: the sex whose norms they're compared with.
 
 #### Relationships
 
 | Relationship | From → To | Properties | Meaning |
 |---|---|---|---|
 | HAS_ABILITY | Person → Ability | `value`, `confidence`, `basis`, `updatedAt` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it, worked out from their readings, rating and impairments whenever those change. `basis` names what it came from. No relationship means unmeasured, not average |
+| HAS_TIP | Ability → AbilityTip | | A tip on working on the ability, one of each kind |
 | RATED_ABILITY | Person → Ability | `anchor`, `ratedAt` | Their own rating on the ability: the hardest of its three examples they say they can do, 1 to 3, or 0 for none of them |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability, `level` on the level scale over 7 (see the Skills graph) |
 | TAKES_ABILITY | Occupation → Ability | `level`, `importance` | What O\*NET's job analysts rated the occupation takes: `level` on the level scale over 7, and `importance` from 0 to 1 |
 | PERFORMED_IN | Skill → Occupation | | The occupation whose work is doing the skill, which its ability requirements were grounded in |
 | HAS_NORM | PhysicalMeasurement → MeasurementNorm | | A measurement's norms |
 | MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
+| HAS_CHARACTERISTIC | Person → Characteristic | `value`, `setAt` | Their answer, one of its `choices`. No relationship means they haven't said |
 | HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt`, `answers` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value. `answers` is what they typed, on a reading of a test of typed answers |
 | SUBFUNCTION_OF | BodyFunction → BodyFunction | | A narrower function, a kind or part of a broader one (Short-term memory → Memory functions) |
 | SUBPART_OF | BodyPart → BodyPart | | A part of a larger whole (Left femur → Skeleton of left lower limb) |
@@ -440,7 +443,7 @@ A Person carries `normSex`, `male` or `female`, when they've given it: the sex w
   percentiles: [1, 3, 5, ..., 50, ..., 97, 99], values: [29.0, 32.7, 34.3, ..., 48.1, ..., 67.2, 73.5]})
 
 // Andrew squeezed 55 kg at 27, which is about the 76th percentile for men his age
-(andrew {normSex: "male"})-[:HAS_MEASUREMENT {value: 55.0, measuredOn: date("2026-10-30")}]->(g)
+(andrew)-[:HAS_MEASUREMENT {value: 55.0, measuredOn: date("2026-10-30")}]->(g)
 
 // visual acuity functions underlie Far Vision, and visual acuity is a reading of them. Lulu is moderately short-sighted
 (va:BodyFunction {code: "b2100", name: "Visual acuity functions", group: "Sensory functions and pain"})-[:UNDERLIES]->(:Ability {name: "Far Vision"})

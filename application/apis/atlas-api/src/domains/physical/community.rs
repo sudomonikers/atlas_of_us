@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 use crate::state::AppState;
 
-use super::{age_on, date, internal, norms::PERCENTILES};
+use super::{age_on, date, internal, norms::PERCENTILES, SEX};
 
 //the fewest people a norm is worked out from
 const MIN_PEOPLE: usize = 100;
@@ -36,13 +36,13 @@ struct Group {
 
 //works out a measurement's norms again from everyone's latest reading of it, in place of the ones it had
 pub async fn renorm(state: &AppState, measurement_id: &str) -> Result<(), (StatusCode, String)> {
-    let mut result = state.graph.execute(query("
+    let mut result = state.graph.execute(query(&"
         MATCH (m:PhysicalMeasurement {id: $id})<-[r:HAS_MEASUREMENT]-(p:Person)
         WHERE p.birthday IS NOT NULL
         WITH p, r ORDER BY r.measuredOn DESC, r.recordedAt DESC
         WITH p, collect(r)[0] AS r
-        RETURN p.normSex AS sex, toString(p.birthday) AS birthday, r.value AS value, toString(r.measuredOn) AS measured_on
-    ").param("id", measurement_id)).await.map_err(internal)?;
+        RETURN {SEX} AS sex, toString(p.birthday) AS birthday, r.value AS value, toString(r.measuredOn) AS measured_on
+    ".replace("{SEX}", SEX)).param("id", measurement_id)).await.map_err(internal)?;
     let mut taken = Vec::new(); //(sex, age, value)
     while let Some(row) = result.next().await.map_err(internal)? {
         let t = row.to::<Taken>().map_err(internal)?;

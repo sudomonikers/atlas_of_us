@@ -1,6 +1,6 @@
 //where a person stands on each ability (HAS_ABILITY), worked out from what they've recorded: the latest reading of each
-//measurement that shows it, their own rating of themselves on its examples when nothing measures it, and their
-//impairments in the body functions it rests on, which hold it back. It's worked out again whenever any of those change
+//measurement that shows it, or their own rating of themselves on its examples when nothing measures it. Their
+//impairments in the body functions it rests on are noted beside it. It's worked out again whenever any of those change
 //and whenever the person opens their abilities, so better norms reach everyone. See "Abilities" in
 //documentation/architecture/physical.md
 use std::collections::HashMap;
@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthUser, state::AppState};
 
-use super::{age_on, bad, date, internal, norms::{self, Norm}};
+use super::{age_on, bad, date, internal, norms::{self, Norm}, SEX};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -30,9 +30,6 @@ pub fn router() -> Router<AppState> {
 const RATED: [f64; 4] = [0.05, 0.25, 0.55, 0.85];
 //how much a rating of yourself says
 const RATED_CONFIDENCE: f64 = 0.25;
-//the most an impairment of each extent leaves of an ability it rests on, and how much that says on its own
-const CAPS: [(&str, f64); 4] = [("mild", 0.45), ("moderate", 0.25), ("severe", 0.1), ("complete", 0.02)];
-const IMPAIRED_CONFIDENCE: f64 = 0.3;
 //the most confidence readings add up to
 const MAX_CONFIDENCE: f64 = 0.9;
 
@@ -62,7 +59,7 @@ struct Impaired {
 
 #[derive(Deserialize)]
 struct Row {
-    norm_sex: Option<String>,
+    sex: Option<String>, //the sex they're compared with, male or female, or None for everyone
     birthday: Option<String>,
     id: String,
     name: String,
@@ -70,6 +67,8 @@ struct Row {
     group: String,
     description: String,
     examples: Vec<String>,
+    practice: Option<String>,
+    tips: Vec<Tip>,
     rating: Option<i64>,
     measurements: Vec<MeasurementRow>,
     impairments: Vec<Impaired>,
@@ -77,7 +76,7 @@ struct Row {
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits, 0 to 100 with higher
-//better; their rating of themselves; or an impairment holding it back, with its extent
+//better; their rating of themselves; or an impairment in what it rests on, with its extent, noted beside it
 #[derive(Serialize)]
 pub struct Basis {
     kind: String, //measurement, rating or impairment
@@ -95,6 +94,14 @@ pub struct Shows {
     counted: bool,
 }
 
+//a tip on working on an ability: "practice" for what to do, or "impairment" for working around an impairment in what
+//it rests on
+#[derive(Deserialize, Serialize)]
+pub struct Tip {
+    kind: String,
+    text: String,
+}
+
 //an ability, with where the logged in user stands on it, if anything says
 #[derive(Serialize)]
 pub struct Ability {
@@ -104,6 +111,8 @@ pub struct Ability {
     group: String,
     description: String,
     examples: Vec<String>, //from what takes a little of it to what takes a lot
+    practice: Option<String>, //how much practice changes it: a lot, some or little
+    tips: Vec<Tip>,
     value: Option<f64>, //0 to 1, with 0.5 typical
     confidence: Option<f64>,
     basis: Vec<Basis>,
@@ -114,9 +123,11 @@ pub struct Ability {
 
 const ABILITIES: &str = "
     MATCH (p:Person {id: $personId}), (a:Ability)
-    RETURN p.normSex AS norm_sex, toString(p.birthday) AS birthday,
+    RETURN {SEX} AS sex, toString(p.birthday) AS birthday,
            a.id AS id, a.name AS name, a.category AS category, a.group AS group, a.description AS description,
            coalesce(a.examples, []) AS examples,
+           a.practice AS practice,
+           COLLECT { MATCH (a)-[:HAS_TIP]->(t:AbilityTip) RETURN {kind: t.kind, text: t.text} ORDER BY t.kind DESC } AS tips,
            COLLECT { MATCH (p)-[r:RATED_ABILITY]->(a) RETURN r.anchor }[0] AS rating,
            COLLECT {
                MATCH (m:PhysicalMeasurement)-[:MEASURES]->(a)
@@ -151,10 +162,10 @@ const RESTS_ON: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFuncti
                   OR EXISTS { MATCH (t)-[:PART_SUBTYPE_OF*0..2]->(:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) })";
 
 //where a person stands on one ability: the readings that count, each weighted by how much it says, or else their
-//rating of themselves, held back by their worst impairment in what it rests on
+//rating of themselves, with their impairments in what it rests on noted
 fn work_out(row: Row) -> Ability {
     let birthday = row.birthday.as_deref().and_then(date);
-    let sex = row.norm_sex.as_deref();
+    let sex = row.sex.as_deref();
     let mut basis = Vec::new();
     let mut readings = Vec::new(); //(standing 0 to 1, confidence)
     let measurements = row.measurements.into_iter().map(|m| {
@@ -170,7 +181,7 @@ fn work_out(row: Row) -> Ability {
         Shows { id: m.id, name: m.name, test: m.test, counted: standing.is_some() }
     }).collect();
 
-    let mut place = if readings.is_empty() {
+    let place = if readings.is_empty() {
         row.rating.and_then(|r| RATED.get(r as usize)).map(|v| {
             basis.push(Basis { kind: "rating".into(), name: row.name.clone(), standing: None, extent: None });
             (*v, RATED_CONFIDENCE)
@@ -182,15 +193,8 @@ fn work_out(row: Row) -> Ability {
         Some((value, (1.0 - doubt).min(MAX_CONFIDENCE)))
     };
 
-    let worst = row.impairments.iter()
-        .filter_map(|i| CAPS.iter().find(|(e, _)| *e == i.extent).map(|(_, cap)| (i, *cap)))
-        .min_by(|a, b| a.1.total_cmp(&b.1));
-    if let Some((impaired, cap)) = worst {
+    for impaired in &row.impairments {
         basis.push(Basis { kind: "impairment".into(), name: impaired.name.clone(), standing: None, extent: Some(impaired.extent.clone()) });
-        place = Some(match place {
-            Some((value, confidence)) => (value.min(cap), confidence.max(IMPAIRED_CONFIDENCE)),
-            None => (cap, IMPAIRED_CONFIDENCE),
-        });
     }
 
     let round = |x: f64| (x * 100.0).round() / 100.0;
@@ -207,13 +211,15 @@ fn work_out(row: Row) -> Ability {
         group: row.group,
         description: row.description,
         examples: row.examples,
+        practice: row.practice,
+        tips: row.tips,
     }
 }
 
 //works out where a person stands on every ability, keeps it as HAS_ABILITY (dropping the ones nothing says anything
 //about any more), and returns them all
 pub async fn refresh(state: &AppState, person_id: &str) -> Result<Vec<Ability>, (StatusCode, String)> {
-    let mut result = state.graph.execute(query(&ABILITIES.replace("{RESTS_ON}", RESTS_ON)).param("personId", person_id)).await.map_err(internal)?;
+    let mut result = state.graph.execute(query(&ABILITIES.replace("{RESTS_ON}", RESTS_ON).replace("{SEX}", SEX)).param("personId", person_id)).await.map_err(internal)?;
     let mut abilities = Vec::new();
     while let Some(row) = result.next().await.map_err(internal)? {
         abilities.push(work_out(row.to::<Row>().map_err(internal)?));

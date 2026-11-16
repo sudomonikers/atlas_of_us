@@ -3,7 +3,7 @@ import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Feud is drawn as a set of architect's blueprints for two semi-detached houses: white lines on cyanotype blue,
-// faint construction lines, hatching for anything solid, and dimension lines for the metre everyone is arguing about.
+// faint construction lines, hatching for anything solid, and dimension lines for the meter everyone is arguing about.
 // People are the little scale figures architects put in their drawings. The player, and anything they do, is marked up
 // in red pen; the highlighter yellow is for the disputed strip, lit windows and the planning notice. Lines are drafted on
 // as if by a plotter, fills and lettering ink in after. A cue names a sheet and the parts of it to show: parts already up
@@ -39,7 +39,7 @@ interface Cue {
 
 const SHEET: Record<Page, string> = {
   plan: 'SITE PLAN · 14 & 16 ORCHARD CLOSE · 1:100',
-  garden: 'SECTION A–A · REAR GARDENS · 1:50',
+  garden: 'SECTION A–A · BACKYARDS · 1:50',
   front: 'FRONT ELEVATION · ORCHARD CLOSE · 1:50',
 };
 
@@ -54,7 +54,7 @@ const cues: Record<string, Cue> = {
   title_card: { page: 'plan', parts: [...PLAN, 'strip', 'dim'], card: ['A Saturday in April', 'The Feud'] },
   hammering: { page: 'garden', parts: [...SPRING, 'graham_hammer', 'bang'] },
   new_fence: { page: 'garden', parts: [...SPRING, 'graham_hammer', 'fence_label'] },
-  metre: { page: 'garden', parts: [...SPRING, 'graham_hammer', 'fence_label', 'old_fence', 'dim', 'you'] },
+  meter: { page: 'garden', parts: [...SPRING, 'graham_hammer', 'fence_label', 'old_fence', 'dim', 'you'] },
   graham_plans: { page: 'garden', parts: [...APRIL, 'you', 'graham', 'callout', 'say_plans'] },
   graham_push: { page: 'garden', parts: [...APRIL, 'you', 'graham_close', 'callout_close', 'say_moving'] },
   fence_straight: { page: 'garden', parts: [...APRIL, 'you', 'graham_hammer', 'bang', 'callout_close', 'say_see'] },
@@ -67,7 +67,7 @@ const cues: Record<string, Cue> = {
   why_honest: { page: 'plan', parts: [...PLAN, 'thick', 'deeds', 'query'] },
   why_extension: { page: 'plan', parts: [...PLAN, 'thick', 'extension', 'query_ext'] },
   why_trying: { page: 'front', parts: [...DAY, 'notice', 'you_bins', 'pat', 'callout_pat', 'say_parking'] },
-  why_sorted: { page: 'front', parts: [...DAY, 'notice', 'you_bins', 'pat', 'callout_pat', 'say_metre'] },
+  why_sorted: { page: 'front', parts: [...DAY, 'notice', 'you_bins', 'pat', 'callout_pat', 'say_meter'] },
   letter: { page: 'front', parts: [...DAY, 'notice', 'you_his', 'letter'] },
   reply: { page: 'front', parts: [...DAY, 'notice', 'you_door', 'reply'] },
   camera: { page: 'garden', parts: [...JUNE, 'you'] },
@@ -79,10 +79,10 @@ const cues: Record<string, Cue> = {
   graham_door: { page: 'front', parts: [...NIGHT, 'you_door', 'graham_step'] },
   graham_asks: { page: 'front', parts: [...NIGHT, 'you_door', 'graham_key', 'callout', 'say_ask'] },
   notice: { page: 'front', parts: [...NIGHT, 'you_door', 'graham_key', 'notice_ring'] },
-  favour_yes: { page: 'front', parts: [...NIGHT, 'you_key', 'graham_step', 'cat', 'callout', 'say_mabel'] },
-  favour_deal: { page: 'front', parts: [...NIGHT, 'you_key', 'graham_step', 'callout', 'say_back'] },
-  favour_no: { page: 'front', parts: [...NIGHT, 'door_shut', 'graham_away'] },
-  favour_object: { page: 'front', parts: [...NIGHT, 'door_shut', 'objection'] },
+  favor_yes: { page: 'front', parts: [...NIGHT, 'you_key', 'graham_step', 'cat', 'callout', 'say_mabel'] },
+  favor_deal: { page: 'front', parts: [...NIGHT, 'you_key', 'graham_step', 'callout', 'say_back'] },
+  favor_no: { page: 'front', parts: [...NIGHT, 'door_shut', 'graham_away'] },
+  favor_object: { page: 'front', parts: [...NIGHT, 'door_shut', 'objection'] },
   spring: { page: 'garden', parts: APRIL },
   homework: { page: 'plan', parts: [...PLAN, 'strip', 'you_dot'] },
   goodbye: { page: 'front', parts: [...DAY, 'jar'] },
@@ -347,7 +347,7 @@ const ART: Record<Page, Record<string, Item[]>> = {
     callout_his: callout(1060, 150, 420, 100, [995, 320]),
     say_planning: [words('white', "HE'S PUT IN FOR PLANNING", 600, 202, 32)],
     say_parking: [words('white', 'SAME ABOUT PARKING', 600, 204, 38)],
-    say_metre: [words('white', 'THREE FEET IS THREE FEET', 600, 204, 38)],
+    say_meter: [words('white', 'THREE FEET IS THREE FEET', 600, 204, 38)],
     say_ask: [words('white', 'NOBODY ELSE TO ASK', 1100, 214, 38)],
     say_mabel: [words('white', "SHE'S CALLED MABEL", 1100, 214, 38)],
     say_back: [words('white', "WHEN I'M BACK", 1100, 214, 40)],

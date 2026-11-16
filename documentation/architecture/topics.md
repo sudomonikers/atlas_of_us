@@ -30,7 +30,7 @@ Every topic is created in one of three ways, and all of them go through the topi
 
 1. **The taxonomy import.** ESCO's knowledge entries, filed under UNESCO's fields of study, asked for through the API
    broader first. The resolver, not ESCO's filing, decides where each topic goes, and nothing in the graph ties a topic
-   to ESCO. ESCO leans towards what jobs need, so subjects such as religions, philosophies and hobbies come in through
+   to ESCO. ESCO leans toward what jobs need, so subjects such as religions, philosophies and hobbies come in through
    users and skills.
 2. **A user asking for a topic we don't have,** through the gates.
 3. **The skill requirements job naming a topic a skill needs.** It's created as a stub, and filled only when someone

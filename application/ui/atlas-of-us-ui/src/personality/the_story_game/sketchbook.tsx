@@ -3,7 +3,7 @@ import { Layers, Sheet, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
 // The Story Game is the narrator's sketchbook, lit by a wood stove. Each page is an ink drawing that draws itself on,
-// line by line, then gets a watercolour wash. A cue names a page and the parts of it to show: parts already on the
+// line by line, then gets a watercolor wash. A cue names a page and the parts of it to show: parts already on the
 // page stay put, new ones draw in after them, and turning to a new page fades the old one out.
 // Everything is SVG in a fixed 1600x900 space, scaled to cover the screen. The drawings keep to the top two thirds,
 // clear of the text box.
@@ -209,7 +209,7 @@ const POEM = [
   "and it opens for nobody's sorrows or debts.",
   'It opened for you. Did you feel the latch?',
   'Did you hear the dark and the morning match?',
-  "So sit, and be welcome, and stay till you're grey.",
+  "So sit, and be welcome, and stay till you're gray.",
   'Or go, if you must. But the door knows the way.',
 ];
 const verse = (i: number): Item[] => [0, 1].map((j) => handwriting(POEM[i * 2 + j], 530, 180 + (i * 2 + j) * 44, 30));

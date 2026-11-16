@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { Layers, type Layer } from '../layers';
 import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 
-// The Cabin is cut from coloured paper and seen from straight above: the friends are paper shoulders and heads round a
+// The Cabin is cut from colored paper and seen from straight above: the friends are paper shoulders and heads round a
 // big wooden table, with the snack counter along the top wall, the stone fireplace on the right and snow at the
 // window. Every part casts a soft shadow, as if it's been laid on the floor of the room, and speech is paper bubbles.
 // A cue names a room and the parts to show: a new room is laid down, and new parts in the same room drop in after it.
@@ -45,7 +45,7 @@ const HAND = '"Bradley Hand", "Segoe Print", "Comic Sans MS", cursive';
 // drawing
 // ---------------------------------------------------------------------------
 
-//a paper shape, or a stroke when it has a line colour; lettering; or a group of either, moved by an svg transform
+//a paper shape, or a stroke when it has a line color; lettering; or a group of either, moved by an svg transform
 type Shape = { d: string; fill: string; line?: string; w?: number; op?: number; cls?: string };
 type Words = { text: string; x: number; y: number; size: number; fill?: string; anchor?: 'start' | 'middle' | 'end'; font?: string; italic?: boolean; weight?: number; op?: number; cls?: string };
 type Group = { t: string; items: Item[]; cls?: string };

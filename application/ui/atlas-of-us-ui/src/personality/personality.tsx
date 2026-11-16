@@ -551,7 +551,7 @@ const APPROACH = [
 const TIPS = [
   { title: 'Be honest, not impressive', note: "Answer how you'd actually act." },
   { title: 'Tell us why', note: 'Your reasoning matters more than your pick.' },
-  { title: 'Be specific', example: { vague: "I'm bad in a crisis.", specific: 'I froze, then rang my mum.' } },
+  { title: 'Be specific', example: { vague: "I'm bad in a crisis.", specific: 'I froze, then called my mom.' } },
   { title: 'Keep playing', note: `I re-read everything every ${SCORE_EVERY} scenarios.` },
   { title: 'Jokes are fine', note: 'How you answer says something too.' },
 ];
@@ -1125,7 +1125,7 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: 'var(--font-hand)',
     fontSize: 24,
     lineHeight: 1.4,
-    '--panel-fill': paleBlue, //the colour wash that spills out from behind the box
+    '--panel-fill': paleBlue, //the color wash that spills out from behind the box
     '--tilt': '-0.4deg',
   } as CSSProperties,
   speaker: {
@@ -1144,7 +1144,7 @@ const styles: Record<string, CSSProperties> = {
     textTransform: 'uppercase',
     '--tilt': '-3deg',
   } as CSSProperties,
-  //the box's colour wash and speaker tag spill outside it, so the scrolling happens on a layer inside
+  //the box's color wash and speaker tag spill outside it, so the scrolling happens on a layer inside
   scroll: {
     flex: 1,
     minHeight: 0,
@@ -1243,7 +1243,7 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 20,
     letterSpacing: 1,
   },
-  //top centre, clear of the exit button on the left and the app's Feedback and Log out buttons on the right
+  //top center, clear of the exit button on the left and the app's Feedback and Log out buttons on the right
   clock: {
     position: 'absolute',
     top: 16,
@@ -1329,7 +1329,7 @@ const dash: Record<string, CSSProperties> = {
     overflowY: 'auto',
     background: 'rgba(57, 61, 63, 0.55)',
   },
-  //auto margins centre it when it fits, and let it scroll from the top when it doesn't
+  //auto margins center it when it fits, and let it scroll from the top when it doesn't
   startDialog: {
     margin: 'auto',
   },

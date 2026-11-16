@@ -2,7 +2,7 @@
 
 /* =============================================================================================
  * Atlas comic style, shared across components. See STYLE_GUIDE.md.
- * Thick dark outlines, uneven hand-drawn corners, and colour that bleeds slightly past the lines.
+ * Thick dark outlines, uneven hand-drawn corners, and color that bleeds slightly past the lines.
  * ============================================================================================= */
 
 :root {
@@ -50,7 +50,7 @@ body {
     6px 6px 0 var(--gunmetal-black);
 }
 
-/* an outlined panel whose colour wash sits off-register from the ink. Set --panel-fill to colour it */
+/* an outlined panel whose color wash sits off-register from the ink. Set --panel-fill to color it */
 .comic-panel {
   position: relative;
   isolation: isolate; /* keeps the bleed's negative z-index inside the panel */
@@ -154,7 +154,7 @@ body {
   }
 }
 
-/* a rubber-stamp label. Its colour comes from `color` */
+/* a rubber-stamp label. Its color comes from `color` */
 .comic-stamp {
   display: inline-block;
   padding: 2px 10px;

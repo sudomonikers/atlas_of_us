@@ -29,12 +29,12 @@ const RESULTS = 6;
 //topics it needs, as the board draws them. "Kinds of skills" points to the broader skill, "Skills needed" to the skill
 //that's needed, "Traits needed" to the trait, "Abilities needed" to the ability, and "Knowledge needed" to the topic
 const KINDS: LinkKind[] = [
-  { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, colour: gunmetal, length: 90 },
-  { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, colour: cinnamon, length: 130 },
-  { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, colour: blue, length: 150 },
-  { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, colour: brownRed, length: 120 },
-  { id: 'able', label: 'Abilities needed', line: 'solid', arrow: true, colour: cinnamon, length: 120 },
-  { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, colour: blue, length: 120 },
+  { id: 'kind_of', label: 'Kinds of skills', line: 'solid', arrow: true, color: gunmetal, length: 90 },
+  { id: 'needs', label: 'Skills needed', line: 'dashed', arrow: true, color: cinnamon, length: 130 },
+  { id: 'similar', label: 'Similar skills', line: 'dotted', arrow: false, color: blue, length: 150 },
+  { id: 'takes', label: 'Traits needed', line: 'solid', arrow: true, color: brownRed, length: 120 },
+  { id: 'able', label: 'Abilities needed', line: 'solid', arrow: true, color: cinnamon, length: 120 },
+  { id: 'knows', label: 'Knowledge needed', line: 'solid', arrow: true, color: blue, length: 120 },
 ];
 
 //the ways a skill links, as the inspector counts them
@@ -440,7 +440,7 @@ const styles: Record<string, CSSProperties> = {
     padding: '4px 4px 2px',
   },
   //the selected skill's name, description and what can be done with it, right over the board's top right corner, with a
-  //glow the board's colour so the links under it don't muddle it
+  //glow the board's color so the links under it don't muddle it
   title: {
     maxWidth: 360,
     display: 'flex',
