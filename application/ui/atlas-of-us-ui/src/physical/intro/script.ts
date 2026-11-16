@@ -230,7 +230,7 @@ export const twoPlayers: Script = {
     // -------------------------------------------------------------------------
     daniel_tests: {
       steps: [
-        { text: 'Daniel starts somewhere different. First, he adds what he lives with. He searches for paraplegia, says how much it affects him, and the Atlas lists the abilities it can reach.', animation: 'daniel_note' },
+        { text: 'Daniel starts somewhere different. First, he adds his condition. He searches for paraplegia, says how much it affects him, and the Atlas lists the abilities it can reach.', animation: 'daniel_note' },
         { text: 'Then he plays the coordination games, right on his screen. Steady hands. Nimble fingers. Reactions.', animation: 'daniel_games' },
         { text: "His results come back, and they're not ordinary. Finger Dexterity: 94 out of 100. Arm-Hand Steadiness: 91. Wrist-Finger Speed: 93. Reaction Time: 86.", animation: 'daniel_results' },
         { text: 'The kid who caught every ball never went anywhere. None of that runs through his legs.', animation: 'daniel_catch' },
@@ -241,10 +241,10 @@ export const twoPlayers: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // interlude: what you live with
+    // interlude: your conditions and impairments
     // -------------------------------------------------------------------------
     living_with: {
-      interlude: 'What you live with',
+      interlude: 'Your conditions and impairments',
       steps: [
         { text: "Here's Basketball as Daniel sees it. Next to Stamina, Explosive Strength and Gross Body Coordination there's a note: his paraplegia can affect each of them.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel, abilities: ['Stamina', 'Explosive Strength', 'Gross Body Coordination'] } },
         { text: "The Atlas knows which abilities a condition can reach, so you only add it once. From then on, every skill you open flags it wherever it matters, so nothing catches you out.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel } },
@@ -316,7 +316,7 @@ export const twoPlayers: Script = {
             { label: 'Coordination and speed: the games Daniel aced.', chapter: 'coordination' },
             { label: 'Senses: your eyes and ears.', chapter: 'senses' },
             { label: 'Mind: puzzles for reasoning, memory and ideas.', chapter: 'mind' },
-            { label: 'Conditions and disabilities: glasses, a bad knee, or anything else I live with.', chapter: 'living-with' },
+            { label: 'Conditions and disabilities: glasses, a bad knee, or any other condition or impairment.', chapter: 'living-with' },
           ],
         },
       ],

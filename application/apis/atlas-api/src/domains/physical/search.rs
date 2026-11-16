@@ -1,4 +1,4 @@
-//one search across what someone can live with: conditions, and the body functions and parts an impairment can be in.
+//one search across conditions and impairments: conditions, and the body functions and parts an impairment can be in.
 //The conditions seeded and added so far are a few hundred of Mondo's and HPO's tens of thousands, so when few of those
 //match, the rest of Mondo and HPO are searched too, through EBI's Ontology Lookup Service, and one picked from there is
 //added (see conditions.rs). Ours are found in full-text indexes with the english analyzer (see

@@ -408,7 +408,7 @@ export const sameAnswer: Script = {
     // interlude: the body meets personality
     // -------------------------------------------------------------------------
     body: {
-      interlude: 'What you live with',
+      interlude: 'Your conditions and impairments',
       steps: [
         { text: "One more thing shows on Priya's traits. In Physical Traits, she noted her social phobia. So beside Assertiveness, Self-Efficacy and Self-Consciousness there's a note: it can affect how these show up.", stage: { kind: 'traits', person: priya, picked: ['Assertiveness', 'Self-Efficacy', 'Self-Consciousness'] } },
         { text: "It doesn't change her scores. Those come from what she said and did. It just helps her read them, and it's only ever shown to her.", stage: { kind: 'traits', person: priya, picked: ['Assertiveness', 'Self-Efficacy', 'Self-Consciousness'] } },

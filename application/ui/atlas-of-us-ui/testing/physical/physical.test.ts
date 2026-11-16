@@ -1,4 +1,4 @@
-// The physical tests. Every persona with a `physical` has its body, its readings and what it lives with, and plays as
+// The physical tests. Every persona with a `physical` has its body, its readings and its conditions and impairments, and plays as
 // its own test, all at once. Each one logs in through the ui's login form, skips the story that opens Physical Traits,
 // and plays every chapter in the real ui the way a player would: picking its characteristics, typing in its
 // measurements, playing every test the app runs to its own score, rating itself where nothing measures an ability, and

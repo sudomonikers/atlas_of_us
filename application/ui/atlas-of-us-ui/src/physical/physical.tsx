@@ -203,7 +203,7 @@ const THUMBS = Object.fromEntries(
 const NAMED: Record<string, string> = {
   intro: 'Introduction',
   results: 'How you did',
-  living: 'What you live with',
+  living: 'Your conditions and impairments',
 };
 const nameOf = (s: Scene) => s.title ?? NAMED[s.id] ?? (s.id.startsWith('intro') ? 'Introduction' : s.id);
 

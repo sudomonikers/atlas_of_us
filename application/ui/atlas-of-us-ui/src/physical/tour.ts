@@ -228,7 +228,7 @@ const BASICS = [
 ];
 const basics = (measurements: Measurements) => BASICS.flatMap((name) => measurements.measurements.find((m) => m.name === name) ?? []);
 
-//the chapters, which the user can take in any order: the basics, what their body can do, and what they live with
+//the chapters, which the user can take in any order: the basics, what their body can do, and their conditions and impairments
 export const CHAPTERS: Chapter[] = [
   {
     id: 'basics',
@@ -297,11 +297,11 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'living-with',
     title: 'Conditions and disabilities',
-    blurb: 'Anything you live with, like asthma, a bad knee or needing glasses.',
+    blurb: 'Your conditions and impairments, like asthma, a bad knee or needing glasses.',
     scenes: () => [
       {
         id: 'intro',
-        text: "Lots of people live with something, like needing glasses, a bad knee, asthma or ADHD. When a skill needs something one of these can affect, I'll mention it so you can plan around it.",
+        text: "Lots of people have a condition or impairment, like needing glasses, a bad knee, asthma or ADHD. When a skill needs something one of these can affect, I'll mention it so you can plan around it.",
         stage: { motion: 'living' },
       },
       {

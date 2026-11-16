@@ -423,7 +423,7 @@ export interface Found {
   parts: string[];
 }
 
-//searches everything someone can live with, or only the body parts
+//searches for conditions and impairments, or only the body parts
 export const search = (q: string, only?: 'parts') => request<Found>('GET', `/physical/search?q=${encodeURIComponent(q)}${only ? `&only=${only}` : ''}`);
 
 //adds a Mondo or HPO term as a condition, or gives back the one we have

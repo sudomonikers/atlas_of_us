@@ -12,9 +12,9 @@ export function carriedUp(skill: Skill, rank: number) {
 }
 
 //how someone fits a few skills at one level, by the abilities they take, for a FitGraph. `scores` is where they stand on
-//each ability, 0 to 1, and `affectedBy` what they live with that can affect each one, by ability name. An ability shows
+//each ability, 0 to 1, and `affectedBy` their conditions and impairments that can affect each one, by ability name. An ability shows
 //only when there's something to go on: a score, or something that can affect it. Strengths come first, the strongest at
-//the top, then the gaps, then what something they live with can reach
+//the top, then the gaps, then what one of their conditions or impairments can reach
 export function abilityFit(skills: Skill[], rank: number, scores: Record<string, number>, affectedBy: Record<string, string[]>) {
   const links: FitLink[] = skills.flatMap((skill) =>
     carriedUp(skill, rank).flatMap((requirement): FitLink[] => {

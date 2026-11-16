@@ -132,7 +132,7 @@ async function act(page: Page, name: string, persona: Physical, catalog: Catalog
   if (c) return persona.characteristics[name] && characteristic(page, name, persona.characteristics[name]);
   const a = catalog.abilities.find((x) => x.name === name);
   if (a) return persona.ratings[name] !== undefined && rating(page, a, persona.ratings[name]);
-  if (name === 'What you live with') return livingWith(page, persona, catalog);
+  if (name === 'Your conditions and impairments') return livingWith(page, persona, catalog);
 }
 
 //on to the next scene, the next chapter, or back to the chapters after the last. Says which

@@ -52,7 +52,7 @@ interface LivingWithProps {
   onConditions: (data: Conditions) => void;
 }
 
-//everything the user lives with, in one place: a checklist of common conditions in everyday names, a search for anything
+//the user's conditions and impairments, in one place: a checklist of common conditions in everyday names, a search for anything
 //else, conditions from our list and from Mondo and HPO along with the body functions and parts an impairment can be in,
 //and beside them what they've added and the abilities it can affect
 export default function LivingWith({ impairments, conditions, anatomy, affectedBy, onImpaired, onUnimpaired, onConditions }: LivingWithProps) {
@@ -176,8 +176,8 @@ export default function LivingWith({ impairments, conditions, anatomy, affectedB
         )}
       </section>
 
-      <section style={styles.yours} aria-label="What you live with">
-        <h3 style={styles.heading}>What you live with</h3>
+      <section style={styles.yours} aria-label="Your conditions and impairments">
+        <h3 style={styles.heading}>Your conditions and impairments</h3>
         {error && <AtlasError message={error} />}
         <Yours
           conditions={conditions}

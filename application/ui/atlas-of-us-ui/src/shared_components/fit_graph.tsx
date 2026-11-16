@@ -3,9 +3,9 @@ import { brownRed, comic, gunmetal, ivory } from './palette';
 
 // How someone fits a few things at once, drawn as one picture: them on the left, the things about them that matter down
 // the middle, and what they're being fitted to on the right, with a line from each thing about them to each target that
-// takes it. Green where they're ahead of what it takes, red dashed where they're short, and red dotted where something
-// they live with can reach it. It knows nothing about what the items and targets are: abilities and skills, traits and
-// jobs. The owner works out the standings and the order the items go in.
+// takes it. Green where they're ahead of what it takes, red dashed where they're short, and red dotted where one
+// of their conditions or impairments can reach it. It knows nothing about what the items and targets are: abilities
+// and skills, traits and jobs. The owner works out the standings and the order the items go in.
 
 const green = '#2f9a5a';
 
@@ -45,7 +45,7 @@ interface FitGraphProps {
 const LOOK: Record<Standing, { color: string; dash?: string; label: string }> = {
   ahead: { color: green, label: 'Ahead of what it takes' },
   short: { color: brownRed, dash: '12 8', label: 'Short of what it takes' },
-  affected: { color: brownRed, dash: '2 8', label: 'Can be affected by what you live with' },
+  affected: { color: brownRed, dash: '2 8', label: 'Can be affected by your conditions or impairments' },
 };
 
 //the drawing's own space, which scales to fit its box

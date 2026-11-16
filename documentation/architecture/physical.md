@@ -82,7 +82,7 @@ the camera flying to the parts it's about. The chapters are:
 
 Your results shows everything a person has added as a whole: Atlas's summary of it, their characteristics with their size
 and vitals against people like them, every ability they have a place on laid out by area, the same drawn on the 3D body
-with picking an ability lighting up the parts it uses and what its place comes from, what they live with, and what's
+with picking an ability lighting up the parts it uses and what its place comes from, their conditions and impairments, and what's
 still to find out, with the chapter that finds it. Explore is the
 3D body to turn around: clicking any part, picking a system, or finding a part by name opens everything about it.
 

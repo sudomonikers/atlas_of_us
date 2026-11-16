@@ -10,7 +10,7 @@ import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 
 // Your results: everything the user has added to Physical Traits, seen as a whole. Atlas's summary of it on top, then
 // the basics at a glance, every ability they have a place on laid out by area, the same drawn on their body with the
-// list to open each one, what they live with, and what's still to find out.
+// list to open each one, their conditions and impairments, and what's still to find out.
 
 interface YourResultsProps {
   known: Known;
@@ -243,10 +243,10 @@ function LivingWith({ known, affectedBy }: { known: Known; affectedBy: AffectedB
   return (
     <section style={styles.section} aria-labelledby="living">
       <h2 id="living" style={styles.heading}>
-        What you live with
+        Your conditions and impairments
       </h2>
       {!items.length ? (
-        <p style={styles.text}>Nothing added. If you live with anything, like needing glasses, a bad knee or asthma, add it so I can flag the skills it matters for.</p>
+        <p style={styles.text}>None added. If you have a condition or impairment, like needing glasses, a bad knee or asthma, add it so I can flag the skills it matters for.</p>
       ) : (
         <ul style={styles.lived}>
           {items.map((i) => (
@@ -261,7 +261,7 @@ function LivingWith({ known, affectedBy }: { known: Known; affectedBy: AffectedB
         </ul>
       )}
       <button className="comic-lift" style={styles.link} onClick={() => navigate('/physical?chapter=living-with')}>
-        {items.length ? 'Change what you live with' : 'Add what you live with'}
+        {items.length ? 'Change your conditions and impairments' : 'Add your conditions and impairments'}
       </button>
     </section>
   );

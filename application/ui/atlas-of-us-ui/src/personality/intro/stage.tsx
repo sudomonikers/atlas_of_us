@@ -337,7 +337,7 @@ function Meter({ requirement, theirs }: { requirement: TraitRequirement; theirs?
 }
 
 //how someone fits a few skills at one level, by the traits they take. A trait shows when they have a score on it, or
-//something they live with can affect it. Strengths come first, the strongest at the top, then the gaps
+//one of their conditions or impairments can affect it. Strengths come first, the strongest at the top, then the gaps
 function traitFit(skills: Skill[], rank: number, person: Person) {
   const affectedBy: Record<string, string[]> = {};
   for (const condition of person.conditions ?? []) for (const trait of condition.affects) (affectedBy[trait] ??= []).push(condition.name);
