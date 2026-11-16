@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { DOMAINS, fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, type AnswerClock, type PersonPersonality, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { DOMAINS, fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, scoreAnswers, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { theStoryGame } from './the_story_game/script';
 import { theFestival } from './the_festival/script';
 import { theBigParty } from './the_big_party/script';
@@ -228,9 +228,6 @@ const PLAYABLE: Record<string, Playable> = {
   the_portrait: { script: thePortrait, renderScene: (animation) => <Oils animation={animation} /> },
 };
 
-//traits are rescored from everything the user has answered each time they finish this many more scenarios. Matches the api
-const SCORE_EVERY = 6;
-
 /* ---------------------------------------------------------------------------------------------
  * dashboard
  * ------------------------------------------------------------------------------------------- */
@@ -285,10 +282,32 @@ function Dashboard() {
   const [answers, setAnswers] = useState<SavedAnswer[]>(); //undefined until loaded
   const [questions, setQuestions] = useState<Record<string, ScenarioQuestion[]>>({}); //keyed by scenario name
   const [loadError, setLoadError] = useState<string>();
-  //the user's traits are rescored in the background after each scenario, and no new one starts until that's done
+  //the user's answers are scored in the background when they ask
   const [recalculating, setRecalculating] = useState(false);
+  const [unscored, setUnscored] = useState(0); //scenarios finished since they were last scored
   const [scorings, setScorings] = useState(0); //how many rescores have finished while the page was open
   const [outOfBudget, setOutOfBudget] = useState(false); //the month's AI budget ran out, so nothing gets scored
+  const [scoreError, setScoreError] = useState<string>();
+  const checkScoring = useCallback(
+    () =>
+      getScoring().then(({ running, unscored, out_of_budget }) => {
+        setRecalculating(running);
+        setUnscored(unscored);
+        setOutOfBudget(out_of_budget);
+      }, () => {}),
+    [],
+  );
+  const score = () => {
+    setScoreError(undefined);
+    scoreAnswers().then(
+      ({ running, unscored, out_of_budget }) => {
+        setRecalculating(running);
+        setUnscored(unscored);
+        setOutOfBudget(out_of_budget);
+      },
+      (e) => setScoreError(e instanceof Error ? e.message : String(e)),
+    );
+  };
 
   const load = useCallback(
     () =>
@@ -308,19 +327,16 @@ function Dashboard() {
   }, [loggedIn, load]);
 
   useEffect(() => {
-    if (!loggedIn) return;
-    getScoring().then(({ running, out_of_budget }) => {
-      setRecalculating(running);
-      setOutOfBudget(out_of_budget);
-    }, () => {});
-  }, [loggedIn]);
+    if (loggedIn) checkScoring();
+  }, [loggedIn, checkScoring]);
   useEffect(() => {
     if (!recalculating) return;
     const timer = window.setInterval(
       () =>
-        getScoring().then(({ running, out_of_budget }) => {
+        getScoring().then(({ running, unscored, out_of_budget }) => {
           setOutOfBudget(out_of_budget);
-          if (running) return;
+          setUnscored(unscored);
+            if (running) return;
           setRecalculating(false);
           setScorings((n) => n + 1);
         }, () => {}), //a failed check just waits for the next one
@@ -331,16 +347,14 @@ function Dashboard() {
 
   const [traits, setTraits] = useState<Trait[]>(); //undefined until loaded
   const [traitsError, setTraitsError] = useState<string>();
-  const [report, setReport] = useState<Omit<PersonPersonality, 'traits'>>();
   const [asking, setAsking] = useState(false); //the chip-in popup, shown the first time they see their report
 
-  //fetched each time the view opens, a rescore finishes or a contest is sent, so it picks up anything measured since
+  //fetched each time the view opens, a rescore finishes, a contest is sent or a report is written, so it picks up anything since
   useEffect(() => {
     if (view !== 'traits' || !personId || !username) return;
     fetchTraits(personId, username).then(
       ({ traits, ...report }) => {
         setTraits(traits);
-        setReport(report);
         setTraitsError(undefined);
         if (report.report && currentConfig()?.support_asked === false) {
           setAsking(true);
@@ -351,33 +365,26 @@ function Dashboard() {
     );
   }, [view, personId, username, scorings]);
 
-  //a contest is reviewed in the background, so the traits are fetched again until every contest has its outcome, and
-  //until the report has been rewritten since the last one accepted
-  const reportAt = report?.report_at ? Date.parse(report.report_at) : undefined;
-  const reviewing = traits?.some((t) =>
-    t.contributions.some((c) =>
-      c.contests.some((contest) => contest.status === 'pending' || (reportAt !== undefined && contest.status === 'accepted' && Date.parse(contest.at) > reportAt)),
-    ),
-  );
+  //a contest is reviewed in the background, so the traits are fetched again until every contest has its outcome
+  const reviewing = traits?.some((t) => t.contributions.some((c) => c.contests.some((contest) => contest.status === 'pending')));
   useEffect(() => {
     if (!reviewing) return;
     const timer = window.setTimeout(() => setScorings((n) => n + 1), SCORING_POLL_MS);
     return () => window.clearTimeout(timer);
   }, [reviewing, traits]);
 
-  //saves an answer as the player moves past a prompt. The last answer of a scenario also starts a rescore
+  //saves an answer as the player moves past a prompt
   const answer = (scenario: string) => async (step: PromptFrame, given: Answer, context: string, clock?: AnswerClock) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't hooked up on my end yet, so I can't save your answer. Not your fault.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    const saved = await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets, clock);
-    if (saved.scored) setRecalculating(true);
+    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets, clock);
   };
 
-  //a scenario asked for in the url opens with its start note, once their progress is in and nothing is being scored
+  //a scenario asked for in the url opens with its start note, once their progress is in
   const askedScene = params.get('chapter');
   const [openedScene, setOpenedScene] = useState<string>();
-  if (askedScene && askedScene !== openedScene && answers !== undefined && !recalculating) {
+  if (askedScene && askedScene !== openedScene && answers !== undefined) {
     setOpenedScene(askedScene);
     if (askedScene in PLAYABLE) {
       if (startNoteHidden) setPlaying(askedScene);
@@ -394,6 +401,7 @@ function Dashboard() {
     const exit = () => {
       setPlaying(undefined);
       load(); //pick up what was answered
+      checkScoring(); //and whether it finished a scenario to score
     };
     //an unfinished run picks up where it was left, a finished one is played again from the top
     const mine = answers?.filter((a) => a.scenario === playing) ?? [];
@@ -423,7 +431,7 @@ function Dashboard() {
       : outOfBudget
         ? "I've burned through this month's AI budget, so scoring is paused. Your answers are saved. Chipping in below helps."
       : recalculating
-        ? 'Recalculating your results. Your next chapter unlocks in a few minutes.'
+        ? 'Reading your answers. Keep playing if you like.'
         : view === 'chapters'
           ? ready
             ? greeting(firstName, completed)
@@ -476,7 +484,11 @@ function Dashboard() {
           ))}
         </div>
 
-        {view === 'traits' && traits && <MyPersonality traits={traits} report={report?.report ?? null} onContested={() => setScorings((n) => n + 1)} />}
+        {view !== 'explore' && loggedIn && (recalculating || unscored > 0) && (
+          <ScoreBar running={recalculating} unscored={unscored} outOfBudget={outOfBudget} error={scoreError} onScore={score} />
+        )}
+
+        {view === 'traits' && traits && <MyPersonality traits={traits} onContested={() => setScorings((n) => n + 1)} onReport={() => setScorings((n) => n + 1)} />}
 
         {asking && <SupportPopup onClose={() => setAsking(false)} />}
 
@@ -512,7 +524,6 @@ function Dashboard() {
                   scenario={scenario}
                   progress={progress[scenario.id]}
                   playable={scenario.id in PLAYABLE}
-                  locked={recalculating}
                   onPlay={() => (startNoteHidden ? setPlaying(scenario.id) : setStarting(scenario.id))}
                 />
               ))}
@@ -552,7 +563,7 @@ const TIPS = [
   { title: 'Be honest, not impressive', note: "Answer how you'd actually act." },
   { title: 'Tell us why', note: 'Your reasoning matters more than your pick.' },
   { title: 'Be specific', example: { vague: "I'm bad in a crisis.", specific: 'I froze, then called my mom.' } },
-  { title: 'Keep playing', note: `I re-read everything every ${SCORE_EVERY} chapters.` },
+  { title: 'Keep playing', note: 'The more chapters I score, the sharper your results.' },
   { title: 'Jokes are fine', note: 'How you answer says something too.' },
 ];
 
@@ -687,19 +698,42 @@ function OurApproach() {
   );
 }
 
+//asks to score the user from everything they've finished, when something is new since they were last scored, or says
+//it's being done
+function ScoreBar({ running, unscored, outOfBudget, error, onScore }: { running: boolean; unscored: number; outOfBudget: boolean; error?: string; onScore: () => void }) {
+  const chapters = `${unscored} ${unscored === 1 ? 'chapter' : 'chapters'}`;
+  return (
+    <section style={dash.scoreBar} className="comic-panel" aria-label="Scoring">
+      {running ? (
+        <p style={dash.scoreText}>
+          Reading your answers and working out your scores. Keep playing if you like<Dots />
+        </p>
+      ) : outOfBudget ? (
+        <p style={dash.scoreText}>You've finished {chapters} I haven't scored yet. Scoring is paused until next month, and your answers are saved.</p>
+      ) : (
+        <>
+          <p style={dash.scoreText}>You've finished {chapters} I haven't scored yet. I'll read everything you've finished.</p>
+          <button className="comic-lift" style={{ ...dash.viewButton, ...dash.viewButtonActive }} onClick={onScore}>
+            Score my answers ▶
+          </button>
+        </>
+      )}
+      {error && <AtlasError message={error} />}
+    </section>
+  );
+}
+
 //name is missing while logged out, when the page sits behind the login card
 const greeting = (name: string | undefined, completed: number) => {
   const left = SCENARIOS.length - completed;
-  const toNext = SCORE_EVERY - (completed % SCORE_EVERY);
-  if (completed === 0) return `Hey ${name ?? 'there'}. Finish ${SCORE_EVERY} chapters and I'll tell you who you are.`;
+  if (completed === 0) return `Hey ${name ?? 'there'}. Finish a chapter, have me score it, and I'll start telling you who you are.`;
   if (left === 0) return `Every chapter done${name ? `, ${name}` : ''}. You really need a hobby. I'm proud of you.`;
-  const next = toNext > left ? `${left} to go.` : completed < SCORE_EVERY ? `${toNext} more and I'll tell you who you are.` : `${toNext} more and I'll update your results.`;
-  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}! ${next}`;
+  return `${completed} of ${SCENARIOS.length} down${name ? `, ${name}` : ''}! ${left} to go. Have me score them whenever you like.`;
 };
 
 const traitsGreeting = (name: string | undefined, traits: Trait[]) => {
   const measured = traits.filter((t) => t.value !== undefined).length;
-  if (measured === 0) return `Nothing on you yet${name ? `, ${name}` : ''}. I read everything after every ${SCORE_EVERY} chapters.`;
+  if (measured === 0) return `Nothing on you yet${name ? `, ${name}` : ''}. Finish a chapter and have me score it.`;
   if (measured === traits.length) return `Every trait measured${name ? `, ${name}` : ''}. I know you better than your group chat does.`;
   return `Here's what I've figured out so far${name ? `, ${name}` : ''}. The blank spots need more chapters.`;
 };
@@ -717,11 +751,10 @@ interface ScenarioCardProps {
   scenario: ScenarioInfo;
   progress?: ScenarioProgress;
   playable: boolean;
-  locked: boolean; //waiting on a rescore before another scenario can start
   onPlay: () => void;
 }
 
-function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: ScenarioCardProps) {
+function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioCardProps) {
   const status = progress?.status ?? 'not_started';
   const look = badges[status];
   const when = progress?.completedAt ?? progress?.startedAt;
@@ -736,8 +769,8 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
     >
       <button
         className="comic-panel comic-lift"
-        style={{ ...dash.card, ...(playable && !locked ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
-        disabled={!playable || locked}
+        style={{ ...dash.card, ...(playable ? {} : dash.cardLocked), '--panel-fill': look.fill } as CSSProperties}
+        disabled={!playable}
         onClick={onPlay}
       >
         <span style={dash.cardTop}>
@@ -773,7 +806,7 @@ function ScenarioCard({ index, scenario, progress, playable, locked, onPlay }: S
 
         <span style={dash.cardFooter}>
           {when && <span>{`${status === 'complete' ? 'Finished' : 'Started'} ${formatDate(when)}`}</span>}
-          {playable && <span style={dash.go}>{locked ? <>Recalculating<Dots /></> : status === 'complete' ? 'Play again ▶' : status === 'in_progress' ? 'Resume ▶' : 'Play ▶'}</span>}
+          {playable && <span style={dash.go}>{status === 'complete' ? 'Play again ▶' : status === 'in_progress' ? 'Resume ▶' : 'Play ▶'}</span>}
         </span>
       </button>
     </li>
@@ -1537,6 +1570,21 @@ const dash: Record<string, CSSProperties> = {
   meter: {
     maxWidth: 1100,
     margin: '0 auto 32px',
+  },
+  scoreBar: {
+    maxWidth: 1100,
+    margin: '0 auto 32px',
+    padding: '16px 22px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '12px 20px',
+  },
+  scoreText: {
+    flex: '1 1 320px',
+    margin: 0,
+    fontSize: 19,
+    lineHeight: 1.4,
   },
   grid: {
     maxWidth: 1100,

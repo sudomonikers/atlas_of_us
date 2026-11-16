@@ -50,17 +50,20 @@ prompt on the path they took, and the choices offered. The scorer needs it to kn
 - **An unfinished chapter resumes** where the player left off.
 
 ## Scoring
-Chapters are scored in **batches of six** in play order, when every chapter in a batch is finished. Replaying a chapter in a
-finished batch rescores it, and a person can ask for a full rescore.
+Chapters are scored **when the person asks**, with a button that shows once they've finished a chapter that hasn't been
+scored. It reads **every chapter they've finished** at once and records all their evidence again, so each score comes
+from everything they've played.
 
-1. The API marks the person as being scored, which locks the chapters until it's done, and queues the job.
-2. The job makes **one LLM call per batch**, so the model sees patterns across six chapters at once. For each facet it
+1. The API marks the person as being scored, which holds off contests until it's done, and queues the job. They can keep
+   playing: a chapter finished meanwhile waits for the next press.
+2. The job makes **one LLM call** over every finished chapter, so the model sees patterns across all of them at once. For each facet it
    lists **evidence**: which answer shows it, why, a level and a weight. Weights are capped by the kind of answer, so a
    real action or real-life detail counts more than a story choice or a bare claim about oneself.
-3. The evidence is saved on each answer, and every facet's score is worked out again from all the person's evidence:
+3. The evidence is saved on each answer, unless the answer was given again while it was being scored, and every facet's
+   score is worked out again from all the person's evidence:
    the value is a weighted average, and the confidence rises with evidence and falls with disagreement. A facet with no
    evidence is left unmeasured.
-4. The lock is cleared whether scoring worked or not, so a failed job never locks a player out.
+4. The mark is cleared whether scoring worked or not, so a failed job never holds a player up.
 
 **Cost guard:** jobs run a few at a time, and a monthly Bedrock budget cuts the jobs off once it's spent. The UI then
 says the budget's gone.
@@ -77,14 +80,16 @@ says the budget's gone.
   facets by hand. A condition or impairment the person has noted in one shows on My Personality beside the domain or
   facet it matches, as something that can affect it, apart from the score.
 
-## The report
-Once every chapter is finished and scored, the person gets a written report: a headline, an overview, a paragraph per
-domain, and strengths and things to watch. It's rewritten after each scoring job and each accepted contest.
+## Report
+The report is its own thing, apart from scoring. Once every chapter is finished and scored, the person can ask for a
+written report: a headline, an overview, a paragraph per domain, and strengths and things to watch. It's written only
+when they press the button for it, by its own job. Scoring or an accepted contest that changes their scores after it's
+written leaves it stale, and they can ask for it again.
 
 - **It's in Atlas's voice.**
 - **It's private by design.** It's shown to anyone who can see the profile, so it describes patterns only, and never
   quotes or retells the person's answers.
-- **A failed report keeps the old one,** and never fails the job that asked for it.
+- **A failed report keeps the old one,** and the person can ask again.
 
 ## Contesting evidence
 A person can contest any piece of evidence, to explain why they answered as they did or to say it misread them.
@@ -93,8 +98,9 @@ A person can contest any piece of evidence, to explain why they answered as they
   and per piece of evidence to keep costs down.
 - **A contest job reviews it** with the same rules as scoring, plus the person's note. It accepts only when the answers,
   read with the note, show something different, and replies to the person in a sentence or two.
-- **An accepted contest** changes or removes that one piece of evidence and rescores. The write only lands if nothing
-  changed in the meantime, and a contest that fails is rejected with a reply, so it never stays pending.
+- **An accepted contest** changes or removes that one piece of evidence and works the scores out again. The write
+  only lands if nothing changed in the meantime, and a contest that fails is rejected with a reply, so it never stays
+  pending.
 - **Contests last.** A later rescore reads the settled contests with each answer, so a fair explanation carries into
   the new evidence. Replaying a chapter clears its contests.
 

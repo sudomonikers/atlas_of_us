@@ -6,7 +6,6 @@ use serde_json::json;
 use tracing::Instrument;
 
 use crate::bedrock::{BoxError, invoke};
-use crate::jobs::personality_report;
 use crate::jobs::personality_scoring::{SCORING_PROMPT, ScoredAnswer, Shift, answer_json, save_traits};
 
 //the person contesting one piece of evidence: explaining their answer, or saying the scorer got it wrong
@@ -88,7 +87,7 @@ pub fn notes(contests: Option<&str>) -> Result<Option<Vec<serde_json::Value>>, s
 }
 
 //reviews a contested piece of evidence, changing just that evidence or rejecting the contest, and rescores the person's
-//traits and rewrites their report when it changes. A contest that can't be reviewed is rejected, so it never stays pending
+//traits when it changes, which leaves their report stale until they ask for it again. A contest that can't be reviewed is rejected, so it never stays pending
 pub async fn run(graph: &Graph, job: ContestJob) {
     let span = tracing::info_span!("contest", person_id = job.person_id, answer_id = job.answer_id, request_id = job.request_id);
     async {
@@ -118,7 +117,6 @@ pub async fn run(graph: &Graph, job: ContestJob) {
             }).await?;
             if accepted {
                 save_traits(graph, &job.person_id).await?;
-                personality_report::refresh(graph, &client, &model, &job.person_id).await;
             }
             Ok(accepted)
         }.await;

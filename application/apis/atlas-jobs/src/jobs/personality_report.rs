@@ -35,8 +35,8 @@ struct DomainText {
     text: String,
 }
 
-//rewrites a person's report without rescoring them. The api never sends it: it's sent by hand, to write reports for people
-//scored before reports existed
+//writes a person's report from their scores. The api sends it when the person asks for their report (atlas-api
+//domains/personality/report.rs), and it's the only thing that writes one
 #[derive(Deserialize)]
 pub struct ReportJob {
     person_id: String,
@@ -73,21 +73,26 @@ evidence. Use the evidence only to understand the patterns, and describe the pat
 - watch_outs: three to five short phrases for what can trip them up.";
 
 //writes the person's report from their scores and the evidence behind them, once they've finished and been scored on
-//every scenario. A report that can't be written is logged and the old one is kept, so it never fails the job calling it
-pub async fn refresh(graph: &Graph, client: &aws_sdk_bedrockruntime::Client, model: &str, person_id: &str) {
-    let started = Instant::now();
-    match write(graph, client, model, person_id).await {
-        Ok(written) => tracing::info!(written, latency_ms = started.elapsed().as_millis() as u64, "report refreshed"),
-        Err(e) => tracing::error!("couldn't write the report: {e}"),
-    }
-}
-
+//every scenario. A report that can't be written keeps the old one, and is marked failed so the person can ask again
 pub async fn run(graph: &Graph, job: ReportJob) {
     async {
-        let client = aws_sdk_bedrockruntime::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await);
-        match env::var("BEDROCK_MODEL_ID") {
-            Ok(model) => refresh(graph, &client, &model, &job.person_id).await,
-            Err(e) => tracing::error!("couldn't write the report: {e}"),
+        let started = Instant::now();
+        let written: Result<bool, BoxError> = async {
+            let client = aws_sdk_bedrockruntime::Client::new(&aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await);
+            write(graph, &client, &env::var("BEDROCK_MODEL_ID")?, &job.person_id).await
+        }.await;
+        match written {
+            Ok(true) => tracing::info!(latency_ms = started.elapsed().as_millis() as u64, "report written"),
+            failed => {
+                match failed {
+                    Err(e) => tracing::error!("couldn't write the report: {e}"),
+                    _ => tracing::error!("couldn't write the report: they aren't finished and fully scored"),
+                }
+                let marked = graph.run(query("MATCH (p:Person {id: $personId}) SET p.personalityReportFailedAt = datetime()").param("personId", job.person_id.as_str())).await;
+                if let Err(e) = marked {
+                    tracing::error!("couldn't mark the report failed: {e}");
+                }
+            }
         }
     }.instrument(tracing::info_span!("report", person_id = job.person_id)).await
 }

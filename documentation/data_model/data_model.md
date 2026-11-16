@@ -42,8 +42,11 @@ scores is in `documentation/architecture/personality.md`.
 | PersonalityScenarioQuestion | `id`, `key`, `order`, `prompt`, `real_life` | A question in a scene. `key` matches the prompt in the scene's script, the highest `order` is the last question, and `real_life` marks the question about the player's own life |
 | JobRunning | `id`, `kind`, `startedAt` | A scoring job in progress for a person, which locks their scenes until it's done |
 
-A Person also carries their personality report, once they're fully scored: `personalityReport`, a JSON string with a
+A Person also carries their personality report, once they've asked for one: `personalityReport`, a JSON string with a
 headline, an overview, a paragraph per domain, strengths and things to watch, and `personalityReportAt`.
+`personalityScoredAt` is when their trait scores were last worked out, which makes the report stale when it's later.
+`personalityReportAskedAt` and `personalityReportFailedAt` are when they last asked for one and when one last couldn't
+be written.
 
 #### Relationships
 

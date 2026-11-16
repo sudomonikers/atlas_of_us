@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { contestEvidence, DOMAINS, getAffectedBy, type AffectedBy, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Report, type Shift, type Trait } from './api';
-import { PersonalityReport } from './report';
+import { contestEvidence, DOMAINS, getAffectedBy, type AffectedBy, MAX_ANSWER_LENGTH, MAX_CONTESTS_PER_EVIDENCE, type Contest, type Contribution, type Shift, type Trait } from './api';
+import { ReportPanel } from './report';
 import { polesOf } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
 import { ProgressMeter } from '../shared_components/progress-meter';
@@ -14,9 +14,10 @@ const gunmetal = 'var(--gunmetal-black)';
 const paleBlue = 'var(--pale-blue)';
 const comic = 'var(--font-comic)';
 
-//the "My Personality" view: their report once they've finished every scenario, then where they sit on every trait,
-//grouped by domain. onContested is called when the user contests a piece of evidence, so the traits can be fetched again
-export default function MyPersonality({ traits, report, onContested }: { traits: Trait[]; report: Report | null; onContested: () => void }) {
+//the "My Personality" view: their report, written when they ask once they've finished every scenario, then where they
+//sit on every trait, grouped by domain. onContested is called when the user contests a piece of evidence, so the traits
+//can be fetched again, and onReport when a new report is written
+export default function MyPersonality({ traits, onContested, onReport }: { traits: Trait[]; onContested: () => void; onReport: () => void }) {
   const [compare, setCompare] = useState(false); //overlay everyone's average on each bar
   const [affectedBy, setAffectedBy] = useState<Map<string, AffectedBy>>(new Map()); //the user's conditions and impairments, by the domain or trait they can affect
   useEffect(() => {
@@ -34,13 +35,8 @@ export default function MyPersonality({ traits, report, onContested }: { traits:
       <div style={styles.meter}>
         <ProgressMeter done={measured} total={traits.length} label="measured" />
       </div>
-      {report ? (
-        <section style={styles.report} className="comic-panel">
-          <PersonalityReport report={report} />
-        </section>
-      ) : (
-        <p style={styles.traitsIntro}>Finish every chapter and I'll write up your full report.</p>
-      )}
+      <ReportPanel onWritten={onReport} />
+      <h2 style={styles.traitsTitle}>Your traits</h2>
       <p style={styles.traitsIntro}>Neither end of a bar is the good one. They're just different.</p>
       <div style={styles.compare}>
         <button className="comic-chip comic-lift" style={styles.compareButton} aria-pressed={compare} onClick={() => setCompare((c) => !c)}>
@@ -323,18 +319,18 @@ const styles: Record<string, CSSProperties> = {
     maxWidth: 1100,
     margin: '0 auto 32px',
   },
-  report: {
+  traitsTitle: {
     maxWidth: 1100,
-    margin: '0 auto 32px',
-    padding: '22px 28px 8px',
-    boxSizing: 'border-box',
-    background: '#fff',
-    borderRadius: 'var(--wobbly)',
-    '--panel-fill': paleBlue,
-  } as CSSProperties,
+    margin: '40px auto 8px',
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 44,
+    letterSpacing: 1.5,
+    lineHeight: 1,
+  },
   traitsIntro: {
     maxWidth: 1100,
-    margin: '-12px auto 16px',
+    margin: '0 auto 16px',
     fontSize: 19,
     lineHeight: 1.3,
   },

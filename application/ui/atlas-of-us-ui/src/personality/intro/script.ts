@@ -375,7 +375,7 @@ export const sameAnswer: Script = {
       interlude: 'What your answers become',
       steps: [
         { text: 'The Atlas reads every answer for thirty traits: the facets of the Big Five, the model of personality psychologists have tested more than any other.', stage: { kind: 'explore' } },
-        { text: "Every six chapters, it reads everything you've written so far together, and you get a first look. Here's Sam's, after six.", stage: { kind: 'traits', person: samEarly } },
+        { text: "Whenever you ask, it reads the chapters you've finished, and you get a first look. Here's Sam's, after six.", stage: { kind: 'traits', person: samEarly } },
         { text: 'An early read comes from only a chapter or two, and some traits have not come up yet. As he plays on, every chapter adds evidence, and the picture fills in and firms up.', stage: { kind: 'traits', person: samEarly } },
         { text: "After all eighteen, every trait has been seen in several different situations. Here's Sam.", stage: { kind: 'traits', person: sam } },
         { text: 'High Assertiveness, Gregariousness and Excitement-Seeking. He takes charge, loves a crowd, and chases the new thing.', stage: { kind: 'traits', person: sam, picked: ['Assertiveness', 'Gregariousness', 'Excitement-Seeking'] } },
@@ -512,7 +512,7 @@ export const sameAnswer: Script = {
 
     your_turn: {
       steps: [
-        { text: "Now it's your turn. Your first look comes after six chapters. After all eighteen, your report, every skill set against your personality, and a profile you can share if you want to.", animation: 'your_turn' },
+        { text: "Now it's your turn. Finish a chapter and have me score it for your first look. After all eighteen, your report, every skill set against your personality, and a profile you can share if you want to.", animation: 'your_turn' },
         { text: 'Be honest, not impressive. Say why. Be specific. And jokes are fine: how you answer says something too.', animation: 'your_turn' },
         {
           id: 'start',

@@ -55,8 +55,8 @@ The single biggest gain came from reading each person's answers all at once inst
 - A full replay can move a trait that rests on very little evidence by more.
 
 ## Cost
-- **Each scoring:** about 30k input tokens and 10k output, roughly $0.25 on Sonnet 4.6. The fixed prompt and criteria are cached.
-- **A player who finishes all 15 scenes:** 3 scorings, about **$0.75**.
+- **Six scenes' scoring:** about 30k input tokens and 10k output, roughly $0.25 on Sonnet 4.6. The fixed prompt and criteria are cached.
+- **Each scoring reads every finished scene:** so its cost grows with how many a player has finished, to about **$0.75** once they've finished all of them.
 - **A full 10-persona regression:** about $7 and 5–6 minutes.
 - **Haiku 4.5 (tested):** about $0.21 per player. It flattens profiles (low traits 12 points high, high traits 7 points low, gap 11 points instead of 7), so we went back to Sonnet.
 

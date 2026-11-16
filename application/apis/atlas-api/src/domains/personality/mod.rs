@@ -8,6 +8,8 @@ use tower_http::request_id::RequestId;
 
 use crate::{auth::AuthUser, helpers::jobs::{BoxError, queue}, state::AppState};
 
+mod report;
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
@@ -17,9 +19,9 @@ pub fn router() -> Router<AppState> {
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/answers", put(answer_question).delete(clear_answers))
         .route("/progress", get(get_user_scenario_progress))
-        .route("/rescore", post(rescore_personality))
-        .route("/scoring", get(get_scoring))
+        .route("/scoring", get(get_scoring).post(score_new))
         .route("/contests", post(contest_evidence))
+        .merge(report::router())
 }
 
 fn internal(e: impl std::fmt::Display) -> (StatusCode, String) {
@@ -407,23 +409,15 @@ pub struct Answer {
     answered_date: String,
 }
 
-#[derive(Serialize)]
-pub struct AnswerResponse {
-    #[serde(flatten)]
-    answer: Answer,
-    scored: bool, //this answer finished the last unfinished scenario in its batch, or replayed one in a finished batch, so that batch is being scored
-}
-
 //saves the logged in user's answer, replacing any earlier answer to the same question.
 //Answering the first question of a scenario starts a fresh run, so it first clears the rest of their answers to it: a
 //replay down another branch, or one where the clock runs out sooner, would otherwise keep answers from the old run.
-//Finishing every scenario in a batch, or replaying one in a finished batch, starts a scoring job for that batch
+//Answers are scored when the person asks for it, see score_new
 pub async fn answer_question(
     State(state): State<AppState>,
     user: AuthUser,
-    Extension(request_id): Extension<RequestId>,
     Json(body): Json<AnswerPayload>,
-) -> Result<Json<AnswerResponse>, (StatusCode, String)> {
+) -> Result<Json<Answer>, (StatusCode, String)> {
     let too_long = |text: &str| text.chars().count() > MAX_ANSWER_CHARS;
     if too_long(&body.answer) || body.reasoning.as_deref().is_some_and(too_long) {
         return Err((StatusCode::BAD_REQUEST, format!("Answers can be up to {MAX_ANSWER_CHARS} characters. Try shortening yours.")));
@@ -458,12 +452,8 @@ pub async fn answer_question(
         ON CREATE SET a.id = randomUUID()
         SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(), a.scoring = null, a.contests = null,
             a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut, a.facets = $facets
-        WITH s, q, a
-        MATCH (s)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion)
-        WITH s, q, a, max(each.order) AS last
-        RETURN s.name AS scenario, s.id AS scenario_id, q.id AS question_id, q.key AS question_key,
-               a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date,
-               q.order = last AS last_question
+        RETURN s.name AS scenario, q.id AS question_id, q.key AS question_key,
+               a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date
     ")
         .param("personId", user.person_id.clone())
         .param("questionId", body.question_id)
@@ -479,23 +469,7 @@ pub async fn answer_question(
     let Some(row) = rows.next().await.map_err(internal)? else {
         return Err((StatusCode::NOT_FOUND, "That question doesn't exist anymore. Try reloading the page.".to_string()));
     };
-    let answer = row.to::<Answer>().map_err(internal)?;
-
-    //only on the last question, so replaying a finished scenario doesn't rescore on its first answer.
-    //Earlier questions can go unanswered, when a scenario's clock runs out before them
-    let finished = row.get::<bool>("last_question").map_err(internal)?;
-    let scenario_id = row.get::<String>("scenario_id").map_err(internal)?;
-    //the stream holds its pooled connection until it's dropped, and what follows needs connections of its own
-    drop(rows);
-    let (batch, scored) = match finished {
-        true => batch_finished(&state, &user.person_id, &scenario_id).await.map_err(internal)?,
-        false => (0, false),
-    };
-    if scored {
-        tracing::debug!("answer {}: batch {batch} is finished, starting scoring", user.person_id);
-        start_scoring(&state, &user.person_id, Some(batch), &request_id).await.map_err(internal)?;
-    }
-    Ok(Json(AnswerResponse { answer, scored }))
+    Ok(Json(row.to::<Answer>().map_err(internal)?))
 }
 
 pub async fn clear_answers(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
@@ -504,7 +478,7 @@ pub async fn clear_answers(State(state): State<AppState>, user: AuthUser) -> Res
         OPTIONAL MATCH (p)-[a:ANSWERED|HAS_PERSONALITY_TRAIT]->()
         DELETE a
         WITH DISTINCT p
-        REMOVE p.personalityReport, p.personalityReportAt
+        REMOVE p.personalityReport, p.personalityReportAt, p.personalityReportAskedAt, p.personalityReportFailedAt, p.personalityScoredAt
     ")
         .param("personId", user.person_id)
     ).await.map_err(internal)?;
@@ -545,36 +519,73 @@ pub async fn get_user_scenario_progress(State(state): State<AppState>, user: Aut
     Ok(Json(Progress { answers, questions }))
 }
 
-pub async fn rescore_personality(
-    State(state): State<AppState>,
-    user: AuthUser,
-    Extension(request_id): Extension<RequestId>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    start_scoring(&state, &user.person_id, None, &request_id).await.map_err(internal)?;
-    Ok(StatusCode::ACCEPTED)
-}
-
 #[derive(Serialize)]
 pub struct ScoringStatus {
     running: bool, //a scoring job for the logged in user hasn't finished yet
+    unscored: i64, //how many scenarios they've finished since they were last scored
     out_of_budget: bool, //the month's bedrock budget ran out, so nothing gets scored (see infrastructure/budget.tf)
 }
 
-//whether a scoring job for the logged in user is still running, and whether anything can be scored at all
-pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Result<Json<ScoringStatus>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query("
-        OPTIONAL MATCH (p:Person)-[:HAS_JOB]->(j:JobRunning {kind: 'personality_scoring'})
-        WHERE p.id = $personId AND j.startedAt > datetime() - duration({minutes: $staleMinutes})
-        RETURN count(j) > 0 AS running, exists { MATCH (:BedrockCutoff) } AS out_of_budget
-    ")
-        .param("personId", user.person_id)
+//a scenario (s) the person (p) has finished, by answering its last question. Earlier questions can go unanswered, when a
+//scenario's clock runs out before them
+const FINISHED: &str = "
+    EXISTS {
+        MATCH (s)-[:HAS_QUESTION]->(last:PersonalityScenarioQuestion)<-[:ANSWERED]-(p)
+        WHERE NOT EXISTS { MATCH (s)-[:HAS_QUESTION]->(later:PersonalityScenarioQuestion) WHERE later.order > last.order }
+    }
+";
+
+//a scenario (s) the person (p) has finished with an answer that hasn't been scored: new since they were last scored,
+//or played again since
+const UNSCORED: &str = "
+    {FINISHED}
+    AND EXISTS { MATCH (p)-[n:ANSWERED]->(:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s) WHERE n.scoring IS NULL }
+";
+
+async fn scoring_status(graph: &Graph, person_id: &str) -> Result<ScoringStatus, (StatusCode, String)> {
+    let mut rows = graph.execute(query(&format!("
+        MATCH (p:Person {{id: $personId}})
+        RETURN EXISTS {{
+                   MATCH (p)-[:HAS_JOB]->(j:JobRunning {{kind: 'personality_scoring'}})
+                   WHERE j.startedAt > datetime() - duration({{minutes: $staleMinutes}})
+               }} AS running,
+               COUNT {{ MATCH (s:PersonalityScenario) WHERE {unscored} }} AS unscored,
+               EXISTS {{ MATCH (:BedrockCutoff) }} AS out_of_budget
+    ", unscored = UNSCORED.replace("{FINISHED}", FINISHED)))
+        .param("personId", person_id)
         .param("staleMinutes", STALE_JOB_MINUTES)
     ).await.map_err(internal)?;
-    let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no scoring status"))?;
-    Ok(Json(ScoringStatus {
+    let row = rows.next().await.map_err(internal)?.ok_or_else(|| (StatusCode::NOT_FOUND, "That person doesn't exist.".to_string()))?;
+    Ok(ScoringStatus {
         running: row.get("running").map_err(internal)?,
+        unscored: row.get("unscored").map_err(internal)?,
         out_of_budget: row.get("out_of_budget").map_err(internal)?,
-    }))
+    })
+}
+
+//whether a scoring job for the logged in user is still running, how many scenarios they've finished since they were last
+//scored, and whether anything can be scored at all
+pub async fn get_scoring(State(state): State<AppState>, user: AuthUser) -> Result<Json<ScoringStatus>, (StatusCode, String)> {
+    Ok(Json(scoring_status(&state.graph, &user.person_id).await?))
+}
+
+//scores the logged in user from every scenario they've finished, when they ask and something is new since they were last
+//scored. Their report is its own thing, written when they ask for it (report.rs). Does nothing while a job is already
+//running
+pub async fn score_new(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Extension(request_id): Extension<RequestId>,
+) -> Result<Json<ScoringStatus>, (StatusCode, String)> {
+    let status = scoring_status(&state.graph, &user.person_id).await?;
+    if status.running {
+        return Ok(Json(status));
+    }
+    if status.unscored == 0 {
+        return Err((StatusCode::BAD_REQUEST, "There's nothing new to score. Finish a chapter first.".to_string()));
+    }
+    start_scoring(&state, &user.person_id, &request_id).await.map_err(internal)?;
+    Ok(Json(scoring_status(&state.graph, &user.person_id).await?))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -738,29 +749,7 @@ struct ScoredAnswer {
     facets: Vec<String>, //the traits the question was written to draw out
     scoring: Option<String>, //json list of the answer's Shifts. Only read for contests
     contests: Option<String>, //json list of the person's contests of the answer's Shifts
-}
-
-//scenarios are scored in batches of this many, by their order: the first six are a batch, then the next six, and so on.
-//A third of the 18 scenes, so each call still reads across several scenes without reading everything
-const BATCH_SIZE: i64 = 6;
-
-//the scenario's batch, and whether the person has finished every scenario in it, meaning answered its last question
-async fn batch_finished(state: &AppState, person_id: &str, scenario_id: &str) -> Result<(i64, bool), BoxError> {
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {id: $personId})
-        MATCH (finished:PersonalityScenario {id: $scenarioId})
-        WITH p, finished.order / $batchSize AS batch
-        MATCH (s:PersonalityScenario)-[:HAS_QUESTION]->(each:PersonalityScenarioQuestion) WHERE s.order / $batchSize = batch
-        WITH p, batch, s, max(each.order) AS last
-        OPTIONAL MATCH (s)-[:HAS_QUESTION]->(:PersonalityScenarioQuestion {order: last})<-[a:ANSWERED]-(p)
-        RETURN batch, count(s) = count(a) AS finished
-    ")
-        .param("personId", person_id)
-        .param("scenarioId", scenario_id)
-        .param("batchSize", BATCH_SIZE)
-    ).await?;
-    let row = rows.next().await?.ok_or("couldn't find the person or the scenario")?;
-    Ok((row.get::<i64>("batch")?, row.get::<bool>("finished")?))
+    answered: Option<String>, //when it was answered, so evidence isn't saved on an answer given again since. Only sent for scoring
 }
 
 //a job left this long is treated as finished: atlas-jobs has 15 minutes, and the queue gives a job two tries
@@ -772,35 +761,29 @@ struct ScoringJob {
     id: String, //the JobRunning node's id
     person_id: String,
     request_id: String, //the request that queued it, so its logs and the job's can be found together
-    batches: Vec<Vec<ScoredAnswer>>, //each batch's answers, ordered by scenario, then question
+    answers: Vec<ScoredAnswer>, //every answer in the scenarios they've finished, ordered by scenario, then question
 }
 
-//scores one batch, or every batch when it's None
-async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, request_id: &RequestId) -> Result<(), BoxError> {
+//scores the person from every answer in the scenarios they've finished, read in one call
+async fn start_scoring(state: &AppState, person_id: &str, request_id: &RequestId) -> Result<(), BoxError> {
     let graph = &state.graph;
     tracing::debug!("scoring {person_id}: reading answers");
-    let batches = {
-        let mut rows = graph.execute(query("
-            MATCH (p:Person)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s:PersonalityScenario)
-            WHERE p.id = $personId AND ($batch IS NULL OR s.order / $batchSize = $batch)
+    let answers = {
+        let mut rows = graph.execute(query(&format!("
+            MATCH (p:Person {{id: $personId}}), (s:PersonalityScenario)
+            WHERE {FINISHED}
+            MATCH (p)-[a:ANSWERED]->(q:PersonalityScenarioQuestion)<-[:HAS_QUESTION]-(s)
             WITH s, q, a ORDER BY s.order, q.order
-            RETURN s.order / $batchSize AS batch, collect({
+            RETURN collect({{
                 id: a.id, scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
                 context: a.context, answer: a.answer, reasoning: a.reasoning,
                 clock_seconds: a.clockSeconds, clock_left: a.clockLeft, clock_ran_out: a.clockRanOut, facets: a.facets,
-                contests: a.contests
-            }) AS answers
-            ORDER BY batch
-        ")
+                contests: a.contests, answered: toString(a.answeredDate)
+            }}) AS answers
+        "))
             .param("personId", person_id)
-            .param("batch", batch)
-            .param("batchSize", BATCH_SIZE)
         ).await?;
-        let mut batches = Vec::<Vec<ScoredAnswer>>::new();
-        while let Some(row) = rows.next().await? {
-            batches.push(row.get("answers")?);
-        }
-        batches
+        rows.next().await?.ok_or("couldn't read the person's answers")?.get::<Vec<ScoredAnswer>>("answers")?
     };
 
     tracing::debug!("scoring {person_id}: marking the job running");
@@ -820,7 +803,7 @@ async fn start_scoring(state: &AppState, person_id: &str, batch: Option<i64>, re
         rows.next().await?.ok_or("couldn't find the person to score")?.get::<String>("id")?
     };
     let request_id = request_id.header_value().to_str().unwrap_or_default().to_string();
-    let job = ScoringJob { id, person_id: person_id.to_string(), request_id, batches };
+    let job = ScoringJob { id, person_id: person_id.to_string(), request_id, answers };
 
     tracing::debug!("scoring {person_id}: queueing");
     if let Err(e) = queue(state, "personality_scoring", &job).await {

@@ -63,8 +63,8 @@ Every persona is a test, and they all run at once:
    type its answers. The UI builds the context, choices offered, facets and clock it sends with each answer. While a
    scene's clock runs, the page's clock is paused and moved on so each timed answer is given with the seconds left the
    persona has for it, and a persona that runs out moves the clock past the end.
-5. Wait for scoring between scenes, as a player does: the next scene's card stays locked until the rescore finishes. If
-   the last scene didn't trigger scoring, call `POST /api/personality/rescore`.
+5. Once every scene is played, press "Score my answers" on the dashboard, as a player does, and wait for scoring to
+   finish.
 6. Read back the scores and attach them to the test. A test passes when its persona plays through.
 7. `personality/reporter.ts` compares the scores with the targets and with the previous run, and saves the run to
    `personality/results/` as JSON (which the next run compares against) and as a markdown report.

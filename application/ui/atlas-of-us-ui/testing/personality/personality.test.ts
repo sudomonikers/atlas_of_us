@@ -1,7 +1,7 @@
 // The personality tests (see documentation/architecture/ADRs/personality_testing_harness.md). Every persona with a
 // `personality` has target scores and scripted answers, and plays as its own test, all at once. Each one logs in through
 // the ui's login form, plays every scene in the real ui the way a player would (opening its card, clicking through the
-// text, picking choices, typing answers), waits for scoring as the dashboard does, then reads back its scores. Its
+// text, picking choices, typing answers), then has its answers scored with the dashboard's button and reads back its scores. Its
 // answers are cleared first, so every run starts from nothing, like a new player.
 // A test passes when its persona plays through. The scores are attached to it, and ./reporter.ts compares them with
 // the targets and the previous run.
@@ -12,7 +12,7 @@ import type { Answer } from '../personas/persona.ts';
 import { SCENES, walk } from './scenes.ts';
 
 const STEP_MS = 60_000; //longest any one step of a scene should take, saving included
-const SCORING_MS = 10 * 60_000; //longest a rescore should take before the next scene's card unlocks
+const SCORING_MS = 10 * 60_000; //longest scoring should take
 
 //the player's text box: what's been written out so far, then the hidden rest of the text holding its space
 const TEXT = 'p:has(> span[style*="visibility: hidden"])';
@@ -29,20 +29,18 @@ const written = (page: Page, text: string) =>
     return p?.textContent === text && p.lastElementChild?.textContent === '';
   }, [TEXT, text]);
 
-//plays one scene in the ui, from its card on the dashboard to the end. The card stays locked while the last scene's
-//answers are scored, so opening it waits for that. Says whether its last answer started a rescore.
+//plays one scene in the ui, from its card on the dashboard to the end.
 //The page's clock is paused while a scene's clock runs, so each timed answer is given with exactly the seconds left
 //the persona has for it
 async function playScene(page: Page, name: string, mine: Record<string, Answer>, first: boolean) {
   const script = SCENES[name];
-  await page.getByRole('button').filter({ has: page.getByText(script.title, { exact: true }) }).click({ timeout: SCORING_MS });
+  await page.getByRole('button').filter({ has: page.getByText(script.title, { exact: true }) }).click({ timeout: STEP_MS });
   //a new browser shows how to get the most out of a scene before the first one
   if (first) {
     await page.getByRole('checkbox', { name: "Don't show this again" }).click();
     await page.getByRole('button', { name: "Let's go ▶" }).click();
   }
 
-  let scored = false;
   let paused = false;
   let spent = 0; //ms the paused clock has been moved on since the scene's clock started
   const resume = async () => {
@@ -80,7 +78,6 @@ async function playScene(page: Page, name: string, mine: Record<string, Answer>,
           page.getByRole('button', { name: 'Continue ▶' }).click(),
         ]);
         if (!saved.ok()) throw new Error(`saving the answer: ${saved.status()} ${await saved.text()}`);
-        scored = (await saved.json()).scored;
         await movedOn(page, s.text);
         if (s.ranOut && paused) {
           await page.clock.fastForward(script.clock!.seconds * 1000 - spent + 1000);
@@ -95,12 +92,12 @@ async function playScene(page: Page, name: string, mine: Record<string, Answer>,
   }
   await resume();
   await page.locator(TEXT).waitFor({ state: 'detached', timeout: STEP_MS });
-  return scored;
 }
 
 const scoringDone = async (token: string) => {
+  const started = Date.now();
   do await sleep(3000);
-  while ((await call<{ running: boolean }>('GET', '/personality/scoring', undefined, token)).running);
+  while ((await call<{ running: boolean }>('GET', '/personality/scoring', undefined, token)).running && Date.now() - started < SCORING_MS);
 };
 
 for (const [file, persona] of Object.entries(personas)) {
@@ -121,16 +118,14 @@ for (const [file, persona] of Object.entries(personas)) {
       await page.waitForURL('**/personality');
     });
 
-    let scored = false;
     for (const [i, scene] of Object.keys(SCENES).entries()) {
       if (!mine.answers[scene]) throw new Error(`${persona.name}: no answers for ${scene}`);
-      scored = await test.step(scene, () => playScene(page, scene, mine.answers[scene], i === 0));
+      await test.step(scene, () => playScene(page, scene, mine.answers[scene], i === 0));
     }
 
-    //scoring only runs every few scenes, so unless the last one just scored, score once more from everything. The ui
-    //has no button for this either
+    //every scene is scored at once, with the button a player presses
     await test.step('score', async () => {
-      if (!scored) await call('POST', '/personality/rescore', undefined, token);
+      await page.getByRole('button', { name: 'Score my answers ▶' }).click({ timeout: STEP_MS });
       await scoringDone(token);
     });
     const profile = await call<{ personality: { traits: { name: string; value?: number; confidence?: number }[] } }>('GET', `/profiles/${persona.account.username}`, undefined, token);

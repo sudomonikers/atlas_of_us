@@ -26,15 +26,36 @@ export interface AnswerClock {
   ran_out: boolean; //the clock hit zero before the user finished
 }
 
-//replaces any earlier answer to the same question. The last answer of a scenario also starts rescoring the user's
-//traits in the background, and scored says it did. facets are the traits the question was written to draw out, so the
+//replaces any earlier answer to the same question. facets are the traits the question was written to draw out, so the
 //scorer knows what the person had a chance to show
 export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, facets: string[], clock?: AnswerClock) =>
-  request<SavedAnswer & { scored: boolean }>('PUT', '/personality/answers', { question_id, answer, reasoning, context, facets, clock });
+  request<SavedAnswer>('PUT', '/personality/answers', { question_id, answer, reasoning, context, facets, clock });
 
-//whether the user's traits are still being rescored (no new scenario starts until it's done), and whether the month's
-//AI budget has run out, so nothing can be scored
-export const getScoring = () => request<{ running: boolean; out_of_budget: boolean }>('GET', '/personality/scoring');
+//whether the user's answers are being scored, how many scenarios they've finished since they were last scored, and
+//whether the month's AI budget has run out, so nothing can be scored
+export interface Scoring {
+  running: boolean;
+  unscored: number;
+  out_of_budget: boolean;
+}
+export const getScoring = () => request<Scoring>('GET', '/personality/scoring');
+
+//scores the user from every scenario they've finished
+export const scoreAnswers = () => request<Scoring>('POST', '/personality/scoring');
+
+//the user's report, and where it's at
+export interface ReportState {
+  report: Report | null;
+  written_at: string | null;
+  stale: boolean; //whether their scores have changed since it was written
+  writing: boolean;
+  failed: boolean; //whether the last one asked for couldn't be written
+  enough: boolean; //whether they've finished and been scored on every scenario, and no scoring is running
+}
+export const getReport = () => request<ReportState>('GET', '/personality/report');
+
+//asks for the user's report to be written from their scores
+export const askForReport = () => request<ReportState>('POST', '/personality/report');
 
 export interface Progress {
   answers: SavedAnswer[]; //every question the logged in user has answered
