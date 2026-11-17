@@ -153,6 +153,7 @@ records the result, and some of those the camera can time or count instead.
 | Visual Acuity | On screen, or a result typed in | Reads the eye chart from across the room | 20/x | Far Vision |
 | Reading Chart | On screen | Reads small letters up close | 20/x | Near Vision |
 | Hearing Threshold | On screen with headphones, or a result typed in | Says when each fading tone is gone | dB HL | Hearing Sensitivity |
+| Competing Voices | On screen with headphones | Types the digits one voice says while two others talk over it | dB | Auditory Attention |
 | Odd Color Out | On screen | Spots the tile of a slightly different hue | hue degrees | Visual Color Discrimination |
 | Side Vision | On screen | Notices flashes off to the side while looking at a dot | flashes seen | Peripheral Vision |
 

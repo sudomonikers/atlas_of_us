@@ -19,6 +19,9 @@ import { TIMING_PRACTICE, TIMINGS } from '../../src/physical/timing/items.ts';
 import { LEAD, TRACKING_PATH } from '../../src/physical/tracking/items.ts';
 import { BEEPS, TRACK_COUNT_PATH } from '../../src/physical/track_and_count/items.ts';
 import { COLOR_PRACTICE, COLOR_TRIES } from '../../src/physical/odd_color_out/items.ts';
+import {
+  VOICE_DIGITS, VOICE_DOWN, VOICE_FIRST_STEP, VOICE_HIGHEST, VOICE_ITEMS, VOICE_LOWEST, VOICE_PRACTICE, VOICE_ROUNDS, VOICE_START, VOICE_UP,
+} from '../../src/physical/competing_voices/items.ts';
 import { SIDE_PRACTICE } from '../../src/physical/side_vision/items.ts';
 import { ITEMS as PROBLEMS, PRACTICE as PROBLEMS_PRACTICE, W, H, type Scene } from '../../src/physical/spot_the_problem/scenes.tsx';
 import { TIMED } from '../../src/physical/timed.ts';
@@ -38,6 +41,7 @@ export const TOLERANCE: Record<string, number> = {
   'Track and Count': 4,
   'Hearing Threshold': 1,
   'Odd Color Out': 0.35, //as a share of the reading, as it settles around it rather than on it
+  'Competing Voices': 1,
 };
 
 //a point in a box on the page, from shares of its width and height
@@ -558,6 +562,38 @@ const oddColorOut: Game = async (page, threshold) => {
   await resume(page);
 };
 
+//types the man's digits in every practice round, then in the rounds that count types them while the other voices are
+//no louder than the reading and gets the first digit wrong once they're louder, following the level as the test moves
+//it, so the level settles within half a dB of the reading
+const competingVoices: Game = async (page, threshold) => {
+  const keys = page.getByRole('group', { name: 'Digits' });
+  const type = async (digits: number[]) => {
+    for (const d of digits) await keys.getByRole('button', { name: String(d), exact: true }).click();
+  };
+  const wrong = (digits: number[]) => [VOICE_DIGITS[(VOICE_DIGITS.indexOf(digits[0]) + 1) % VOICE_DIGITS.length], ...digits.slice(1)];
+  await pause(page);
+  await button(page, 'Start the practice').click();
+  for (let i = 0; i < VOICE_PRACTICE.length; i++) {
+    await shows(page, `Practice ${i + 1} of ${VOICE_PRACTICE.length}`);
+    await type(VOICE_PRACTICE[i].follow);
+    await wait(page, 1800);
+  }
+  await button(page, `Start: ${VOICE_ROUNDS} rounds`).click();
+  let level = VOICE_START;
+  let missed = false;
+  for (let i = 0; i < VOICE_ROUNDS; i++) {
+    await shows(page, `${i + 1} of ${VOICE_ROUNDS}`);
+    const right = level <= threshold;
+    const said = VOICE_ITEMS[i].follow;
+    await type(right ? said : wrong(said));
+    missed ||= !right;
+    const step = !missed ? VOICE_FIRST_STEP : right ? VOICE_UP : VOICE_DOWN;
+    level = Math.min(VOICE_HIGHEST, Math.max(VOICE_LOWEST, level + (right ? step : -step)));
+    await wait(page, 400);
+  }
+  await resume(page);
+};
+
 //presses the side of every practice flash, then of the reading's number of flashes that count, and lets the rest pass
 const sideVision: Game = async (page, seen) => {
   await button(page, 'It matches').click();
@@ -601,5 +637,6 @@ export const GAMES: Record<string, Game> = {
   'Reading Chart': eyeChart(false),
   'Hearing Threshold': hearing,
   'Odd Color Out': oddColorOut,
+  'Competing Voices': competingVoices,
   'Side Vision': sideVision,
 };

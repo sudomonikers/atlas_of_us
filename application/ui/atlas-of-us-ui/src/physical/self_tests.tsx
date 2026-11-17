@@ -5,6 +5,7 @@ import { BrickUses } from './brick_uses/test';
 import { BrokenWords } from './broken_words/test';
 import { CardSorting } from './card_sorting/test';
 import { ChoiceReaction } from './choice_reaction/test';
+import { CompetingVoices } from './competing_voices/test';
 import { DesignFluency } from './design_fluency/test';
 import { DigitSpan } from './digit_span/test';
 import { DistractingArrows } from './distracting_arrows/test';
@@ -50,6 +51,7 @@ const TESTS: Record<Exclude<Test, 'home' | 'camera'>, ComponentType<TestProps>> 
   trail_making: TrailMaking,
   eye_chart: FarChart,
   hearing: HearingTest,
+  voices: CompetingVoices,
   matrices: Matrices,
   series: Series,
   rotation: Rotation,

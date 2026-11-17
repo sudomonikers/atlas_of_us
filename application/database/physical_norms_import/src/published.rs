@@ -425,6 +425,16 @@ pub const TESTS: &[Test] = &[
         norms: Norms::Atlas,
     },
     Test {
+        name: "Competing Voices", unit: "dB", better: "higher", group: "Senses", range: (-20.0, 10.0),
+        description: "How well you can follow one voice while two others talk over it. With headphones on, a man says \
+            three digits while two other people say different digits at the same time, and you type his. The other \
+            voices get louder each time you catch all three and quieter when you don't. Your score is how loud they \
+            can be while you still follow him, in decibels against his voice: 0 is as loud as him, and above 0 is \
+            louder.",
+        abilities: &["Auditory Attention"], confidence: 0.3, test: "voices", timer: None, protocol: &[], source: ATLAS,
+        norms: Norms::Atlas,
+    },
+    Test {
         name: "Design Fluency", unit: "designs", better: "higher", group: "Reasoning", range: (0.0, 100.0),
         description: "This one is about how many different ideas you can come up with. Each box has five dots, and you join \
             them with four straight lines to make a design – each new line starting or ending on a dot the design \

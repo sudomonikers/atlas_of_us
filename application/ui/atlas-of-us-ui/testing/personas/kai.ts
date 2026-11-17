@@ -318,6 +318,7 @@ export default {
       'Reading Chart': 25,
       'Side Vision': 22,
       'Odd Color Out': 6,
+      'Competing Voices': -5,
       'Card Sorting': 5,
       Syllogisms: 10,
       'Hidden Shapes': 9,
@@ -343,7 +344,6 @@ export default {
       "border for a fire pit",
     ],
     ratings: {
-      'Auditory Attention': 2,
       'Depth Perception': 3,
       'Glare Sensitivity': 3,
       'Night Vision': 2,

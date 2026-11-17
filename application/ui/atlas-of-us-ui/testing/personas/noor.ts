@@ -318,6 +318,7 @@ export default {
       'Reading Chart': 25,
       'Side Vision': 20,
       'Odd Color Out': 4,
+      'Competing Voices': -1,
       'Card Sorting': 1,
       Syllogisms: 19,
       'Hidden Shapes': 14,
@@ -344,7 +345,6 @@ export default {
       "prop open the lab fire door",
     ],
     ratings: {
-      'Auditory Attention': 3,
       'Depth Perception': 2,
       'Glare Sensitivity': 2,
       'Night Vision': 2,

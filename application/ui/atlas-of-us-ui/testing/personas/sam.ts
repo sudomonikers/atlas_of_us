@@ -321,6 +321,7 @@ export default {
       'Reading Chart': 40,
       'Side Vision': 18,
       'Odd Color Out': 2.50,
+      'Competing Voices': -5,
       'Card Sorting': 4,
       Syllogisms: 10,
       'Hidden Shapes': 12,
@@ -347,7 +348,6 @@ export default {
       "a drum to tap rhythms on",
     ],
     ratings: {
-      'Auditory Attention': 2,
       'Depth Perception': 2,
       'Glare Sensitivity': 2,
       'Night Vision': 1,

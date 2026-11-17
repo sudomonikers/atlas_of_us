@@ -304,6 +304,7 @@ export default {
       'Reading Chart': 25,
       'Side Vision': 20,
       'Odd Color Out': 7,
+      'Competing Voices': -9,
       'Card Sorting': 7,
       Syllogisms: 9,
       'Hidden Shapes': 8,
@@ -327,7 +328,6 @@ export default {
       "smash stuff",
     ],
     ratings: {
-      'Auditory Attention': 1,
       'Depth Perception': 2,
       'Glare Sensitivity': 2,
       'Night Vision': 2,

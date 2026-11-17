@@ -320,6 +320,7 @@ export default {
       'Reading Chart': 40,
       'Side Vision': 19,
       'Odd Color Out': 6,
+      'Competing Voices': -5,
       'Card Sorting': 6,
       Syllogisms: 10,
       'Hidden Shapes': 9,
@@ -345,7 +346,6 @@ export default {
       "build a barbecue",
     ],
     ratings: {
-      'Auditory Attention': 2,
       'Depth Perception': 3,
       'Glare Sensitivity': 2,
       'Night Vision': 2,

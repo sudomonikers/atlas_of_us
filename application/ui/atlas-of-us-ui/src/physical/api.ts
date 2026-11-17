@@ -11,6 +11,7 @@ export type Test =
   | 'trail_making'
   | 'eye_chart'
   | 'hearing'
+  | 'voices'
   | 'matrices'
   | 'series'
   | 'rotation'

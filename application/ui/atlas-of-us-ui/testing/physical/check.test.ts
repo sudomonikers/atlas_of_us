@@ -42,6 +42,7 @@ const CHARTS: Record<string, number[]> = {
 //what the other tests can be played to, beyond the range the api takes
 const PLAYABLE: Record<string, (n: number) => boolean> = {
   'Hearing Threshold': (n) => n === 70 || (n >= -10 && n <= 45),
+  'Competing Voices': (n) => Number.isInteger(n) && n >= -19 && n <= 8,
   'Digit Span': (n) => Number.isInteger(n) && n >= 1 && n <= 14,
   Tapping: (n) => Number.isInteger(n) && n >= 4,
   'Two-Hand Steering': (n) => Number.isInteger(n) && n <= 45,

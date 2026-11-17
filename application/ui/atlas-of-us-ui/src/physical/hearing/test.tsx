@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
-import { brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
+import { brownRed, comic } from '../../shared_components/palette';
 import type { TestProps } from '../self_tests';
+import { Speaker } from '../speaker';
 import { Frame } from '../test_frame';
 import { chance, testStyles } from '../test_kit';
 
@@ -257,6 +258,7 @@ export function HearingTest({ onDone, onCancel }: TestProps) {
       )}
       {(phase === 'gap' || phase === 'tone') && (
         <button type="button" style={{ ...testStyles.arena, ...styles.tall, ...styles.listening }} onPointerDown={gone} aria-label="I can't hear it any more">
+          {/* booming the whole time, gaps included, so it never shows when a tone starts or fades away */}
           <Speaker booming side={ear.pan} />
           <span style={styles.big}>I can't hear it</span>
           <span style={styles.ear}>
@@ -273,44 +275,6 @@ export function HearingTest({ onDone, onCancel }: TestProps) {
   );
 }
 
-//the sound waves either side of the speaker, as arcs around the woofer, nearest first
-const WAVES = [66, 88, 110].map((r) => {
-  const x = Math.round(r * Math.cos(Math.PI / 5));
-  const y = Math.round(r * Math.sin(Math.PI / 5));
-  return { r, x, y };
-});
-
-//a loudspeaker, booming while the sound plays: the woofer pumps, the cabinet shakes and waves ripple out, from both
-//sides or from one ear's side (1 for the right, -1 for the left). Through the tones it booms the whole time, gaps
-//included, so it never shows when a tone starts or fades away
-function Speaker({ booming, side = 0 }: { booming: boolean; side?: number }) {
-  return (
-    <svg viewBox="0 0 260 204" style={styles.speaker} aria-hidden="true">
-      {booming &&
-        WAVES.map(({ r, x, y }, i) => (
-          <g key={r} className="speaker-wave" style={{ animationDelay: `${i * 0.25}s` }}>
-            {side >= 0 && <path d={`M${130 + x} ${126 - y} A${r} ${r} 0 0 1 ${130 + x} ${126 + y}`} />}
-            {side <= 0 && <path d={`M${130 - x} ${126 - y} A${r} ${r} 0 0 0 ${130 - x} ${126 + y}`} />}
-          </g>
-        ))}
-      <g className={booming ? 'speaker-shake' : undefined}>
-        <rect x={86} y={18} width={100} height={176} rx={12} fill={gunmetal} />
-        <rect x={80} y={12} width={100} height={176} rx={12} fill={ivory} stroke={gunmetal} strokeWidth={4} />
-        <rect x={92} y={186} width={16} height={10} rx={2} fill={gunmetal} />
-        <rect x={152} y={186} width={16} height={10} rx={2} fill={gunmetal} />
-        <circle cx={130} cy={52} r={17} fill="#fff" stroke={gunmetal} strokeWidth={4} />
-        <circle cx={130} cy={52} r={7} fill={gunmetal} />
-        <circle cx={130} cy={126} r={42} fill="#fff" stroke={gunmetal} strokeWidth={4} />
-        <g className={booming ? 'speaker-cone' : undefined}>
-          <circle cx={130} cy={126} r={31} fill={brownRed} stroke={gunmetal} strokeWidth={4} />
-          <circle cx={130} cy={126} r={12} fill={gunmetal} />
-          <circle cx={126} cy={122} r={3.5} fill={ivory} />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
 const styles: Record<string, CSSProperties> = {
   //the speaker with the buttons under it, as tall as the place the tones are heard
   stage: {
@@ -320,11 +284,6 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'center',
     gap: 16,
     minHeight: 300,
-  },
-  speaker: {
-    width: 'min(100%, 300px)',
-    height: 'auto',
-    overflow: 'visible',
   },
   centered: {
     ...testStyles.primary,

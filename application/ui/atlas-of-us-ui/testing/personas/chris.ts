@@ -320,6 +320,7 @@ export default {
       'Reading Chart': 30,
       'Side Vision': 19,
       'Odd Color Out': 5,
+      'Competing Voices': -5,
       'Card Sorting': 4,
       Syllogisms: 12,
       'Hidden Shapes': 10,
@@ -345,7 +346,6 @@ export default {
       "a hammer in a pinch",
     ],
     ratings: {
-      'Auditory Attention': 2,
       'Depth Perception': 2,
       'Glare Sensitivity': 2,
       'Night Vision': 2,

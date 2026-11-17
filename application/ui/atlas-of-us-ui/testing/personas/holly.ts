@@ -321,6 +321,7 @@ export default {
       'Reading Chart': 25,
       'Side Vision': 18,
       'Odd Color Out': 4,
+      'Competing Voices': -9,
       'Card Sorting': 6,
       Syllogisms: 10,
       'Hidden Shapes': 10,
@@ -346,7 +347,6 @@ export default {
       "a stepping stone across the pond",
     ],
     ratings: {
-      'Auditory Attention': 1,
       'Depth Perception': 2,
       'Glare Sensitivity': 2,
       'Night Vision': 2,

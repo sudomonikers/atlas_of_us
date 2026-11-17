@@ -4,7 +4,7 @@ Real tests for the abilities that only have a self-rating, to work through one a
 O\*NET's three examples, which are job tasks nobody can judge themselves on ("invent a new type of man-made fiber"), so
 it says little. A test gives a reading that can be compared with other people.
 
-Where each ability stands now: 37 of the 46 have a measurement, and the other 9 have only the self-rating.
+Where each ability stands now: 38 of the 46 have a measurement, and the other 8 have only the self-rating.
 
 ## What a test needs
 - **A task a person can do alone**, in the browser or at home with what's in a house.
@@ -24,7 +24,7 @@ Sources ruled out by their license:
 |---|---|---|---|---|
 | Information Ordering | Trail Making B: tap 1, A, 2, B and on to 13 | App | Tombaugh 2004, ages 18 to 89 | Done |
 | Far Vision | Eye chart: tumbling E on a screen sized with a bank card, from 3 m | App | NHANES visual acuity (the existing measurement) | Done |
-| Speech Recognition, Hearing Sensitivity | Digits in noise: three digits in rising background noise, with headphones | App | Smits 2004 and the WHO's hearWHO | Needs recordings of the digits, made for the Atlas |
+| Speech Recognition, Hearing Sensitivity | Digits in noise: three digits in rising background noise, with headphones | App | Smits 2004 and the WHO's hearWHO | To build, on the spoken digits Competing Voices plays (`public/voices`, made with Amazon Polly by `scripts/make-voices.sh`) |
 | Fluency of Ideas | Join five dots with four lines into as many different designs as you can in 60 s | App | Ruff Figural Fluency Test and D-KEFS Design Fluency | Built as Design Fluency, compared with Atlas users |
 | Wrist-Finger Speed | Finger tapping, 10 s tries | App | Hubel and colleagues 2013 (Woods lab, the same keyboard test) | Built as Tapping, compared with Atlas users. Needs the paper's tables (paywalled) to compare with the published study |
 | Trunk Strength | Partial curl-ups to a beat | Home | CSEP-PATH, ages 15 to 69 | Plank Hold is built, compared with Atlas users. Curl-ups need the CSEP manual's table |
@@ -60,6 +60,7 @@ Done:
 | Time Sharing | Track and Count | 60 seconds of tracking while counting high beeps |
 | Near Vision | Reading Chart | the eye chart at 40 cm, down to the smallest line the screen can draw |
 | Visual Color Discrimination | Odd Color Out | 30 goes, a staircase on hue |
+| Auditory Attention | Competing Voices | 3 practice and 16 rounds of three digits from one voice under two others, a staircase on their level settling at 3 rounds in 4 right |
 | Peripheral Vision | Side Vision | 24 flashes out to 30 degrees and 4 blanks, on a screen 29 cm wide or more |
 | Fluency of Ideas | Design Fluency | 60 seconds of designs joining five dots with four lines, counted by the different sets of lines |
 | Originality | Brick Uses | 2 minutes, an LLM keeps the genuine uses, scored on the three furthest from a brick and the most common uses (embeddings) |
@@ -79,7 +80,6 @@ To build:
 
 - **Arm-Hand Steadiness:** hold the phone out at arm's length for 20 s while its motion sensor measures the shake.
 - **Sound Localization:** 3D sound in headphones.
-- **Auditory Attention:** digits in noise with a second voice over them.
 - **Speech Clarity:** read sentences aloud and score how many words speech recognition gets. It's biased against
   accents, so the wording needs care.
 
@@ -90,7 +90,7 @@ The Low Luminance Questionnaire (Owsley 2006) covers night vision and glare. A q
 and any test outranks it.
 
 ## The order
-1. Unblock the rest of tier 1: the norm tables, then the digit recordings.
+1. Unblock the rest of tier 1: the norm tables.
 2. The questionnaire, since it replaces the self-rating for every ability at once.
 3. The rest of tier 2.
 4. Once the Atlas's own tests have a few hundred readings, check each item: ones nearly everyone gets right or wrong, or

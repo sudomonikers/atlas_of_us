@@ -318,6 +318,7 @@ export default {
       'Reading Chart': 25,
       'Side Vision': 21,
       'Odd Color Out': 6,
+      'Competing Voices': -5,
       'Card Sorting': 5,
       Syllogisms: 11,
       'Hidden Shapes': 9,
@@ -344,7 +345,6 @@ export default {
       "step stool",
     ],
     ratings: {
-      'Auditory Attention': 2,
       'Depth Perception': 3,
       'Glare Sensitivity': 2,
       'Night Vision': 2,

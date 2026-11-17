@@ -320,6 +320,7 @@ export default {
       'Reading Chart': 25,
       'Side Vision': 19,
       'Odd Color Out': 5,
+      'Competing Voices': -5,
       'Card Sorting': 2,
       Syllogisms: 13,
       'Hidden Shapes': 10,
@@ -344,7 +345,6 @@ export default {
       "garden border",
     ],
     ratings: {
-      'Auditory Attention': 2,
       'Depth Perception': 2,
       'Glare Sensitivity': 1,
       'Night Vision': 1,

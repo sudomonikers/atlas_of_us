@@ -317,6 +317,7 @@ export default {
       'Reading Chart': 50,
       'Side Vision': 17,
       'Odd Color Out': 6,
+      'Competing Voices': -1,
       'Card Sorting': 3,
       Syllogisms: 16,
       'Hidden Shapes': 9,
@@ -342,7 +343,6 @@ export default {
       "chock a wheel",
     ],
     ratings: {
-      'Auditory Attention': 3,
       'Depth Perception': 2,
       'Glare Sensitivity': 1,
       'Night Vision': 1,

@@ -313,6 +313,7 @@ export default {
       'Reading Chart': 40,
       'Side Vision': 15,
       'Odd Color Out': 8,
+      'Competing Voices': -1,
       'Card Sorting': 5,
       Syllogisms: 11,
       'Hidden Shapes': 7,
@@ -337,7 +338,6 @@ export default {
       "a garden path",
     ],
     ratings: {
-      'Auditory Attention': 3,
       'Depth Perception': 2,
       'Glare Sensitivity': 1,
       'Night Vision': 1,
