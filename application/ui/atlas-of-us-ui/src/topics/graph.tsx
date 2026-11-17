@@ -125,7 +125,7 @@ export function TopicGraph({ board, onBoard, onOpen, onOpenSkill }: TopicGraphPr
     onBoard((b) => place(b, { kind: 'topic', topic: { id: topic.id, name: topic.name, status: topic.status } }));
   };
 
-  //reads the selected topic or Idea, however it was selected: here, from Topics Explained or from a page
+  //reads the selected topic or Idea, however it was selected: here, from Explore or from a page
   const chosenId = board.selected;
   const unread = !!chosenId && ((board.topics[chosenId] && !board.topics[chosenId].neighbors) || (board.ideas[chosenId] && !board.ideas[chosenId].read));
   useEffect(() => {

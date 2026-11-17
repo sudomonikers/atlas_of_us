@@ -4,7 +4,7 @@
 **Where it lives:** `application/ui/atlas-of-us-ui/src/shared_components/graph_board.tsx` (`GraphBoard`), with
 `bloom.ts` (the map's layout) and `board_layout.ts` (`BoardLayout`, the view and the floating nodes) beside it. Its
 users are the Skills Explorer (`src/skills/graph.tsx`, with its state in `skill_board.ts`) and the Topics Explorer
-(`src/topics/graph.tsx`, with `topic_board.ts`), and the smaller board at the top of Topics Explained.
+(`src/topics/graph.tsx`, with `topic_board.ts`), and the smaller board at the top of Topics' Explore view.
 
 ## Context
 The Atlas is a graph, and most of its sub-graphs are worth exploring as one: what a skill is a kind of and what it

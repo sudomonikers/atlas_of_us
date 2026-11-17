@@ -17,7 +17,7 @@ the Skills module (`skills.md`), and this page covers where it differs. For the 
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/topics/` | Topics Explained, the Topics Explorer, the topic and Idea pages, My Knowledge |
+| UI | `application/ui/atlas-of-us-ui/src/topics/` | The Topics Explorer, My Knowledge, Explore, the topic and Idea pages |
 | API | `application/apis/atlas-api/src/domains/topics/` | Search, the gates, reading topics and Ideas, asking for a fill, placing yourself and your evidence |
 | Topic resolver | `application/apis/atlas-shared/src/topics/` | Decides whether a topic is new and where it sits. Shared by the API and the jobs |
 | Jobs | `application/apis/atlas-jobs/` | Fill a topic's levels and Ideas, resolve Ideas, link skill levels to the topics they need |
@@ -69,13 +69,13 @@ or creates a stub, and the skill's level is linked to that Bloom level of the to
 knowledge each level takes, and each topic shows the skills that need it.
 
 ## What the user sees
-The Topics page has three views:
+The Topics page has three views, and opens on the Topics Explorer:
 
-- **Topics Explained** says why what you know matters, over a small map of every topic, and walks through the six
-  Bloom levels and the four kinds of Idea with one example topic.
 - **The Topics Explorer** is one board of every topic, on the shared graph board (see `ADRs/graph_board.md`), the same
   as the Skills Explorer. Expanding a topic shows its Ideas, the topics around it and the skills that need it.
 - **My Knowledge** lists the topics the user has placed themselves on.
+- **Explore** says why what you know matters, over a small map of every topic, and walks through the six Bloom levels
+  and the four kinds of Idea with one example topic.
 
 A topic's page shows its six levels and its Ideas in an order to learn them in. An Idea's page shows the topics it's in
 and the Ideas around it, which is how the Ideas topics share show up.

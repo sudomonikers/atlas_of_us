@@ -97,7 +97,7 @@ const IN_THE_ATLAS = [
 ];
 
 
-//the Topics Explained view: why what you know matters, over a map of every topic, what Bloom's taxonomy is, each of its levels, the kinds of Idea, then how the Atlas uses them
+//the Explore view: why what you know matters, over a map of every topic, what Bloom's taxonomy is, each of its levels, the kinds of Idea, then how the Atlas uses them
 //how the map draws a topic's link to the broader topic it's part of, as the explorer's board does
 const PART_OF: LinkKind[] = [{ id: 'part_of', label: 'Part of', line: 'solid', arrow: true, color: gunmetal, length: 90 }];
 

@@ -71,7 +71,7 @@ export interface MapTopic extends TopicRef {
   broader: string[];
 }
 
-//every topic, for the map in Topics Explained
+//every topic, for the map in Explore
 export const getTopicMap = () => request<MapTopic[]>('GET', '/topics/map');
 
 //the closest topics to what was typed, each with its broader topics
