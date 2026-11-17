@@ -6,6 +6,7 @@ import { BrokenWords } from './broken_words/test';
 import { CardSorting } from './card_sorting/test';
 import { ChoiceReaction } from './choice_reaction/test';
 import { CompetingVoices } from './competing_voices/test';
+import { DigitsInNoise } from './digits_in_noise/test';
 import { DesignFluency } from './design_fluency/test';
 import { DigitSpan } from './digit_span/test';
 import { DistractingArrows } from './distracting_arrows/test';
@@ -20,6 +21,7 @@ import { PerspectiveTaking } from './perspective_taking/test';
 import { SimpleReaction } from './reaction_time/test';
 import { Rotation } from './shape_rotation/test';
 import { SideVision } from './side_vision/test';
+import { SoundShift } from './sound_shift/test';
 import { Syllogisms } from './syllogisms/test';
 import { SpotTheProblem } from './spot_the_problem/test';
 import { SymbolMatching } from './symbol_matching/test';
@@ -52,6 +54,8 @@ const TESTS: Record<Exclude<Test, 'home' | 'camera'>, ComponentType<TestProps>> 
   eye_chart: FarChart,
   hearing: HearingTest,
   voices: CompetingVoices,
+  digits_noise: DigitsInNoise,
+  sound_shift: SoundShift,
   matrices: Matrices,
   series: Series,
   rotation: Rotation,

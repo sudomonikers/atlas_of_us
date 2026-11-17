@@ -300,8 +300,7 @@ job analysts gave each one, are the references a skill's requirements are ground
 
 The cognitive abilities carry a second label, `Cognitive`. A person's place on an ability is a percentile, as with
 personality traits, with a confidence. It's worked out from what they've recorded: the latest reading of each
-measurement that shows the ability, weighted by how much that measurement says about it; or, when no reading counts,
-their own rating of themselves on the ability's three examples, which says little. An impairment in a body function the
+measurement that shows the ability, weighted by how much that measurement says about it. An impairment in a body function the
 ability rests on, or in a part that serves one, is noted beside it and leaves the place as it is. O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown.
 
 #### Measurements
@@ -421,9 +420,8 @@ spent.
 
 | Relationship | From → To | Properties | Meaning |
 |---|---|---|---|
-| HAS_ABILITY | Person → Ability | `value`, `confidence`, `basis`, `updatedAt` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it, worked out from their readings, rating and impairments whenever those change. `basis` names what it came from. No relationship means unmeasured, not average |
+| HAS_ABILITY | Person → Ability | `value`, `confidence`, `basis`, `updatedAt` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it, worked out from their readings and impairments whenever those change. `basis` names what it came from. No relationship means unmeasured, not average |
 | HAS_TIP | Ability → AbilityTip | | A tip on working on the ability, one of each kind |
-| RATED_ABILITY | Person → Ability | `anchor`, `ratedAt` | Their own rating on the ability: the hardest of its three examples they say they can do, 1 to 3, or 0 for none of them |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability, `level` on the level scale over 7 (see the Skills graph) |
 | TAKES_ABILITY | Occupation → Ability | `level`, `importance` | What O\*NET's job analysts rated the occupation takes: `level` on the level scale over 7, and `importance` from 0 to 1 |
 | PERFORMED_IN | Skill → Occupation | | The occupation whose work is doing the skill, which its ability requirements were grounded in |

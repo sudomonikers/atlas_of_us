@@ -1,10 +1,10 @@
 # Fleshing out the ability tests
 
-Real tests for the abilities that only have a self-rating, to work through one at a time. A self-rating is one pick from
-O\*NET's three examples, which are job tasks nobody can judge themselves on ("invent a new type of man-made fiber"), so
-it says little. A test gives a reading that can be compared with other people.
+Real tests for the abilities, to work through one at a time. A test gives a reading that can be compared with other
+people, and an ability shows in Physical Traits once it has one.
 
-Where each ability stands now: 38 of the 46 have a measurement, and the other 8 have only the self-rating.
+Where each ability stands now: 42 of the 46 have a measurement. Depth Perception, Glare Sensitivity, Night Vision and
+Speech Clarity have none, since no screen or house can test them well, so they aren't asked about.
 
 ## What a test needs
 - **A task a person can do alone**, in the browser or at home with what's in a house.
@@ -24,7 +24,7 @@ Sources ruled out by their license:
 |---|---|---|---|---|
 | Information Ordering | Trail Making B: tap 1, A, 2, B and on to 13 | App | Tombaugh 2004, ages 18 to 89 | Done |
 | Far Vision | Eye chart: tumbling E on a screen sized with a bank card, from 3 m | App | NHANES visual acuity (the existing measurement) | Done |
-| Speech Recognition, Hearing Sensitivity | Digits in noise: three digits in rising background noise, with headphones | App | Smits 2004 and the WHO's hearWHO | To build, on the spoken digits Competing Voices plays (`public/voices`, made with Amazon Polly by `scripts/make-voices.sh`) |
+| Speech Recognition | Digits in noise: three digits in a noise shaped like the voice, with headphones | App | Smits 2004 and the WHO's hearWHO | Built as Digits in Noise, compared with Atlas users, since its recordings (`public/voices`, made with Amazon Polly and `scripts/make-noise.mjs` by `scripts/make-voices.sh`) differ from the published ones |
 | Fluency of Ideas | Join five dots with four lines into as many different designs as you can in 60 s | App | Ruff Figural Fluency Test and D-KEFS Design Fluency | Built as Design Fluency, compared with Atlas users |
 | Wrist-Finger Speed | Finger tapping, 10 s tries | App | Hubel and colleagues 2013 (Woods lab, the same keyboard test) | Built as Tapping, compared with Atlas users. Needs the paper's tables (paywalled) to compare with the published study |
 | Trunk Strength | Partial curl-ups to a beat | Home | CSEP-PATH, ages 15 to 69 | Plank Hold is built, compared with Atlas users. Curl-ups need the CSEP manual's table |
@@ -59,8 +59,10 @@ Done:
 | Multilimb Coordination | Two-Hand Steering | 60 seconds, keyboard or touch screen |
 | Time Sharing | Track and Count | 60 seconds of tracking while counting high beeps |
 | Near Vision | Reading Chart | the eye chart at 40 cm, down to the smallest line the screen can draw |
-| Visual Color Discrimination | Odd Color Out | 30 goes, a staircase on hue |
+| Visual Color Discrimination | Odd Color Out | 3 practice and 30 tries, a staircase on hue |
 | Auditory Attention | Competing Voices | 3 practice and 16 rounds of three digits from one voice under two others, a staircase on their level settling at 3 rounds in 4 right |
+| Speech Recognition | Digits in Noise | 2 practice and 24 rounds of three digits in noise, 2 dB up and down, settling at half right, scored as in the published test |
+| Sound Localization | Sound Shift | 3 practice and 30 tries of a sound moving left or right by its timing between the ears, a staircase settling at about 7 in 10 right |
 | Peripheral Vision | Side Vision | 24 flashes out to 30 degrees and 4 blanks, on a screen 29 cm wide or more |
 | Fluency of Ideas | Design Fluency | 60 seconds of designs joining five dots with four lines, counted by the different sets of lines |
 | Originality | Brick Uses | 2 minutes, an LLM keeps the genuine uses, scored on the three furthest from a brick and the most common uses (embeddings) |
@@ -76,22 +78,8 @@ Done:
 Brick Uses compares answers with a fixed list of the uses people give most often. Every answer is kept on its reading,
 so once there are plenty, the list can become the Atlas's own most common answers.
 
-To build:
-
-- **Arm-Hand Steadiness:** hold the phone out at arm's length for 20 s while its motion sensor measures the shake.
-- **Sound Localization:** 3D sound in headphones.
-- **Speech Clarity:** read sentences aloud and score how many words speech recognition gets. It's biased against
-  accents, so the wording needs care.
-
-## Tier 3: a short questionnaire in place of the self-rating
-For Night Vision, Glare Sensitivity and Depth Perception, which no screen or house can test, and as
-the fallback for every ability until it has a test: 4 or 5 everyday questions answered on a scale, in place of one pick.
-The Low Luminance Questionnaire (Owsley 2006) covers night vision and glare. A questionnaire stays the lowest confidence,
-and any test outranks it.
-
 ## The order
 1. Unblock the rest of tier 1: the norm tables.
-2. The questionnaire, since it replaces the self-rating for every ability at once.
-3. The rest of tier 2.
-4. Once the Atlas's own tests have a few hundred readings, check each item: ones nearly everyone gets right or wrong, or
+2. The rest of tier 2.
+3. Once the Atlas's own tests have a few hundred readings, check each item: ones nearly everyone gets right or wrong, or
    that strong scorers miss, say little and should be swapped before the norms settle.

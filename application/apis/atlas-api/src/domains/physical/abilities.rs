@@ -1,5 +1,5 @@
 //where a person stands on each ability (HAS_ABILITY), worked out from what they've recorded: the latest reading of each
-//measurement that shows it, or their own rating of themselves on its examples when nothing measures it. Their
+//measurement that shows it. Their
 //impairments in the body functions it rests on are noted beside it. It's worked out again whenever any of those change
 //and whenever the person opens their abilities, so better norms reach everyone. See "Abilities" in
 //documentation/architecture/physical.md
@@ -7,29 +7,23 @@ use std::collections::HashMap;
 
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
-    routing::{get, put},
+    routing::get,
 };
 use neo4rs::{BoltType, query};
 use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthUser, state::AppState};
 
-use super::{age_on, bad, date, internal, norms::{self, Norm}, SEX};
+use super::{age_on, date, internal, norms::{self, Norm}, SEX};
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/abilities", get(abilities))
         .route("/abilities/affected-by", get(affected_by))
-        .route("/abilities/{id}/rating", put(rate).delete(unrate))
 }
 
-//where a rating on an ability's examples puts someone, by the hardest example they can do: none of them, the first, the
-//second or the third. O*NET's examples run from what nearly anyone can do to what few can, so these are rough
-const RATED: [f64; 4] = [0.05, 0.25, 0.55, 0.85];
-//how much a rating of yourself says
-const RATED_CONFIDENCE: f64 = 0.25;
 //the most confidence readings add up to
 const MAX_CONFIDENCE: f64 = 0.9;
 
@@ -66,20 +60,18 @@ struct Row {
     category: String,
     group: String,
     description: String,
-    examples: Vec<String>,
     practice: Option<String>,
     tips: Vec<Tip>,
-    rating: Option<i64>,
     measurements: Vec<MeasurementRow>,
     impairments: Vec<Impaired>,
     parts: Vec<String>,
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits, 0 to 100 with higher
-//better; their rating of themselves; or an impairment in what it rests on, with its extent, noted beside it
+//better; or an impairment in what it rests on, with its extent, noted beside it
 #[derive(Serialize)]
 pub struct Basis {
-    pub(super) kind: String, //measurement, rating or impairment
+    pub(super) kind: String, //measurement or impairment
     name: String,
     standing: Option<f64>,
     extent: Option<String>,
@@ -110,13 +102,11 @@ pub struct Ability {
     pub(super) category: String,
     group: String,
     description: String,
-    examples: Vec<String>, //from what takes a little of it to what takes a lot
     pub(super) practice: Option<String>, //how much practice changes it: a lot, some or little
     tips: Vec<Tip>,
     pub(super) value: Option<f64>, //0 to 1, with 0.5 typical
     pub(super) confidence: Option<f64>,
     pub(super) basis: Vec<Basis>,
-    rating: Option<i64>, //the hardest example they say they can do, 1 to 3, or 0 for none of them
     pub(super) measurements: Vec<Shows>,
     parts: Vec<String>, //the ids of the body parts it rests on
 }
@@ -125,10 +115,8 @@ const ABILITIES: &str = "
     MATCH (p:Person {id: $personId}), (a:Ability)
     RETURN {SEX} AS sex, toString(p.birthday) AS birthday,
            a.id AS id, a.name AS name, a.category AS category, a.group AS group, a.description AS description,
-           coalesce(a.examples, []) AS examples,
            a.practice AS practice,
            COLLECT { MATCH (a)-[:HAS_TIP]->(t:AbilityTip) RETURN {kind: t.kind, text: t.text} ORDER BY t.kind DESC } AS tips,
-           COLLECT { MATCH (p)-[r:RATED_ABILITY]->(a) RETURN r.anchor }[0] AS rating,
            COLLECT {
                MATCH (m:PhysicalMeasurement)-[:MEASURES]->(a)
                RETURN {
@@ -161,8 +149,8 @@ const ABILITIES: &str = "
 pub(super) const RESTS_ON: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
                   OR EXISTS { MATCH (t)-[:PART_SUBTYPE_OF*0..2]->(:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) })";
 
-//where a person stands on one ability: the readings that count, each weighted by how much it says, or else their
-//rating of themselves, with their impairments in what it rests on noted
+//where a person stands on one ability: the readings that count, each weighted by how much it says, with their
+//impairments in what it rests on noted
 fn work_out(row: Row) -> Ability {
     let birthday = row.birthday.as_deref().and_then(date);
     let sex = row.sex.as_deref();
@@ -181,17 +169,12 @@ fn work_out(row: Row) -> Ability {
         Shows { id: m.id, name: m.name, test: m.test, counted: standing.is_some() }
     }).collect();
 
-    let place = if readings.is_empty() {
-        row.rating.and_then(|r| RATED.get(r as usize)).map(|v| {
-            basis.push(Basis { kind: "rating".into(), name: row.name.clone(), standing: None, extent: None });
-            (*v, RATED_CONFIDENCE)
-        })
-    } else {
+    let place = (!readings.is_empty()).then(|| {
         let weight: f64 = readings.iter().map(|(_, c)| c).sum();
         let value = readings.iter().map(|(v, c)| v * c).sum::<f64>() / weight.max(f64::EPSILON);
         let doubt: f64 = readings.iter().map(|(_, c)| 1.0 - c).product();
-        Some((value, (1.0 - doubt).min(MAX_CONFIDENCE)))
-    };
+        (value, (1.0 - doubt).min(MAX_CONFIDENCE))
+    });
 
     for impaired in &row.impairments {
         basis.push(Basis { kind: "impairment".into(), name: impaired.name.clone(), standing: None, extent: Some(impaired.extent.clone()) });
@@ -202,7 +185,6 @@ fn work_out(row: Row) -> Ability {
         value: place.map(|(v, _)| round(v.clamp(0.01, 0.99))),
         confidence: place.map(|(_, c)| round(c)),
         basis,
-        rating: row.rating,
         measurements,
         parts: row.parts,
         id: row.id,
@@ -210,7 +192,6 @@ fn work_out(row: Row) -> Ability {
         category: row.category,
         group: row.group,
         description: row.description,
-        examples: row.examples,
         practice: row.practice,
         tips: row.tips,
     }
@@ -308,42 +289,4 @@ async fn affected_by(State(state): State<AppState>, user: AuthUser) -> Result<Js
         affected.push(row.to::<AffectedBy>().map_err(internal)?);
     }
     Ok(Json(affected))
-}
-
-#[derive(Deserialize)]
-struct RatingRequest {
-    anchor: i64, //the hardest of the ability's three examples they can do, 1 to 3, or 0 for none of them
-}
-
-//rates the logged in user on an ability by its examples, in place of any rating they had, and returns where they now
-//stand on every ability
-async fn rate(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>, Json(req): Json<RatingRequest>) -> Result<Json<Vec<Ability>>, (StatusCode, String)> {
-    if !(0..RATED.len() as i64).contains(&req.anchor) {
-        return Err(bad("Pick one of the examples, or none of them."));
-    }
-    let mut rows = state.graph.execute(query("
-        MATCH (p:Person {id: $personId}), (a:Ability {id: $id})
-        MERGE (p)-[r:RATED_ABILITY]->(a)
-        SET r.anchor = $anchor, r.ratedAt = datetime()
-        RETURN count(r) AS set
-    ")
-        .param("personId", user.person_id.as_str())
-        .param("id", id.as_str())
-        .param("anchor", req.anchor)
-    ).await.map_err(internal)?;
-    let set: i64 = rows.next().await.map_err(internal)?.map(|r| r.get("set")).transpose().map_err(internal)?.unwrap_or(0);
-    drop(rows); //the stream holds its pooled connection until it's dropped, and the next query needs one
-    if set == 0 {
-        return Err((StatusCode::NOT_FOUND, "That ability doesn't exist.".to_string()));
-    }
-    Ok(Json(refresh(&state, &user.person_id).await?))
-}
-
-//takes back the logged in user's rating of themselves on an ability, and returns where they now stand on every ability
-async fn unrate(State(state): State<AppState>, user: AuthUser, Path(id): Path<String>) -> Result<Json<Vec<Ability>>, (StatusCode, String)> {
-    state.graph.run(query("
-        MATCH (:Person {id: $personId})-[r:RATED_ABILITY]->(:Ability {id: $id})
-        DELETE r
-    ").param("personId", user.person_id.as_str()).param("id", id.as_str())).await.map_err(internal)?;
-    Ok(Json(refresh(&state, &user.person_id).await?))
 }

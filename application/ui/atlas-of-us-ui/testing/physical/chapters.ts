@@ -2,13 +2,12 @@
 // what the scene asks with the persona's own answers, or skipping it, and moving on with Next.
 import { expect, test, type Page } from '@playwright/test';
 import type { Physical } from '../personas/persona.ts';
-import { GAMES, TOLERANCE } from './games.ts';
+import { GAMES, SHARE, TOLERANCE } from './games.ts';
 import { button, STEP_MS } from './play.ts';
 
 //what the api has, for telling what a scene asks for by its title
 export interface Catalog {
   measurements: { id: string; name: string; test: string | null }[];
-  abilities: { id: string; name: string; examples: string[] }[];
   characteristics: { id: string; name: string; choices: string[] }[];
   conditions: { name: string; plain_name: string | null; checklist: string | null }[];
 }
@@ -74,15 +73,8 @@ async function measurement(page: Page, m: Catalog['measurements'][number], perso
   recorded[m.name] = value;
   if (m.name === 'Brick Uses') return;
   const wanted = m.name === 'Sit and Reach' ? TOES + reading : reading;
-  const off = m.name === 'Odd Color Out' ? TOLERANCE[m.name] * wanted : (TOLERANCE[m.name] ?? 0);
+  const off = SHARE.includes(m.name) ? TOLERANCE[m.name] * wanted : (TOLERANCE[m.name] ?? 0);
   expect.soft(Math.abs(value - wanted), `${m.name} was saved as ${value}, played to ${wanted}`).toBeLessThanOrEqual(off + 1e-9);
-}
-
-//picks the hardest example the persona can do, or none of them
-async function rating(page: Page, a: Catalog['abilities'][number], anchor: number) {
-  await read(page);
-  await page.getByRole('radio', { name: anchor ? a.examples[anchor - 1] : 'None of these', exact: true }).check();
-  await saving(page, /\/rating$/, 'PUT', () => button(page, 'Save').click());
 }
 
 //picks each condition from the checklist when it's on it, or finds it by searching for it, and says how it affects them.
@@ -124,14 +116,12 @@ async function livingWith(page: Page, persona: Physical, catalog: Catalog) {
   await search.fill('');
 }
 
-//does what one scene asks, by its name: the measurement, ability or characteristic it's about, or one of the lists
+//does what one scene asks, by its name: the measurement or characteristic it's about, or one of the lists
 async function act(page: Page, name: string, persona: Physical, catalog: Catalog, recorded: Recorded) {
   const m = catalog.measurements.find((x) => x.name === name);
   if (m) return measurement(page, m, persona, recorded);
   const c = catalog.characteristics.find((x) => x.name === name);
   if (c) return persona.characteristics[name] && characteristic(page, name, persona.characteristics[name]);
-  const a = catalog.abilities.find((x) => x.name === name);
-  if (a) return persona.ratings[name] !== undefined && rating(page, a, persona.ratings[name]);
   if (name === 'Your conditions and impairments') return livingWith(page, persona, catalog);
 }
 

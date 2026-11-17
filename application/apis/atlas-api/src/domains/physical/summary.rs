@@ -62,7 +62,6 @@ struct Placed {
     area: String, //Physical, Psychomotor, Sensory or Cognitive
     standing: i64,
     confidence: f64,
-    from: &'static str, //tested, or self-rated
     practice: Option<String>, //how much practice changes it
 }
 
@@ -85,7 +84,6 @@ async fn gather(state: &AppState, person_id: &str) -> Result<(Input, usize), (St
     let abilities: Vec<Placed> = all.into_iter().filter_map(|a| Some(Placed {
         standing: (a.value? * 100.0).round() as i64,
         confidence: (a.confidence? * 10.0).round() / 10.0,
-        from: if a.basis.iter().any(|b| b.kind == "measurement") { "tested" } else { "self-rated" },
         name: a.name,
         area: a.category,
         practice: a.practice,

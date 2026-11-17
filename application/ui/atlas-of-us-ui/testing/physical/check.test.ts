@@ -1,4 +1,4 @@
-// Checks every persona's physical without playing anything: each characteristic, measurement, rating, impairment and
+// Checks every persona's physical without playing anything: each characteristic, measurement, impairment and
 // condition it names is one the chapters ask about, each reading is one the ui takes and its test can be played to,
 // and it has a target for every ability what it enters places, and none for the rest. Run after any change to what the
 // chapters ask.
@@ -15,13 +15,8 @@ interface Measurement {
   max: number;
   abilities: string[];
 }
-interface Ability {
-  name: string;
-  measurements: { name: string }[];
-}
 interface Known {
   measurements: Measurement[];
-  abilities: Ability[];
   characteristics: { name: string; choices: string[] }[];
   functions: string[];
   parts: string[];
@@ -43,6 +38,8 @@ const CHARTS: Record<string, number[]> = {
 const PLAYABLE: Record<string, (n: number) => boolean> = {
   'Hearing Threshold': (n) => n === 70 || (n >= -10 && n <= 45),
   'Competing Voices': (n) => Number.isInteger(n) && n >= -19 && n <= 8,
+  'Digits in Noise': (n) => Number.isInteger(n) && Math.abs(n % 2) === 1 && n >= -13 && n <= 9,
+  'Sound Shift': (n) => n >= 3 && n <= 500,
   'Digit Span': (n) => Number.isInteger(n) && n >= 1 && n <= 14,
   Tapping: (n) => Number.isInteger(n) && n >= 4,
   'Two-Hand Steering': (n) => Number.isInteger(n) && n <= 45,
@@ -81,19 +78,12 @@ function problems(p: Physical, known: Known) {
       found.push(`${name} ${reading} isn't a whole number`);
   }
 
-  const rated = known.abilities.filter((a) => !a.measurements.some((m) => !UNASKED.includes(m.name)));
-  for (const [name, anchor] of Object.entries(p.ratings)) {
-    if (!rated.some((a) => a.name === name)) found.push(`${name} isn't rated`);
-    if (![0, 1, 2, 3].includes(anchor)) found.push(`${name} rated ${anchor}, not 0 to 3`);
-  }
-
   for (const i of p.impairments) if (!(i.part ? known.parts : known.functions).includes(i.in)) found.push(`no ${i.part ? 'body part' : 'body function'} ${i.in}`);
   for (const c of p.conditions) if (!known.conditions.includes(c.name)) found.push(`no condition ${c.name}`);
 
-  //the abilities what it enters places: those its readings show, its ratings, and Originality from Brick Uses
+  //the abilities what it enters places: those its readings show, and Originality from Brick Uses
   const placed = new Set([
     ...Object.keys(p.readings).flatMap((name) => known.measurements.find((m) => m.name === name)?.abilities ?? []),
-    ...Object.keys(p.ratings),
     ...(p.brick_uses?.length ? ['Originality'] : []),
   ]);
   const missing = [...placed].filter((a) => !(a in p.targets));
@@ -106,9 +96,8 @@ function problems(p: Physical, known: Known) {
 
 //what the api has, read as a persona
 async function knownTo(token: string): Promise<Known> {
-  const [{ measurements }, abilities, { characteristics }, { functions }, anatomy, { conditions }] = await Promise.all([
+  const [{ measurements }, { characteristics }, { functions }, anatomy, { conditions }] = await Promise.all([
     call<{ measurements: Measurement[] }>('GET', '/physical/measurements', undefined, token),
-    call<Ability[]>('GET', '/physical/abilities', undefined, token),
     call<{ characteristics: Known['characteristics'] }>('GET', '/physical/me', undefined, token),
     call<{ functions: { name: string }[] }>('GET', '/physical/impairments', undefined, token),
     call<{ name: string }[]>('GET', '/physical/anatomy', undefined, token),
@@ -117,7 +106,6 @@ async function knownTo(token: string): Promise<Known> {
   const capitalized = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   return {
     measurements,
-    abilities,
     characteristics,
     functions: functions.map((f) => f.name),
     parts: anatomy.map((p) => capitalized(p.name)),

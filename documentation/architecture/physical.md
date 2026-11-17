@@ -73,8 +73,8 @@ the camera flying to the parts it's about. The chapters are:
 - Physical Characteristics: their sex, which hand they use and their other characteristics, then their size and shape (height,
   weight, body fat, waist, arm span, upper arm and leg lengths, hand span), resting heart rate and blood pressure.
 - Strength and fitness, Coordination and speed, Senses, Mind: one chapter for each category of abilities. Each opens
-  on what its abilities are, then has a scene for every measurement that shows one of its abilities and a rating scene
-  for every ability no measurement shows, and ends on how they did: Atlas sums it up in plain words over a breakdown
+  on what its abilities are, then has a scene for every measurement that shows one of its abilities, and ends on how
+  they did: Atlas sums it up in plain words over a breakdown
   that fills the screen, with every ability's bar out of 100, the results
   waiting on other people to compare with, and the ones still to do a step away.
 - Conditions and disabilities: impairments, then conditions. Each one lights up where it sits and tints the parts of
@@ -154,6 +154,8 @@ records the result, and some of those the camera can time or count instead.
 | Reading Chart | On screen | Reads small letters up close | 20/x | Near Vision |
 | Hearing Threshold | On screen with headphones, or a result typed in | Says when each fading tone is gone | dB HL | Hearing Sensitivity |
 | Competing Voices | On screen with headphones | Types the digits one voice says while two others talk over it | dB | Auditory Attention |
+| Digits in Noise | On screen with headphones | Types the digits a voice says in noise | dB | Speech Recognition |
+| Sound Shift | On screen with headphones | Says which way a sound moved between two bursts | microseconds | Sound Localization |
 | Odd Color Out | On screen | Spots the tile of a slightly different hue | hue degrees | Visual Color Discrimination |
 | Side Vision | On screen | Notices flashes off to the side while looking at a dot | flashes seen | Peripheral Vision |
 
@@ -174,15 +176,14 @@ records the result, and some of those the camera can time or count instead.
 | Grip Strength | A result typed in | Squeezes a hand dynamometer | kg | Static Strength |
 | VO2 Max | A result typed in | From a fitness watch or a 12-minute run | ml/kg/min | Stamina |
 
-Inductive Reasoning, Visualization and Static Strength each have two tests. The abilities with no test, which are all senses a screen can't measure well, are rated by the person.
+Inductive Reasoning, Visualization and Static Strength each have two tests. Physical Traits shows the abilities a person can take a test of: Depth Perception, Glare Sensitivity, Night Vision and Speech Clarity have none, and are kept for skills and occupations.
 
 ## Abilities
 A person's place on each ability is worked out from what they've recorded, by the api, whenever a reading, their sex
-for norms, an impairment or a rating changes, and whenever they open Physical Traits, so norms that shift as other
+for norms or an impairment changes, and whenever they open Physical Traits, so norms that shift as other
 people take the tests reach them. Every ability is worked out together in one query, and a change returns the result
 with what it saved. The latest reading of each
-measurement that shows an ability counts, weighted by how much that measurement says about it. With no reading, their
-own rating on the ability's examples stands in, with little confidence. An impairment in what the ability rests on is
+measurement that shows an ability counts, weighted by how much that measurement says about it. An impairment in what the ability rests on is
 noted beside it, and leaves where they stand as it is. Each ability has tips on working on it, one on what to do and one on working
 around an impairment, and how much practice changes it. A chapter's breakdown offers the first on an ability where the
 person is below typical, and the second wherever an impairment is noted. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's

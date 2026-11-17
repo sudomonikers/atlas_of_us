@@ -22,6 +22,10 @@ import { COLOR_PRACTICE, COLOR_TRIES } from '../../src/physical/odd_color_out/it
 import {
   VOICE_DIGITS, VOICE_DOWN, VOICE_FIRST_STEP, VOICE_HIGHEST, VOICE_ITEMS, VOICE_LOWEST, VOICE_PRACTICE, VOICE_ROUNDS, VOICE_START, VOICE_UP,
 } from '../../src/physical/competing_voices/items.ts';
+import { NOISE_HIGHEST, NOISE_ITEMS, NOISE_LOWEST, NOISE_PRACTICE, NOISE_ROUNDS, NOISE_START, NOISE_STEP } from '../../src/physical/digits_in_noise/items.ts';
+import {
+  SHIFT_EASIER, SHIFT_HARDER, SHIFT_LARGEST, SHIFT_PRACTICE_WAYS, SHIFT_SMALLEST, SHIFT_START, SHIFT_TRIES, SHIFT_WAYS,
+} from '../../src/physical/sound_shift/items.ts';
 import { SIDE_PRACTICE } from '../../src/physical/side_vision/items.ts';
 import { ITEMS as PROBLEMS, PRACTICE as PROBLEMS_PRACTICE, W, H, type Scene } from '../../src/physical/spot_the_problem/scenes.tsx';
 import { TIMED } from '../../src/physical/timed.ts';
@@ -42,7 +46,11 @@ export const TOLERANCE: Record<string, number> = {
   'Hearing Threshold': 1,
   'Odd Color Out': 0.35, //as a share of the reading, as it settles around it rather than on it
   'Competing Voices': 1,
+  'Digits in Noise': 1,
+  'Sound Shift': 0.3, //as a share of the reading, like Odd Color Out
 };
+//the tests whose tolerance is a share of the reading
+export const SHARE = ['Odd Color Out', 'Sound Shift'];
 
 //a point in a box on the page, from shares of its width and height
 async function within(page: Page, selector: string) {
@@ -594,6 +602,68 @@ const competingVoices: Game = async (page, threshold) => {
   await resume(page);
 };
 
+//types his digits in every practice round, then in the rounds that count types them while his voice is at least the
+//reading against the noise and gets the first digit wrong below it, so the level settles on the reading
+const digitsInNoise: Game = async (page, threshold) => {
+  const keys = page.getByRole('group', { name: 'Digits' });
+  const type = async (digits: number[]) => {
+    for (const d of digits) await keys.getByRole('button', { name: String(d), exact: true }).click();
+  };
+  const wrong = (digits: number[]) => [VOICE_DIGITS[(VOICE_DIGITS.indexOf(digits[0]) + 1) % VOICE_DIGITS.length], ...digits.slice(1)];
+  await pause(page);
+  await button(page, 'Start the practice').click();
+  for (let i = 0; i < NOISE_PRACTICE.length; i++) {
+    await shows(page, `Practice ${i + 1} of ${NOISE_PRACTICE.length}`);
+    await type(NOISE_PRACTICE[i]);
+    await wait(page, 1800);
+  }
+  await button(page, `Start: ${NOISE_ROUNDS} rounds`).click();
+  let level = NOISE_START;
+  for (let i = 0; i < NOISE_ROUNDS; i++) {
+    await shows(page, `${i + 1} of ${NOISE_ROUNDS}`);
+    const right = level >= threshold;
+    await type(right ? NOISE_ITEMS[i] : wrong(NOISE_ITEMS[i]));
+    level = Math.min(NOISE_HIGHEST, Math.max(NOISE_LOWEST, level + (right ? -NOISE_STEP : NOISE_STEP)));
+    await wait(page, 400);
+  }
+  await resume(page);
+};
+
+//says the way every practice sound moved, then in the tries that count says it while the shift is at least the
+//reading and the other way below it, following the shift as the test moves it, so it settles around the reading
+const soundShift: Game = async (page, threshold) => {
+  const ways = page.getByRole('group', { name: 'Which way' });
+  const say = (way: string) => ways.getByRole('button', { name: new RegExp(way === 'left' ? 'Left' : 'Right') }).click();
+  await pause(page);
+  await button(page, "They're the right way around").click();
+  for (let i = 0; i < SHIFT_PRACTICE_WAYS.length; i++) {
+    await shows(page, `Practice ${i + 1} of ${SHIFT_PRACTICE_WAYS.length}`);
+    await say(SHIFT_PRACTICE_WAYS[i]);
+    await wait(page, 1800);
+  }
+  await button(page, `Start: ${SHIFT_TRIES} tries`).click();
+  let shift = SHIFT_START;
+  let missed = false;
+  let run = 0;
+  for (let i = 0; i < SHIFT_TRIES; i++) {
+    await shows(page, `${i + 1} of ${SHIFT_TRIES}`);
+    const right = shift >= threshold;
+    await say(right ? SHIFT_WAYS[i] : SHIFT_WAYS[i] === 'left' ? 'right' : 'left');
+    let factor = 1;
+    if (!right) {
+      missed = true;
+      run = 0;
+      factor = SHIFT_EASIER;
+    } else if (!missed || ++run >= 2) {
+      run = 0;
+      factor = SHIFT_HARDER;
+    }
+    shift = Math.min(SHIFT_LARGEST, Math.max(SHIFT_SMALLEST, shift * factor));
+    await wait(page, 400);
+  }
+  await resume(page);
+};
+
 //presses the side of every practice flash, then of the reading's number of flashes that count, and lets the rest pass
 const sideVision: Game = async (page, seen) => {
   await button(page, 'It matches').click();
@@ -638,5 +708,7 @@ export const GAMES: Record<string, Game> = {
   'Hearing Threshold': hearing,
   'Odd Color Out': oddColorOut,
   'Competing Voices': competingVoices,
+  'Digits in Noise': digitsInNoise,
+  'Sound Shift': soundShift,
   'Side Vision': sideVision,
 };

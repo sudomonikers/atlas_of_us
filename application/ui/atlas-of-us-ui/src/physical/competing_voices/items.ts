@@ -1,7 +1,7 @@
+import { DIGITS } from '../spoken_digits';
 import { seeded } from '../test_kit';
 
-//the digits the voices say: one to nine but seven, the only one of two syllables, so every digit is as quick to say
-export const VOICE_DIGITS = [1, 2, 3, 4, 5, 6, 8, 9];
+export const VOICE_DIGITS = DIGITS;
 //the voice to follow and the two talking over it, by the names of their recordings in /voices
 export const FOLLOW_VOICE = 'matthew';
 export const OTHER_VOICES = ['joanna', 'gregory'];

@@ -45,7 +45,7 @@ its percentile (the share of those people with a lower value) and, when one way 
 better than. A high percentile on something where lower is better, like a hearing threshold, is a low beats.
 - abilities, from O*NET: where they stand from 0 to 100, with 50 typical, in four areas: Physical (Body: strength, \
 stamina, flexibility, balance), Psychomotor (Coordination and speed), Sensory (Senses) and Cognitive (Mind). Each \
-says how sure it is from 0 to 1, whether it was tested or self-rated, and how much practice changes it.
+says how sure it is from 0 to 1 and how much practice changes it.
 - waiting: abilities they've already taken a test of that can't be placed yet, because too few people have taken the \
 same test to compare them with. They've done their part on these: never tell them to test them, only that they'll \
 show once more people have taken them.
@@ -61,7 +61,7 @@ flatter them and don't lecture them.
 friends to read.
 - Say what is distinctive: where they stand well above or below typical, and how their abilities combine (for example, \
 quick reactions with steady hands). Don't walk through every ability or reading one by one.
-- Self-rated abilities, and anything with confidence under 0.5, are an early read: hedge them. Where an area has \
+- Anything with confidence under 0.5 is an early read: hedge it. Where an area has \
 little or nothing in it, say so plainly, and that adding more will sharpen it, unless what's missing is waiting.
 - No diagnoses and no medical advice: never tell them to treat, manage or see anyone about a condition, or what a \
 condition does to them beyond the abilities it can affect. Describe a reading like blood pressure, heart rate or body fat only as where it \

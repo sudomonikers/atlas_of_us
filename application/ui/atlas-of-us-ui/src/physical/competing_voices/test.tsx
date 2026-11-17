@@ -1,5 +1,7 @@
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
-import { blue, brownRed, comic, gunmetal } from '../../shared_components/palette';
+import { useRef, useState } from 'react';
+import { blue, brownRed } from '../../shared_components/palette';
+import { DigitPad } from '../digit_pad';
+import { digitStyles, gainOf, useTyping, useVoices } from '../digits_kit';
 import type { TestProps } from '../self_tests';
 import { Speaker } from '../speaker';
 import { Frame } from '../test_frame';
@@ -49,81 +51,12 @@ const against = (level: number) =>
 export function CompetingVoices({ onDone, onCancel }: TestProps) {
   const [phase, setPhase] = useState<Phase>('phones');
   const [at, setAt] = useState(0);
-  const [typed, setTyped] = useState<number[]>([]);
   const [told, setTold] = useState<{ right: boolean; said: number[] } | null>(null); //after a practice answer
-  const [playing, setPlaying] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const audio = useRef<AudioContext | null>(null);
-  const clips = useRef<Record<string, AudioBuffer>>({});
-  const sources = useRef<AudioBufferSourceNode[]>([]);
-  const timers = useRef<number[]>([]);
-  const answering = useRef(false); //whether typing goes to the round now
-  const entered = useRef<number[]>([]); //what's typed, ahead of the render showing it
+  const { loaded, failed, playing, play, hush, later } = useVoices(NAMES);
+  const { typed, type, ask } = useTyping();
   const level = useRef(VOICE_START);
   const missed = useRef(false);
   const heard = useRef<{ level: number; typed: number[]; right: boolean }[]>([]);
-
-  //every recording, fetched and decoded once
-  useEffect(() => {
-    let gone = false;
-    const decoder = new OfflineAudioContext(1, 1, 48000);
-    Promise.all(
-      NAMES.map(async (name) => {
-        const response = await fetch(`/voices/${name}.mp3`);
-        if (!response.ok) throw new Error(`no recording ${name}`);
-        clips.current[name] = await decoder.decodeAudioData(await response.arrayBuffer());
-      }),
-    ).then(
-      () => !gone && setLoaded(true),
-      () => !gone && setFailed(true),
-    );
-    return () => {
-      gone = true;
-    };
-  }, []);
-
-  const hush = () => {
-    sources.current.forEach((s) => s.stop());
-    sources.current = [];
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-    setPlaying(false);
-  };
-  useEffect(
-    () => () => {
-      hush();
-      void audio.current?.close();
-    },
-    [],
-  );
-
-  const sound = () => {
-    audio.current ??= new AudioContext();
-    void audio.current.resume();
-    return audio.current;
-  };
-  const later = (ms: number, then: () => void) => timers.current.push(window.setTimeout(then, ms));
-
-  //plays recordings, each at its own gain and seconds from now, and booms the speaker until the last has finished
-  const play = (parts: { name: string; gain: number; at: number }[]) => {
-    const a = sound();
-    const now = a.currentTime + 0.05;
-    let end = 0;
-    for (const { name, gain, at } of parts) {
-      const clip = clips.current[name];
-      const source = a.createBufferSource();
-      const level = a.createGain();
-      source.buffer = clip;
-      level.gain.value = gain;
-      source.connect(level).connect(a.destination);
-      source.start(now + at);
-      sources.current.push(source);
-      end = Math.max(end, at + clip.duration);
-    }
-    setPlaying(true);
-    later((end + 0.1) * 1000, () => setPlaying(false));
-  };
 
   const hearVoice = () => {
     hush();
@@ -132,10 +65,8 @@ export function CompetingVoices({ onDone, onCancel }: TestProps) {
 
   //a round, after a quiet moment: the voice to follow and the other two at a level against it
   const round = (r: VoiceRound, at: number) => {
-    const gains = at > 0 ? [LOUDEST * 10 ** (-at / 20), LOUDEST] : [LOUDEST, LOUDEST * 10 ** (at / 20)];
-    entered.current = [];
-    setTyped([]);
-    answering.current = true;
+    const gains = at > 0 ? [LOUDEST * gainOf(-at), LOUDEST] : [LOUDEST, LOUDEST * gainOf(at)];
+    ask();
     later(BEFORE, () =>
       play(
         [FOLLOW_VOICE, ...OTHER_VOICES].flatMap((voice, v) =>
@@ -180,7 +111,6 @@ export function CompetingVoices({ onDone, onCancel }: TestProps) {
 
   //the third digit typed answers the round
   const answer = (digits: number[]) => {
-    answering.current = false;
     if (phase === 'practice') {
       const said = VOICE_PRACTICE[at].follow;
       setTold({ right: digits.every((d, i) => d === said[i]), said });
@@ -202,26 +132,9 @@ export function CompetingVoices({ onDone, onCancel }: TestProps) {
   };
 
   const press = (d: number | 'back') => {
-    if (!answering.current) return;
-    const digits = d === 'back' ? entered.current.slice(0, -1) : [...entered.current, d];
-    entered.current = digits;
-    setTyped(digits);
-    if (digits.length === 3) answer(digits);
+    const digits = type(d);
+    if (digits) answer(digits);
   };
-
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      if (phase !== 'practice' && phase !== 'timed') return;
-      if (e.key === 'Backspace') {
-        e.preventDefault();
-        return press('back');
-      }
-      const d = Number(e.key);
-      if (VOICE_DIGITS.includes(d)) press(d);
-    };
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
-  });
 
   const asking = phase === 'practice' || phase === 'timed';
   return (
@@ -263,23 +176,7 @@ export function CompetingVoices({ onDone, onCancel }: TestProps) {
       {asking && (
         <div style={styles.stage}>
           <Speaker booming={playing} style={styles.small} />
-          <div style={styles.typed} aria-label="Your digits">
-            {[0, 1, 2].map((i) => (
-              <span key={i} style={styles.slot}>
-                {typed[i] ?? ''}
-              </span>
-            ))}
-          </div>
-          <div style={styles.pad} role="group" aria-label="Digits">
-            {VOICE_DIGITS.map((d) => (
-              <button key={d} type="button" className="comic-lift" style={styles.key} onClick={() => press(d)}>
-                {d}
-              </button>
-            ))}
-            <button type="button" className="comic-lift" style={{ ...styles.key, ...styles.back }} onClick={() => press('back')} aria-label="Delete">
-              Delete
-            </button>
-          </div>
+          <DigitPad typed={typed} asking={asking} onPress={press} />
         </div>
       )}
       {phase === 'done' && (
@@ -301,59 +198,4 @@ export function CompetingVoices({ onDone, onCancel }: TestProps) {
   );
 }
 
-const styles: Record<string, CSSProperties> = {
-  stage: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    minHeight: 300,
-  },
-  small: {
-    width: 'min(100%, 200px)',
-  },
-  row: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  typed: {
-    display: 'flex',
-    gap: 10,
-  },
-  slot: {
-    width: 44,
-    height: 52,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#fff',
-    border: `3px solid ${gunmetal}`,
-    borderRadius: 10,
-    fontFamily: comic,
-    fontSize: 30,
-  },
-  pad: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 64px)',
-    gap: 8,
-  },
-  key: {
-    ...testStyles.choice,
-    padding: '10px 0',
-    fontFamily: comic,
-    fontSize: 22,
-  },
-  back: {
-    gridColumn: 'span 1',
-    fontFamily: 'inherit',
-    fontSize: 14,
-  },
-  verdict: {
-    fontFamily: comic,
-    letterSpacing: 1,
-  },
-};
+const styles = digitStyles;

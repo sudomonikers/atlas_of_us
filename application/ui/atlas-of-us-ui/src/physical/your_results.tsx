@@ -96,8 +96,8 @@ function ReadingTile({ measurement: m }: { measurement: Measurement }) {
 //how big a dot is, in pixels
 const DOT = 22;
 
-//every ability they have a place on, as a dot along a line from 0 to 100, one row an area. A tested place is filled
-//and a self-rated one hollow, and one that's only an early read is faint. Dots that would overlap go in lanes above
+//every ability they have a place on, as a dot along a line from 0 to 100, one row an area. One that's only an early
+//read is faint. Dots that would overlap go in lanes above
 //each other. Picking one opens it in the list beside the body
 function AbilityChart({ abilities, picked, onPick }: { abilities: Ability[]; picked?: string; onPick: (id?: string) => void }) {
   //how far apart two dots in a lane have to be, as a share of the line, from how wide the line is
@@ -141,12 +141,6 @@ function AbilityChart({ abilities, picked, onPick }: { abilities: Ability[]; pic
       <p style={styles.text}>Each dot is an ability, from low on the left to high on the right, with typical in the middle. Pick one to open it.</p>
       <div style={styles.key} aria-hidden="true">
         <span style={styles.keyItem}>
-          <span style={{ ...styles.dot, ...styles.keyDot, background: hex(standingColor(0.7)) }} /> Tested
-        </span>
-        <span style={styles.keyItem}>
-          <span style={{ ...styles.dot, ...styles.keyDot, ...styles.hollow }} /> Self-rated
-        </span>
-        <span style={styles.keyItem}>
           <span style={{ ...styles.dot, ...styles.keyDot, background: hex(standingColor(0.7)), opacity: 0.55 }} /> Early read
         </span>
       </div>
@@ -161,7 +155,6 @@ function AbilityChart({ abilities, picked, onPick }: { abilities: Ability[]; pic
           <div ref={i === 0 ? line : undefined} style={{ ...styles.track, height: row.lanes * (DOT + 4) + 10 }} role="group" aria-label={row.label}>
             <span style={styles.typical} />
             {row.dots.map(({ ability: a, at, lane }) => {
-              const tested = a.basis.some((b) => b.kind === 'measurement');
               const early = (a.confidence ?? 0) < 0.5;
               const value = Math.round(at);
               return (
@@ -172,14 +165,14 @@ function AbilityChart({ abilities, picked, onPick }: { abilities: Ability[]; pic
                   onMouseLeave={() => setHovered((h) => (h === a.id ? undefined : h))}
                   onFocus={() => setHovered(a.id)}
                   onBlur={() => setHovered((h) => (h === a.id ? undefined : h))}
-                  aria-label={`${a.name}, ${value}, ${tested ? 'tested' : 'self-rated'}`}
+                  aria-label={`${a.name}, ${value}${early ? ', an early read' : ''}`}
                   aria-pressed={picked === a.id}
                   onClick={() => onPick(picked === a.id ? undefined : a.id)}
                   style={{
                     ...styles.dot,
                     left: `calc(${at}% - ${DOT / 2}px)`,
                     bottom: 5 + lane * (DOT + 4),
-                    ...(tested ? { background: hex(standingColor(a.value!)) } : { ...styles.hollow, borderColor: hex(standingColor(a.value!)) }),
+                    background: hex(standingColor(a.value!)),
                     ...(early ? { opacity: 0.55 } : {}),
                     ...(picked === a.id ? styles.dotPicked : {}),
                   }}
@@ -267,13 +260,13 @@ function LivingWith({ known, affectedBy }: { known: Known; affectedBy: AffectedB
   );
 }
 
-//each area's tests and ratings still to do, counted as its chapter counts them, with the chapter, and its abilities
+//each area's tests still to do, counted as its chapter counts them, with the chapter, and its abilities
 //whose tests are done but are waiting on more people to compare with
 function StillToFind({ known }: { known: Known }) {
   const { abilities, measurements } = known;
   const areas = CATEGORIES.map((c) => {
-    const { tested, untested } = chapterSteps(abilities, measurements, c.id);
-    const toDo = tested.filter((m) => !m.readings.length).length + untested.filter((a) => a.value === null).length;
+    const { tested } = chapterSteps(abilities, measurements, c.id);
+    const toDo = tested.filter((m) => !m.readings.length).length;
     const waiting = abilities.filter((a) => a.category === c.id && waitingToCompare(a, measurements)).length;
     const chapter = CHAPTERS.find((ch) => ch.id === AREA_CHAPTER[c.id])!;
     return { ...c, toDo, waiting, chapter };
@@ -285,13 +278,13 @@ function StillToFind({ known }: { known: Known }) {
         Still to find out
       </h2>
       {!areas.length ? (
-        <p style={styles.text}>You've done every test and rating. Testing again later will show how you're changing.</p>
+        <p style={styles.text}>You've done every test. Testing again later will show how you're changing.</p>
       ) : (
         <ul style={styles.lived}>
           {areas.map((a) => (
             <li key={a.id} style={styles.livedItem}>
               <span style={styles.rowName}>{a.label}</span>
-              <span style={styles.small}>{a.toDo ? `${a.toDo} ${a.toDo === 1 ? 'test or rating' : 'tests and ratings'} to do` : 'All done'}</span>
+              <span style={styles.small}>{a.toDo ? `${a.toDo} ${a.toDo === 1 ? 'test' : 'tests'} to do` : 'All done'}</span>
               {!!a.toDo && (
                 <button className="comic-lift" style={styles.link} onClick={() => navigate(`/physical?chapter=${a.chapter.id}`)}>
                   Go to {a.chapter.title}
@@ -430,10 +423,6 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '50%',
     boxSizing: 'border-box',
     cursor: 'pointer',
-  },
-  hollow: {
-    background: '#fff',
-    borderWidth: 4,
   },
   label: {
     position: 'absolute',

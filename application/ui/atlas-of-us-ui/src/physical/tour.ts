@@ -17,7 +17,6 @@ export interface Shot {
 export type Panel =
   | { kind: 'characteristic'; id: string }
   | { kind: 'measurement'; id: string }
-  | { kind: 'rating'; id: string }
   | { kind: 'living' };
 
 //a scene shows someone doing what it's about, the 3D body where what it's about sits in it, where the user stands on
@@ -64,6 +63,19 @@ const MEASURED: Record<string, MotionName> = {
   'Sit and Reach': 'sitReach',
   'Vertical Jump': 'jump',
   'Visual Acuity': 'eyeChart',
+  'Reading Chart': 'readingChart',
+  'Odd Color Out': 'colors',
+  'Side Vision': 'sideVision',
+  'Hearing Threshold': 'hearing',
+  'Competing Voices': 'voices',
+  'Digits in Noise': 'digitsNoise',
+  'Sound Shift': 'soundShift',
+  'Reaction Time': 'reactionTime',
+  'Choice Reaction Time': 'choiceReaction',
+  Tapping: 'tapping',
+  Tracking: 'tracking',
+  Timing: 'timing',
+  'Two-Hand Steering': 'twoHandSteering',
   'Push-Ups': 'pushUp',
   'One-Leg Stand, Eyes Closed': 'oneLeg',
   'Plank Hold': 'plank',
@@ -94,20 +106,6 @@ const MEASURED: Record<string, MotionName> = {
 };
 const measuredBy = (name: string): MotionName => MEASURED[name] ?? 'screen';
 
-//what an ability looks like being used, for rating it, by its name
-const USED: Record<string, MotionName> = {
-  'Static Strength': 'lift',
-  'Dynamic Strength': 'pushUp',
-  'Explosive Strength': 'jump',
-  'Trunk Strength': 'plank',
-  Stamina: 'run',
-  'Extent Flexibility': 'sitReach',
-  'Dynamic Flexibility': 'bendTwist',
-  'Gross Body Coordination': 'hexagon',
-  'Gross Body Equilibrium': 'oneLeg',
-};
-const usedBy = (name: string, category: string): MotionName => USED[name] ?? (category === 'Physical' ? 'hello' : 'screen');
-
 //names run together as people say them: "a, b and c"
 const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
 
@@ -122,18 +120,20 @@ function measuring(m: Measurement, shows: Ability[], hand: string | null): Scene
   };
 }
 
-//measurements that show an ability but aren't asked for, since few people can take them at home. An ability shown only
-//by these is rated instead
-const UNASKED = ['Grip Strength'];
+//measurements that show an ability but aren't asked for, since few people can take them at home
+export const UNASKED = ['Grip Strength'];
 
 //the measurements of an ability that are asked for
 export const askedFor = (a: Ability) => a.measurements.filter((m) => !UNASKED.includes(m.name));
 
+//the abilities in the chapters and the user's results: the ones with a measurement that's asked for. The rest are kept
+//for skills and occupations
+export const askedAbout = (a: Ability) => askedFor(a).length > 0;
+
 //what an ability looks like being used, from its test, for showing it off. None for the ones tested on a screen
 export function motionFor(a: Ability): MotionName | null {
   const test = askedFor(a)[0];
-  const motion = test ? measuredBy(test.name) : usedBy(a.name, a.category);
-  return motion === 'screen' || motion === 'hello' ? null : motion;
+  return (test && MEASURED[test.name]) ?? null;
 }
 
 //whether the user has a reading of a measurement that's asked for an ability, so they've done it even when there's
@@ -141,15 +141,15 @@ export function motionFor(a: Ability): MotionName | null {
 export const triedFor = (a: Ability, measurements: Measurements) =>
   askedFor(a).some((s) => measurements.measurements.find((m) => m.id === s.id)?.readings.length);
 
-//the scene that asks about an ability: its first measurement, or rating it when nothing measures it
-export const sceneFor = (a: Ability) => askedFor(a)[0]?.id ?? a.id;
+//the scene that asks about an ability: its first measurement
+export const sceneFor = (a: Ability) => askedFor(a)[0].id;
 
 //Atlas summing up where the user stands on a category of abilities, in plain words: what they stand out at, what's
 //typical, what's lower, what's waiting on other people to compare it with, and how many are still to do
 function summary(abilities: Ability[], measurements: Measurements) {
   const placed = abilities.filter((a) => a.value !== null).sort((a, b) => b.value! - a.value!);
   const waiting = abilities.filter((a) => a.value === null && triedFor(a, measurements));
-  if (!placed.length && !waiting.length) return "You haven't measured or rated any of these yet. Go back and try a few, and I'll sum up how you did.";
+  if (!placed.length && !waiting.length) return "You haven't measured any of these yet. Go back and try a few, and I'll sum up how you did.";
   const named = (list: Ability[]) => listed(list.map((a) => plain(a.name)));
   const strong = placed.filter((a) => a.value! >= STRONG);
   const typical = placed.filter((a) => a.value! < STRONG && a.value! >= WEAK);
@@ -167,36 +167,25 @@ function summary(abilities: Ability[], measurements: Measurements) {
     .join(' ');
 }
 
-//the steps of a chapter on a category of abilities: a test for each measurement asked for one of them, and a rating
-//for each ability nothing measures
+//the steps of a chapter on a category of abilities: a test for each measurement asked for one of them
 export function chapterSteps(abilities: Ability[], measurements: Measurements, category: Ability['category']) {
   const group = abilities.filter((a) => a.category === category);
   const tested = [...new Set(group.flatMap((a) => askedFor(a).map((m) => m.id)))].flatMap((m) => measurements.measurements.find((x) => x.id === m) ?? []);
-  const untested = group.filter((a) => !askedFor(a).length);
-  return { group, tested, untested };
+  return { group, tested };
 }
 
-//a chapter on the abilities in a category: what they are, a scene for each measurement that shows one, a scene to rate
-//themselves on each one no measurement shows, and Atlas summing up how they did
+//a chapter on the abilities in a category: what they are, a scene for each measurement that shows one, and Atlas
+//summing up how they did
 function abilities(id: string, title: string, category: Ability['category'], motion: MotionName, intro: string[], blurb: string): Chapter {
   return {
     id,
     title,
     blurb,
     scenes: ({ abilities, measurements, me }) => {
-      const { group, tested, untested } = chapterSteps(abilities, measurements, category);
+      const { group, tested } = chapterSteps(abilities, measurements, category);
       return [
         ...intro.map((text, i): Scene => ({ id: `intro-${i + 1}`, text, stage: { motion } })),
         ...tested.map((m) => measuring(m, group.filter((a) => askedFor(a).some((s) => s.id === m.id)), handOf(me))),
-        ...untested.map(
-          (a): Scene => ({
-            id: a.id,
-            title: a.name,
-            text: `${a.description} We don't have a test for this one yet, so pick the hardest of these you could do.`,
-            stage: { motion: usedBy(a.name, a.category) },
-            panel: { kind: 'rating', id: a.id },
-          }),
-        ),
         {
           id: 'results',
           text: summary(group, measurements),
@@ -205,9 +194,8 @@ function abilities(id: string, title: string, category: Ability['category'], mot
       ];
     },
     progress: ({ abilities, measurements }) => {
-      const { tested, untested } = chapterSteps(abilities, measurements, category);
-      const done = tested.filter((m) => m.readings.length).length + untested.filter((a) => a.value !== null).length;
-      return `${done} of ${tested.length + untested.length} done`;
+      const { tested } = chapterSteps(abilities, measurements, category);
+      return `${tested.filter((m) => m.readings.length).length} of ${tested.length} done`;
     },
   };
 }

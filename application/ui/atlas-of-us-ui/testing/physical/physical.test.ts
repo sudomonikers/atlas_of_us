@@ -1,7 +1,7 @@
 // The physical tests. Every persona with a `physical` has its body, its readings and its conditions and impairments, and plays as
 // its own test, all at once. Each one logs in through the ui's login form, skips the story that opens Physical Traits,
 // and plays every chapter in the real ui the way a player would: picking its characteristics, typing in its
-// measurements, playing every test the app runs to its own score, rating itself where nothing measures an ability, and
+// measurements, playing every test the app runs to its own score, and
 // adding its impairments and conditions. Everything it entered before is cleared first, so every run starts from
 // nothing, like a new player.
 // A test passes when its persona plays through and every test it played saved the reading it played to. Where it
@@ -15,7 +15,6 @@ import { STEP_MS } from './play.ts';
 interface Ability {
   id: string;
   name: string;
-  examples: string[];
   value: number | null;
   confidence: number | null;
 }
@@ -38,13 +37,12 @@ async function reset(token: string) {
 }
 
 async function catalog(token: string): Promise<Catalog> {
-  const [{ measurements }, abilities, { characteristics }, { conditions }] = await Promise.all([
+  const [{ measurements }, { characteristics }, { conditions }] = await Promise.all([
     call<{ measurements: Measurement[] }>('GET', '/physical/measurements', undefined, token),
-    call<Ability[]>('GET', '/physical/abilities', undefined, token),
     call<{ characteristics: Characteristic[] }>('GET', '/physical/me', undefined, token),
     call<{ conditions: Catalog['conditions'] }>('GET', '/physical/conditions', undefined, token),
   ]);
-  return { measurements, abilities, characteristics, conditions };
+  return { measurements, characteristics, conditions };
 }
 
 for (const [file, persona] of Object.entries(personas)) {

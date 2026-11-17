@@ -25,11 +25,10 @@ import BodyMap from './body_map';
 import BodyStage, { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
 import LivingWith from './living_with';
-import Rating from './rating';
 import YourResults from './your_results';
 import { MotionPanel } from './motion';
 import Sheet from './sheet';
-import { CHAPTERS, type Chapter, type Known, type Scene, type Shot } from './tour';
+import { askedAbout, CHAPTERS, type Chapter, type Known, type Scene, type Shot } from './tour';
 import { setConfig, useConfig, useSession } from '../auth/api';
 import { RequireLogin } from '../auth/require-login';
 import { noteWatched, useWatched } from './intro/watched';
@@ -136,7 +135,7 @@ function Traits() {
 
   const body = useMemo(() => (anatomy && meshes ? indexBody(anatomy, meshes) : undefined), [anatomy, meshes]);
   const loaded = useMemo<Loaded | undefined>(
-    () => (anatomy && body && abilities && measurements && me && impairments && conditions && affectedBy ? { anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy } : undefined),
+    () => (anatomy && body && abilities && measurements && me && impairments && conditions && affectedBy ? { anatomy, body, abilities: abilities.filter(askedAbout), measurements, me, impairments, conditions, affectedBy } : undefined),
     [anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy],
   );
 
@@ -158,7 +157,6 @@ function Traits() {
       setMeasurements((data) => data && { ...data, measurements: data.measurements.map((m) => (m.id === id ? { ...m, readings } : m)) });
       setAbilities(abilities);
     },
-    rated: setAbilities,
     impaired: (saved, abilities) => changeImpairments((list) => [...list.filter((i) => i.id !== saved.id), saved], abilities),
     unimpaired: (id, abilities) => changeImpairments((list) => list.filter((i) => i.id !== id), abilities),
     conditions: (data) => {
@@ -322,7 +320,6 @@ export interface Changes {
   measurements: (data: Measurements, abilities: Ability[]) => void;
   me: (me: Me) => void; //their own physical attributes
   readings: (id: string, readings: Reading[], abilities: Ability[]) => void; //a measurement's readings
-  rated: (abilities: Ability[]) => void;
   impaired: (saved: Impairment, abilities: Ability[]) => void; //an impairment noted or changed
   unimpaired: (id: string, abilities: Ability[]) => void;
   conditions: (data: Conditions) => void;
@@ -569,7 +566,7 @@ interface ScenePanelProps {
 
 //the one thing the user can do on a scene
 function ScenePanel({ scene, loaded, changes, testStage, onTesting, onSkip }: ScenePanelProps) {
-  const { anatomy, abilities, measurements, me, impairments, conditions, affectedBy } = loaded;
+  const { anatomy, measurements, me, impairments, conditions, affectedBy } = loaded;
   const panel = scene.panel!;
   if (panel.kind === 'characteristic') {
     const c = me.characteristics.find((x) => x.id === panel.id);
@@ -578,10 +575,6 @@ function ScenePanel({ scene, loaded, changes, testStage, onTesting, onSkip }: Sc
   if (panel.kind === 'measurement') {
     const m = measurements.measurements.find((x) => x.id === panel.id);
     return m ? <MeasurementCard key={m.id} measurement={m} hand={handOf(me)} stage={testStage} onTesting={onTesting} onSkip={onSkip} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
-  }
-  if (panel.kind === 'rating') {
-    const a = abilities.find((x) => x.id === panel.id);
-    return a ? <Rating key={a.id} ability={a} onChanged={changes.rated} /> : null;
   }
   return (
     <LivingWith

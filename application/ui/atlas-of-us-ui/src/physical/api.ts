@@ -12,6 +12,8 @@ export type Test =
   | 'eye_chart'
   | 'hearing'
   | 'voices'
+  | 'digits_noise'
+  | 'sound_shift'
   | 'matrices'
   | 'series'
   | 'rotation'
@@ -201,9 +203,9 @@ export function today() {
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits (0 to 100, higher
-//better), their rating of themselves, or an impairment in what it rests on, noted beside it
+//better), or an impairment in what it rests on, noted beside it
 export interface Basis {
-  kind: 'measurement' | 'rating' | 'impairment';
+  kind: 'measurement' | 'impairment';
   name: string;
   standing: number | null;
   extent: Extent | null;
@@ -230,13 +232,11 @@ export interface Ability {
   category: 'Cognitive' | 'Psychomotor' | 'Physical' | 'Sensory';
   group: string;
   description: string;
-  examples: string[]; //from what takes a little of it to what takes a lot
   practice: 'a lot' | 'some' | 'little' | null; //how much practice changes it
   tips: Tip[];
   value: number | null; //0 to 1, with 0.5 typical
   confidence: number | null;
   basis: Basis[];
-  rating: number | null; //the hardest example they say they can do, 1 to 3, or 0 for none
   measurements: Shows[];
   parts: string[]; //the ids of the body parts it rests on
 }
@@ -279,13 +279,6 @@ export interface AffectedBy {
 
 //the abilities the user's conditions and impairments can affect
 export const getAffectedBy = () => request<AffectedBy[]>('GET', '/physical/abilities/affected-by');
-
-//rates the user on an ability by the hardest of its examples they can do, 1 to 3, or 0 for none of them. Returns the
-//user's abilities
-export const rateAbility = (id: string, anchor: number) => request<Ability[]>('PUT', `/physical/abilities/${encodeURIComponent(id)}/rating`, { anchor });
-
-//takes back a rating, returning the user's abilities
-export const unrateAbility = (id: string) => request<Ability[]>('DELETE', `/physical/abilities/${encodeURIComponent(id)}/rating`);
 
 //a body function
 export interface BodyFunction {

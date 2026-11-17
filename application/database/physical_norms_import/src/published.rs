@@ -435,6 +435,25 @@ pub const TESTS: &[Test] = &[
         norms: Norms::Atlas,
     },
     Test {
+        name: "Digits in Noise", unit: "dB", better: "lower", group: "Senses", range: (-24.0, 12.0),
+        description: "How well you can make out speech in noise. With headphones on, a man says three digits in a steady \
+            rushing noise shaped like his voice, and you type them. His voice gets quieter each time you catch all \
+            three and louder when you don't. Your score is how quiet he can be while you still catch about half, in \
+            decibels against the noise: 0 is as loud as the noise, and below 0 is quieter. It's the digits-in-noise \
+            test hearing screenings use, with its own recordings.",
+        abilities: &["Speech Recognition"], confidence: 0.4, test: "digits_noise", timer: None, protocol: &[], source: ATLAS,
+        norms: Norms::Atlas,
+    },
+    Test {
+        name: "Sound Shift", unit: "microseconds", better: "lower", group: "Senses", range: (2.0, 700.0),
+        description: "How small a move to the left or right you can hear. With headphones on, two bursts of noise play, \
+            and you say which way the sound moved between them. Your ears tell where a sound is from how much sooner \
+            it reaches one than the other, and your score is the smallest change in that you can hear, in \
+            microseconds.",
+        abilities: &["Sound Localization"], confidence: 0.3, test: "sound_shift", timer: None, protocol: &[], source: ATLAS,
+        norms: Norms::Atlas,
+    },
+    Test {
         name: "Design Fluency", unit: "designs", better: "higher", group: "Reasoning", range: (0.0, 100.0),
         description: "This one is about how many different ideas you can come up with. Each box has five dots, and you join \
             them with four straight lines to make a design – each new line starting or ending on a dot the design \

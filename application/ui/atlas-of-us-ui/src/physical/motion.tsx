@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useId, useState } from 'react';
-import { BLUE, BOARD, GRAY, GREEN, INK, line, ORANGE, type Pt, rect, RED } from '../shared_components/story/ink';
+import { BLUE, BOARD, GRAY, GREEN, INK, line, ORANGE, type Pt, RED } from '../shared_components/story/ink';
 import { armSpan } from './arm_span/motion';
 import { bendTwist } from './bend_twist_touch/motion';
 import { bloodPressure } from './blood_pressure/motion';
@@ -8,11 +8,11 @@ import { Floor } from './body_marks';
 import { coinTransfer } from './coin_transfer/motion';
 import { coinTurning } from './coin_turning/motion';
 import { handSpan } from './hand_span/motion';
-import { eyeChart } from './eye_chart/motion';
+import { eyeChart, readingChart } from './eye_chart/motion';
 import { height } from './height/motion';
 import { hexagon } from './hexagon_jump/motion';
 import { add, dir, ease, type Figure, GY, type Joints, L, type Limb, mix, type Motion, type Pose, rad, SEATED, STAND, steps } from './motion_kit';
-import { Fill, Ink } from './motion_marks';
+import { Ink } from './motion_marks';
 import { oneLeg } from './one_leg_stand/motion';
 import { plank } from './plank/motion';
 import { plateTapping } from './plate_tapping/motion';
@@ -20,6 +20,7 @@ import { pushUp } from './push_ups/motion';
 import { pulse } from './resting_heart_rate/motion';
 import { SCREEN_MOTIONS } from './screen_motions';
 import { sitReach } from './sit_and_reach/motion';
+import { soundShift } from './sound_shift/motion';
 import { squat } from './squat_one_rep_max/motion';
 import { steady } from './steady_hand/motion';
 import { upperArm } from './upper_arm_length/motion';
@@ -153,32 +154,6 @@ const MOTIONS = {
     figure: { view: 'front', frames: [[0, { ...STAND, an: [135, 168] }], [0.6, { ...STAND, an: [135, 208] }]] },
     under: () => <Floor />,
   },
-  lift: {
-    label: 'Someone squatting down to lift a heavy box off the floor and standing up with it',
-    period: 3.6,
-    still: 1.4,
-    figure: {
-      view: 'side',
-      frames: [0, 1, 1, 0, 0].map((up, i): [number, Pose] => [
-        [0, 1, 1.9, 2.9, 3.3][i],
-        up
-          ? { x: 286, y: 234, t: 184, an: { to: [316, 252], bend: 1 }, af: { to: [322, 250], bend: 1 }, ln: { to: [298, GY], bend: -1 }, lf: { to: [288, GY], bend: -1 } }
-          : { x: 252, y: 290, t: 140, h: 20, an: { to: [328, 312], bend: 1 }, af: { to: [334, 310], bend: 1 }, ln: { to: [298, GY], bend: -1 }, lf: { to: [288, GY], bend: -1 } },
-      ]),
-    },
-    under: () => <Floor />,
-    draw: (_, j) => {
-      if (!j) return null;
-      const [x, y] = j.hands[0];
-      return (
-        <g>
-          <Fill d={rect(x - 14, y - 12, 74, 50)} c={ORANGE} op={0.45} />
-          <Ink d={rect(x - 14, y - 12, 74, 50)} w={6} />
-          <Ink d={line([x - 2, y + 2], [x + 14, y + 2])} w={4} />
-        </g>
-      );
-    },
-  },
   living: {
     label: 'Someone in glasses walking along with a cane',
     period: 1.6,
@@ -248,6 +223,8 @@ const MOTIONS = {
   squat,
   steady,
   eyeChart,
+  readingChart,
+  soundShift,
   waist,
   armSpan,
   upperArm,

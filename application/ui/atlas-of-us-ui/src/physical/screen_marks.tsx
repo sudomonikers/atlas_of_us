@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BLUE, BOARD, GREEN, INK, ORANGE, RED, circle, line, rect, shape, type Pt } from '../shared_components/story/ink';
+import { BLUE, BOARD, GRAY, GREEN, INK, ORANGE, RED, circle, line, rect, shape, type Pt } from '../shared_components/story/ink';
 import { Fill, Ink, Say } from './motion_marks';
 
 // What the animations of the tests played on a screen are drawn with: the screen, a pointer, buttons, a box being
@@ -95,5 +95,75 @@ export const SortCard = ({ x, y, color, kind, count }: { x: number; y: number; c
       const [dx, dy] = spots[count - 1][i];
       return <path key={i} d={cardShape(kind, x + dx, y + dy, 10)} fill={CARD_COLORS[color]} stroke={INK} strokeWidth={2} />;
     })}
+  </g>
+);
+
+//headphones from the front, the middle of the band's ends at a point
+export const Headphones = ({ x, y }: { x: number; y: number }) => (
+  <g>
+    <Ink d={`M ${x - 52} ${y} Q ${x - 58} ${y - 62} ${x} ${y - 62} Q ${x + 58} ${y - 62} ${x + 52} ${y}`} w={7} />
+    {[-1, 1].map((k) => (
+      <g key={k}>
+        <Fill d={rect(x + k * 53 - 15, y - 2, 30, 52)} c={ORANGE} op={0.6} />
+        <Ink d={rect(x + k * 53 - 15, y - 2, 30, 52)} w={5} />
+      </g>
+    ))}
+  </g>
+);
+
+//sound spreading out to one side of a point, -1 left and 1 right, its waves moving out as the beat goes from 0 to 1
+export const Waves = ({ x, y, k, beat, op = 1, c = BLUE }: { x: number; y: number; k: -1 | 1; beat: number; op?: number; c?: string }) => (
+  <g>
+    {[0, 1, 2].map((i) => {
+      const out = (i + beat) % 3;
+      const r = 18 + 16 * out;
+      return <Ink key={i} d={`M ${x + k * r * 0.6} ${y - r * 0.8} A ${r} ${r} 0 0 ${k > 0 ? 1 : 0} ${x + k * r * 0.6} ${y + r * 0.8}`} c={c} w={4} op={op * (1 - out / 3)} />;
+    })}
+  </g>
+);
+
+//someone from the shoulders up, a man or a woman, their mouth open while talking, their shoulders a color
+export const Talker = ({ x, y, woman, talking, c = GRAY }: { x: number; y: number; woman?: boolean; talking?: boolean; c?: string }) => (
+  <g>
+    <Fill d={`M ${x - 44} ${y + 74} Q ${x - 42} ${y + 34} ${x} ${y + 34} Q ${x + 42} ${y + 34} ${x + 44} ${y + 74} Z`} c={c} op={0.35} />
+    <Ink d={`M ${x - 44} ${y + 74} Q ${x - 42} ${y + 34} ${x} ${y + 34} Q ${x + 42} ${y + 34} ${x + 44} ${y + 74}`} w={5} />
+    <Fill d={circle(x, y, 28)} c={BOARD} op={1} />
+    <Ink d={circle(x, y, 28)} w={5} />
+    <Ink d={woman ? `M ${x - 30} ${y + 28} Q ${x - 38} ${y - 40} ${x} ${y - 30} Q ${x + 38} ${y - 40} ${x + 30} ${y + 28}` : `M ${x - 26} ${y - 8} Q ${x} ${y - 44} ${x + 26} ${y - 8}`} w={8} />
+    <circle cx={x - 9} cy={y - 2} r={3.3} fill={INK} />
+    <circle cx={x + 9} cy={y - 2} r={3.3} fill={INK} />
+    {talking ? <ellipse cx={x} cy={y + 13} rx={7} ry={6} fill={INK} /> : <Ink d={line([x - 7, y + 13], [x + 7, y + 13])} w={3.5} />}
+  </g>
+);
+
+//a speech bubble, an oval with its tail pointing to who's speaking
+export const Bubble = ({ x, y, rx, ry, to, c = INK, w = 5 }: { x: number; y: number; rx: number; ry: number; to: Pt; c?: string; w?: number }) => {
+  const oval = `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0`;
+  //the tail leaves the bottom of the oval on the side toward who's speaking
+  const bx = Math.max(-rx * 0.6, Math.min(rx * 0.6, (to[0] - x) * 0.7));
+  const at = (dx: number) => y + ry * Math.sqrt(1 - ((bx + dx) / rx) ** 2) - 5;
+  const base: [Pt, Pt] = [[x + bx - 14, at(-14)], [x + bx + 14, at(14)]];
+  return (
+    <g>
+      <Fill d={oval} c="#fff" op={1} />
+      <Ink d={oval} c={c} w={w} />
+      <Fill d={shape(base[0], to, base[1])} c="#fff" op={1} />
+      <Ink d={line(base[0], to, base[1])} c={c} w={w} />
+    </g>
+  );
+};
+
+//a flash or a burst of sound: a spot with lines bursting out of it
+export const Burst = ({ x, y }: { x: number; y: number }) => (
+  <g>
+    <Fill d={circle(x, y, 16)} c={ORANGE} op={0.75} />
+    <Ink d={circle(x, y, 16)} w={4} />
+    <Ink
+      d={Array.from({ length: 8 }, (_, i) => {
+        const a = (i * Math.PI) / 4;
+        return line([x + 24 * Math.cos(a), y + 24 * Math.sin(a)], [x + 34 * Math.cos(a), y + 34 * Math.sin(a)]);
+      }).join(' ')}
+      w={4}
+    />
   </g>
 );

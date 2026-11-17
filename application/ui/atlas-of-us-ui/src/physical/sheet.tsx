@@ -26,11 +26,10 @@ export default function Sheet({ abilities, measurements, onGo }: SheetProps) {
   const waiting = abilities.filter((a) => a.value === null && tried(a));
   const todo = abilities.filter((a) => a.value === null && !tried(a));
 
-  //what a place on an ability came from, in a few words: the latest reading, their own rating, or an impairment
+  //what a place on an ability came from, in a few words: the latest reading, or an impairment
   const from = (a: Ability) => {
     const b = a.basis[0];
     if (!b) return '';
-    if (b.kind === 'rating') return 'From your own rating';
     const m = measurements.find((x) => x.name === b.name);
     const latest = m?.readings[0];
     return m && latest ? `From your ${m.name.toLowerCase()}: ${shownReading(latest.value, m)}` : `From your ${b.name.toLowerCase()}`;

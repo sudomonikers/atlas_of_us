@@ -55,7 +55,7 @@ export default function Results({ abilities, measurements, body, onLight, picked
         ))}
       </div>
 
-      {!placed.length && <p style={styles.text}>You haven't measured or rated any of these yet. Take a test or rate yourself and it will show up here.</p>}
+      {!placed.length && <p style={styles.text}>You haven't measured any of these yet. Take a test and it will show up here.</p>}
       <ul style={styles.list}>
         {placed.map((a) => (
           <li key={a.id}>
@@ -84,7 +84,7 @@ function unplaced(shown: Ability[], measurements: Measurements) {
   const untried = shown.filter((a) => a.value === null).length - waiting;
   return [
     waiting && `${waiting} more ${waiting === 1 ? 'is' : 'are'} waiting on more people to compare with.`,
-    untried && `${untried} ${waiting ? '' : 'more '}${untried === 1 ? "hasn't" : "haven't"} been measured or rated yet.`,
+    untried && `${untried} ${waiting ? '' : 'more '}${untried === 1 ? "hasn't" : "haven't"} been measured yet.`,
   ]
     .filter(Boolean)
     .join(' ');
@@ -103,9 +103,7 @@ function Detail({ ability: a }: { ability: Ability }) {
   const from = a.basis.map((b) =>
     b.kind === 'measurement'
       ? `${b.name}${b.standing !== null ? `, ${standingBriefly(b.standing, 'higher')}` : ''}`
-      : b.kind === 'rating'
-        ? 'Your own rating'
-        : `${b.extent ? `A ${b.extent} impairment` : 'An impairment'} in ${b.name.toLowerCase()}`,
+      : `${b.extent ? `A ${b.extent} impairment` : 'An impairment'} in ${b.name.toLowerCase()}`,
   );
   const untested = a.measurements.filter((m) => !m.counted).map((m) => m.name);
   //working around an impairment comes first for someone with one in what it rests on

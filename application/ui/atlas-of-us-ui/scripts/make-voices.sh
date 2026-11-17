@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# makes the spoken digits Competing Voices plays (src/physical/competing_voices), into public/voices, with Amazon Polly's
-# neural voices: the digits one to nine but seven from Matthew, the voice to follow, and from Joanna and Gregory, who
-# talk over him, and Matthew saying "This is the voice to follow." Each is trimmed of silence and set to -20 dB RMS, so
-# the test sets their levels against each other exactly. Needs the aws cli signed in and ffmpeg
+# makes the spoken digits Competing Voices and Digits in Noise play (src/physical/competing_voices and digits_in_noise),
+# into public/voices, with Amazon Polly's neural voices: the digits one to nine but seven from Matthew, the voice to
+# follow, and from Joanna and Gregory, who talk over him, and Matthew saying "This is the voice to follow." Each is
+# trimmed of silence and set to -20 dB RMS, so the tests set their levels against each other exactly. Then the noise
+# Digits in Noise plays Matthew's digits in, shaped like his voice (scripts/make-noise.mjs). Needs the aws cli signed
+# in, ffmpeg and node
 #   scripts/make-voices.sh
 set -euo pipefail
 
@@ -32,3 +34,4 @@ for voice in Matthew Joanna Gregory; do
   done
 done
 say Matthew "This is the voice to follow." matthew-follow
+node scripts/make-noise.mjs

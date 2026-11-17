@@ -39,7 +39,6 @@ export interface Physical {
   //app runs is played to score it. Sit and Reach is cm past the toes, and negative for short of them
   readings: Record<string, number>;
   brick_uses?: string[]; //the uses typed in Brick Uses, which the api scores
-  ratings: Record<string, number>; //ability name to the hardest of its three examples the persona can do, 1 to 3, or 0 for none
   impairments: Impairment[];
   conditions: Condition[];
 }
