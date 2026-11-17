@@ -556,6 +556,7 @@ const oddColorOut: Game = async (page, threshold) => {
   for (let i = 0; i < COLOR_PRACTICE.length; i++) {
     await shows(page, `Practice ${i + 1} of ${COLOR_PRACTICE.length}`);
     await button(page, `Tile ${odd(await tiles()) + 1}`).click();
+    await wait(page, 1200); //past the answer shown after each practice try
   }
   await button(page, `Start: ${COLOR_TRIES} tries`).click();
   await wait(page, COUNT_IN);

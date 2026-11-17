@@ -14,7 +14,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/traits", get(list_all_personality_traits))
         .route("/traits/{id}/skills", get(list_trait_skills))
-        .route("/model", get(get_model))
+        .route("/domains", get(list_domains))
         .route("/affected-by", get(get_affected_by))
         .route("/people/{person_id}/evidence", get(list_person_evidence))
         .route("/answers", put(answer_question).delete(clear_answers))
@@ -154,19 +154,9 @@ pub struct Domain {
     icf: Vec<Icf>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Model {
-    name: Option<String>,
-    overview: Option<String>,
-    history: Option<String>,
-    limits: Option<String>,
-    our_take: Option<String>,
-    domains: Vec<Domain>,
-}
-
-//the personality model: what it is, where it came from and its limits, then every domain with its traits, each with
-//what being high or low on it means and how it interacts with other traits, and the ICF functions that correspond to it
-pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (StatusCode, String)> {
+//every domain with its traits, each with what being high or low on it means and how it interacts with other traits,
+//and the ICF functions that correspond to it
+pub async fn list_domains(State(state): State<AppState>) -> Result<Json<Vec<Domain>>, (StatusCode, String)> {
     //built inside out: each trait's interactions, then each domain's traits, then the domains
     let mut rows = state.graph.execute(query("
         MATCH (d:PersonalityDomain)
@@ -188,12 +178,11 @@ pub async fn get_model(State(state): State<AppState>) -> Result<Json<Model>, (St
             traits: traits,
             icf: COLLECT { MATCH (f:BodyFunction)-[c:CORRESPONDS_TO]->(d) RETURN {code: f.code, name: f.name, opposite: c.opposite} ORDER BY f.code }
         }) AS domains
-        OPTIONAL MATCH (m:PersonalityModel)
-        RETURN m.name AS name, m.overview AS overview, m.history AS history, m.limits AS limits, m.ourTake AS our_take, domains
+        RETURN domains
     ")).await.map_err(internal)?;
 
-    let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no personality model row"))?;
-    Ok(Json(row.to::<Model>().map_err(internal)?))
+    let row = rows.next().await.map_err(internal)?.ok_or_else(|| internal("no domains row"))?;
+    Ok(Json(row.get::<Vec<Domain>>("domains").map_err(internal)?))
 }
 
 //one of the logged in user's conditions, as it can affect a domain or trait

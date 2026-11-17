@@ -25,7 +25,7 @@ Each asks the live api for every item, the way a user asks, so it goes through t
 
 ### Hand-written seeds
 - `physical_abilities_seed`: 46 O\*NET `Ability` nodes.
-- `personality_seed`, `personality_explore_seed`, `personality_scenarios_seed`: the Big Five model, domains, facets and
+- `personality_seed`, `personality_explore_seed`, `personality_scenarios_seed`: the Big Five domains, facets and
   `INTERACTS_WITH`, and the scenarios with their questions.
 - `auth_constraints` and `migrations/001` to `005`.
 

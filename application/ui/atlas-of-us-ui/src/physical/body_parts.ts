@@ -1,4 +1,4 @@
-import type { Ability, Conditions, Impairments, PartSummary } from './api';
+import type { Ability, PartSummary } from './api';
 import type { MeshIndex } from './anatomy_layers';
 import { HEX } from '../shared_components/palette';
 
@@ -67,20 +67,6 @@ export function meshesOf(body: Body, ids: Iterable<string>): Set<string> {
 
 //the ids of the parts with these FMA ids
 export const partIds = (body: Body, fmaIds: string[]) => fmaIds.flatMap((f) => body.byFma.get(f)?.id ?? []);
-
-//the ids of the parts each of the user's impairments and conditions is in, by the impairment's function or part, or the
-//condition's id. A function's are the parts that carry it out
-export function notedParts(impairments: Impairments, conditions: Conditions) {
-  const functions = new Map(impairments.functions.map((f) => [f.id, f]));
-  const byCode = new Map(impairments.functions.map((f) => [f.code, f]));
-  const of = new Map<string, string[]>();
-  for (const i of impairments.impairments) of.set(i.id, functions.get(i.id)?.parts ?? [i.id]);
-  for (const m of conditions.mine) {
-    const c = conditions.conditions.find((x) => x.id === m.id);
-    if (c) of.set(c.id, [...c.parts.map((p) => p.id), ...c.functions.flatMap((f) => byCode.get(f.code)?.parts ?? [])]);
-  }
-  return of;
-}
 
 //what a step's panel shows on the body over what the step itself does: meshes lit up and flown to, meshes in colors of
 //their own, and whether the lit ones pulse

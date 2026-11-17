@@ -81,6 +81,8 @@ export interface Measurement {
   timer: number | null; //for a home test of how many in a set time, the seconds to count down
   protocol: string[]; //the steps of a home test
   source: string | null; //where its norms come from
+  atlas_norms: boolean; //whether it's compared with Atlas users rather than published norms
+  confidence: number; //how much a reading says about the abilities it shows, 0 to 1
   ages: { from: number; to: number | null } | null; //the ages it has norms for
   readings: Reading[];
 }
@@ -446,80 +448,8 @@ export interface PartRef {
   name: string;
 }
 
-//a function a part carries out, with the abilities it underlies. through names the part that carries it out when it's
-//one the part belongs to or is made of
-export interface Served {
-  id: string;
-  name: string;
-  description: string | null;
-  abilities: string[];
-  through: string | null;
-}
-
-//a condition that affects a part, a part it belongs to or is made of, or a function it carries out, which through names
-export interface Affecting {
-  id: string;
-  name: string;
-  description: string | null;
-  through: string | null;
-}
-
-//a measurement of a part, of a part it belongs to or is made of, or of a function it carries out
-export interface Measuring {
-  id: string;
-  name: string;
-  through: string | null;
-}
-
-//one of the user's impairments in a part, a part it belongs to or is made of, or a function it carries out
-export interface Impaired {
-  id: string; //the function or part it's in
-  name: string;
-  extent: Extent;
-  through: string | null;
-}
-
-//a skill with a level that takes an ability a part's functions underlie, and whether the user is on it or has a goal in it
-export interface Relying {
-  id: string;
-  name: string;
-  abilities: string[]; //the part's abilities it takes
-  yours: boolean;
-}
-
-//a topic to learn more about a part in, from the part, a part it belongs to or a part it's made of, which through names
-export interface Covering {
-  id: string;
-  name: string;
-  status: string;
-  through: string | null;
-}
-
-//a part of the body and everything to learn about it
-export interface Part {
-  id: string;
-  fma_id: string;
-  name: string;
-  definition: string | null;
-  synonyms: string[];
-  elements: string[]; //the meshes of the 3D body it's drawn with
-  wholes: PartRef[]; //the parts it belongs to
-  parts: PartRef[]; //the parts it's made of
-  kinds: PartRef[]; //the kinds of part it is
-  subtypes: PartRef[]; //the more specific kinds of it
-  functions: Served[];
-  conditions: Affecting[];
-  measurements: Measuring[];
-  impairments: Impaired[];
-  skills: Relying[]; //the user's own first, then the ones that rely on it most
-  skills_total: number;
-  topics: Covering[]; //its own first, then the ones from the parts it belongs to and is made of
-}
-
 //every part of the body
 export const getAnatomy = () => request<PartSummary[]>('GET', '/physical/anatomy');
-
-export const getPart = (id: string) => request<Part>('GET', `/physical/anatomy/${encodeURIComponent(id)}`);
 
 //a name to show, with a capital first letter, for the ontologies that have them in lower case
 export const capitalized = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);

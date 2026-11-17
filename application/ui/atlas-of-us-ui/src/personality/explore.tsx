@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { getModel, type Breakdown, type Domain, type DomainTrait, type Icf, type PersonalityModel } from './api';
+import { getDomains, type Breakdown, type Domain, type DomainTrait, type Icf } from './api';
+import { BIG_FIVE } from './explore_copy';
 import { DOMAIN_LOOK, polesOf, type Poles } from './poles';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Disclosure } from '../shared_components/disclosure';
@@ -39,15 +40,15 @@ const TIMELINE = [
   { when: 'Today', what: 'The free IPIP-NEO, which our chapters are written to' },
 ];
 
-//the Explore view: what the Big Five is, then every domain and trait in depth, all read from the database. Only the
-//gist shows at first; the longer reading opens on request
+//the Explore view: what the Big Five is, then every domain and trait in depth, read from the database. Only the gist
+//shows at first; the longer reading opens on request
 export default function Explore() {
-  const [model, setModel] = useState<PersonalityModel>();
+  const [domains, setDomains] = useState<Domain[]>();
   const [error, setError] = useState<string>();
   const [open, setOpen] = useState<Set<string>>(new Set()); //names of the expanded traits and domains
 
   useEffect(() => {
-    getModel().then(setModel, (e) => setError(e instanceof Error ? e.message : String(e)));
+    getDomains().then(setDomains, (e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   const toggle = (name: string) =>
@@ -64,15 +65,14 @@ export default function Explore() {
   };
 
   if (error) return <AtlasError message={`I couldn't load the guide. ${error}`} style={styles.status} />;
-  if (!model) return <Thinking label="Dusting off the field guide" style={styles.status} />;
+  if (!domains) return <Thinking label="Dusting off the field guide" style={styles.status} />;
 
-  const { domains } = model;
-  const [overview, overviewRest] = splitSentences(model.overview ?? '', 2);
+  const [overview, overviewRest] = splitSentences(BIG_FIVE.overview, 2);
   const background = [
-    { title: 'Where it came from', body: model.history, timeline: true },
-    { title: "What it can't tell you", body: model.limits },
-    { title: 'How we use it', body: model.our_take },
-  ].filter((part) => part.body);
+    { title: 'Where it came from', body: BIG_FIVE.history, timeline: true },
+    { title: "What it can't tell you", body: BIG_FIVE.limits },
+    { title: 'How we use it', body: BIG_FIVE.ourTake },
+  ];
 
   return (
     <>

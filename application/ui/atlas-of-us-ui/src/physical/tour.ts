@@ -105,6 +105,8 @@ const MEASURED: Record<string, MotionName> = {
   'Spot the Problem': 'problems',
 };
 const measuredBy = (name: string): MotionName => MEASURED[name] ?? 'screen';
+//the animation of a test, by its name, when it has its own
+export const motionOf = (name: string): MotionName | null => MEASURED[name] ?? null;
 
 //names run together as people say them: "a, b and c"
 const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
@@ -133,7 +135,7 @@ export const askedAbout = (a: Ability) => askedFor(a).length > 0;
 //what an ability looks like being used, from its test, for showing it off. None for the ones tested on a screen
 export function motionFor(a: Ability): MotionName | null {
   const test = askedFor(a)[0];
-  return (test && MEASURED[test.name]) ?? null;
+  return test ? motionOf(test.name) : null;
 }
 
 //whether the user has a reading of a measurement that's asked for an ability, so they've done it even when there's

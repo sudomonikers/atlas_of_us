@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { CATEGORIES, waitingToCompare, capitalized, comparedWith, conditionName, SEVERITIES, shownReading, type Ability, type AffectedBy, type Area, type Better, type Measurement } from './api';
+import { CATEGORIES, waitingToCompare, capitalized, comparedWith, conditionName, SEVERITIES, shownReading, type Ability, type AffectedBy, type Better, type Measurement } from './api';
 import { hex, standingColor, type Body } from './body_parts';
 import BodyStage from './body_stage';
 import Results from './results';
+import { AREA_CHAPTER } from './chapter_thumbs';
 import { SummaryPanel } from './summary';
 import { chapterSteps, CHAPTERS, type Known } from './tour';
 import { navigate } from '../router';
@@ -22,7 +23,6 @@ interface YourResultsProps {
 const GLANCE_GROUPS = ['Body', 'Vitals'];
 
 //the chapter that finds out each area's abilities
-const AREA_CHAPTER: Record<Area, string> = { Physical: 'body', Psychomotor: 'coordination', Sensory: 'senses', Cognitive: 'mind' };
 
 export default function YourResults({ known, affectedBy, body }: YourResultsProps) {
   const [picked, setPicked] = useState<string>();

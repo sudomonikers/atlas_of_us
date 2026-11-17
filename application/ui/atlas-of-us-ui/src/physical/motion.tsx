@@ -237,11 +237,11 @@ export type MotionName = keyof typeof MOTIONS;
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-//the moment of a loop to draw, running on the screen's frames unless motion is reduced
-function useLoop(period: number, still: number) {
+//the moment of a loop to draw, running on the screen's frames while it's playing, unless motion is reduced
+function useLoop(period: number, still: number, playing: boolean) {
   const [time, setTime] = useState(still);
   useEffect(() => {
-    if (reduced()) return;
+    if (reduced() || !playing) return;
     let frame = 0;
     const start = performance.now();
     const tick = (now: number) => {
@@ -250,15 +250,15 @@ function useLoop(period: number, still: number) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [period]);
-  return time;
+  }, [period, playing]);
+  return playing ? time : still;
 }
 
-//a comic panel of someone doing something, on a loop
-export function MotionPanel({ name }: { name: MotionName }) {
+//a comic panel of someone doing something, on a loop, or held at its still moment when it isn't playing
+export function MotionPanel({ name, playing = true }: { name: MotionName; playing?: boolean }) {
   const motion: Motion = MOTIONS[name];
   const id = useId();
-  const time = useLoop(motion.period, motion.still);
+  const time = useLoop(motion.period, motion.still, playing);
   const [figure, joints] = motion.figure ? posed(motion.figure.view, poseAt(motion.figure.frames, motion.period, time), motion.figure.eyes) : [null, undefined];
   return (
     <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} role="img" aria-label={motion.label} style={{ width: '100%', height: '100%', display: 'block' }}>

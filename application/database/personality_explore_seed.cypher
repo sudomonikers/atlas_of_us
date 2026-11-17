@@ -4,7 +4,7 @@
 //
 // The reading material behind the Explore tab. Run after personality_seed.cypher.
 //
-//   (:PersonalityModel)-[:HAS_DOMAIN]->(:PersonalityDomain)-[:HAS_FACET]->(:PersonalityTrait)
+//   (:PersonalityDomain)-[:HAS_FACET]->(:PersonalityTrait)
 //   (:PersonalityTrait)-[:INTERACTS_WITH {description}]->(:PersonalityTrait)
 //
 // Domains and traits both carry an overview plus four lists: where being high
@@ -21,26 +21,12 @@
 // 0. Constraints
 // -----------------------------------------------------------------------------
 
-CREATE CONSTRAINT personalitymodel_name_unique IF NOT EXISTS
-FOR (n:PersonalityModel) REQUIRE n.name IS UNIQUE;
-
 CREATE CONSTRAINT personalitydomain_key_unique IF NOT EXISTS
 FOR (n:PersonalityDomain) REQUIRE n.key IS UNIQUE;
 
 
 // -----------------------------------------------------------------------------
-// 1. The model
-// -----------------------------------------------------------------------------
-
-MERGE (m:PersonalityModel {name: "Big Five"})
-SET m.overview = "The Big Five is the most widely used and best supported model of personality in psychology. It says most of the stable differences between people can be described along five broad dimensions: Openness, Conscientiousness, Extraversion, Agreeableness and Neuroticism. Each one is a scale, not a type. You aren't an introvert or an extravert, you sit somewhere along a line, and most people sit near the middle of most of them. Each domain splits into six narrower facets, and two people with the same domain score can get there through very different facets. Your scores are fairly stable across adulthood, but they do drift: on average people become more conscientious, more agreeable and less neurotic as they age.",
-    m.history = "The model wasn't invented, it was found. Starting in the 1930s, researchers worked from the lexical hypothesis: if a difference between people matters, language will have a word for it. They collected thousands of English adjectives that describe people, had people rate themselves and each other on them, and used factor analysis to see which words cluster together. The same five clusters kept appearing across different researchers, samples and later languages. Costa and McCrae built the NEO questionnaires around them in the 1980s, and the IPIP-NEO facets used here are a free, public-domain version of that work.",
-    m.limits = "It's the best model we have, not a complete one. It describes how people tend to behave, but it doesn't explain why, and it says little about values, beliefs, skills or how someone changes with circumstance. Almost all of the data comes from questionnaires where people rate themselves, which rewards self-flattery and self-ignorance alike. Most of the research has been done on Western, educated, relatively wealthy people, and the five factors replicate less cleanly in some other cultures. Different questionnaires carve the facets differently, so a facet name here won't always mean exactly what it means elsewhere. Scores predict real outcomes like job performance, health and relationship stability, but only modestly: a trait shifts the odds, it doesn't decide anything.",
-    m.ourTake = "We use the Big Five because it holds up better than anything else, but we don't gather it the way most tests do. Instead of asking you to rate vague statements, we put you in situations and read what you do and why. Every scene is written to items from the IPIP-NEO, the public questionnaire behind the thirty facets, so we measure the same facets the research does. We just read them from what you do in a situation rather than how you rate yourself.";
-
-
-// -----------------------------------------------------------------------------
-// 2. Domains
+// 1. Domains
 // -----------------------------------------------------------------------------
 
 UNWIND [
@@ -83,10 +69,7 @@ UNWIND [
 ] AS d
 MERGE (n:PersonalityDomain {key: d.key})
 SET n.name = d.name, n.order = d.order, n.overview = d.overview,
-    n.highGood = d.highGood, n.lowGood = d.lowGood, n.highWatch = d.highWatch, n.lowWatch = d.lowWatch
-WITH n
-MATCH (m:PersonalityModel {name: "Big Five"})
-MERGE (m)-[:HAS_DOMAIN]->(n);
+    n.highGood = d.highGood, n.lowGood = d.lowGood, n.highWatch = d.highWatch, n.lowWatch = d.lowWatch;
 
 // facets belong to the domain in their description prefix, e.g. "openness facet: ..."
 MATCH (d:PersonalityDomain), (t:PersonalityTrait)
@@ -95,7 +78,7 @@ MERGE (d)-[:HAS_FACET]->(t);
 
 
 // -----------------------------------------------------------------------------
-// 3. Traits
+// 2. Traits
 // -----------------------------------------------------------------------------
 
 UNWIND [
@@ -322,7 +305,7 @@ SET n.overview = t.overview,
 
 
 // -----------------------------------------------------------------------------
-// 4. Interactions, written from the first trait's point of view
+// 3. Interactions, written from the first trait's point of view
 // -----------------------------------------------------------------------------
 
 UNWIND [

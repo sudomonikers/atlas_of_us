@@ -47,7 +47,6 @@ scores is in `documentation/architecture/personality.md`.
 
 | Label | Key properties | What it is |
 |---|---|---|
-| PersonalityModel | `name`, `overview`, history and limits | The Big Five itself, for the Explore reading material. There is one |
 | PersonalityDomain | `key`, `name`, `overview`, `highGood`, `lowGood`, `highWatch`, `lowWatch` | One of the five domains |
 | PersonalityTrait | `id`, `name`, `description`, `overview`, `highGood`, `lowGood`, `highWatch`, `lowWatch` | One of the 30 facets, the traits we measure |
 | PersonalityScenario | `id`, `name`, `title`, `order` | A scene. `order` is its place in play order, which also sets its scoring batch |
@@ -64,7 +63,6 @@ be written, and `personalityReportCharged` is whether a credit was spent on the 
 
 | Relationship | From → To | Properties | Meaning |
 |---|---|---|---|
-| HAS_DOMAIN | PersonalityModel → PersonalityDomain | | The model's five domains |
 | HAS_FACET | PersonalityDomain → PersonalityTrait | | A domain's six facets |
 | INTERACTS_WITH | PersonalityTrait → PersonalityTrait | `description` | How two traits combine, from the first one's point of view |
 | HAS_PERSONALITY_TRAIT | Person → PersonalityTrait | `value`, `confidence` | How much of the trait they have, from 0 to 1 with 0.5 typical, and how much their answers say about it. No relationship means unmeasured, not average |
@@ -76,7 +74,7 @@ be written, and `personalityReportCharged` is whether a credit was spent on the 
 
 #### Example
 ```cypher
-(:PersonalityModel {name: "Big Five"})-[:HAS_DOMAIN]->(:PersonalityDomain {key: "agreeableness"})-[:HAS_FACET]->(c:PersonalityTrait {name: "Cooperation"})
+(:PersonalityDomain {key: "agreeableness"})-[:HAS_FACET]->(c:PersonalityTrait {name: "Cooperation"})
 
 // Andrew is very cooperative, Lulu much less so
 (andrew)-[:HAS_PERSONALITY_TRAIT {value: 0.9, confidence: 0.85}]->(c)

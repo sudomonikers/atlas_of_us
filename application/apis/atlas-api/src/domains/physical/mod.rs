@@ -104,6 +104,8 @@ pub struct Measurement {
     timer: Option<i64>, //for a home test of how many in a set time, the seconds to count down
     protocol: Vec<String>, //the steps of a home test
     source: Option<String>, //where its norms come from
+    atlas_norms: bool, //whether it's compared with Atlas users rather than published norms
+    confidence: f64, //how much a reading says about the abilities it shows, 0 to 1
     ages: Option<Ages>, //the ages it has norms for. None when it has none
     readings: Vec<Reading>,
 }
@@ -145,6 +147,7 @@ struct Row {
     protocol: Vec<String>,
     source: Option<String>,
     atlas_norms: bool,
+    confidence: f64,
     readings: Vec<RawReading>,
     norms: Vec<Norm>,
 }
@@ -177,7 +180,7 @@ const MEASUREMENTS: &str = "
     RETURN {SEX} AS sex, toString(p.birthday) AS birthday,
            m.id AS id, m.name AS name, m.unit AS unit, m.better AS better, m.group AS group, m.description AS description,
            m.min AS min, m.max AS max, m.test AS test, m.timer AS timer, coalesce(m.protocol, []) AS protocol, m.source AS source,
-           coalesce(m.atlasNorms, false) AS atlas_norms,
+           coalesce(m.atlasNorms, false) AS atlas_norms, coalesce(m.confidence, 0.0) AS confidence,
            COLLECT { MATCH (m)-[:MEASURES]->(a:Ability) RETURN a.name ORDER BY a.name } AS abilities,
            COLLECT { MATCH (m)-[:MEASURES]->(b:BodyPart) RETURN b.id } AS parts,
            COLLECT {
@@ -227,6 +230,8 @@ async fn measurements(State(state): State<AppState>, user: AuthUser) -> Result<J
             timer: row.timer,
             protocol: row.protocol,
             source: row.source,
+            atlas_norms: row.atlas_norms,
+            confidence: row.confidence,
             ages,
         }
     }).collect();

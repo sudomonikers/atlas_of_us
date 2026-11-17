@@ -7,7 +7,7 @@ the graph itself, read `../data_model/physical_attributes/physical_attributes.md
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: chapters of measurements, self-tests and abilities shown as comic animations of someone doing them, results and conditions drawn on a 3D model of the body, and the body to explore |
+| UI | `application/ui/atlas-of-us-ui/src/physical/` | Physical Traits: chapters of measurements, self-tests and abilities shown as comic animations of someone doing them, results and conditions drawn on a 3D model of the body, and a guide to the abilities |
 | Pose models | `application/ui/atlas-of-us-ui/public/pose/` | MediaPipe's pose and hand landmarkers, which find where someone's body or hands are in each camera frame, in the browser |
 | Speech model | `application/ui/atlas-of-us-ui/public/speech/` | TensorFlow's speech commands model, which hears short words such as up, down, left and right, in the browser, for answering the far eye chart out loud |
 | 3D body | `application/ui/atlas-of-us-ui/public/anatomy/` | The models of the body, one file per layer, and which part each mesh is, served with the site |
@@ -83,8 +83,11 @@ the camera flying to the parts it's about. The chapters are:
 Your results shows everything a person has added as a whole: Atlas's summary of it, their characteristics with their size
 and vitals against people like them, every ability they have a place on laid out by area, the same drawn on the 3D body
 with picking an ability lighting up the parts it uses and what its place comes from, their conditions and impairments, and what's
-still to find out, with the chapter that finds it. Explore is the
-3D body to turn around: clicking any part, picking a system, or finding a part by name opens everything about it.
+still to find out, with the chapter that finds it. Explore is a guide to the abilities: what they are, where they
+come from (Fleishman's taxonomy and O\*NET), what they can't tell you, how the Atlas places people on them, and what
+every test is compared with, then each area with its abilities as cards, each a still of its test. An ability opens
+in place on its test's animation, how much practice helps, where its tests are taken, what they're compared with and
+how much a reading says, then each test with a way to take it, and how to work on it.
 
 Some home tests can be watched through the camera, so someone can do them alone: standing on one leg, the plank,
 plate tapping and the two coin tests are timed, push-ups and bend, twist and touch are counted, and a vertical jump is measured from how long the
@@ -217,17 +220,11 @@ each ability, and their conditions and impairments with the abilities each can a
 a change to any of that marks it stale and they can ask for it again. It takes a place on a few abilities to ask, and
 each one costs a credit, given back if it can't be written (see `credits.md`).
 
-## Learning about the body
+## The 3D body
 The 3D body is BodyParts3D's models of a real human body, simplified when the anatomy seed is generated so the whole
 body loads in a browser, and drawn in the browser with three.js as a comic x-ray: the skin is an inked figure, and the parts inside it are drawn in flat color with ink between them. Each layer is its own file,
-loaded the first time it's shown. Every mesh is named, and a file beside the models says which part each one is, so a
-click opens that part. A part's page shows its FMA definition and other names, the wholes it belongs to and the parts
-it's made of, the kinds of part it is, the functions it serves with the abilities they underlie and the measurements
-that read them, the conditions that affect it, its measurements with where the person stands on each, the person's
-impairments, the skills whose levels take the abilities it gives, the person's own first, and the topics to learn more
-about it in. Topics are linked by hand to the body's systems and organs, and the parts below them show them too. The physical data sets are linked at a few points (conditions to parts and functions, measurements to
-parts and functions, parts to the functions they serve), and a part gathers everything linked to it, to the parts it
-belongs to and is made of, and to the functions those serve, saying where each came from: the left lung shows asthma
-through the lung. Lighting up a part lights up every mesh it's drawn with, or those of the parts within it and kinds of it;
+loaded the first time it's shown. Every mesh is named, and a file beside the models says which part each one is. The
+physical data sets are linked at a few points (conditions to parts and functions, measurements to parts and
+functions, parts to the functions they serve). Lighting up a part lights up every mesh it's drawn with, or those of the parts within it and kinds of it;
 a part with no model lights up the nearest part it belongs to that has one. An ability lights up the parts that serve
 the functions it rests on, and a body function the parts that serve it.

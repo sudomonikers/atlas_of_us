@@ -165,17 +165,8 @@ export interface AffectedBy {
 //the domains and traits the user's conditions and impairments can affect
 export const getAffectedBy = () => request<AffectedBy[]>('GET', '/personality/affected-by');
 
-export interface PersonalityModel {
-  name: string | null;
-  overview: string | null;
-  history: string | null;
-  limits: string | null;
-  our_take: string | null;
-  domains: Domain[];
-}
-
-//the personality model, its domains and every trait
-export const getModel = () => request<PersonalityModel>('GET', '/personality/model');
+//every domain with its traits
+export const getDomains = () => request<Domain[]>('GET', '/personality/domains');
 
 /* ---------------------------------------------------------------------------------------------
  * the My Personality view's traits

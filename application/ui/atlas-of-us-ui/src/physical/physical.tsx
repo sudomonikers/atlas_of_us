@@ -19,10 +19,11 @@ import {
   type PartSummary,
   type Reading,
 } from './api';
-import { HUMAN_BODY, indexBody, meshesOf, notedParts, partIds, type Body } from './body_parts';
+import { HUMAN_BODY, indexBody, meshesOf, partIds, type Body } from './body_parts';
+import { THUMBS } from './chapter_thumbs';
 import { CharacteristicChoice } from './characteristic_choice';
-import BodyMap from './body_map';
-import BodyStage, { LayerButtons } from './body_stage';
+import Explore from './explore';
+import { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
 import LivingWith from './living_with';
 import YourResults from './your_results';
@@ -178,7 +179,7 @@ function Traits() {
           ) : !loaded ? (
             <Thinking label="Looking you over" />
           ) : view === 'explore' ? (
-            <Explore loaded={loaded} changes={changes} />
+            <Explore known={loaded} />
           ) : view === 'results' ? (
             <YourResults known={loaded} affectedBy={loaded.affectedBy} body={loaded.body} />
           ) : (
@@ -190,10 +191,6 @@ function Traits() {
   );
 }
 
-//each chapter's picture, a still of its opening scene, by its id
-const THUMBS = Object.fromEntries(
-  Object.entries(import.meta.glob<string>('./chapters/*.jpg', { eager: true, import: 'default' })).map(([path, url]) => [path.split('/')[2].replace('.jpg', ''), url]),
-);
 
 //a scene's name, for its dot: a test's or ability's name, or what the scene is
 const NAMED: Record<string, string> = {
@@ -203,7 +200,7 @@ const NAMED: Record<string, string> = {
 };
 const nameOf = (s: Scene) => s.title ?? NAMED[s.id] ?? (s.id.startsWith('intro') ? 'Introduction' : s.id);
 
-//the page's views: the chapters, the user's results drawn on their body, and the body to explore
+//the page's views: the chapters, the user's results drawn on their body, and a guide to the abilities
 type View = 'chapters' | 'results' | 'explore';
 const VIEWS: { id: View; label: string; to: string; says: string }[] = [
   {
@@ -222,7 +219,7 @@ const VIEWS: { id: View; label: string; to: string; says: string }[] = [
     id: 'explore',
     label: 'Explore',
     to: '/physical?view=explore',
-    says: 'Turn the body around and click any part to find out what it does and what depends on it.',
+    says: "Here's what every ability is, where the idea comes from, and how each one is tested.",
   },
 ];
 
@@ -258,41 +255,6 @@ function Header({ view }: { view: View }) {
         ))}
       </div>
     </>
-  );
-}
-
-//the body to explore: click any part on it, or find it beside it, to light it up and read all about it. Everything the
-//user has noted blushes
-function Explore({ loaded, changes }: { loaded: Loaded; changes: Changes }) {
-  const { anatomy, body, abilities, measurements, impairments, conditions } = loaded;
-  const [picked, setPicked] = useState<string>();
-  const noted = useMemo(() => meshesOf(body, [...notedParts(impairments, conditions).values()].flat()), [body, impairments, conditions]);
-  const byId = useMemo(() => new Map(measurements.measurements.map((m) => [m.id, m])), [measurements]);
-  const pickMesh = (element: string) => {
-    const part = body.byFma.get(body.meshes[element]?.[0] ?? '');
-    if (part) setPicked(part.id);
-  };
-  return (
-    <BodyStage
-      body={body}
-      layers={['skeleton', 'organs']}
-      noted={noted}
-      onPick={pickMesh}
-      panel={(onLight) => (
-        <BodyMap
-          anatomy={anatomy}
-          body={body}
-          impairments={impairments}
-          conditions={conditions}
-          measurements={byId}
-          abilities={abilities}
-          picked={picked}
-          onPick={setPicked}
-          onImpaired={changes.impaired}
-          onLight={onLight}
-        />
-      )}
-    />
   );
 }
 
