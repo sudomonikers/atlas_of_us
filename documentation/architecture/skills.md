@@ -21,7 +21,7 @@ sits relative to everything else. The design is built around that.
   any source, goes through one resolver that decides whether we already have it.
 - **Community review.** Generated content is provisional until people endorse it, and changes to it are proposals that
   only replace the main version once the community accepts them.
-- **Events.** Every meaningful change is published, so other modules (Personality, Topics, Physical Attributes, Jobs)
+- **Events.** Every meaningful change is published, so other modules (Personality, Topics, Abilities, Jobs)
   react to skills without the Skills module knowing they exist.
 
 ## The pieces
@@ -94,7 +94,7 @@ Before anything is written, what the user typed goes through four gates. The fir
 and the fourth is the resolver:
 
 1. **Normalize** it into a skill name ("being good at excel" becomes "Microsoft Excel").
-2. **Classify** it: a personality trait, a topic or a physical attribute is sent to the module that owns it.
+2. **Classify** it: a personality trait, a topic or an ability is sent to the module that owns it.
 3. **Screen** out gibberish, jokes and slurs. Every real skill passes, however niche.
 4. **Resolve** it: show the skill they meant, or create the new stub.
 
@@ -113,7 +113,7 @@ link that would make a loop of prerequisites is taken out again.
 
 Requirements on anything other than skills are written by the modules that own them, reacting to the same
 `SkillFilled`: Personality links each level to the traits it takes (see `personality.md`), Topics to the knowledge it
-needs (see `topics.md`) and Physical Attributes to the abilities it takes (see `physical.md`).
+needs (see `topics.md`) and Abilities to the abilities it takes (see `abilities.md`).
 
 ## What the user sees
 The Skills page has two views:
@@ -174,7 +174,7 @@ Every meaningful change is published as an event, so other modules can react wit
 |---|---|---|
 | `SkillCreated` | A skill is created, by any route | Topics, search, admin metrics |
 | `SkillFillRequested` | Someone needs a stub filled | The fill job |
-| `SkillFilled` | A skill's levels are written for the first time | The prerequisites job, Personality, Topics, Physical Attributes, Jobs |
+| `SkillFilled` | A skill's levels are written for the first time | The prerequisites job, Personality, Topics, Abilities, Jobs |
 | `SkillFillFailed` | Writing the levels failed | Admin metrics, the UI |
 | `SkillProposalSubmitted` | A user proposed a change | The proposal job |
 | `SkillLevelRevised` | A proposal became the main version | Anything that read the old level, such as people's claims |

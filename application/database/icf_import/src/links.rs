@@ -1,4 +1,4 @@
-//how ICF body functions link to the rest of the physical graph, chosen by hand. A function underlies the abilities it's
+//how ICF body functions link to the rest of the abilities graph, chosen by hand. A function underlies the abilities it's
 //the basis of, so an impairment in it holds them back, a measurement measures the function it's a reading of, and a
 //temperament and personality function corresponds to the Big Five domains and traits it describes
 

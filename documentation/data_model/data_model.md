@@ -15,12 +15,12 @@ A Person's settings in the app are on their PersonConfig, made the first time th
 
 | Property | Meaning |
 |---|---|
-| `physicalIntroSeen` | They've been through the story that opens Physical Traits |
+| `abilitiesIntroSeen` | They've been through the story that opens Abilities |
 | `personalityIntroSeen` | They've been through the story that opens Personality |
 | `sceneStartNoteHidden` | They've turned off the note on getting the most out of a scene |
 
 ```cypher
-(andrew)-[:HAS_CONFIG]->(:PersonConfig {physicalIntroSeen: true})
+(andrew)-[:HAS_CONFIG]->(:PersonConfig {abilitiesIntroSeen: true})
 ```
 
 A Person's credits pay for Atlas's written summaries (`documentation/architecture/credits.md`). `credits` is how many
@@ -70,7 +70,7 @@ be written, and `personalityReportCharged` is whether a credit was spent on the 
 | ANSWERED | Person → PersonalityScenarioQuestion | `id`, `answer`, `reasoning`, `context`, `facets`, `clockSeconds`, `clockLeft`, `clockRanOut`, `answeredDate`, `scoring`, `contests` | Their answer, with what they saw before it. `scoring` is the evidence the scorer found in it, and `contests` the person's challenges to that evidence, both JSON lists |
 | HAS_JOB | Person → JobRunning | | A job running for them |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A skill level that takes the trait (see the Skills graph) |
-| CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | An ICF temperament and personality function that matches the domain or trait, or its low end when `opposite` (see the Physical Attributes graph) |
+| CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | An ICF temperament and personality function that matches the domain or trait, or its low end when `opposite` (see the Abilities graph) |
 
 #### Example
 ```cypher
@@ -260,7 +260,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 (andrew)-[:PRACTICES {hoursPerWeek: 5}]->(c)
 ```
 
-### Physical Attributes Graph
+### Abilities Graph
 A person's body is an important part of who they are. It affects the Skills they can have and the Ideas they can
 understand, and influences their PersonalityTraits. The graph is more than skin, muscle and bone: it's everything from
 the nervous system to abstract things like reaction time, and the conditions a person may have. It's very large but
@@ -400,17 +400,17 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 | AbilityTip | `id`, `kind`, `text` | How a person can work on an ability, written for the Atlas. `kind` is `practice`, for what to do, or for an ability practice barely changes how to correct, protect or make up for it; or `impairment`, for working on it around an impairment in what it rests on |
 | Occupation | `id`, `onetSoc` (unique), `title`, `description`, `alternateTitles`, `vector` | One of the 894 occupations O\*NET rates on its abilities. `onetSoc` is its O\*NET-SOC code, and `vector` is an embedding of its title, description and alternate titles, which skills find it by |
 | Characteristic | `id`, `name` (unique), `order`, `question`, `choices` | A fact about a body that's one of a few choices rather than a number: sex, handedness, eye color, hair color or blood type. Sex also decides who a person's readings are compared with: people of that sex and their age, or everyone their age when they haven't said. `question` is what Atlas asks, `choices` what can be answered, and `order` the order they're asked in |
-| PhysicalMeasurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 55 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colors`, `side_vision`, `designs`, `uses`, `problems`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
+| Measurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 55 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colors`, `side_vision`, `designs`, `uses`, `problems`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values`, `fromAtlas`, `people` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists, and the percentiles can differ between measurements. `fromAtlas` is true on a norm worked out from Atlas users, with how many `people` it's from; the norms seed keeps these |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
 | BodyPart | `id`, `fmaId` (unique), `name`, `definition`, `synonyms`, `elements`, `major` | A part of the body. `fmaId` is its FMA id, such as `FMA7088`, and `elements` the meshes of the 3D body it's drawn with, empty for a part with no model. `major` marks the parts conditions are linked to: organs (which include bones, muscles, joints and named vessels), systems and regions, without the left and right copies of a part |
 | Condition | `id`, `sourceId` (unique), `source`, `name`, `description`, `synonyms`, `everyday`, `plainName`, `checklist`, `checklistOrder`, `ancestors`, `sourceUri`, `addedAt`, `linkedAt` | A disease or feature. `sourceId` is the ontology's id, such as `MONDO:0004979` or `HP:0001382`, `source` is `Mondo` or `HPO`, and `sourceUri` is the ontology's permanent URI for it. `synonyms` are its other names, `everyday` the everyday names and abbreviations people search for it by, and the common ones a person picks from a checklist have a `plainName` they show by, such as "Bad knee", a `checklist` group, such as `Seeing`, and a `checklistOrder` among all of them. `ancestors` are the ids of every class above it in its ontology, which places it among the other conditions. `addedAt` is on the ones people have added, and `linkedAt` on those once atlas-jobs has worked out the body functions and parts they affect |
 
-A Person also carries Atlas's summary of their physical traits, once they've asked for one: `physicalSummary`, a JSON
+A Person also carries Atlas's summary of everything they've added to Abilities, once they've asked for one: `abilitiesSummary`, a JSON
 string with a headline, an overview, a paragraph per area of abilities, strengths, what's worth working on and working
-around their conditions, `physicalSummaryAt`, and `physicalSummaryInput`, what it was written from, which tells when
-it's stale. `physicalSummaryAskedAt` and `physicalSummaryFailedAt` are when they last asked for one and when one last
-couldn't be written, and `physicalSummaryCharged` is whether a credit was spent on the last one asked for and is still
+around their conditions, `abilitiesSummaryAt`, and `abilitiesSummaryInput`, what it was written from, which tells when
+it's stale. `abilitiesSummaryAskedAt` and `abilitiesSummaryFailedAt` are when they last asked for one and when one last
+couldn't be written, and `abilitiesSummaryCharged` is whether a credit was spent on the last one asked for and is still
 spent.
 
 
@@ -423,17 +423,17 @@ spent.
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability, `level` on the level scale over 7 (see the Skills graph) |
 | TAKES_ABILITY | Occupation → Ability | `level`, `importance` | What O\*NET's job analysts rated the occupation takes: `level` on the level scale over 7, and `importance` from 0 to 1 |
 | PERFORMED_IN | Skill → Occupation | | The occupation whose work is doing the skill, which its ability requirements were grounded in |
-| HAS_NORM | PhysicalMeasurement → MeasurementNorm | | A measurement's norms |
-| MEASURES | PhysicalMeasurement → Ability | | An ability the measurement shows |
+| HAS_NORM | Measurement → MeasurementNorm | | A measurement's norms |
+| MEASURES | Measurement → Ability | | An ability the measurement shows |
 | HAS_CHARACTERISTIC | Person → Characteristic | `value`, `setAt` | Their answer, one of its `choices`. No relationship means they haven't said |
-| HAS_MEASUREMENT | Person → PhysicalMeasurement | `id`, `value`, `measuredOn`, `recordedAt`, `answers` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value. `answers` is what they typed, on a reading of a test of typed answers |
+| HAS_MEASUREMENT | Person → Measurement | `id`, `value`, `measuredOn`, `recordedAt`, `answers` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value. `answers` is what they typed, on a reading of a test of typed answers |
 | SUBFUNCTION_OF | BodyFunction → BodyFunction | | A narrower function, a kind or part of a broader one (Short-term memory → Memory functions) |
 | SUBPART_OF | BodyPart → BodyPart | | A part of a larger whole (Left femur → Skeleton of left lower limb) |
 | PART_SUBTYPE_OF | BodyPart → BodyPart | | A kind of a broader part (Left femur → Femur → Long bone) |
 | UNDERLIES | BodyFunction → Ability | | An ability the function is the basis of |
 | CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | A Big Five domain or trait the temperament and personality function matches, or the low end of when `opposite` (Psychic stability → Neuroticism, opposite) |
-| MEASURES | PhysicalMeasurement → BodyFunction | | The function the measurement is a reading of |
-| MEASURES | PhysicalMeasurement → BodyPart | | A part the measurement is a reading of (Grip Strength → Hand) |
+| MEASURES | Measurement → BodyFunction | | The function the measurement is a reading of |
+| MEASURES | Measurement → BodyPart | | A part the measurement is a reading of (Grip Strength → Hand) |
 | HAS_IMPAIRMENT | Person → BodyFunction or BodyPart | `extent`, `change`, `updatedAt` | An impairment they've noted. `extent` is how much, `mild` to `complete`, and `change`, on a part only, how it has changed |
 | SUBTYPE_OF | Condition → Condition | | A condition that's a kind of a broader one (Alzheimer disease → dementia) |
 | AFFECTS | Condition → BodyFunction or BodyPart | | A function or part the condition acts on |
@@ -456,7 +456,7 @@ spent.
 (:DreyfusLevel:Novice {name: "Cooking Novice"})-[:REQUIRES_ABILITY {level: 0.6, strength: 0.4, reason: "Chops and pours without spilling"}]->(:Ability {name: "Arm-Hand Steadiness"})
 
 // grip strength shows Static Strength, and its norm for men in their twenties puts the median at 48.1 kg
-(g:PhysicalMeasurement {name: "Grip Strength", unit: "kg", better: "higher"})-[:MEASURES]->(s)
+(g:Measurement {name: "Grip Strength", unit: "kg", better: "higher"})-[:MEASURES]->(s)
 (g)-[:HAS_NORM]->(:MeasurementNorm {sex: "male", ageFrom: 18, ageTo: 29,
   percentiles: [1, 3, 5, ..., 50, ..., 97, 99], values: [29.0, 32.7, 34.3, ..., 48.1, ..., 67.2, 73.5]})
 
@@ -466,7 +466,7 @@ spent.
 // visual acuity functions underlie Far Vision, and visual acuity is a reading of them. Lulu is moderately short-sighted
 (va:BodyFunction {code: "b2100", name: "Visual acuity functions", group: "Sensory functions and pain"})-[:UNDERLIES]->(:Ability {name: "Far Vision"})
 (va)-[:SUBFUNCTION_OF]->(:BodyFunction {code: "b210", name: "Seeing functions"})
-(:PhysicalMeasurement {name: "Visual Acuity"})-[:MEASURES]->(va)
+(:Measurement {name: "Visual Acuity"})-[:MEASURES]->(va)
 (lulu)-[:HAS_IMPAIRMENT {extent: "moderate"}]->(va)
 
 // myopia affects visual acuity functions and the eyeball. Lulu was diagnosed, and glasses keep it under control

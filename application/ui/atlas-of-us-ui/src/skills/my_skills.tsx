@@ -7,7 +7,7 @@ import Timeline from './timeline';
 import { BLOOM_NAMES } from '../topics/api';
 import { navigate } from '../router';
 import { AffectedByNote } from './affected_by_note';
-import { getAffectedBy, type AffectedBy } from '../physical/api';
+import { getAffectedBy, type AffectedBy } from '../abilities/api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { LevelSteps } from '../shared_components/level_steps';
 import { Thinking } from '../shared_components/thinking';

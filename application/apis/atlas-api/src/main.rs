@@ -26,7 +26,7 @@ use tower_http::{
 use tracing::Span;
 
 use atlas_shared::{bedrock, events};
-use domains::{personality, physical, skills, topics};
+use domains::{abilities, personality, skills, topics};
 use state::AppState;
 
 #[tokio::main]
@@ -87,7 +87,7 @@ async fn main() {
         .nest("/api/personality", personality::router())
         .nest("/api/topics", topics::router())
         .nest("/api/skills", skills::router())
-        .nest("/api/physical", physical::router())
+        .nest("/api/abilities", abilities::router())
         .nest("/api/evidence", evidence::router())
         .nest("/api/feedback", feedback::router())
         .nest("/api/admin", admin::router(state.clone()))

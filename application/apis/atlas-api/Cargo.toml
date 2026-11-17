@@ -12,7 +12,7 @@ tokio = { version = "1.53.2", features = ["full"] }
 chrono = { version = "0.4.41", features = ["serde"] }
 
 # Database (optional)
-neo4rs = "0.9.0-rc.10"
+neo4rs = "0.9.0-rc.11"
 
 # Tracing
 tracing = "0.1"

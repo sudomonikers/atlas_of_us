@@ -10,7 +10,7 @@ Each reads its source once and writes a `.cypher` seed in `application/database/
 
 | Import | Source | Writes |
 |---|---|---|
-| `physical_norms_import` | NHANES (CDC) | `PhysicalMeasurement` and `MeasurementNorm` (percentiles by sex and age band); measurement `MEASURES` ability |
+| `abilities_norms_import` | NHANES (CDC) | `Measurement` and `MeasurementNorm` (percentiles by sex and age band); measurement `MEASURES` ability |
 | `icf_import` | WHO ICF and the ICD-API's definitions | 346 `BodyFunction`s with `SUBFUNCTION_OF`; function `UNDERLIES` ability; measurement `MEASURES` function |
 | `anatomy_import` | FMA and BodyParts3D | 3,488 `BodyPart`s with `SUBPART_OF`, `PART_SUBTYPE_OF` and `major`; part `SERVES` function; measurement `MEASURES` part; the 3D body in `ui/atlas-of-us-ui/public/anatomy/` |
 | `conditions_import` | Mondo and HPO | 262 `Condition`s with `SUBTYPE_OF` and `ancestors`; condition `AFFECTS` function or part |
@@ -24,35 +24,35 @@ Each asks the live api for every item, the way a user asks, so it goes through t
 | `topics_import` | ESCO's knowledge (the same csvs) | `Topic` stubs, filled when someone needs them |
 
 ### Hand-written seeds
-- `physical_abilities_seed`: 46 O\*NET `Ability` nodes.
+- `abilities_seed`: 46 O\*NET `Ability` nodes.
 - `personality_seed`, `personality_explore_seed`, `personality_scenarios_seed`: the Big Five domains, facets and
   `INTERACTS_WITH`, and the scenarios with their questions.
 - `auth_constraints` and `migrations/001` to `005`.
 
 ### Jobs that add data at runtime
-- `SkillFilled`, in the Skills, Personality, Physical and Topics modules: each writes one kind of requirement from a
+- `SkillFilled`, in the Skills, Personality, Abilities and Topics modules: each writes one kind of requirement from a
   skill level, `REQUIRES_SKILL`, `REQUIRES_TRAIT`, `REQUIRES_ABILITY` or `REQUIRES_KNOWLEDGE`.
 - `TopicFillRequested`.
-- `ConditionAdded`, in Physical: `AFFECTS`.
+- `ConditionAdded`, in Abilities: `AFFECTS`.
 
 ## How they connect
 
 ```
-                 Skill ──REQUIRES_ABILITY──┐        (SkillFilled, Physical job)
+                 Skill ──REQUIRES_ABILITY──┐        (SkillFilled, Abilities job)
                    │                      ▼
    REQUIRES_TRAIT  │  REQUIRES_KNOWLEDGE  Ability ◄──UNDERLIES── BodyFunction ◄──SERVES── BodyPart
         ▼          ▼                      ▲                     ▲   ▲                ▲
- PersonalityTrait  BloomLevel/Topic       └──MEASURES── PhysicalMeasurement ─MEASURES┘   │
+ PersonalityTrait  BloomLevel/Topic       └──MEASURES── Measurement ─MEASURES┘   │
                                                              (also MEASURES BodyPart) ───┘
                                           Condition ──AFFECTS──► BodyFunction | BodyPart
 ```
 
-- **Physical is densely linked within itself.** Measurements, functions, parts and conditions meet at functions and
+- **Abilities is densely linked within itself.** Measurements, functions, parts and conditions meet at functions and
   parts, and a part's page gathers everything linked to it, to the parts above and below it, and to the functions those
   serve.
-- **Ability is Physical's one link to the rest of the Atlas.** Skills point at it, and so do functions and measurements.
+- **Ability is Abilities' one link to the rest of the Atlas.** Skills point at it, and so do functions and measurements.
 - **Personality and Topics link only to Skills**, through `REQUIRES_TRAIT` and `REQUIRES_KNOWLEDGE`.
-- **The two kinds of import work differently.** The ESCO imports exercise the live api, end to end. The Physical
+- **The two kinds of import work differently.** The ESCO imports exercise the live api, end to end. The Abilities
   imports write static reference data that the api reads across.
 
 ## Where they should connect
@@ -90,7 +90,7 @@ Each asks the live api for every item, the way a user asks, so it goes through t
    conditions and impairments in them as things that can affect a domain or facet, apart from the score. What it was:
    - `b126 Temperament and personality functions` is seeded, and its sub-functions (extraversion, agreeableness,
      conscientiousness, openness and more) map almost one to one onto the Big Five domains.
-   - A hand-picked mapping would be the first link between Physical and Personality.
+   - A hand-picked mapping would be the first link between Abilities and Personality.
    - Mental health conditions that affect b126 would then sit next to traits, which needs careful wording in the ui.
 
 6. **Use a person's conditions to suggest their impairments.** A condition's `AFFECTS` links name the functions and

@@ -10,7 +10,7 @@ import { checkout, confirm, manage, price, useCredits, type Kind } from './api';
 
 //what credits buy, so far
 const FEATURES = [
-  { name: 'Your physical summary', body: 'Everything you\'ve added to Physical Traits, written up as one picture of your body and mind.', path: '/physical' },
+  { name: 'Your abilities summary', body: 'Everything you\'ve added to Abilities, written up as one picture of your body and mind.', path: '/abilities' },
   { name: 'Your personality report', body: 'Every trait from every chapter, written up in one place, with your strengths and what to watch for.', path: '/personality' },
 ];
 

@@ -1,7 +1,7 @@
 # O*NET Import
 
 Writes `../onet_occupations_seed.cypher`: every occupation O*NET rates, the level and importance of each of the Atlas's
-abilities it takes (`documentation/data_model/physical_attributes/`), and an embedding of each, which skills find the
+abilities it takes (`documentation/data_model/abilities/`), and an embedding of each, which skills find the
 occupations like them by, to ground what their levels take (`application/MY_ABILITY_REQUIREMENTS_FLESH_OUT.md`). The seed is generated, so run this
 again on a newer O*NET release rather than editing it.
 
@@ -26,7 +26,7 @@ cargo run --release -- data ../onet_occupations_seed.cypher
 ```
 
 Then run `migrations/006_occupations.cypher`, for the constraints and the vector index, then
-`physical_abilities_seed.cypher`, for each ability's `anchorLevels`, then the occupations seed.
+`abilities_seed.cypher`, for each ability's `anchorLevels`, then the occupations seed.
 
 - **Levels:** O*NET rates each ability's level on 0 to 7, and the seed keeps it over 7. A level O*NET marks not relevant
   is 0.

@@ -1,7 +1,7 @@
 # Fleshing out the ability tests
 
 Real tests for the abilities, to work through one at a time. A test gives a reading that can be compared with other
-people, and an ability shows in Physical Traits once it has one.
+people, and an ability shows in Abilities once it has one.
 
 Where each ability stands now: 42 of the 46 have a measurement. Depth Perception, Glare Sensitivity, Night Vision and
 Speech Clarity have none, since no screen or house can test them well, so they aren't asked about.
@@ -9,7 +9,7 @@ Speech Clarity have none, since no screen or house can test them well, so they a
 ## What a test needs
 - **A task a person can do alone**, in the browser or at home with what's in a house.
 - **Norms from a source the Atlas can use**: published, from a sample of ordinary adults, and free of a license that
-  rules the Atlas out. Each one goes in `physical_norms_import/src/published.rs` with its source and a confidence.
+  rules the Atlas out. Each one goes in `abilities_norms_import/src/published.rs` with its source and a confidence.
 - **The same procedure as the norms**, or a note in the measurement's description saying how it differs.
 
 Sources ruled out by their license:

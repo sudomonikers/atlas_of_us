@@ -14,7 +14,7 @@ export interface Person {
 
 //their settings in the app, kept on their account and sent with them when they log in
 export interface Config {
-  physical_intro_seen: boolean; //whether they've been through the story that opens Physical Traits
+  abilities_intro_seen: boolean; //whether they've been through the story that opens Abilities
   personality_intro_seen: boolean; //whether they've been through the story that opens Personality
   scene_start_note_hidden: boolean; //whether they've turned off the note on getting the most out of a scene
 }

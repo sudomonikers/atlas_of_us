@@ -230,7 +230,7 @@ export default {
     },
   },
   //Does yoga twice a week: flexible, otherwise ordinary, careful and accurate, with migraines.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.85,

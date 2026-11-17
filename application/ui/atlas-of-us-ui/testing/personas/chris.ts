@@ -230,7 +230,7 @@ export default {
     },
   },
   //An office worker who walks the dog and does a bit of everything: middle of the road on almost all of it.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.50,

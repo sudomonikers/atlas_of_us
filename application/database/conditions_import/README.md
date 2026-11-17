@@ -1,6 +1,6 @@
 # Conditions Import
 
-Writes `../physical_conditions_seed.cypher`: the conditions chosen in `src/picks.rs`, common ones a person would know
+Writes `../abilities_conditions_seed.cypher`: the conditions chosen in `src/picks.rs`, common ones a person would know
 they have, each with its name, definition and other names from Mondo or HPO, the broader conditions in the seed it's a
 kind of, the body functions and parts it affects, and the everyday names from `src/common.rs`. The seed is generated, so change this and run it again
 rather than editing it.
@@ -20,11 +20,11 @@ It checks the body functions in `src/picks.rs` against WHO's ICF tabulation, whi
 parts against the anatomy seed:
 
 ```sh
-cargo run --release -- data ../icf_import/data/SimpleTabulation-ICF-en.txt ../physical_anatomy_seed.cypher \
-  ../physical_conditions_seed.cypher
+cargo run --release -- data ../icf_import/data/SimpleTabulation-ICF-en.txt ../abilities_anatomy_seed.cypher \
+  ../abilities_conditions_seed.cypher
 ```
 
-Then run the seed against the database, after `physical_functions_seed.cypher` and `physical_anatomy_seed.cypher`,
+Then run the seed against the database, after `abilities_functions_seed.cypher` and `abilities_anatomy_seed.cypher`,
 since conditions link to body functions and parts.
 
 - **What's in it:** 191 diseases from Mondo and 71 features from HPO. Each concept is in once, from whichever ontology

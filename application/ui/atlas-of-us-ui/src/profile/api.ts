@@ -1,6 +1,6 @@
 import { request } from '../auth/api';
 import type { PersonPersonality } from '../personality/api';
-import type { PhysicalSummary } from '../physical/api';
+import type { AbilitiesSummary } from '../abilities/api';
 import type { AchievedSkill } from '../skills/api';
 import type { EngagedTopic } from '../topics/api';
 
@@ -10,7 +10,7 @@ export interface Profile {
   first_name: string;
   public: boolean;
   personality: PersonPersonality;
-  physical: PhysicalSummary | null; //Atlas's summary of their physical traits, once they've asked for it
+  abilities: AbilitiesSummary | null; //Atlas's summary of everything they've added to Abilities, once they've asked for it
   topics: EngagedTopic[]; //the topics they've placed themselves on, deepest first
   skills: AchievedSkill[]; //the skills they've placed themselves on, highest level first
 }

@@ -31,8 +31,8 @@ export interface Condition {
   managed: boolean;
 }
 
-//the persona's body and what it can do, as it enters them in the physical chapters. Anything left out is skipped
-export interface Physical {
+//the persona's body and what it can do, as it enters them in the Abilities chapters. Anything left out is skipped
+export interface Abilities {
   targets: Record<string, number>; //ability name to where what the persona enters places it, 0 to 1
   characteristics: Record<string, string>; //characteristic name to its choice, such as Sex: 'Female'
   //measurement name to its reading in the measurement's unit. A measurement typed in takes it as it is, and a test the
@@ -50,5 +50,5 @@ export interface Persona {
     targets: Record<string, number>; //trait name to the score its answers show, 0 to 1
     answers: Record<string, Record<string, Answer>>; //scene id to prompt id to answer
   };
-  physical?: Physical;
+  abilities?: Abilities;
 }

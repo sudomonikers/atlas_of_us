@@ -198,7 +198,7 @@ pub struct AskRequest {
 #[derive(Serialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum AskOutcome {
-    //it belongs to another module: kind is skill, personality, physical_attribute or other
+    //it belongs to another module: kind is skill, personality, ability or other
     NotATopic { kind: String, name: String },
     //nonsense, or a slur
     Rejected { reason: String },

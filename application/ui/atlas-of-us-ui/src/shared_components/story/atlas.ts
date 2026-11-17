@@ -55,7 +55,7 @@ export function preloadSkills(shown: Shown[]) {
   }
 }
 
-//the ways the skill graph links a skill: to the physical abilities and personality traits it takes, the knowledge it
+//the ways the skill graph links a skill: to the abilities and personality traits it takes, the knowledge it
 //needs, the skills it needs, the skills it's a kind of, and the skills like it
 export type LinkType = 'able' | 'takes' | 'knows' | 'needs' | 'kind_of' | 'similar';
 

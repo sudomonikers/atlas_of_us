@@ -11,10 +11,10 @@ locals {
     { event = "SkillFillRequested", source = "atlas.skills", module = "Skills" },
     { event = "SkillFilled", source = "atlas.skills", module = "Skills" },
     { event = "SkillFilled", source = "atlas.skills", module = "Personality" },
-    { event = "SkillFilled", source = "atlas.skills", module = "Physical" },
+    { event = "SkillFilled", source = "atlas.skills", module = "Abilities" },
     { event = "SkillFilled", source = "atlas.skills", module = "Topics" },
     { event = "TopicFillRequested", source = "atlas.topics", module = "Topics" },
-    { event = "ConditionAdded", source = "atlas.physical", module = "Physical" },
+    { event = "ConditionAdded", source = "atlas.abilities", module = "Abilities" },
   ] : "${job.event}-${job.module}" => job }
 }
 

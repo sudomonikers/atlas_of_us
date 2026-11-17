@@ -227,7 +227,7 @@ export default {
     },
   },
   //Sits behind the wheel twelve hours a day: heavy, unfit, high blood pressure, a sore back and a trucker's hearing. Skips the hexagon jump.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.05,

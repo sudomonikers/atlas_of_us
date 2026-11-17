@@ -25,7 +25,7 @@ const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
 //how many search results show under the board's search box
 const RESULTS = 6;
 
-//the three ways skills link, and how a skill links to the personality traits and physical abilities it takes and the
+//the three ways skills link, and how a skill links to the personality traits and abilities it takes and the
 //topics it needs, as the board draws them. "Kinds of skills" points to the broader skill, "Skills needed" to the skill
 //that's needed, "Traits needed" to the trait, "Abilities needed" to the ability, and "Knowledge needed" to the topic
 const KINDS: LinkKind[] = [
@@ -176,7 +176,7 @@ export function SkillGraph({ board, onBoard }: SkillGraphProps) {
               board.traits[id]
                 ? `${board.traits[id].trait.name}, a personality trait`
                 : board.abilities[id]
-                  ? `${board.abilities[id].ability.name}, a physical ability`
+                  ? `${board.abilities[id].ability.name}, an ability`
                 : board.topics[id]
                   ? `${board.topics[id].topic.name}, a topic`
                   : `${map.byId.get(id)?.name ?? board.skills[id]?.skill.name}, ${STATUS[map.byId.get(id)?.status ?? board.skills[id]?.skill.status ?? 'stub'].toLowerCase()}`
@@ -354,7 +354,7 @@ function TraitInspector({ on, busy, onExpand, onMore, onHide }: {
   );
 }
 
-//the selected physical ability: what it is, how much the skills on the board that take it need of it, and taking it
+//the selected ability: what it is, how much the skills on the board that take it need of it, and taking it
 //off the board
 function AbilityInspector({ on, board, onHide }: { on: BoardAbility; board: SkillBoard; onHide: (id: string) => void }) {
   const { ability } = on;
@@ -368,7 +368,7 @@ function AbilityInspector({ on, board, onHide }: { on: BoardAbility; board: Skil
     <>
       <h3 style={styles.name}>{ability.name}</h3>
       <span className="comic-chip" style={styles.status}>
-        Physical ability
+        Ability
       </span>
       {takers.map((t) => (
         <p key={t.skill} style={styles.description}>

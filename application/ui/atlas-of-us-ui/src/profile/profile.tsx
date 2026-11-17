@@ -2,8 +2,8 @@ import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react'
 import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, type PersonPersonality } from '../personality/api';
 import { PersonalityReport } from '../personality/report';
-import { SummaryText } from '../physical/summary';
-import type { PhysicalSummary } from '../physical/api';
+import { SummaryText } from '../abilities/summary';
+import type { AbilitiesSummary } from '../abilities/api';
 import { LEVEL_NAMES, monthYear, type AchievedSkill } from '../skills/api';
 import { BLOOM_NAMES, type EngagedTopic } from '../topics/api';
 import { EvidenceList } from '../shared_components/evidence';
@@ -20,10 +20,10 @@ const blue = 'var(--air-force-blue)';
 const comic = 'var(--font-comic)';
 
 //one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link can open on it
-type Tab = 'personality' | 'physical' | 'topics' | 'skills';
+type Tab = 'personality' | 'abilities' | 'topics' | 'skills';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'personality', label: 'Personality' },
-  { id: 'physical', label: 'Physical Traits' },
+  { id: 'abilities', label: 'Abilities' },
   { id: 'topics', label: 'Topics' },
   { id: 'skills', label: 'Skills' },
 ];
@@ -142,7 +142,7 @@ export default function Profile({ username }: { username: string }) {
             ))}
           </div>
           {tab === 'personality' && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
-          {tab === 'physical' && <PhysicalSection physical={profile.physical} firstName={profile.first_name} />}
+          {tab === 'abilities' && <AbilitiesSection summary={profile.abilities} firstName={profile.first_name} />}
           {tab === 'topics' && <TopicsSection topics={profile.topics} firstName={profile.first_name} />}
           {tab === 'skills' && <SkillsSection skills={profile.skills} firstName={profile.first_name} />}
         </>
@@ -202,11 +202,11 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
   );
 }
 
-//Atlas's summary of their physical traits, once they've asked for one
-function PhysicalSection({ physical, firstName }: { physical: PhysicalSummary | null; firstName: string }) {
+//Atlas's summary of everything they've added to Abilities, once they've asked for one
+function AbilitiesSection({ summary, firstName }: { summary: AbilitiesSummary | null; firstName: string }) {
   return (
     <section style={styles.section} className="comic-panel" role="tabpanel">
-      {physical ? <SummaryText summary={physical} /> : <p>{firstName} hasn't had their physical traits written up yet.</p>}
+      {summary ? <SummaryText summary={summary} /> : <p>{firstName} hasn't had their abilities written up yet.</p>}
     </section>
   );
 }

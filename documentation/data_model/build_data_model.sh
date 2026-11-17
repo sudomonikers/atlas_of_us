@@ -64,12 +64,12 @@ A Person's settings in the app are on their PersonConfig, made the first time th
 
 | Property | Meaning |
 |---|---|
-| `physicalIntroSeen` | They've been through the story that opens Physical Traits |
+| `abilitiesIntroSeen` | They've been through the story that opens Abilities |
 | `personalityIntroSeen` | They've been through the story that opens Personality |
 | `sceneStartNoteHidden` | They've turned off the note on getting the most out of a scene |
 
 ```cypher
-(andrew)-[:HAS_CONFIG]->(:PersonConfig {physicalIntroSeen: true})
+(andrew)-[:HAS_CONFIG]->(:PersonConfig {abilitiesIntroSeen: true})
 ```
 
 A Person's credits pay for Atlas's written summaries (`documentation/architecture/credits.md`). `credits` is how many
@@ -89,7 +89,7 @@ EOF
 subgraph personality/personality.md
 subgraph topics/topics.md
 subgraph skills/skills.md
-subgraph physical_attributes/physical_attributes.md
+subgraph abilities/abilities.md
 
 text <<'EOF'
 # Beyond The Individual

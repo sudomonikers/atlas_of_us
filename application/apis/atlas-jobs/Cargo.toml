@@ -8,7 +8,7 @@ edition = "2024"
 tokio = { version = "1.53.2", features = ["full"] }
 
 # Database
-neo4rs = "0.9.0-rc.10"
+neo4rs = "0.9.0-rc.11"
 
 # Tracing
 tracing = "0.1"

@@ -1,4 +1,4 @@
-//credits, which pay for the premium features: Atlas's written summaries, such as the physical summary and the personality
+//credits, which pay for the premium features: Atlas's written summaries, such as the abilities summary and the personality
 //report. Everyone starts with some free, and buys more as a pack, or subscribes for unlimited use while the subscription
 //is paid. Buying goes through Stripe Checkout, and a checkout is settled when the person comes back from it, or the next
 //time their credits are read if they never did. See documentation/architecture/credits.md
@@ -229,7 +229,7 @@ async fn settle_pending(state: &AppState, person_id: &str) {
 }
 
 //spends a credit on a premium feature, unless they're subscribed, and marks it asked for. `feature` is the prefix of
-//the feature's properties on the Person, such as physicalSummary: this sets <feature>AskedAt, and <feature>Charged
+//the feature's properties on the Person, such as abilitiesSummary: this sets <feature>AskedAt, and <feature>Charged
 //when a credit was spent, so refund can give it back. Out of credits is a 402
 pub async fn spend(state: &AppState, person_id: &str, feature: &str) -> Result<(), (StatusCode, String)> {
     settle_pending(state, person_id).await;

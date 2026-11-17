@@ -84,7 +84,7 @@ export interface Skill {
 
 //what came of asking for a skill we don't have
 export type AskOutcome =
-  | { outcome: 'not_a_skill'; kind: 'personality' | 'topic' | 'physical_attribute' | 'other'; name: string } //it belongs to another module
+  | { outcome: 'not_a_skill'; kind: 'personality' | 'topic' | 'ability' | 'other'; name: string } //it belongs to another module
   | { outcome: 'rejected'; reason: string } //nonsense, or a slur
   | { outcome: 'existing'; skill: SkillSummary } //a skill we already have
   | { outcome: 'created'; skill: SkillSummary }; //a new stub, ready to be opened
@@ -132,7 +132,7 @@ export interface Neighbors {
   leads_to: Group; //skills whose levels require its levels
   similar: Group; //the closest skills by meaning, other than its broader and narrower ones
   traits: TraitLink[]; //every personality trait its levels take, strongest first
-  abilities: AbilityLink[]; //every physical ability its levels take, strongest first
+  abilities: AbilityLink[]; //every ability its levels take, strongest first
   topics: TopicLink[]; //every topic its levels need knowledge of, strongest first
 }
 
@@ -153,7 +153,7 @@ export interface TraitLink {
   strength: number;
 }
 
-//a physical ability a skill's levels take, with how much the strongest of them matters, 0 to 1, and the most of it any
+//an ability a skill's levels take, with how much the strongest of them matters, 0 to 1, and the most of it any
 //level takes, as a score out of 1
 export interface AbilityLink {
   id: string;

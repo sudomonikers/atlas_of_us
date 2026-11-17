@@ -1,6 +1,6 @@
 # Anatomy Import
 
-Writes `../physical_anatomy_seed.cypher` and the 3D body in `../../ui/atlas-of-us-ui/public/anatomy/`. The seed has every
+Writes `../abilities_anatomy_seed.cypher` and the 3D body in `../../ui/atlas-of-us-ui/public/anatomy/`. The seed has every
 part of the body BodyParts3D has a model of, and the parts in `src/picks.rs` it hasn't, each with its name, definition
 and other names from the Foundational Model of Anatomy (FMA), how they nest, and the body functions they serve. The 3D
 body is BodyParts3D's models, simplified so the whole body loads in a browser, one binary glTF file per layer, with
@@ -26,11 +26,11 @@ It checks the functions in `src/picks.rs` against WHO's ICF tabulation, which th
 measurements against the norms seed:
 
 ```sh
-cargo run --release -- data ../icf_import/data/SimpleTabulation-ICF-en.txt ../physical_norms_seed.cypher \
-  ../physical_anatomy_seed.cypher ../../ui/atlas-of-us-ui/public/anatomy
+cargo run --release -- data ../icf_import/data/SimpleTabulation-ICF-en.txt ../abilities_norms_seed.cypher \
+  ../abilities_anatomy_seed.cypher ../../ui/atlas-of-us-ui/public/anatomy
 ```
 
-Then run the seed against the database, after `physical_norms_seed.cypher` and `physical_functions_seed.cypher`, since
+Then run the seed against the database, after `abilities_norms_seed.cypher` and `abilities_functions_seed.cypher`, since
 parts link to functions and measurements link to parts. The 3D
 body ships with the site.
 

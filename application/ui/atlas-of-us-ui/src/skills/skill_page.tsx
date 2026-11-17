@@ -8,7 +8,7 @@ import { PracticeForm } from './practice_form';
 import { AtlasError } from '../shared_components/atlas-error';
 import { Mascot } from '../shared_components/mascot';
 import { navigate } from '../router';
-import { getAffectedBy, type AffectedBy } from '../physical/api';
+import { getAffectedBy, type AffectedBy } from '../abilities/api';
 import { Thinking } from '../shared_components/thinking';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css

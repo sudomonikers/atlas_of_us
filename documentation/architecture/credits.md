@@ -1,7 +1,7 @@
 # How Credits Work
 
 Credits pay for the premium features: Atlas's written summaries, which each take a call to Sonnet. Today those are the
-**physical summary** on Your results and the **personality report** on My Personality.
+**abilities summary** on Your results and the **personality report** on My Personality.
 
 ## The pieces
 

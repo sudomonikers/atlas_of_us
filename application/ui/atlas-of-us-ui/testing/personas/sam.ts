@@ -231,7 +231,7 @@ export default {
     },
   },
   //Left-handed, gentle exercise at best: unfit, deft hands, a fine eye for color, a flood of ideas, and reading glasses she leaves at home.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.50,

@@ -17,7 +17,7 @@ const ATLAS = [
   ['Personality', '/personality'],
   ['Knowledge', '/topics'],
   ['Skills', '/skills'],
-  ['Physical Traits', '/physical'],
+  ['Abilities', '/abilities'],
   ['Your people'],
   ['Your stuff'],
   ['Your world'],

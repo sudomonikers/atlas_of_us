@@ -226,7 +226,7 @@ export default {
     },
   },
   //Sits gaming most of the day: quick hands and eyes, little fitness. Doesn't say their sex, so is compared with everyone, and skips what they don't know.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.25,
       'Category Flexibility': 0.05,

@@ -50,7 +50,7 @@ Each scene has its own art style and vibe, but uses the same underlying gameplay
 - `personality.tsx`: the script player and the dashboard. Every scene is registered here.
 - `scenarios.ts`: the scenario list, in play order, with each one's thumbnail.
 - `intro/`: Same Answer, the story that opens Personality the first time, played by the story player in
-  `shared_components/story/` that the physical module's story shares.
+  `shared_components/story/` that the Abilities story shares.
 - `my_personality.tsx` and `explore.tsx`: the My Personality and Explore tabs.
 - `api.ts`: the calls to the api.
 - `soundscape.ts`: looping beds and one-shot sounds, shared by every scene.

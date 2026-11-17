@@ -230,7 +230,7 @@ export default {
     },
   },
   //Hauls pipes and kneels under sinks for a living: strong, heavy, stiff, with a bad left knee.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.15,

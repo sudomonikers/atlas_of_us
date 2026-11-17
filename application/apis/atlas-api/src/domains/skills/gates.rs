@@ -16,7 +16,7 @@ use super::BoxError;
 pub struct Screening {
     pub name: String, //the skill's name, normalized
     pub description: String,
-    pub kind: String, //skill, personality, topic, physical_attribute or other
+    pub kind: String, //skill, personality, topic, ability or other
     pub acceptable: bool,
     pub rejection_reason: String, //shown to the user when it isn't acceptable
 }
@@ -32,7 +32,7 @@ sentence describes something a person does. When it does, it's a skill. When it 
 - \"they are ...\": how they tend to be. A personality trait.
 - \"they know about ...\": a subject they know, rather than something they do. A topic.
 - \"their body is ...\": part of the body, what it is like, or a capacity of their body or mind that makes things \
-easier or harder to learn (strength, stamina, eyesight, reaction time, dexterity, memory). A physical attribute.
+easier or harder to learn (strength, stamina, eyesight, reaction time, dexterity, memory). A ability.
 Take the most plausible reading, the way a colleague would. Something worded as a task or an instruction is describing \
 what a person can do. Your reasoning is about what it is, never about whether it's useful, specific or worth adding. Then \
 answer the rest from that reasoning.
@@ -48,8 +48,8 @@ Fix typos and use the name people know (\"being good at excel\" becomes \"Micros
 One plain sentence saying what the skill is.
 
 ## kind
-skill, personality, topic or physical_attribute, from your reasoning. When \"they can\" fits, it's a skill, even when it \
-involves a subject (Python is a skill). A capacity they have rather than learn is physical_attribute, even when \
+skill, personality, topic or ability, from your reasoning. When \"they can\" fits, it's a skill, even when it \
+involves a subject (Python is a skill). A capacity they have rather than learn is ability, even when \
 \"they can\" fits (\"Manual Dexterity\", \"Stamina\", \"Memorization\"). other is for nonsense, and for anything none \
 of the four fits.
 
@@ -77,7 +77,7 @@ pub async fn screen(state: &AppState, typed: &str) -> Result<Screening, BoxError
                 "reasoning": {"type": "string"},
                 "name": {"type": "string"},
                 "description": {"type": "string"},
-                "kind": {"type": "string", "enum": ["skill", "personality", "topic", "physical_attribute", "other"]},
+                "kind": {"type": "string", "enum": ["skill", "personality", "topic", "ability", "other"]},
                 "acceptable": {"type": "boolean"},
                 "rejection_reason": {"type": "string"},
             },

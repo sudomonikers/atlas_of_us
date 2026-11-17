@@ -1,4 +1,4 @@
-// makes the noise Digits in Noise plays the digits in (src/physical/digits_in_noise), into public/voices/noise.mp3:
+// makes the noise Digits in Noise plays the digits in (src/abilities/digits_in_noise), into public/voices/noise.mp3:
 // noise shaped like Matthew's digits, with the same spectrum as his voice averaged over all of them, so it covers his
 // speech evenly at every pitch. It's made by averaging the spectrum of his recordings, giving each frequency that
 // strength with a random phase, and turning it back into sound, then set to -20 dB RMS like the recordings. Run by

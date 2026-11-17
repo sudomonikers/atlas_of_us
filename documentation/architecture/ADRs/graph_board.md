@@ -8,7 +8,7 @@ users are the Skills Explorer (`src/skills/graph.tsx`, with its state in `skill_
 
 ## Context
 The Atlas is a graph, and most of its sub-graphs are worth exploring as one: what a skill is a kind of and what it
-needs, how topics relate, which physical attributes a skill depends on, which skills a job asks for. People need two
+needs, how topics relate, which abilities a skill depends on, which skills a job asks for. People need two
 things from it:
 
 - **The whole shape.** Every node at once, to see how big the sub-graph is, how it's divided, and where they are in it.
@@ -83,7 +83,7 @@ The Skills Explorer shows the split:
   without a refetch.
 - **The board's state.** `SkillBoard` in `skill_board.ts`, with the `BoardLayout` inside it, is kept by the Skills
   page, so the board survives opening a skill's page and visiting My Skills. It holds a record for each skill,
-  trait, physical ability and topic that has been selected or brought on, with what's been read about it and whether it's expanded.
+  trait, ability and topic that has been selected or brought on, with what's been read about it and whether it's expanded.
   Records that aren't on the map are the board's visitors.
 - **Selecting and expanding.**
   - Selecting reads the node (`GET /api/skills/{id}/neighbors`, `GET /api/personality/traits/{id}/skills` or

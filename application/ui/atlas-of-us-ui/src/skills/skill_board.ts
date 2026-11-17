@@ -20,7 +20,7 @@ export interface BoardTrait {
   read?: TraitSkills;
 }
 
-//a physical ability on the board, brought on by a skill that takes it
+//an ability on the board, brought on by a skill that takes it
 export interface BoardAbility {
   ability: { id: string; name: string };
   from?: string; //the skill it was brought on from
@@ -125,7 +125,7 @@ function bringTraits(board: SkillBoard, id: string, found: TraitLink[]): SkillBo
   return { ...board, traits, links };
 }
 
-//brings the physical abilities a skill takes onto the board, next to it. "Takes" points from the skill to the ability
+//brings the abilities a skill takes onto the board, next to it. "Takes" points from the skill to the ability
 function bringAbilities(board: SkillBoard, id: string, found: AbilityLink[]): SkillBoard {
   const abilities = { ...board.abilities };
   for (const a of found) if (!abilities[a.id]) abilities[a.id] = { ability: { id: a.id, name: a.name }, from: id };

@@ -61,7 +61,7 @@ export interface Topic extends TopicRef {
 
 //what came of asking for a topic we don't have
 export type AskOutcome =
-  | { outcome: 'not_a_topic'; kind: 'skill' | 'personality' | 'physical_attribute' | 'other'; name: string } //it belongs to another module
+  | { outcome: 'not_a_topic'; kind: 'skill' | 'personality' | 'ability' | 'other'; name: string } //it belongs to another module
   | { outcome: 'rejected'; reason: string } //nonsense, or a slur
   | { outcome: 'existing'; topic: TopicSummary } //a topic we already have
   | { outcome: 'created'; topic: TopicSummary }; //a new stub, ready to be opened

@@ -230,7 +230,7 @@ export default {
     },
   },
   //Walks to church and gardens, with stiff knees and a little hearing loss. Skips the jumps and the squat, and has never had her hair color asked.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.85,
       'Category Flexibility': 0.30,

@@ -29,6 +29,18 @@ const written = (page: Page, text: string) =>
     return p?.textContent === text && p.lastElementChild?.textContent === '';
   }, [TEXT, text]);
 
+//pauses the page's clock a moment from now. With every persona playing at once, the page's clock can pass the moment
+//before the pause reaches it, so it's read again and tried again
+async function pauseSoon(page: Page) {
+  for (let tries = 0; ; tries++) {
+    try {
+      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 100);
+    } catch (e) {
+      if (tries >= 5 || !String(e).includes('to the past')) throw e;
+    }
+  }
+}
+
 //plays one scene in the ui, from its card on the dashboard to the end.
 //The page's clock is paused while a scene's clock runs, so each timed answer is given with exactly the seconds left
 //the persona has for it
@@ -51,7 +63,7 @@ async function playScene(page: Page, name: string, mine: Record<string, Answer>,
     try {
       await showing(page, s.text);
       if (s.starts) {
-        await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 100);
+        await pauseSoon(page);
         paused = true;
         spent = 0;
       }
@@ -108,6 +120,9 @@ for (const [file, persona] of Object.entries(personas)) {
     const token = await login(persona); //makes sure the account exists. The browser logs in through the form
     //start from nothing, so the run scores at the same points a new player's would. The ui has no button for this
     await call('DELETE', '/personality/answers', undefined, token);
+    //the story that opens Personality has played, so the page opens on the chapters, and the note on getting the most
+    //out of a scene shows before the first one, as it does for a new player
+    await call('PATCH', '/auth/config', { personality_intro_seen: true, scene_start_note_hidden: false }, token);
     await page.clock.install();
 
     await test.step('log in', async () => {

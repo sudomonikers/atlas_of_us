@@ -11,7 +11,7 @@ use crate::state::AppState;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
-    physical_intro_seen: bool, //whether they've been through the story that opens Physical Traits
+    abilities_intro_seen: bool, //whether they've been through the story that opens Abilities
     personality_intro_seen: bool, //whether they've been through the story that opens Personality
     scene_start_note_hidden: bool, //whether they've turned off the note on getting the most out of a scene
 }
@@ -20,7 +20,7 @@ pub struct Config {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigChanges {
-    physical_intro_seen: Option<bool>,
+    abilities_intro_seen: Option<bool>,
     personality_intro_seen: Option<bool>,
     scene_start_note_hidden: Option<bool>,
 }
@@ -28,7 +28,7 @@ pub struct ConfigChanges {
 //every setting, as columns read from the PersonConfig c, with its default where it's never been set or c is missing.
 //Added to a query's RETURN to read a Config from its row
 pub const CONFIG_COLUMNS: &str = "
-    coalesce(c.physicalIntroSeen, false) AS physical_intro_seen,
+    coalesce(c.abilitiesIntroSeen, false) AS abilities_intro_seen,
     coalesce(c.personalityIntroSeen, false) AS personality_intro_seen,
     coalesce(c.sceneStartNoteHidden, false) AS scene_start_note_hidden
 ";
@@ -46,13 +46,13 @@ pub async fn update_config(
     let mut rows = state.graph.execute(query(&format!("
         MATCH (p:Person {{id: $id}})
         MERGE (p)-[:HAS_CONFIG]->(c:PersonConfig)
-        SET c.physicalIntroSeen = coalesce($physicalIntroSeen, c.physicalIntroSeen),
+        SET c.abilitiesIntroSeen = coalesce($abilitiesIntroSeen, c.abilitiesIntroSeen),
             c.personalityIntroSeen = coalesce($personalityIntroSeen, c.personalityIntroSeen),
             c.sceneStartNoteHidden = coalesce($sceneStartNoteHidden, c.sceneStartNoteHidden)
         RETURN {CONFIG_COLUMNS}
     "))
         .param("id", user.person_id)
-        .param("physicalIntroSeen", changes.physical_intro_seen)
+        .param("abilitiesIntroSeen", changes.abilities_intro_seen)
         .param("personalityIntroSeen", changes.personality_intro_seen)
         .param("sceneStartNoteHidden", changes.scene_start_note_hidden)
     ).await.map_err(|e| internal(&e))?;

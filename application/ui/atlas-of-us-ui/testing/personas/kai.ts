@@ -228,7 +228,7 @@ export default {
     },
   },
   //Surfs and swims every day: very fit, great balance and stamina, sharp eyes, quick reactions.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.30,

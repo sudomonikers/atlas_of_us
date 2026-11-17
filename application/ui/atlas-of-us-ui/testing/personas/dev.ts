@@ -228,7 +228,7 @@ export default {
     },
   },
   //Lifts at the gym four days a week and plays five-a-side: strong, quick and fast off the mark, and a little careless.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.55,
       'Category Flexibility': 0.30,

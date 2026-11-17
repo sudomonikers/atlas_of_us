@@ -43,24 +43,24 @@ order as O\*NET's anchor file (checked for all 46), so each gets the level its e
 | Piece | What | Status |
 |---|---|---|
 | `database/onet_import/` | Reads O\*NET's Occupation Data, Alternate Titles and Abilities, embeds each occupation, and writes `onet_occupations_seed.cypher`: the 894 occupations with their vectors, and what each takes | Built |
-| `physical_abilities_seed.cypher` | Each ability's `anchorLevels`, from O\*NET's Level Scale Anchors | Built |
+| `abilities_seed.cypher` | Each ability's `anchorLevels`, from O\*NET's Level Scale Anchors | Built |
 | `database/migrations/006_occupations.cypher` | The occupation id constraint and `occupation_vector` index | Built |
-| atlas-jobs `SkillFilled-Physical` | Finds the skill's reference occupations, places each requirement on the anchored scale, links the skill to its occupation, and replaces requirements written on the old scale | Built |
+| atlas-jobs `SkillFilled-Abilities` | Finds the skill's reference occupations, places each requirement on the anchored scale, links the skill to its occupation, and replaces requirements written on the old scale | Built |
 | ui | Shows requirements as a score out of 100 (done) | Done |
-| Docs | Data model, `architecture/physical.md`, the jobs README | Built |
+| Docs | Data model, `architecture/abilities.md`, the jobs README | Built |
 
 ## Recomputing the skills we have
 The job runs again on a skill whose `abilityScale` isn't `anchored` yet, and replaces its requirements in one write. So
-the existing skills are recomputed by replaying the event archive to the `SkillFilled-Physical` rule alone:
+the existing skills are recomputed by replaying the event archive to the `SkillFilled-Abilities` rule alone:
 
 1. Run migration 006, the abilities seed and the occupations seed.
 2. Deploy the new job.
 3. Start a replay of the `atlas-events` archive from the bus's first day to now, with its destination filtered to the
-   `SkillFilled-Physical` rule's ARN, so no other job runs again.
+   `SkillFilled-Abilities` rule's ARN, so no other job runs again.
 4. Each `SkillFilled` in the archive reruns the job for its skill. A skill filled more than once is recomputed once:
    the second run finds it already anchored.
 5. Compare the count of ready skills with the count whose `abilityScale` is `anchored`. Any skill filled before the archive
-   existed isn't in it, and can be sent to the worker as `{"handler": "SkillFilled-Physical", "event": {"detail":
+   existed isn't in it, and can be sent to the worker as `{"handler": "SkillFilled-Abilities", "event": {"detail":
    {"skillId": "..."}}}`.
 
 It costs one Bedrock call per filled skill, at most 10 at a time, under the budget cutoff in `bedrock.rs`.

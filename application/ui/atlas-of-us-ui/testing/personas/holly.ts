@@ -232,7 +232,7 @@ export default {
     },
   },
   //Lifts sacks of compost all day: fair strength and flexibility, a good eye for color, and no idea of her blood type.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.25,
       'Category Flexibility': 0.15,

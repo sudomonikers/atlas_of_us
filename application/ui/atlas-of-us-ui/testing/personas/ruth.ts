@@ -228,7 +228,7 @@ export default {
     },
   },
   //Sits at a desk and walks to work: below average on fitness, careful and accurate on the tests of the mind, short-sighted in glasses.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.25,
       'Category Flexibility': 0.85,

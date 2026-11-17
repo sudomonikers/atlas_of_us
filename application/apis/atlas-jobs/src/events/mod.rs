@@ -35,10 +35,10 @@ pub async fn handle(graph: &Graph, handler: &str, event: Value) {
         "SkillFillRequested-Skills" => skill_fill_requested::skills::run(graph, event.detail).await,
         "SkillFilled-Skills" => skill_filled::skills::run(graph, event.detail).await,
         "SkillFilled-Personality" => skill_filled::personality::run(graph, event.detail).await,
-        "SkillFilled-Physical" => skill_filled::physical::run(graph, event.detail).await,
+        "SkillFilled-Abilities" => skill_filled::abilities::run(graph, event.detail).await,
         "SkillFilled-Topics" => skill_filled::topics::run(graph, event.detail).await,
         "TopicFillRequested-Topics" => topic_fill_requested::topics::run(graph, event.detail).await,
-        "ConditionAdded-Physical" => condition_added::physical::run(graph, event.detail).await,
+        "ConditionAdded-Abilities" => condition_added::abilities::run(graph, event.detail).await,
         _ => tracing::warn!(handler, source = event.source, detail_type = event.detail_type, detail = %event.detail, "no such handler"),
     }
 }

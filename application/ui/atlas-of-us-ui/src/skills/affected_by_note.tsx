@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { EXTENTS, type AffectedBy } from '../physical/api';
+import { EXTENTS, type AffectedBy } from '../abilities/api';
 
 //a list in words: "a", "a and b", "a, b and c"
 function and(items: string[]) {

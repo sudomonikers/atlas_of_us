@@ -16,7 +16,7 @@ use super::BoxError;
 pub struct Screening {
     pub name: String, //the topic's name, normalized
     pub description: String,
-    pub kind: String, //topic, skill, personality, physical_attribute or other
+    pub kind: String, //topic, skill, personality, ability or other
     pub acceptable: bool,
     pub rejection_reason: String, //shown to the user when it isn't acceptable
 }
@@ -34,7 +34,7 @@ values, religions, philosophies, theories and fields of study are all topics, tr
 - \"they can ...\": something they do, rather than a subject they know. A skill.
 - \"they are ...\": how they tend to be. A personality trait.
 - \"their body is ...\": part of the body, what it is like, or a capacity of their body or mind that makes things \
-easier or harder to learn (strength, stamina, eyesight, reaction time, dexterity, memory). A physical attribute.
+easier or harder to learn (strength, stamina, eyesight, reaction time, dexterity, memory). A ability.
 Take the most plausible reading, the way a colleague would. A subject that is also something people do is a topic here \
 (\"Python\" is a topic as well as a skill). Your reasoning is about what it is, never about whether it's true, useful, \
 specific or worth adding. Then answer the rest from that reasoning.
@@ -49,7 +49,7 @@ typed, without levels or adjectives (\"advanced calculus\" becomes \"Calculus\")
 One plain sentence saying what the subject covers.
 
 ## kind
-topic, skill, personality or physical_attribute, from your reasoning. When \"they know about\" fits, it's a topic. other \
+topic, skill, personality or ability, from your reasoning. When \"they know about\" fits, it's a topic. other \
 is for nonsense, and for anything none of the four fits.
 
 ## acceptable
@@ -77,7 +77,7 @@ pub async fn screen(state: &AppState, typed: &str) -> Result<Screening, BoxError
                 "reasoning": {"type": "string"},
                 "name": {"type": "string"},
                 "description": {"type": "string"},
-                "kind": {"type": "string", "enum": ["topic", "skill", "personality", "physical_attribute", "other"]},
+                "kind": {"type": "string", "enum": ["topic", "skill", "personality", "ability", "other"]},
                 "acceptable": {"type": "boolean"},
                 "rejection_reason": {"type": "string"},
             },

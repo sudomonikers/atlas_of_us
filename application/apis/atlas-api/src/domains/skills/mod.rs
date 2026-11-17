@@ -211,7 +211,7 @@ pub struct AskRequest {
 #[derive(Serialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum AskOutcome {
-    //it belongs to another module: kind is personality, topic, physical_attribute or other
+    //it belongs to another module: kind is personality, topic, ability or other
     NotASkill { kind: String, name: String },
     //nonsense, or a slur
     Rejected { reason: String },
@@ -392,7 +392,7 @@ pub struct TraitLink {
     strength: f64,
 }
 
-//a physical ability a skill's levels take, with how much the strongest of them matters, 0 to 1, and the most of it
+//an ability a skill's levels take, with how much the strongest of them matters, 0 to 1, and the most of it
 //any level takes, as a score out of 1
 #[derive(Serialize, Deserialize)]
 pub struct AbilityLink {
@@ -422,7 +422,7 @@ pub struct Neighbors {
     leads_to: Group, //skills whose levels require its levels
     similar: Group, //the closest skills by meaning, other than its broader and narrower ones
     traits: Vec<TraitLink>, //every personality trait its levels take, strongest first. There are only 30, so they aren't paged
-    abilities: Vec<AbilityLink>, //every physical ability its levels take, strongest first. There are only 46, so they aren't paged
+    abilities: Vec<AbilityLink>, //every ability its levels take, strongest first. There are only 46, so they aren't paged
     topics: Vec<TopicLink>, //every topic its levels need knowledge of, strongest first. A skill needs a handful, so they aren't paged
 }
 

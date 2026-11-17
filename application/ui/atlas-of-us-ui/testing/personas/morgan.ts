@@ -227,7 +227,7 @@ export default {
     },
   },
   //Desk-bound and walks the warehouse floor: a sharp, ordered mind, an arthritic right knee, and no great fitness.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.85,
       'Category Flexibility': 0.70,

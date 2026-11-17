@@ -228,7 +228,7 @@ export default {
     },
   },
   //Runs three times a week and thinks for a living: fit enough, and well ahead on every kind of reasoning.
-  physical: {
+  abilities: {
     targets: {
       'Auditory Attention': 0.85,
       'Category Flexibility': 0.95,

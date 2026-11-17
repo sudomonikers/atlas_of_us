@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# makes the spoken digits Competing Voices and Digits in Noise play (src/physical/competing_voices and digits_in_noise),
+# makes the spoken digits Competing Voices and Digits in Noise play (src/abilities/competing_voices and digits_in_noise),
 # into public/voices, with Amazon Polly's neural voices: the digits one to nine but seven from Matthew, the voice to
 # follow, and from Joanna and Gregory, who talk over him, and Matthew saying "This is the voice to follow." Each is
 # trimmed of silence and set to -20 dB RMS, so the tests set their levels against each other exactly. Then the noise
