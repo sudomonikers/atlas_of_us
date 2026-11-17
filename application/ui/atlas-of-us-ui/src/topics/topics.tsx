@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { navigate, usePath } from '../router';
+import { navigate, replace, usePath, useSearch } from '../router';
 import Explorer, { type Opened } from './explorer';
 import { emptyBoard, place, type TopicBoard } from './topic_board';
 import MyKnowledge from './my_knowledge';
@@ -14,12 +14,13 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-type View = 'explorer' | 'mine' | 'explained';
+//the page's views: the board of every topic, the user's own knowledge, and a guide to topics and Ideas
+type View = 'explorer' | 'mine' | 'explore';
 
-const VIEWS: { id: View; label: string; bubble: string }[] = [
-  { id: 'explorer', label: 'Topics Explorer', bubble: 'Everything a person can know about, from barley to black holes. Search for a topic, then follow the Ideas it is made of.' },
-  { id: 'mine', label: 'My Knowledge', bubble: "What you know now, how deeply, and what you'd like to know." },
-  { id: 'explained', label: 'Explore', bubble: 'Knowing about something has depths, and topics are made of Ideas. Here is how it works.' },
+const VIEWS: { id: View; label: string; to: string; bubble: string }[] = [
+  { id: 'explorer', label: 'Topics Explorer', to: '/topics', bubble: 'Everything a person can know about, from barley to black holes. Search for a topic, then follow the Ideas it is made of.' },
+  { id: 'mine', label: 'My Knowledge', to: '/topics?view=mine', bubble: "What you know now, how deeply, and what you'd like to know." },
+  { id: 'explore', label: 'Explore', to: '/topics?view=explore', bubble: 'Knowing about something has depths, and topics are made of Ideas. Here is how it works.' },
 ];
 
 //what's open from the url: a topic at /topics/<id>, or an Idea at /topics/ideas/<id>
@@ -35,16 +36,20 @@ function openedFrom(path: string): Opened | undefined {
 
 function Topics() {
   const path = usePath();
+  const params = new URLSearchParams(useSearch());
   //an open topic or Idea lives in the url, and always shows in the explorer
   const opened = openedFrom(path);
-  const [chosen, setView] = useState<View>('explorer');
+  //?view opens one of the page's views, and the explorer is the one without it
+  const chosen: View = VIEWS.find((v) => v.id === params.get('view'))?.id ?? 'explorer';
   //the explorer's board, kept here so it's still there after a look at Explore
   const [board, setBoard] = useState<TopicBoard>(emptyBoard);
   const view = opened ? 'explorer' : chosen;
   const current = VIEWS.find((v) => v.id === view)!;
+  //leaving an open topic or Idea is a step the back button can undo; switching between the views replaces the url in place
   const choose = (next: View) => {
-    setView(next);
-    if (opened && next !== 'explorer') navigate('/topics');
+    if (opened) {
+      if (next !== 'explorer') navigate(VIEWS.find((v) => v.id === next)!.to);
+    } else replace(VIEWS.find((v) => v.id === next)!.to);
   };
 
   return (
@@ -79,11 +84,11 @@ function Topics() {
 
         {view === 'explorer' && <Explorer opened={opened} board={board} onBoard={setBoard} />}
         {view === 'mine' && <MyKnowledge />}
-        {view === 'explained' && (
+        {view === 'explore' && (
           <Explained
             onExplore={(topic) => {
               setBoard((b) => place(b, { kind: 'topic', topic }));
-              setView('explorer');
+              replace('/topics');
             }}
           />
         )}
