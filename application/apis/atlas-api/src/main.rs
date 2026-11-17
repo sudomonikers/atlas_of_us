@@ -92,6 +92,7 @@ async fn main() {
         .nest("/api/feedback", feedback::router())
         .nest("/api/admin", admin::router(state.clone()))
         .nest("/api/profiles", profile::router())
+        .nest("/api/overall", profile::overall::router())
         .nest("/api/credits", credits::router())
         .route("/share/{username}", get(profile::share_page))
         .layer(PropagateRequestIdLayer::x_request_id())

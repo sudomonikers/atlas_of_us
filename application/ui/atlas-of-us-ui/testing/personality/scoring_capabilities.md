@@ -52,7 +52,7 @@ The single biggest gain came from reading each person's answers all at once inst
 
 **Stability:**
 - Re-scoring identical answers moves traits by about 2 points on average.
-- A full replay can move a trait that rests on very little evidence by more.
+- A full replay can move a trait based on very little evidence by more.
 
 ## Cost
 - **Six scenes' scoring:** about 30k input tokens and 10k output, roughly $0.25 on Sonnet 4.6. The fixed prompt and criteria are cached.

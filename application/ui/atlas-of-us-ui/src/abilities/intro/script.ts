@@ -237,13 +237,13 @@ export const twoPlayers: Script = {
         { text: "Then he opens Basketball, and Atlas is straight with him. Basketball as most people play it leans on running, jumping and legs, and paraplegia reaches all of those. He will very likely never play it at a high level.", animation: 'daniel_basketball_reach' },
         { speaker: DANIEL, text: 'Yeah. I knew that one. I think I just needed someone to say it plainly.', animation: 'daniel_window' },
       ],
-      next: 'living_with',
+      next: 'conditions',
     },
 
     // -------------------------------------------------------------------------
     // interlude: your conditions and impairments
     // -------------------------------------------------------------------------
-    living_with: {
+    conditions: {
       interlude: 'Your conditions and impairments',
       steps: [
         { text: "Here's Basketball as Daniel sees it. Next to Stamina, Explosive Strength and Gross Body Coordination there's a note: his paraplegia can affect each of them.", stage: { kind: 'skill', skill: BASKETBALL, rank: EXPERT, person: daniel, abilities: ['Stamina', 'Explosive Strength', 'Gross Body Coordination'] } },
@@ -316,7 +316,7 @@ export const twoPlayers: Script = {
             { label: 'Coordination and speed: the games Daniel aced.', chapter: 'coordination' },
             { label: 'Senses: your eyes and ears.', chapter: 'senses' },
             { label: 'Mind: puzzles for reasoning, memory and ideas.', chapter: 'mind' },
-            { label: 'Conditions and disabilities: glasses, a bad knee, or any other condition or impairment.', chapter: 'living-with' },
+            { label: 'Conditions and disabilities: glasses, a bad knee, or any other condition or impairment.', chapter: 'conditions' },
           ],
         },
       ],

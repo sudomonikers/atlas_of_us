@@ -154,7 +154,7 @@ const MOTIONS = {
     figure: { view: 'front', frames: [[0, { ...STAND, an: [135, 168] }], [0.6, { ...STAND, an: [135, 208] }]] },
     under: () => <Floor />,
   },
-  living: {
+  conditions: {
     label: 'Someone in glasses walking along with a cane',
     period: 1.6,
     still: 0,

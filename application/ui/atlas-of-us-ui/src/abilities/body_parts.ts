@@ -90,8 +90,8 @@ export const standingColor = (value: number) => (value < 0.5 ? mix(STANDING.low,
 
 export const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-//every mesh the abilities with a place rest on, in the color of the user's places on them, averaged where several rest
-//on the same mesh
+//every mesh the abilities with a place need, in the color of the user's places on them, averaged where several need
+//the same mesh
 export function heat(abilities: Ability[], body: Body): Map<string, number> {
   const sums = new Map<string, { total: number; count: number }>();
   for (const a of abilities) {

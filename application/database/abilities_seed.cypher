@@ -325,7 +325,7 @@ SET n.practice = w.practice;
 // An AbilityTip says how a person can work on an ability, linked with HAS_TIP.
 // A "practice" tip is what to do, and for an ability practice barely changes,
 // how to correct, protect or make up for it. An "impairment" tip is how to work
-// on it around an impairment in what it rests on. Written for the Atlas. MERGE
+// on it around an impairment in what it needs. Written for the Atlas. MERGE
 // on the ability and kind, the text overwritten on every run.
 
 UNWIND [

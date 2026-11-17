@@ -131,7 +131,7 @@ async fn set_impairment(State(state): State<AppState>, user: AuthUser, Path(id):
     if set == 0 {
         return Err((StatusCode::NOT_FOUND, "That body function or part doesn't exist.".to_string()));
     }
-    //an impairment is noted on the abilities it rests on, which come back
+    //an impairment is noted on the abilities that need what it's in, which come back
     Ok(Json(abilities::refresh(&state, &user.person_id).await?))
 }
 

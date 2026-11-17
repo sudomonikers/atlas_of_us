@@ -1,4 +1,5 @@
 import { request } from '../auth/api';
+import type { WriteUpState } from '../shared_components/write_up_panel';
 
 export type NormSex = 'male' | 'female';
 //a test a person takes themselves: at home, following its steps, one the app runs, or one only the camera can watch
@@ -205,7 +206,7 @@ export function today() {
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits (0 to 100, higher
-//better), or an impairment in what it rests on, noted beside it
+//better), or an impairment in what it needs, noted beside it
 export interface Basis {
   kind: 'measurement' | 'impairment';
   name: string;
@@ -222,7 +223,7 @@ export interface Shows {
 }
 
 //an ability from O*NET, with where the user stands on it, if anything says
-//a tip on working on an ability: what to do, or how to work on it around an impairment in what it rests on
+//a tip on working on an ability: what to do, or how to work on it around an impairment in what it needs
 export interface Tip {
   kind: 'practice' | 'impairment';
   text: string;
@@ -240,7 +241,7 @@ export interface Ability {
   confidence: number | null;
   basis: Basis[];
   measurements: Shows[];
-  parts: string[]; //the ids of the body parts it rests on
+  parts: string[]; //the ids of the body parts it needs
 }
 
 //whether an ability has had a test taken that can't place it yet, because there aren't enough people like the user to
@@ -271,7 +272,7 @@ export interface ImpairmentOn {
   extent: Extent;
 }
 
-//an ability, with the user's conditions and impairments in the body functions and parts it rests on
+//an ability, with the user's conditions and impairments in the body functions and parts it needs
 export interface AffectedBy {
   id: string;
   name: string;
@@ -468,14 +469,7 @@ export interface AbilitiesSummary {
 }
 
 //the user's summary, and where it's at
-export interface SummaryState {
-  summary: AbilitiesSummary | null;
-  written_at: string | null;
-  stale: boolean; //whether anything it was written from has changed since
-  writing: boolean;
-  failed: boolean; //whether the last one asked for couldn't be written
-  enough: boolean; //whether there's enough to write about yet
-}
+export type SummaryState = WriteUpState<AbilitiesSummary>;
 
 export const getSummary = () => request<SummaryState>('GET', '/abilities/summary');
 

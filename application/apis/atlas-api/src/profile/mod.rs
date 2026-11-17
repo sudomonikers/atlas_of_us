@@ -1,5 +1,9 @@
 //Profiles: what a person shares about themselves at /u/{username}, gathered from each part of the Atlas they've been
-//mapped on. Each part's module owns its data, and this one decides who gets to see it
+//mapped on, with the overall summary of them (overall.rs) and the graph of everything they're linked to (graph.rs).
+//Each part's module owns its data, and this one decides who gets to see it
+mod graph;
+pub mod overall;
+
 use axum::{Json, Router, extract::{Path, State}, http::StatusCode, response::Html, routing::get};
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
@@ -7,7 +11,9 @@ use serde::{Deserialize, Serialize};
 use crate::{auth::AuthUser, domains::{abilities, personality, skills, topics}, state::AppState};
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/{username}", get(get_profile))
+    Router::new()
+        .route("/{username}", get(get_profile))
+        .route("/{username}/graph", get(get_graph))
 }
 
 fn internal(e: impl std::fmt::Display) -> (StatusCode, String) {
@@ -41,10 +47,20 @@ pub struct Profile {
     username: String,
     first_name: String,
     public: bool,
+    overall: Option<serde_json::Value>, //the overall summary of them, once it's been written
     personality: personality::PersonPersonality,
-    abilities: Option<serde_json::Value>, //the summary of everything they've added to Abilities, once it's been written
+    abilities: ProfileAbilities,
     topics: Vec<topics::PersonTopic>, //the topics they've placed themselves on, deepest first
     skills: Vec<skills::PersonSkill>, //the skills they've placed themselves on, deepest first
+}
+
+//what a profile shows of someone's abilities: Atlas's summary, where they stand on each, and the conditions and
+//impairments that can affect them. Their measurements stay theirs alone
+#[derive(Serialize)]
+pub struct ProfileAbilities {
+    summary: Option<serde_json::Value>, //the summary of everything they've added to Abilities, once it's been written
+    placed: Vec<abilities::PersonAbility>, //the abilities they have a place on, by area then name
+    conditions_and_impairments: Vec<abilities::ConditionOrImpairment>, //their conditions, then their impairments, each with the abilities it can affect
 }
 
 //someone's profile. Private ones are only seen by their owner, and look missing to everyone else
@@ -58,14 +74,33 @@ pub async fn get_profile(
         return Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string()));
     };
     Ok(Json(Profile {
+        overall: overall::person_summary(&state.graph, &person.id).await?,
         personality: personality::person_personality(&state.graph, &person.id).await?,
-        abilities: abilities::person_summary(&state.graph, &person.id).await?,
+        abilities: ProfileAbilities {
+            summary: abilities::person_summary(&state.graph, &person.id).await?,
+            placed: abilities::person_abilities(&state.graph, &person.id).await?,
+            conditions_and_impairments: abilities::person_conditions_and_impairments(&state.graph, &person.id).await?,
+        },
         topics: topics::person_topics(&state.graph, &person.id).await?,
         skills: skills::person_skills(&state.graph, &person.id).await?,
         username: person.username,
         first_name: person.first_name,
         public: person.public,
     }))
+}
+
+//the graph of everything someone is linked to, for the Overall view of their profile. Private ones are only seen by
+//their owner
+async fn get_graph(
+    State(state): State<AppState>,
+    user: Option<AuthUser>,
+    Path(username): Path<String>,
+) -> Result<Json<graph::PersonGraph>, (StatusCode, String)> {
+    let viewer_id = user.map(|u| u.person_id).unwrap_or_default();
+    let Some(person) = find_person(&state.graph, &username, &viewer_id).await? else {
+        return Err((StatusCode::NOT_FOUND, "This profile is private or doesn't exist.".to_string()));
+    };
+    Ok(Json(graph::person_graph(&state.graph, &person.id).await?))
 }
 
 //where share links and their preview image live

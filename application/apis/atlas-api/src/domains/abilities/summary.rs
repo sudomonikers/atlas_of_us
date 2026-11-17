@@ -31,8 +31,8 @@ struct Input {
     measurements: Vec<Measured>,
     abilities: Vec<Placed>,
     waiting: Vec<String>, //abilities they've taken a test of that can't place them yet, with too few people to compare with
-    conditions: Vec<LivesWith>,
-    impairments: Vec<LivesWith>,
+    conditions: Vec<ConditionOrImpairment>,
+    impairments: Vec<ConditionOrImpairment>,
 }
 
 //a characteristic they've answered
@@ -67,7 +67,7 @@ struct Placed {
 
 //a condition or impairment, and the abilities it can affect
 #[derive(Serialize, Deserialize)]
-struct LivesWith {
+struct ConditionOrImpairment {
     name: String,
     how: Option<String>, //a condition's severity, or an impairment's extent
     diagnosed: Option<bool>,
@@ -128,16 +128,16 @@ async fn gather(state: &AppState, person_id: &str) -> Result<(Input, usize), (St
         WITH h, c, coalesce(c.plainName, c.name) AS name
         RETURN {{
             name: name, how: h.severity, diagnosed: h.diagnosed, managed: h.managed, change: null,
-            affects: COLLECT {{ MATCH (c)-[:AFFECTS]->(t) MATCH (a:Ability) WHERE {rests_on} RETURN DISTINCT a.name AS n ORDER BY n }}
+            affects: COLLECT {{ MATCH (c)-[:AFFECTS]->(t) MATCH (a:Ability) WHERE {ability_needs_body} RETURN DISTINCT a.name AS n ORDER BY n }}
         }} AS item ORDER BY toLower(name)
-    ", rests_on = abilities::RESTS_ON)).await?;
+    ", ability_needs_body = abilities::ABILITY_NEEDS_BODY)).await?;
     let impairments = list(graph, person_id, &format!("
         MATCH (p:Person {{id: $personId}})-[i:HAS_IMPAIRMENT]->(t)
         RETURN {{
             name: t.name, how: i.extent, diagnosed: null, managed: null, change: i.change,
-            affects: COLLECT {{ MATCH (a:Ability) WHERE {rests_on} RETURN a.name AS n ORDER BY n }}
+            affects: COLLECT {{ MATCH (a:Ability) WHERE {ability_needs_body} RETURN a.name AS n ORDER BY n }}
         }} AS item ORDER BY t.name
-    ", rests_on = abilities::RESTS_ON)).await?;
+    ", ability_needs_body = abilities::ABILITY_NEEDS_BODY)).await?;
 
     Ok((Input { age, characteristics, measurements, abilities, waiting, conditions, impairments }, placed))
 }

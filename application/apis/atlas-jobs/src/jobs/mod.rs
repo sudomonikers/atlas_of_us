@@ -7,6 +7,7 @@ pub mod personality_contest;
 pub mod personality_report;
 pub mod personality_scoring;
 pub mod abilities_summary;
+pub mod overall_summary;
 
 //every kind of job, as the api sends it: {"kind": "personality_scoring", "job": {...}}
 #[derive(Deserialize)]
@@ -16,6 +17,7 @@ enum Job {
     PersonalityContest(personality_contest::ContestJob),
     PersonalityReport(personality_report::ReportJob),
     AbilitiesSummary(abilities_summary::SummaryJob),
+    OverallSummary(overall_summary::SummaryJob),
 }
 
 //handlers are picked by kind. Jobs handle their own failures, so a bad one is logged and never retried
@@ -25,6 +27,7 @@ pub async fn handle(graph: &Graph, job: Value) {
         Ok(Job::PersonalityContest(job)) => personality_contest::run(graph, job).await,
         Ok(Job::PersonalityReport(job)) => personality_report::run(graph, job).await,
         Ok(Job::AbilitiesSummary(job)) => abilities_summary::run(graph, job).await,
+        Ok(Job::OverallSummary(job)) => overall_summary::run(graph, job).await,
         Err(e) => tracing::error!("unreadable job: {e}"),
     }
 }

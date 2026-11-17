@@ -93,6 +93,7 @@ export interface LinkKind {
   arrow: boolean;
   color: string; //a palette variable, such as 'var(--gunmetal-black)'
   length: number; //how long a link to a floating node likes to be
+  loose?: boolean; //drawn without pulling its ends together, so it doesn't shape the layout
 }
 
 interface Spring extends SimulationLinkDatum<Point> {
@@ -819,9 +820,10 @@ export function GraphBoard(props: GraphBoardProps) {
     const root = first ? layout.at(first) : undefined;
     if (root && root.fx == null) [root.fx, root.fy] = [root.x, root.y];
     const length = new Map(kinds.map((kd) => [kd.id, kd.length]));
+    const loose = new Set(kinds.filter((kd) => kd.loose).map((kd) => kd.id));
     const floatingIds = new Set(gathered.map((v) => v.id));
     const touching = links.filter(
-      (l) => floatingIds.has(l.from) || floatingIds.has(l.to),
+      (l) => !loose.has(l.kind) && (floatingIds.has(l.from) || floatingIds.has(l.to)),
     );
     const anchors = new Map<string, Point>();
     for (const l of touching) {

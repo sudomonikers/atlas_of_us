@@ -37,7 +37,7 @@ export default function YourResults({ known, affectedBy, body }: YourResultsProp
         panel={(onLight) => <Results abilities={known.abilities} measurements={known.measurements} body={body} onLight={onLight} picked={picked} onPick={setPicked} />}
       />
       <div style={styles.pair}>
-        <LivingWith known={known} affectedBy={affectedBy} />
+        <YourConditions known={known} affectedBy={affectedBy} />
         <StillToFind known={known} />
       </div>
     </div>
@@ -213,7 +213,7 @@ function AbilityChart({ abilities, picked, onPick }: { abilities: Ability[]; pic
 }
 
 //the conditions and impairments they've added, each with the abilities it can affect
-function LivingWith({ known, affectedBy }: { known: Known; affectedBy: AffectedBy[] }) {
+function YourConditions({ known, affectedBy }: { known: Known; affectedBy: AffectedBy[] }) {
   const { conditions, impairments } = known;
   const byId = new Map(conditions.conditions.map((c) => [c.id, c]));
   //what an impairment is in is named beside the abilities it can affect
@@ -234,8 +234,8 @@ function LivingWith({ known, affectedBy }: { known: Known; affectedBy: AffectedB
   ].map((i) => ({ ...i, abilities: affects(i.id) }));
 
   return (
-    <section style={styles.section} aria-labelledby="living">
-      <h2 id="living" style={styles.heading}>
+    <section style={styles.section} aria-labelledby="conditions">
+      <h2 id="conditions" style={styles.heading}>
         Your conditions and impairments
       </h2>
       {!items.length ? (
@@ -253,7 +253,7 @@ function LivingWith({ known, affectedBy }: { known: Known; affectedBy: AffectedB
           ))}
         </ul>
       )}
-      <button className="comic-lift" style={styles.link} onClick={() => navigate('/abilities?chapter=living-with')}>
+      <button className="comic-lift" style={styles.link} onClick={() => navigate('/abilities?chapter=conditions')}>
         {items.length ? 'Change your conditions and impairments' : 'Add your conditions and impairments'}
       </button>
     </section>

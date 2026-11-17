@@ -79,9 +79,9 @@ async function measurement(page: Page, m: Catalog['measurements'][number], perso
 
 //picks each condition from the checklist when it's on it, or finds it by searching for it, and says how it affects them.
 //Then finds where each impairment is by searching for it, and says how much it's impaired
-async function livingWith(page: Page, persona: Abilities, catalog: Catalog) {
+async function conditionsAndImpairments(page: Page, persona: Abilities, catalog: Catalog) {
   await read(page);
-  const search = page.locator('#living-search');
+  const search = page.locator('#conditions-search');
   for (const c of persona.conditions) {
     const known = catalog.conditions.find((x) => x.name === c.name);
     if (!known) throw new Error(`there's no condition ${c.name}`);
@@ -122,7 +122,7 @@ async function act(page: Page, name: string, persona: Abilities, catalog: Catalo
   if (m) return measurement(page, m, persona, recorded);
   const c = catalog.characteristics.find((x) => x.name === name);
   if (c) return persona.characteristics[name] && characteristic(page, name, persona.characteristics[name]);
-  if (name === 'Your conditions and impairments') return livingWith(page, persona, catalog);
+  if (name === 'Your conditions and impairments') return conditionsAndImpairments(page, persona, catalog);
 }
 
 //on to the next scene, the next chapter, or back to the chapters after the last. Says which

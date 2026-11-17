@@ -107,8 +107,9 @@ and shows where it sits among people of their sex and age, compared with men, wo
 impairment is in a body function or part, and a condition records how much it affects them, whether it was diagnosed
 and whether it's under control. One search finds both, conditions by any of their names, everyday names and
 abbreviations included, and body functions and parts, through full-text indexes that match plurals, prefixes and typos.
-Measurements, impairments and conditions are only shown to the person who recorded them. The summary written from them
-shows on their profile too, which others see only when they make it public.
+Measurements are only shown to the person who recorded them. Their profile shows the summary written from everything
+they added, where they stand on each ability, and their conditions and impairments with the abilities each can affect,
+which others see only when they make it public.
 
 ## The tests
 Each test shows one ability. On screen, the app runs and scores it; at home, the person follows written steps and
@@ -186,12 +187,12 @@ A person's place on each ability is worked out from what they've recorded, by th
 for norms or an impairment changes, and whenever they open Abilities, so norms that shift as other
 people take the tests reach them. Every ability is worked out together in one query, and a change returns the result
 with what it saved. The latest reading of each
-measurement that shows an ability counts, weighted by how much that measurement says about it. An impairment in what the ability rests on is
+measurement that shows an ability counts, weighted by how much that measurement says about it. An impairment in what the ability needs is
 noted beside it, and leaves where they stand as it is. Each ability has tips on working on it, one on what to do and one on working
 around an impairment, and how much practice changes it. A chapter's breakdown offers the first on an ability where the
 person is below typical, and the second wherever an impairment is noted. The result is kept on the person as HAS_ABILITY, which is what skills compare against: a skill level's
 abilities show beside where the person stands, as its personality traits do, along with the person's conditions and
-impairments in the functions and parts each ability rests on.
+impairments in the functions and parts each ability needs.
 
 ## Skill requirements
 Every skill level is linked to the abilities it takes, so a person can see how what they have to work with fits a
@@ -227,4 +228,4 @@ loaded the first time it's shown. Every mesh is named, and a file beside the mod
 module's data sets are linked at a few points (conditions to parts and functions, measurements to parts and
 functions, parts to the functions they serve). Lighting up a part lights up every mesh it's drawn with, or those of the parts within it and kinds of it;
 a part with no model lights up the nearest part it belongs to that has one. An ability lights up the parts that serve
-the functions it rests on, and a body function the parts that serve it.
+the functions it needs, and a body function the parts that serve it.

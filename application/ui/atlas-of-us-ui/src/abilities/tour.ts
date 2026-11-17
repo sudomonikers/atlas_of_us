@@ -4,7 +4,7 @@ import { type MotionName } from './motion';
 import { plain, STRONG, WEAK } from './plain';
 
 //what the 3D body shows on a scene: the layers, and the parts lit up and flown to, by FMA id or by id, or every part
-//the abilities in a category rest on
+//the abilities in a category need
 export interface Shot {
   layers: LayerId[];
   parts?: string[];
@@ -17,7 +17,7 @@ export interface Shot {
 export type Panel =
   | { kind: 'characteristic'; id: string }
   | { kind: 'measurement'; id: string }
-  | { kind: 'living' };
+  | { kind: 'conditions' };
 
 //a scene shows someone doing what it's about, the 3D body where what it's about sits in it, where the user stands on
 //each ability in a category, or what the user can do across the whole stage
@@ -285,19 +285,19 @@ export const CHAPTERS: Chapter[] = [
     'Puzzles and games for reasoning, memory, patterns and ideas.',
   ),
   {
-    id: 'living-with',
+    id: 'conditions',
     title: 'Conditions and disabilities',
     blurb: 'Your conditions and impairments, like asthma, a bad knee or needing glasses.',
     scenes: () => [
       {
         id: 'intro',
         text: "Lots of people have a condition or impairment, like needing glasses, a bad knee, asthma or ADHD. When a skill needs something one of these can affect, I'll mention it so you can plan around it.",
-        stage: { motion: 'living' },
+        stage: { motion: 'conditions' },
       },
       {
-        id: 'living',
+        id: 'conditions',
         stage: { whole: true },
-        panel: { kind: 'living' },
+        panel: { kind: 'conditions' },
       },
     ],
     progress: ({ impairments, conditions }) => {

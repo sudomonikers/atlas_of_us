@@ -106,7 +106,7 @@ function Detail({ ability: a }: { ability: Ability }) {
       : `${b.extent ? `A ${b.extent} impairment` : 'An impairment'} in ${b.name.toLowerCase()}`,
   );
   const untested = a.measurements.filter((m) => !m.counted).map((m) => m.name);
-  //working around an impairment comes first for someone with one in what it rests on
+  //working around an impairment comes first for someone with one in what it needs
   const impaired = a.basis.some((b) => b.kind === 'impairment');
   const tips = [...(impaired ? a.tips.filter((t) => t.kind === 'impairment') : []), ...a.tips.filter((t) => t.kind === 'practice')].slice(0, 2);
   return (

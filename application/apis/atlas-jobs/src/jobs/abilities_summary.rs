@@ -57,8 +57,6 @@ teasing now and then, aimed at how their traits combine, never at their body, th
 flatter them and don't lecture them.
 - Say where they stand in plain words, like \"quicker than 96 in 100 men your age\" or \"well below typical\", never \
 \"percentile\".
-- The summary may be shown publicly on their profile, so anything you say has to be something they'd be happy for \
-friends to read.
 - Say what is distinctive: where they stand well above or below typical, and how their abilities combine (for example, \
 quick reactions with steady hands). Don't walk through every ability or reading one by one.
 - Anything with confidence under 0.5 is an early read: hedge it. Where an area has \

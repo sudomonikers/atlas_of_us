@@ -19,7 +19,7 @@ interface AnatomyViewerProps {
   layers: Set<LayerId>; //the layers showing
   lit: Set<string>; //the meshes lit up, by element id
   noted: Set<string>; //the meshes with something the user has noted
-  tints: Map<string, number>; //meshes drawn in a color of their own, such as where the user stands on what they rest on
+  tints: Map<string, number>; //meshes drawn in a color of their own, such as where the user stands on the abilities that need them
   focus: Set<string>; //the meshes the camera frames, or the whole body when there are none
   spin: boolean; //turn slowly by itself
   pulse: boolean; //the lit meshes breathe, to draw the eye

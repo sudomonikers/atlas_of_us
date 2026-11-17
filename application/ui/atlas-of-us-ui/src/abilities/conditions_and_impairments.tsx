@@ -42,7 +42,7 @@ interface Place {
 //what's open to fill in: a condition, or an impairment in a function or part
 type Open = { kind: 'condition'; id: string } | { kind: 'impairment'; id: string };
 
-interface LivingWithProps {
+interface ConditionsAndImpairmentsProps {
   impairments: Impairments;
   conditions: Conditions;
   anatomy: PartSummary[];
@@ -55,7 +55,7 @@ interface LivingWithProps {
 //the user's conditions and impairments, in one place: a checklist of common conditions in everyday names, a search for anything
 //else, conditions from our list and from Mondo and HPO along with the body functions and parts an impairment can be in,
 //and beside them what they've added and the abilities it can affect
-export default function LivingWith({ impairments, conditions, anatomy, affectedBy, onImpaired, onUnimpaired, onConditions }: LivingWithProps) {
+export default function ConditionsAndImpairments({ impairments, conditions, anatomy, affectedBy, onImpaired, onUnimpaired, onConditions }: ConditionsAndImpairmentsProps) {
   const [open, setOpen] = useState<Open>();
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string>();
@@ -137,7 +137,7 @@ export default function LivingWith({ impairments, conditions, anatomy, affectedB
   return (
     <div style={styles.columns}>
       <section style={styles.pick} aria-label="Pick what applies">
-        <SearchField id="living-search" query={query} onQuery={search} placeholder="Search anything: Parkinson's, shoulder, memory..." />
+        <SearchField id="conditions-search" query={query} onQuery={search} placeholder="Search anything: Parkinson's, shoulder, memory..." />
         {query.trim() ? (
           <Found
             query={query}

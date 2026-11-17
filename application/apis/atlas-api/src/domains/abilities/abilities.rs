@@ -1,6 +1,6 @@
 //where a person stands on each ability (HAS_ABILITY), worked out from what they've recorded: the latest reading of each
 //measurement that shows it. Their
-//impairments in the body functions it rests on are noted beside it. It's worked out again whenever any of those change
+//impairments in the body functions it needs are noted beside it. It's worked out again whenever any of those change
 //and whenever the person opens their abilities, so better norms reach everyone. See "Abilities" in
 //documentation/architecture/abilities.md
 use std::collections::HashMap;
@@ -68,7 +68,7 @@ struct Row {
 }
 
 //what a person's place on an ability comes from: a measurement, with where their reading sits, 0 to 100 with higher
-//better; or an impairment in what it rests on, with its extent, noted beside it
+//better; or an impairment in what it needs, with its extent, noted beside it
 #[derive(Serialize)]
 pub struct Basis {
     pub(super) kind: String, //measurement or impairment
@@ -87,7 +87,7 @@ pub struct Shows {
 }
 
 //a tip on working on an ability: "practice" for what to do, or "impairment" for working around an impairment in what
-//it rests on
+//it needs
 #[derive(Deserialize, Serialize)]
 pub struct Tip {
     kind: String,
@@ -108,7 +108,7 @@ pub struct Ability {
     pub(super) confidence: Option<f64>,
     pub(super) basis: Vec<Basis>,
     pub(super) measurements: Vec<Shows>,
-    parts: Vec<String>, //the ids of the body parts it rests on
+    parts: Vec<String>, //the ids of the body parts it needs
 }
 
 const ABILITIES: &str = "
@@ -134,7 +134,7 @@ const ABILITIES: &str = "
            } AS measurements,
            COLLECT {
                MATCH (p)-[i:HAS_IMPAIRMENT]->(t)
-               WHERE {RESTS_ON}
+               WHERE {ABILITY_NEEDS_BODY}
                RETURN {name: t.name, extent: i.extent}
            } AS impairments,
            COLLECT {
@@ -144,13 +144,13 @@ const ABILITIES: &str = "
     ORDER BY a.category, a.name
 ";
 
-//whether the ability `a` rests on the body function or part `t`: the function or one it's part of underlies it, or the
-//part, or a kind of part it is, serves one that does
-pub(super) const RESTS_ON: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
+//whether the ability `a` needs the body function or part `t`: the function, or one it's part of, underlies the ability;
+//or the part, or a kind of part it is, serves a function that does
+pub const ABILITY_NEEDS_BODY: &str = "(EXISTS { MATCH (t)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) }
                   OR EXISTS { MATCH (t)-[:PART_SUBTYPE_OF*0..2]->(:BodyPart)-[:SERVES]->(:BodyFunction)<-[:SUBFUNCTION_OF*0..4]-(:BodyFunction)-[:UNDERLIES]->(a) })";
 
 //where a person stands on one ability: the readings that count, each weighted by how much it says, with their
-//impairments in what it rests on noted
+//impairments in what it needs noted
 fn work_out(row: Row) -> Ability {
     let birthday = row.birthday.as_deref().and_then(date);
     let sex = row.sex.as_deref();
@@ -200,7 +200,7 @@ fn work_out(row: Row) -> Ability {
 //works out where a person stands on every ability, keeps it as HAS_ABILITY (dropping the ones nothing says anything
 //about any more), and returns them all
 pub async fn refresh(state: &AppState, person_id: &str) -> Result<Vec<Ability>, (StatusCode, String)> {
-    let mut result = state.graph.execute(query(&ABILITIES.replace("{RESTS_ON}", RESTS_ON).replace("{SEX}", SEX)).param("personId", person_id)).await.map_err(internal)?;
+    let mut result = state.graph.execute(query(&ABILITIES.replace("{ABILITY_NEEDS_BODY}", ABILITY_NEEDS_BODY).replace("{SEX}", SEX)).param("personId", person_id)).await.map_err(internal)?;
     let mut abilities = Vec::new();
     while let Some(row) = result.next().await.map_err(internal)? {
         abilities.push(work_out(row.to::<Row>().map_err(internal)?));
@@ -255,7 +255,7 @@ pub struct ImpairmentOn {
     extent: String,
 }
 
-//an ability, with the logged in user's conditions and impairments in the body functions and parts it rests on
+//an ability, with the logged in user's conditions and impairments in the body functions and parts it needs
 #[derive(Serialize, Deserialize)]
 pub struct AffectedBy {
     id: String,
@@ -265,19 +265,19 @@ pub struct AffectedBy {
 }
 
 //the abilities the logged in user's conditions and impairments can affect, each with them, so a skill can show what can
-//affect the abilities it takes. A condition can affect what rests on the functions and parts it affects
+//affect the abilities it takes. A condition can affect the abilities that need the functions and parts it affects
 async fn affected_by(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<AffectedBy>>, (StatusCode, String)> {
     let mut rows = state.graph.execute(query(&format!("
         MATCH (p:Person {{id: $personId}}), (a:Ability)
         WITH a,
              COLLECT {{
                  MATCH (p)-[h:HAS_CONDITION]->(c:Condition)-[:AFFECTS]->(t)
-                 WHERE {RESTS_ON}
+                 WHERE {ABILITY_NEEDS_BODY}
                  RETURN DISTINCT {{id: c.id, name: c.name, severity: h.severity}} AS c ORDER BY toLower(c.name)
              }} AS conditions,
              COLLECT {{
                  MATCH (p)-[i:HAS_IMPAIRMENT]->(t)
-                 WHERE {RESTS_ON}
+                 WHERE {ABILITY_NEEDS_BODY}
                  RETURN {{id: t.id, name: t.name, extent: i.extent}} ORDER BY t.name
              }} AS impairments
         WHERE size(conditions) > 0 OR size(impairments) > 0
@@ -289,4 +289,64 @@ async fn affected_by(State(state): State<AppState>, user: AuthUser) -> Result<Js
         affected.push(row.to::<AffectedBy>().map_err(internal)?);
     }
     Ok(Json(affected))
+}
+
+//an ability a person has a place on, as their profile shows it
+#[derive(Serialize, Deserialize)]
+pub struct PersonAbility {
+    pub id: String,
+    pub name: String,
+    pub category: String,
+    pub value: f64, //0 to 1, with 0.5 typical
+    pub confidence: f64,
+}
+
+//the abilities a person has a place on, as last worked out, by area then name. Says nothing about who may see them:
+//the caller checks that
+pub async fn person_abilities(graph: &neo4rs::Graph, person_id: &str) -> Result<Vec<PersonAbility>, (StatusCode, String)> {
+    let mut rows = graph.execute(query("
+        MATCH (:Person {id: $personId})-[h:HAS_ABILITY]->(a:Ability)
+        RETURN a.id AS id, a.name AS name, a.category AS category, h.value AS value, h.confidence AS confidence
+        ORDER BY a.category, a.name
+    ").param("personId", person_id)).await.map_err(internal)?;
+    let mut abilities = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        abilities.push(row.to::<PersonAbility>().map_err(internal)?);
+    }
+    Ok(abilities)
+}
+
+//one of a person's conditions or impairments, as their profile shows it, with the abilities it can affect
+#[derive(Serialize, Deserialize)]
+pub struct ConditionOrImpairment {
+    kind: String, //condition or impairment
+    name: String,
+    how: Option<String>, //a condition's severity, or an impairment's extent
+    diagnosed: Option<bool>, //for a condition
+    managed: Option<bool>, //for a condition
+    affects: Vec<String>, //the names of the abilities it can affect
+}
+
+//a person's conditions, then their impairments, each by name. Says nothing about who may see them: the caller checks that
+pub async fn person_conditions_and_impairments(graph: &neo4rs::Graph, person_id: &str) -> Result<Vec<ConditionOrImpairment>, (StatusCode, String)> {
+    let mut rows = graph.execute(query(&format!("
+        CALL {{
+            MATCH (:Person {{id: $personId}})-[h:HAS_CONDITION]->(c:Condition)
+            WITH h, c, coalesce(c.plainName, c.name) AS name
+            RETURN 0 AS kindOrder, 'condition' AS kind, name, h.severity AS how, h.diagnosed AS diagnosed, h.managed AS managed,
+                   COLLECT {{ MATCH (c)-[:AFFECTS]->(t) MATCH (a:Ability) WHERE {ABILITY_NEEDS_BODY} RETURN DISTINCT a.name AS n ORDER BY n }} AS affects
+            UNION ALL
+            MATCH (:Person {{id: $personId}})-[i:HAS_IMPAIRMENT]->(t)
+            RETURN 1 AS kindOrder, 'impairment' AS kind, t.name AS name, i.extent AS how, null AS diagnosed, null AS managed,
+                   COLLECT {{ MATCH (a:Ability) WHERE {ABILITY_NEEDS_BODY} RETURN a.name AS n ORDER BY n }} AS affects
+        }}
+        RETURN kind, name, how, diagnosed, managed, affects
+        ORDER BY kindOrder, toLower(name)
+    "))
+        .param("personId", person_id)).await.map_err(internal)?;
+    let mut items = Vec::new();
+    while let Some(row) = rows.next().await.map_err(internal)? {
+        items.push(row.to::<ConditionOrImpairment>().map_err(internal)?);
+    }
+    Ok(items)
 }

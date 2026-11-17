@@ -25,7 +25,7 @@ import { CharacteristicChoice } from './characteristic_choice';
 import Explore from './explore';
 import { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
-import LivingWith from './living_with';
+import ConditionsAndImpairments from './conditions_and_impairments';
 import YourResults from './your_results';
 import { MotionPanel } from './motion';
 import Sheet from './sheet';
@@ -196,7 +196,7 @@ function Traits() {
 const NAMED: Record<string, string> = {
   intro: 'Introduction',
   results: 'How you did',
-  living: 'Your conditions and impairments',
+  conditions: 'Your conditions and impairments',
 };
 const nameOf = (s: Scene) => s.title ?? NAMED[s.id] ?? (s.id.startsWith('intro') ? 'Introduction' : s.id);
 
@@ -315,7 +315,7 @@ function Player({ chapter, scene: sceneId, loaded, changes }: PlayerProps) {
   const [testing, setTesting] = useState(false);
   const [peek, setPeek] = useState<number | null>(null); //the scene dot being pointed at, whose name shows under it
 
-  //what the scene lights up: its parts, or every part its category's abilities rest on, never the whole body, which would light up everything
+  //what the scene lights up: its parts, or every part its category's abilities need, never the whole body, which would light up everything
   const shot = useMemo(() => {
     const s = shotOf(scene);
     if (!s) return new Set<string>();
@@ -539,7 +539,7 @@ function ScenePanel({ scene, loaded, changes, testStage, onTesting, onSkip }: Sc
     return m ? <MeasurementCard key={m.id} measurement={m} hand={handOf(me)} stage={testStage} onTesting={onTesting} onSkip={onSkip} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
   }
   return (
-    <LivingWith
+    <ConditionsAndImpairments
       impairments={impairments}
       conditions={conditions}
       anatomy={anatomy}

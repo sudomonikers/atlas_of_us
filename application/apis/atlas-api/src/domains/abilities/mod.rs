@@ -13,6 +13,7 @@ mod norms;
 mod search;
 mod summary;
 
+pub use abilities::{person_abilities, person_conditions_and_impairments, ConditionOrImpairment, PersonAbility, ABILITY_NEEDS_BODY};
 pub use summary::person_summary;
 
 use axum::{

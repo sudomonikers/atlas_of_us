@@ -264,6 +264,11 @@ impl PersonPersonality {
     pub fn headline(&self) -> Option<&str> {
         self.report.as_ref()?["headline"].as_str()
     }
+
+    //each measured trait as (name, domain key, value 0 to 1, how many answers show it)
+    pub fn measured(&self) -> impl Iterator<Item = (&str, &str, f64, usize)> {
+        self.traits.iter().map(|t| (t.name.as_str(), t.domain.as_str(), t.value, t.answers))
+    }
 }
 
 //a person's measured traits and report. Says nothing about who may see them: the caller checks that

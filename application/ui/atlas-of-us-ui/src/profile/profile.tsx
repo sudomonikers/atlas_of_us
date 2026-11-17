@@ -3,7 +3,8 @@ import { setPublic, useSession } from '../auth/api';
 import { DOMAINS, type PersonPersonality } from '../personality/api';
 import { PersonalityReport } from '../personality/report';
 import { SummaryText } from '../abilities/summary';
-import type { AbilitiesSummary } from '../abilities/api';
+import { capitalized, CATEGORIES } from '../abilities/api';
+import { hex, standingColor } from '../abilities/body_parts';
 import { LEVEL_NAMES, monthYear, type AchievedSkill } from '../skills/api';
 import { BLOOM_NAMES, type EngagedTopic } from '../topics/api';
 import { EvidenceList } from '../shared_components/evidence';
@@ -12,16 +13,19 @@ import { navigate, replace, useSearch } from '../router';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
 import { AtlasError } from '../shared_components/atlas-error';
-import { getProfile, type Profile as ProfileData } from './api';
+import { getProfile, type Profile as ProfileData, type ConditionOrImpairment, type ProfileAbilities } from './api';
 import { Dots } from '../shared_components/thinking';
+import { OverallSection } from './overall';
 
 const gunmetal = 'var(--gunmetal-black)';
 const blue = 'var(--air-force-blue)';
 const comic = 'var(--font-comic)';
 
-//one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link can open on it
-type Tab = 'personality' | 'abilities' | 'topics' | 'skills';
+//the Overall view, then one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link
+//can open on it
+type Tab = 'overall' | 'personality' | 'abilities' | 'topics' | 'skills';
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'overall', label: 'Overall' },
   { id: 'personality', label: 'Personality' },
   { id: 'abilities', label: 'Abilities' },
   { id: 'topics', label: 'Topics' },
@@ -35,8 +39,8 @@ export default function Profile({ username }: { username: string }) {
   const [profile, setProfile] = useState<ProfileData>();
   const [error, setError] = useState<string>();
   const asked = new URLSearchParams(useSearch()).get('tab');
-  const tab = TABS.find((t) => t.id === asked)?.id ?? 'personality';
-  const setTab = (next: Tab) => replace(next === 'personality' ? window.location.pathname : `${window.location.pathname}?tab=${next}`);
+  const tab = TABS.find((t) => t.id === asked)?.id ?? 'overall';
+  const setTab = (next: Tab) => replace(next === 'overall' ? window.location.pathname : `${window.location.pathname}?tab=${next}`);
 
   //waits for a stored login to be checked, so an owner viewing their private profile isn't turned away
   useEffect(() => {
@@ -141,8 +145,9 @@ export default function Profile({ username }: { username: string }) {
               </button>
             ))}
           </div>
+          {tab === 'overall' && <OverallSection profile={profile} mine={mine} onOpen={setTab} />}
           {tab === 'personality' && <PersonalitySection personality={profile.personality} firstName={profile.first_name} />}
-          {tab === 'abilities' && <AbilitiesSection summary={profile.abilities} firstName={profile.first_name} />}
+          {tab === 'abilities' && <AbilitiesSection abilities={profile.abilities} firstName={profile.first_name} mine={mine} />}
           {tab === 'topics' && <TopicsSection topics={profile.topics} firstName={profile.first_name} />}
           {tab === 'skills' && <SkillsSection skills={profile.skills} firstName={profile.first_name} />}
         </>
@@ -202,14 +207,96 @@ function PersonalitySection({ personality, firstName }: { personality: PersonPer
   );
 }
 
-//Atlas's summary of everything they've added to Abilities, once they've asked for one
-function AbilitiesSection({ summary, firstName }: { summary: AbilitiesSummary | null; firstName: string }) {
+//Atlas's summary of everything they've added to Abilities once they've asked for one, then where they stand on each
+//ability, by area like Your results, and the conditions and impairments that can affect them. The owner is pointed to
+//Abilities for whatever's missing
+function AbilitiesSection({ abilities, firstName, mine }: { abilities: ProfileAbilities; firstName: string; mine: boolean }) {
+  const { summary, placed } = abilities;
+  const areas = CATEGORIES.map((c) => ({ ...c, abilities: placed.filter((a) => a.category === c.id) })).filter((c) => c.abilities.length);
+  const go = (to: string, label: string) => (
+    <a style={styles.go} href={to} onClick={follow(to)}>
+      {label} ▶
+    </a>
+  );
+
   return (
     <section style={styles.section} className="comic-panel" role="tabpanel">
-      {summary ? <SummaryText summary={summary} /> : <p>{firstName} hasn't had their abilities written up yet.</p>}
+      {summary && <SummaryText summary={summary} />}
+      {!placed.length ? (
+        mine ? (
+          <p>
+            You don't have a score on any ability yet. The chapters in Abilities find them out, one test at a time. {go('/abilities', 'Go to Abilities')}
+          </p>
+        ) : (
+          <p>{firstName} hasn't taken any ability tests yet.</p>
+        )
+      ) : (
+        !summary && mine && <p style={styles.nudge}>Once you've added a few results, I can write up what they say about you as a whole. {go('/abilities?view=results', 'Go to Your results')}</p>
+      )}
+      {areas.map((area) => (
+        <div key={area.id} style={styles.domain}>
+          <h3 style={styles.domainTitle}>{area.label}</h3>
+          <ul style={styles.traits}>
+            {area.abilities.map((a) => {
+              const percent = Math.round(a.value * 100);
+              const early = a.confidence < 0.5; //only a little to go on, so shown faded, as on Your results
+              return (
+                <li key={a.id} style={styles.trait}>
+                  <span style={styles.traitName}>
+                    {a.name}
+                    {early && (
+                      <span className="comic-chip" title="Only a test or two says anything about this, so take it with a grain of salt">
+                        Early read
+                      </span>
+                    )}
+                  </span>
+                  <div style={{ ...styles.scale, ...(early ? styles.tentative : {}) }} role="meter" aria-label={a.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                    <div style={{ ...styles.track, ...styles.line }}>
+                      <span style={styles.typical} />
+                      <span style={{ ...styles.dot, left: `calc(${percent}% - ${DOT / 2}px)`, background: hex(standingColor(a.value)) }} />
+                    </div>
+                    <div style={styles.ends} aria-hidden>
+                      <span>Low</span>
+                      <span>Typical</span>
+                      <span>High</span>
+                    </div>
+                  </div>
+                  <span style={styles.value}>{percent}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+      {abilities.conditions_and_impairments.length > 0 && (
+        <div style={styles.domain}>
+          <h3 style={styles.domainTitle}>Conditions and impairments</h3>
+          <ul style={styles.traits}>
+            {abilities.conditions_and_impairments.map((item) => (
+              <li key={`${item.kind}-${item.name}`} style={styles.lived}>
+                <span style={{ ...styles.traitName, flex: 'none' }}>
+                  {capitalized(item.name)}
+                  {notes(item) && <span className="comic-chip">{notes(item)}</span>}
+                </span>
+                <span style={styles.affects}>{item.affects.length ? `Can affect ${item.affects.join(', ')}.` : "Doesn't reach any of the abilities the Atlas tracks."}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {mine && (placed.length > 0 || abilities.conditions_and_impairments.length > 0) && <p style={styles.more}>{go('/abilities?view=results', 'See everything on Your results')}</p>}
     </section>
   );
 }
+
+//what someone said about a condition or impairment, such as "Moderate, diagnosed, under control" or "Mild impairment"
+function notes(item: ConditionOrImpairment) {
+  if (item.kind === 'impairment') return item.how ? `${capitalized(item.how)} impairment` : 'Impairment';
+  return [item.how && capitalized(item.how), item.diagnosed && 'diagnosed', item.managed && 'under control'].filter(Boolean).join(', ');
+}
+
+//how big an ability's dot is, in pixels
+const DOT = 20;
 
 //opens a page in the app from a link, without a reload
 const follow = (to: string) => (e: MouseEvent) => {
@@ -457,6 +544,54 @@ const styles: Record<string, CSSProperties> = {
   },
   tentative: {
     opacity: 0.5,
+  },
+  //an ability's track: a dot along it, with typical marked in the middle
+  line: {
+    position: 'relative',
+    height: 24,
+    padding: 0,
+    overflow: 'visible',
+  },
+  typical: {
+    position: 'absolute',
+    left: '50%',
+    top: 2,
+    bottom: 2,
+    borderLeft: `2px dashed rgba(57, 61, 63, 0.45)`,
+  },
+  dot: {
+    position: 'absolute',
+    top: `calc(50% - ${DOT / 2}px)`,
+    width: DOT,
+    height: DOT,
+    boxSizing: 'border-box',
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '50%',
+  },
+  go: {
+    fontFamily: comic,
+    fontSize: 20,
+    letterSpacing: 1,
+    color: 'var(--brown-red)',
+    whiteSpace: 'nowrap',
+  },
+  more: {
+    textAlign: 'right',
+  },
+  nudge: {
+    marginBottom: 20,
+  },
+  //a condition or impairment: its name and what they said about it, then the abilities it can affect
+  lived: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    padding: '12px 0',
+    borderBottom: '2px dashed rgba(57, 61, 63, 0.35)',
+  },
+  affects: {
+    fontSize: 17,
+    lineHeight: 1.4,
   },
   value: {
     width: 40,
