@@ -334,4 +334,11 @@ export default {
       { name: "attention deficit-hyperactivity disorder", severity: "moderate", diagnosed: false, managed: false },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Baristas', flags: {} },
+      { title: 'Stockers and Order Fillers', flags: {} },
+      { title: 'Graphic Designers', flags: {} },
+    ],
+  },
 } satisfies Persona;

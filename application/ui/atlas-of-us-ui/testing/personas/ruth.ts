@@ -349,4 +349,11 @@ export default {
       { name: "myopia", severity: "mild", diagnosed: true, managed: true },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Payroll and Timekeeping Clerks', flags: {} },
+      { title: 'Bookkeeping, Accounting, and Auditing Clerks', flags: {} },
+      { title: 'Accountants and Auditors', flags: {} },
+    ],
+  },
 } satisfies Persona;

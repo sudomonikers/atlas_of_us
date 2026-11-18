@@ -1,0 +1,66 @@
+demand	kind	id	name
+Sitting	part	FMA13478	Vertebral column
+Sitting	function	b28013	Pain in back
+Standing	part	FMA7184	Lower limb
+Standing	part	FMA7188	Left lower limb
+Standing	part	FMA7187	Right lower limb
+Standing	part	FMA35175	Knee joint
+Standing	part	FMA24978	Left knee
+Standing	part	FMA24977	Right knee
+Standing	part	FMA9664	Foot
+Standing	function	b28015	Pain in lower limb
+Climbing ladders, scaffolds or poles	part	FMA7184	Lower limb
+Climbing ladders, scaffolds or poles	part	FMA7188	Left lower limb
+Climbing ladders, scaffolds or poles	part	FMA7187	Right lower limb
+Climbing ladders, scaffolds or poles	part	FMA7183	Upper limb
+Climbing ladders, scaffolds or poles	function	b235	Vestibular functions
+Climbing ladders, scaffolds or poles	function	b730	Muscle power functions
+Walking or running	part	FMA7184	Lower limb
+Walking or running	part	FMA7188	Left lower limb
+Walking or running	part	FMA7187	Right lower limb
+Walking or running	part	FMA35175	Knee joint
+Walking or running	part	FMA24978	Left knee
+Walking or running	part	FMA24977	Right knee
+Walking or running	part	FMA35178	Hip joint
+Walking or running	part	FMA24966	Left hip
+Walking or running	part	FMA24965	Right hip
+Walking or running	part	FMA9664	Foot
+Walking or running	function	b770	Gait pattern functions
+Walking or running	function	b455	Exercise tolerance functions
+Kneeling, crouching, stooping or crawling	part	FMA35175	Knee joint
+Kneeling, crouching, stooping or crawling	part	FMA24978	Left knee
+Kneeling, crouching, stooping or crawling	part	FMA24977	Right knee
+Kneeling, crouching, stooping or crawling	part	FMA35178	Hip joint
+Kneeling, crouching, stooping or crawling	part	FMA24966	Left hip
+Kneeling, crouching, stooping or crawling	part	FMA24965	Right hip
+Kneeling, crouching, stooping or crawling	part	FMA13478	Vertebral column
+Kneeling, crouching, stooping or crawling	function	b710	Mobility of joint functions
+Keeping your balance	part	FMA35195	Ankle joint
+Keeping your balance	function	b235	Vestibular functions
+Using your hands	part	FMA9712	Hand
+Using your hands	function	b760	Control of voluntary movement functions
+Bending or twisting	part	FMA13478	Vertebral column
+Bending or twisting	function	b28013	Pain in back
+Bending or twisting	function	b710	Mobility of joint functions
+Repetitive motions	part	FMA9712	Hand
+Repetitive motions	part	FMA7183	Upper limb
+Repetitive motions	function	b28014	Pain in upper limb
+Loud or distracting noise	part	FMA52780	Ear
+Loud or distracting noise	function	b230	Hearing functions
+Loud or distracting noise	function	b240	Sensations associated with hearing and vestibular functions
+Very hot or cold temperatures	part	FMA7163	Skin
+Very hot or cold temperatures	function	b550	Thermoregulatory functions
+Very bright or poor lighting	part	FMA12513	Eyeball
+Very bright or poor lighting	function	b210	Seeing functions
+Fumes, dust, gases or odors	part	FMA7195	Lung
+Fumes, dust, gases or odors	function	b440	Respiration functions
+Cramped spaces and awkward positions	part	FMA13478	Vertebral column
+Cramped spaces and awkward positions	function	b710	Mobility of joint functions
+Whole-body vibration	part	FMA13478	Vertebral column
+Whole-body vibration	function	b28013	Pain in back
+Outdoors in all weather	part	FMA7163	Skin
+Outdoors in all weather	function	b550	Thermoregulatory functions
+Disease or infection	function	b435	Immunological system functions
+High places	function	b235	Vestibular functions
+Minor burns, cuts, bites or stings	part	FMA7163	Skin
+Minor burns, cuts, bites or stings	function	b810	Protective functions of the skin

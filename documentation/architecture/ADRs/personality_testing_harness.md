@@ -35,7 +35,9 @@ The harness tests more than one module. `testing/` holds what they share, and ea
 ### Personas
 - Each persona is one file in `personas/`. It holds a test account and a one-line personality, and a key for each module
   it takes part in. Its `personality` holds a target from 0 to 1 for every trait and a scripted answer to every prompt
-  of every scene.
+  of every scene. Its `occupations` holds three jobs it's interested in on the business site, each with the physical
+  demands the page flags for it, from the impairments and conditions its `abilities` entered. Six personas have notes
+  their jobs flag, four have notes their jobs leave alone, and three have none.
 - There are ten, chosen to cover the extremes and the middle of most traits:
 
   | Persona | Personality |
@@ -82,6 +84,9 @@ after any change to a scene's prompts.
 - It runs by hand, from the UI folder, against the local API: `npm run test:personality` for every persona, with
   `-- -g <persona>` for some, and `npm run test:personality:check` for the check. Playwright starts the Vite dev server
   on port 5173, or uses the one already running, and plays in headless Chromium. `-- --headed` shows the browsers.
+- `npm run test:occupations` plays the occupations module on the business site, which Playwright also starts, on
+  port 5175. Every persona logs in, opens its jobs, and checks each page and its flags, in about 15 seconds.
+  `BUSINESS_SITE` points it at another copy of the site. It runs after `test:abilities`, which enters what it flags.
 - Scoring happens in the deployed atlas-jobs Lambda, so a change to the scorer is deployed (`apis/atlas-jobs/deploy.sh`) before the run that tests it.
 - A full run takes 5 to 7 minutes and costs about $7 of Bedrock calls.
 - It is not part of CI.

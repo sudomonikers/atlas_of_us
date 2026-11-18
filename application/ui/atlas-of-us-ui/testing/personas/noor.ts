@@ -347,4 +347,16 @@ export default {
       { name: "astigmatism", severity: "mild", diagnosed: true, managed: true },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Physicists', flags: {} },
+      { title: 'Mathematicians', flags: {} },
+      {
+        title: 'Nuclear Technicians',
+        flags: {
+          'Very bright or poor lighting': ['Astigmatism'],
+        },
+      },
+    ],
+  },
 } satisfies Persona;

@@ -348,4 +348,11 @@ export default {
       { name: "allergic rhinitis", severity: "mild", diagnosed: true, managed: true },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Computer User Support Specialists', flags: {} },
+      { title: 'Network and Computer Systems Administrators', flags: {} },
+      { title: 'Information Security Analysts', flags: {} },
+    ],
+  },
 } satisfies Persona;

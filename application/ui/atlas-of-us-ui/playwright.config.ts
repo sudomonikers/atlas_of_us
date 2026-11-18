@@ -9,6 +9,8 @@ import { personas } from './testing/personas/index.ts';
 //   npm run test:abilities               every persona plays every Abilities chapter and test
 //   npm run test:abilities -- -g ruth    only these personas, by file name
 //   npm run test:abilities:check         checks every persona's Abilities answers and targets, without playing
+//   npm run test:occupations             every persona opens the jobs it's interested in on the business site, after
+//                                        test:abilities has entered its impairments and conditions
 export default defineConfig({
   testDir: './testing',
   outputDir: './testing/test-results', //traces, screenshots and the last run's state
@@ -20,11 +22,19 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     viewport: { width: 1280, height: 900 },
   },
-  webServer: {
-    command: 'npm run dev -- --port 5173 --strictPort',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-  },
+  webServer: [
+    {
+      command: 'npm run dev -- --port 5173 --strictPort',
+      url: 'http://localhost:5173',
+      reuseExistingServer: true,
+    },
+    //the business site, for the occupations module, against the same api
+    {
+      command: 'npm --prefix ../atlas-business-ui run dev -- --port 5175 --strictPort',
+      url: 'http://localhost:5175',
+      reuseExistingServer: true,
+    },
+  ],
   projects: [
     { name: 'personality', testMatch: 'personality/personality.test.ts', timeout: 30 * 60_000 },
     { name: 'personality-check', testMatch: 'personality/check.test.ts' },
@@ -37,5 +47,6 @@ export default defineConfig({
       use: { channel: 'chromium', deviceScaleFactor: 2, actionTimeout: 60_000 },
     },
     { name: 'abilities-check', testMatch: 'abilities/check.test.ts' },
+    { name: 'occupations', testMatch: 'occupations/occupations.test.ts', timeout: 5 * 60_000 },
   ],
 });

@@ -344,4 +344,16 @@ export default {
       { name: "sensorineural hearing loss disorder", severity: "mild", diagnosed: true, managed: false },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Registered Nurses', flags: {} },
+      {
+        title: 'Home Health Aides',
+        flags: {
+          'Bending or twisting': ['Osteoarthritis'],
+        },
+      },
+      { title: 'Clergy', flags: {} },
+    ],
+  },
 } satisfies Persona;

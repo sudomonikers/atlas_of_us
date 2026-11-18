@@ -351,4 +351,30 @@ export default {
       { name: "Knee pain", severity: "moderate", diagnosed: false, managed: false },
     ],
   },
+  occupations: {
+    jobs: [
+      {
+        title: 'Plumbers, Pipefitters, and Steamfitters',
+        flags: {
+          'Standing': ['Left knee', 'Bad knee'],
+          'Walking or running': ['Left knee', 'Bad knee'],
+          'Bending or twisting': ['gout'],
+          'Cramped spaces and awkward positions': ['gout'],
+          'Climbing ladders, scaffolds or poles': ['Left knee'],
+        },
+      },
+      {
+        title: 'Construction Laborers',
+        flags: {
+          'Standing': ['Left knee', 'Bad knee'],
+        },
+      },
+      {
+        title: 'First-Line Supervisors of Construction Trades and Extraction Workers',
+        flags: {
+          'Standing': ['Left knee', 'Bad knee'],
+        },
+      },
+    ],
+  },
 } satisfies Persona;

@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* the Atlas palette (atlas-of-us-ui/STYLE_GUIDE.md) in a quieter, professional setting */
+:root {
+  --ink: #393d3f; /* gunmetal black */
+  --ink-soft: #5d6265;
+  --ink-faint: #8a8f91;
+  --paper: #fbfaf5;
+  --card: #ffffff;
+  --line: #e4e2da;
+  --accent: #ad2831; /* brown red */
+  --accent-soft: #f6e6e7;
+  --blue: #6a8eae; /* air force blue */
+  --blue-soft: #e5edf4;
+  --warm: #a77464; /* cinnamon wood */
+  --good: #3f7d58;
+  --good-soft: #e3f0e8;
+  --radius: 10px;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  font-family: var(--font);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--paper);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}

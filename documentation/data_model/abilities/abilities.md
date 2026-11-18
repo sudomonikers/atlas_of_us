@@ -175,6 +175,7 @@ spent.
 | SERVES | BodyPart → BodyFunction | | A function the part carries out (Lung → Respiration functions) |
 | COVERS | Topic → BodyPart | | A topic to learn more about the part in, on systems and organs (Cardiology → Cardiovascular system) |
 | HAS_CONDITION | Person → Condition | `severity`, `diagnosed`, `managed`, `updatedAt` | A condition they've noted. `severity` is `mild`, `moderate` or `severe` when they've said, `diagnosed` whether a professional diagnosed it, and `managed` whether it's under control |
+| STRAINS | WorkDemand → BodyFunction or BodyPart | | A physical demand of work that wears on the function or part (see the Occupations graph) |
 
 ## Example
 ```cypher

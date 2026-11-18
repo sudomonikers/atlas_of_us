@@ -2,7 +2,9 @@
 //takes, the knowledge and skills it takes at the Bloom and Dreyfus levels its ratings come to, how important each of
 //its work styles is, and an embedding of each, so skills can find the occupations like them by meaning. It reads O*NET
 //30.0's Occupation Data, Alternate Titles, Abilities, Knowledge, Skills and Work Styles, and links.tsv, which names the
-//topic, skill or personality trait each knowledge area, skill and work style is in the Atlas. See README.md
+//topic, skill or personality trait each knowledge area, skill and work style is in the Atlas. From Work Context, it
+//writes how often the work has people in each of the physical demands in demands.tsv, and which body functions and
+//parts each demand strains, from strains.tsv. See README.md
 use std::{collections::BTreeMap, env, fmt::Write, fs, path::Path, process::ExitCode};
 
 use atlas_shared::{bedrock::embed, skills::resolver::embedding_text};
@@ -19,8 +21,12 @@ const ABILITIES: &str = "Abilities.txt";
 const KNOWLEDGE: &str = "Knowledge.txt";
 const SKILLS: &str = "Skills.txt";
 const WORK_STYLES: &str = "Work Styles.txt";
+const WORK_CONTEXT: &str = "Work Context.txt";
 //what each of O*NET's knowledge areas, skills and work styles is in the Atlas, beside Cargo.toml
 const LINKS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/links.tsv");
+//the physical demands of work kept from Work Context, and the body functions and parts each strains, beside Cargo.toml
+const DEMANDS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/demands.tsv");
+const STRAINS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/strains.tsv");
 //a knowledge area or skill an occupation takes at least this important is one it requires: O*NET's "important", 3 on
 //its 1 to 5, which is 0.5 here
 const IMPORTANT: f64 = 0.5;
@@ -51,6 +57,8 @@ struct Occupation {
 struct Takes {
     level: Option<f64>,
     importance: Option<f64>,
+    //for Work Context: how often, from O*NET's 1 (never) to 5 (continually, or every day), over 0 to 1
+    frequency: Option<f64>,
 }
 
 //what one of O*NET's elements is in the Atlas: a topic, skill or trait by name, and for a trait, whether the element is
@@ -113,6 +121,20 @@ async fn run(data: &Path, seed: &Path) -> Result<(), BoxError> {
     let knowledge = requirements(&ratings(&data.join(KNOWLEDGE))?, &links, "topic", 6, &occupations);
     let skills = requirements(&ratings(&data.join(SKILLS))?, &links, "skill", 5, &occupations);
     //every work style an occupation is rated on, with how important it is, as the trait it is in the Atlas
+    //how often each occupation's work has people in each physical demand
+    let demands = tsv(DEMANDS)?;
+    let context = ratings(&data.join(WORK_CONTEXT))?;
+    let frequencies: Vec<(&String, &String, f64)> = context.iter()
+        .filter(|((soc, element), _)| occupations.contains_key(soc) && demands.iter().any(|d| &d[0] == element))
+        .filter_map(|((soc, element), t)| Some((soc, element, t.frequency?)))
+        .collect();
+    //the body functions and parts each demand strains, by the demand's element id
+    let strains: Vec<(String, Vec<String>)> = tsv(STRAINS)?.into_iter().map(|row| {
+        let element = demands.iter().find(|d| d[2] == row[0]).map(|d| d[0].clone())
+            .ok_or_else(|| format!("strains.tsv names a demand demands.tsv doesn't have: {}", row[0]))?;
+        Ok::<_, BoxError>((element, row))
+    }).collect::<Result<_, _>>()?;
+
     let styles = ratings(&data.join(WORK_STYLES))?;
     let mut traits: Vec<(&String, &Link, f64)> = Vec::new();
     for ((soc, element), t) in &styles {
@@ -168,8 +190,9 @@ async fn run(data: &Path, seed: &Path) -> Result<(), BoxError> {
         writeln!(out, "] AS t\nMATCH (o:Occupation {{onetSoc: t.soc}}), (a:Ability {{onetId: t.ability}})\nMERGE (o)-[r:TAKES_ABILITY]->(a)\nSET r.level = t.level, r.importance = t.importance;\n")?;
     }
 
-    //the knowledge, skills and traits are written again from scratch, since a new rating can move one to another level
-    writeln!(out, "MATCH (:Occupation)-[r:TAKES_KNOWLEDGE|TAKES_SKILL|TAKES_TRAIT]->()\nDELETE r;\n")?;
+    //the knowledge, skills, traits and demands are written again from scratch, since a new rating can move one to another
+    //level, or leave it out
+    writeln!(out, "MATCH (:Occupation)-[r:TAKES_KNOWLEDGE|TAKES_SKILL|TAKES_TRAIT|HAS_DEMAND]->()\nDELETE r;\n")?;
     let knowledge: Vec<_> = knowledge.iter().collect();
     for chunk in knowledge.chunks(BATCH) {
         write_requirements(&mut out, chunk)?;
@@ -191,10 +214,34 @@ async fn run(data: &Path, seed: &Path) -> Result<(), BoxError> {
         }
         writeln!(out, "] AS t\nMATCH (o:Occupation {{onetSoc: t.soc}}), (p:PersonalityTrait {{name: t.name}})\nMERGE (o)-[r:TAKES_TRAIT]->(p)\nSET r.importance = t.importance, r.opposite = t.opposite;\n")?;
     }
+
+    //the demands, what each strains, and how often each occupation's work has people in them
+    writeln!(out, "UNWIND [")?;
+    for (i, d) in demands.iter().enumerate() {
+        writeln!(out, "  {{onetId: {}, name: {}, group: {}}}{}", text(&d[0]), text(&d[2]), text(&d[3]), if i + 1 < demands.len() { "," } else { "" })?;
+    }
+    writeln!(out, "] AS d\nMERGE (n:WorkDemand {{onetId: d.onetId}})\nON CREATE SET n.id = randomUUID()\nSET n.name = d.name, n.group = d.group;\n")?;
+    writeln!(out, "MATCH (:WorkDemand)-[r:STRAINS]->()\nDELETE r;\n")?;
+    for (kind, label, key) in [("function", "BodyFunction", "code"), ("part", "BodyPart", "fmaId")] {
+        let rows: Vec<_> = strains.iter().filter(|(_, row)| row[1] == kind).collect();
+        writeln!(out, "UNWIND [")?;
+        for (i, (element, row)) in rows.iter().enumerate() {
+            writeln!(out, "  {{demand: {}, target: {}}}{}", text(element), text(&row[2]), if i + 1 < rows.len() { "," } else { "" })?;
+        }
+        writeln!(out, "] AS s\nMATCH (d:WorkDemand {{onetId: s.demand}}), (t:{label} {{{key}: s.target}})\nMERGE (d)-[:STRAINS]->(t);\n")?;
+    }
+    for chunk in frequencies.chunks(BATCH) {
+        writeln!(out, "UNWIND [")?;
+        for (i, (soc, element, frequency)) in chunk.iter().enumerate() {
+            writeln!(out, "  {{soc: {}, demand: {}, frequency: {}}}{}", text(soc), text(element), round(*frequency), if i + 1 < chunk.len() { "," } else { "" })?;
+        }
+        writeln!(out, "] AS t\nMATCH (o:Occupation {{onetSoc: t.soc}}), (d:WorkDemand {{onetId: t.demand}})\nMERGE (o)-[r:HAS_DEMAND]->(d)\nSET r.frequency = t.frequency;\n")?;
+    }
+
     fs::write(seed, out)?;
     println!(
-        "{} occupations, {} abilities, {} knowledge, {} skills and {} traits they take",
-        occupations.len(), takes.len(), knowledge.len(), skills.len(), traits.len()
+        "{} occupations, {} abilities, {} knowledge, {} skills, {} traits and {} demands they take, {} body functions and parts the demands strain",
+        occupations.len(), takes.len(), knowledge.len(), skills.len(), traits.len(), frequencies.len(), strains.len()
     );
     Ok(())
 }
@@ -224,10 +271,20 @@ fn ratings(path: &Path) -> Result<BTreeMap<(String, String), Takes>, BoxError> {
         match field(scale) {
             "LV" => entry.level = Some(if not_relevant.is_some_and(|i| field(i) == "Y") { 0.0 } else { number / 7.0 }),
             "IM" => entry.importance = Some((number - 1.0) / 4.0),
+            "CX" => entry.frequency = Some((number - 1.0) / 4.0),
             _ => {}
         }
     }
     Ok(takes)
+}
+
+//the fields of each row of one of the tab separated files beside Cargo.toml, without its header
+fn tsv(path: &str) -> Result<Vec<Vec<String>>, BoxError> {
+    let file = fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+    Ok(file.lines().skip(1).filter(|l| !l.trim().is_empty())
+        .map(|line| line.split('\t').map(|f| f.trim().to_string()).collect::<Vec<_>>())
+        .filter(|row| row.len() >= 4)
+        .collect())
 }
 
 //links.tsv, without its header
@@ -285,8 +342,10 @@ fn text(s: &str) -> String {
     format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
+//a number to 3 places, always with a decimal point, so cypher keeps it a float: a bare 0 or 1 would be an integer
 fn round(v: f64) -> String {
-    format!("{:.3}", v).trim_end_matches('0').trim_end_matches('.').to_string()
+    let short = format!("{:.3}", v).trim_end_matches('0').to_string();
+    if short.ends_with('.') { format!("{short}0") } else { short }
 }
 
 const HEADER: &str = r#"
@@ -307,13 +366,18 @@ const HEADER: &str = r#"
 // `level` and `importance`. TAKES_TRAIT goes to the personality trait each of
 // its work styles is, with its `importance`, and `opposite` when the work style
 // is the trait's low end. Which topic, skill or trait each of O*NET's elements
-// is comes from database/onet_import/links.tsv. `vector` is an embedding of its
+// is comes from database/onet_import/links.tsv. HAS_DEMAND goes to each of the
+// physical demands of work (WorkDemand), with how often the work has people in
+// it, its `frequency` from O*NET's 1 (never) to 5 (continually, or every day),
+// over 0 to 1. STRAINS goes from each demand to the body functions and parts it
+// strains, from demands.tsv and strains.tsv. `vector` is an embedding of its
 // title, description and alternate titles (amazon.titan-embed-text-v2:0), the
 // same as a skill's, so skills can find the occupations like them. Run
-// migration 006, abilities_seed.cypher and personality_seed.cypher first.
+// migrations 006 and 018, abilities_seed.cypher, abilities_functions_seed.cypher,
+// abilities_anatomy_seed.cypher and personality_seed.cypher first.
 //
 // Source: O*NET 30.0 Database (Occupation Data, Alternate Titles, Abilities,
-// Knowledge, Skills, Work Styles),
+// Knowledge, Skills, Work Styles, Work Context),
 // by the U.S. Department of Labor, Employment and Training Administration,
 // under CC BY 4.0 (https://www.onetcenter.org/database.html). Credit O*NET
 // wherever this data is shown.

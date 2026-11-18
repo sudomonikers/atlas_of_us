@@ -347,4 +347,30 @@ export default {
       { name: "Tinnitus", severity: "mild", diagnosed: false, managed: false },
     ],
   },
+  occupations: {
+    jobs: [
+      {
+        title: 'Heavy and Tractor-Trailer Truck Drivers',
+        flags: {
+          'Sitting': ['Pain in back', 'Bad back'],
+          'Fumes, dust, gases or odors': ['Sleep apnea'],
+          'Loud or distracting noise': ['Hearing functions', 'Ringing in the ears'],
+        },
+      },
+      {
+        title: 'Bus Drivers, Transit and Intercity',
+        flags: {
+          'Sitting': ['Pain in back', 'Bad back'],
+          'Loud or distracting noise': ['Hearing functions', 'Ringing in the ears'],
+          'Fumes, dust, gases or odors': ['Sleep apnea'],
+        },
+      },
+      {
+        title: 'Dispatchers, Except Police, Fire, and Ambulance',
+        flags: {
+          'Sitting': ['Pain in back', 'Bad back'],
+        },
+      },
+    ],
+  },
 } satisfies Persona;

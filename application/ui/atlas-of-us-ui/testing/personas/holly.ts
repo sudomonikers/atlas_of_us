@@ -347,4 +347,11 @@ export default {
     impairments: [],
     conditions: [],
   },
+  occupations: {
+    jobs: [
+      { title: 'Landscaping and Groundskeeping Workers', flags: {} },
+      { title: 'Farmworkers and Laborers, Crop, Nursery, and Greenhouse', flags: {} },
+      { title: 'Floral Designers', flags: {} },
+    ],
+  },
 } satisfies Persona;

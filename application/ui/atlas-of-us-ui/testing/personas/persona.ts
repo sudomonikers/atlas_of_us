@@ -43,6 +43,20 @@ export interface Abilities {
   conditions: Condition[];
 }
 
+//an occupation the persona is interested in on the business site, by its title, and what the page should flag for them:
+//each physical demand of the work, by its name, to the impairments and conditions of theirs it strains. A demand left
+//out flags nothing, and an empty flags flags nothing at all
+export interface Job {
+  title: string;
+  flags: Partial<Record<string, string[]>>;
+}
+
+//the occupations the persona looks at on the business site. What it flags comes from the impairments and conditions
+//its abilities entered, so the abilities module plays first
+export interface Occupations {
+  jobs: Job[];
+}
+
 export interface Persona {
   name: string;
   account: Account;
@@ -51,4 +65,5 @@ export interface Persona {
     answers: Record<string, Record<string, Answer>>; //scene id to prompt id to answer
   };
   abilities?: Abilities;
+  occupations?: Occupations;
 }

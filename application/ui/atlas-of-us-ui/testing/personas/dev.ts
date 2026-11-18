@@ -345,4 +345,11 @@ export default {
     impairments: [],
     conditions: [],
   },
+  occupations: {
+    jobs: [
+      { title: 'Sales Representatives, Wholesale and Manufacturing, Except Technical and Scientific Products', flags: {} },
+      { title: 'Real Estate Sales Agents', flags: {} },
+      { title: 'Marketing Managers', flags: {} },
+    ],
+  },
 } satisfies Persona;

@@ -344,4 +344,11 @@ export default {
     impairments: [],
     conditions: [],
   },
+  occupations: {
+    jobs: [
+      { title: 'Bartenders', flags: {} },
+      { title: 'Lifeguards, Ski Patrol, and Other Recreational Protective Service Workers', flags: {} },
+      { title: 'Exercise Trainers and Group Fitness Instructors', flags: {} },
+    ],
+  },
 } satisfies Persona;

@@ -348,4 +348,17 @@ export default {
       { name: "essential hypertension", severity: "mild", diagnosed: true, managed: true },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'General and Operations Managers', flags: {} },
+      { title: 'Logisticians', flags: {} },
+      {
+        title: 'First-Line Supervisors of Production and Operating Workers',
+        flags: {
+          'Standing': ['Right knee'],
+          'Walking or running': ['Right knee'],
+        },
+      },
+    ],
+  },
 } satisfies Persona;

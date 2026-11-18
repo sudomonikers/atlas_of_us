@@ -347,4 +347,11 @@ export default {
       { name: "migraine disorder", severity: "moderate", diagnosed: true, managed: true },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Receptionists and Information Clerks', flags: {} },
+      { title: 'Dental Assistants', flags: {} },
+      { title: 'Medical Secretaries and Administrative Assistants', flags: {} },
+    ],
+  },
 } satisfies Persona;

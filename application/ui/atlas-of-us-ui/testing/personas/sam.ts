@@ -352,4 +352,16 @@ export default {
       { name: "presbyopia", severity: "mild", diagnosed: false, managed: false },
     ],
   },
+  occupations: {
+    jobs: [
+      { title: 'Art, Drama, and Music Teachers, Postsecondary', flags: {} },
+      {
+        title: 'Makeup Artists, Theatrical and Performance',
+        flags: {
+          'Very bright or poor lighting': ['Binocular acuity of near vision', 'Need reading glasses'],
+        },
+      },
+      { title: 'Fine Artists, Including Painters, Sculptors, and Illustrators', flags: {} },
+    ],
+  },
 } satisfies Persona;

@@ -8,14 +8,15 @@ occupations like them by, to ground what their levels take.
 - **Knowledge:** the Bloom level of each topic it takes.
 - **Skills:** the Dreyfus level of each skill it takes.
 - **Work styles:** the importance of the personality trait each work style is.
+- **Physical demands:** how often the work has people in each, and the body functions and parts each strains.
 
 The seed is generated, so run this again on a newer O*NET release rather than editing it.
 
 ## Getting O*NET
-The import reads six files from O*NET 30.0's text download. Download them into `data/`, which git ignores:
+The import reads seven files from O*NET 30.0's text download. Download them into `data/`, which git ignores:
 
 ```sh
-mkdir -p data && for f in "Occupation Data.txt" "Alternate Titles.txt" "Abilities.txt" "Knowledge.txt" "Skills.txt" "Work Styles.txt"; do
+mkdir -p data && for f in "Occupation Data.txt" "Alternate Titles.txt" "Abilities.txt" "Knowledge.txt" "Skills.txt" "Work Styles.txt" "Work Context.txt"; do
   curl -sfLo "data/$f" "https://www.onetcenter.org/dl_files/database/db_30_0_text/${f// /%20}"
 done
 ```
@@ -31,9 +32,10 @@ says otherwise. A run takes about half a minute.
 cargo run --release -- data ../onet_occupations_seed.cypher
 ```
 
-Then run `migrations/006_occupations.cypher`, for the constraints and the vector index, then
-`abilities_seed.cypher`, for each ability's `anchorLevels`, and `personality_seed.cypher`, for the traits, then the
-occupations seed.
+Then run `migrations/006_occupations.cypher` and `018_work_demands.cypher`, for the constraints and the vector index,
+then `abilities_seed.cypher`, for each ability's `anchorLevels`, `abilities_functions_seed.cypher` and
+`abilities_anatomy_seed.cypher`, for the body functions and parts the demands strain, and `personality_seed.cypher`, for
+the traits, then the occupations seed.
 
 - **Levels:** O*NET rates each ability's level on 0 to 7, and the seed keeps it over 7. A level O*NET marks not relevant
   is 0.
@@ -63,4 +65,12 @@ each:
 A knowledge area can have a row for each of the topics it is ("Law and Government" is Law and Government). The seed
 links by name, so every topic and skill named here has to be in the graph first, or its links are left out. To name one
 that isn't, ask for it in the app or through the api, and use the name it comes back with.
+
+## Physical demands
+`demands.tsv` names the 19 elements of O*NET's Work Context that are physical demands, each with its name in the Atlas
+and its `group`: `position`, `environment` or `hazard`. Work Context rates how often on 1 (never) to 5 (continually, or
+every day), and the seed keeps it from 0 to 1, for every occupation rated on it.
+
+`strains.tsv` names the body functions (by ICF code) and parts (by FMA id) each demand strains, one row each. The anatomy
+keeps a left and right limb apart from the general one, so a demand on the knees names the knee joint and both knees.
 
