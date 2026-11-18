@@ -1,0 +1,94 @@
+kind	element	onet name	atlas name	opposite
+topic	2.C.1.a	Administration and Management	Management
+topic	2.C.1.b	Administrative	Office Administration
+topic	2.C.1.c	Economics and Accounting	Economics
+topic	2.C.1.c	Economics and Accounting	Accounting
+topic	2.C.1.d	Sales and Marketing	Sales
+topic	2.C.1.d	Sales and Marketing	Marketing
+topic	2.C.1.e	Customer and Personal Service	Customer Service
+topic	2.C.1.f	Personnel and Human Resources	Human Resource Management
+topic	2.C.10	Transportation	Transport Services
+topic	2.C.2.a	Production and Processing	Manufacturing and Processing
+topic	2.C.2.b	Food Production	Agriculture
+topic	2.C.3.a	Computers and Electronics	Computer Technology
+topic	2.C.3.a	Computers and Electronics	Electronics
+topic	2.C.3.b	Engineering and Technology	Engineering
+topic	2.C.3.c	Design	Design
+topic	2.C.3.d	Building and Construction	Construction
+topic	2.C.3.e	Mechanical	Mechanical Systems
+topic	2.C.4.a	Mathematics	Mathematics
+topic	2.C.4.b	Physics	Physics
+topic	2.C.4.c	Chemistry	Chemistry
+topic	2.C.4.d	Biology	Biology
+topic	2.C.4.e	Psychology	Psychology
+topic	2.C.4.f	Sociology and Anthropology	Sociology and Cultural Studies
+topic	2.C.4.f	Sociology and Anthropology	Anthropology
+topic	2.C.4.g	Geography	Geography
+topic	2.C.5.a	Medicine and Dentistry	Medicine
+topic	2.C.5.b	Therapy and Counseling	Therapy
+topic	2.C.5.b	Therapy and Counseling	Counseling
+topic	2.C.6	Education and Training	Education
+topic	2.C.7.a	English Language	English Language
+topic	2.C.7.b	Foreign Language	Languages
+topic	2.C.7.c	Fine Arts	Fine Arts
+topic	2.C.7.d	History and Archeology	History and Archaeology
+topic	2.C.7.e	Philosophy and Theology	Philosophy and Ethics
+topic	2.C.7.e	Philosophy and Theology	Theology
+topic	2.C.8.a	Public Safety and Security	Security
+topic	2.C.8.a	Public Safety and Security	Safety
+topic	2.C.8.b	Law and Government	Law
+topic	2.C.8.b	Law and Government	Government
+topic	2.C.9.a	Telecommunications	Telecommunications
+topic	2.C.9.b	Communications and Media	Communication
+topic	2.C.9.b	Communications and Media	Mass Media
+skill	2.A.1.a	Reading Comprehension	Reading Comprehension
+skill	2.A.1.b	Active Listening	Active Listening
+skill	2.A.1.c	Writing	Writing Composition
+skill	2.A.1.d	Speaking	Oral Communication
+skill	2.A.1.e	Mathematics	Mathematical Problem Solving
+skill	2.A.1.f	Science	Scientific Method
+skill	2.A.2.a	Critical Thinking	Critical Thinking
+skill	2.A.2.b	Active Learning	Active Learning
+skill	2.A.2.c	Learning Strategies	Learning Strategies
+skill	2.A.2.d	Monitoring	Performance Monitoring
+skill	2.B.1.a	Social Perceptiveness	Social Perceptiveness
+skill	2.B.1.b	Coordination	Coordination
+skill	2.B.1.c	Persuasion	Persuasion
+skill	2.B.1.d	Negotiation	Negotiation
+skill	2.B.1.e	Instructing	Teaching
+skill	2.B.1.f	Service Orientation	Customer Service
+skill	2.B.2.i	Complex Problem Solving	Problem Solving
+skill	2.B.3.a	Operations Analysis	Requirements Analysis
+skill	2.B.3.b	Technology Design	Product Design
+skill	2.B.3.c	Equipment Selection	Equipment Selection
+skill	2.B.3.d	Installation	Equipment Installation
+skill	2.B.3.e	Programming	Programming
+skill	2.B.3.g	Operations Monitoring	Equipment Monitoring
+skill	2.B.3.h	Operation and Control	Equipment Operation
+skill	2.B.3.j	Equipment Maintenance	Equipment Maintenance
+skill	2.B.3.k	Troubleshooting	Troubleshooting
+skill	2.B.3.l	Repairing	Repairs
+skill	2.B.3.m	Quality Control Analysis	Quality Control Analysis
+skill	2.B.4.e	Judgment and Decision Making	Decision Making
+skill	2.B.4.g	Systems Analysis	Systems Analysis
+skill	2.B.4.h	Systems Evaluation	Systems Evaluation
+skill	2.B.5.a	Time Management	Time Management
+skill	2.B.5.b	Management of Financial Resources	Financial Resource Management
+skill	2.B.5.c	Management of Material Resources	Resource Management
+skill	2.B.5.d	Management of Personnel Resources	Human Resources Management
+trait	1.C.1.a	Achievement/Effort	Achievement-Striving
+trait	1.C.1.b	Persistence	Self-Discipline
+trait	1.C.1.c	Initiative	Activity Level
+trait	1.C.2.b	Leadership	Assertiveness
+trait	1.C.3.a	Cooperation	Cooperation
+trait	1.C.3.b	Concern for Others	Altruism
+trait	1.C.3.c	Social Orientation	Gregariousness
+trait	1.C.4.a	Self-Control	Anger	yes
+trait	1.C.4.b	Stress Tolerance	Vulnerability	yes
+trait	1.C.4.c	Adaptability/Flexibility	Adventurousness
+trait	1.C.5.a	Dependability	Dutifulness
+trait	1.C.5.b	Attention to Detail	Orderliness
+trait	1.C.5.c	Integrity	Morality
+trait	1.C.6	Independence	Self-Efficacy
+trait	1.C.7.a	Innovation	Imagination
+trait	1.C.7.b	Analytical Thinking	Intellect

@@ -19,7 +19,7 @@ use serde_json::json;
 
 use atlas_shared::topics::resolver;
 
-use crate::{auth::AuthUser, bedrock, events, helpers::lucene, state::AppState};
+use crate::{auth::{self, AuthUser}, bedrock, events, helpers::lucene, state::AppState};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -192,6 +192,8 @@ async fn ids(rows: &mut neo4rs::DetachedRowStream) -> Result<Vec<String>, BoxErr
 #[derive(Deserialize)]
 pub struct AskRequest {
     query: String, //what the user typed
+    //how prominent the subject is, 1 to 5, from a taxonomy import. Only an admin can set it
+    prominence: Option<i64>,
 }
 
 //what came of asking for a topic
@@ -208,10 +210,18 @@ pub enum AskOutcome {
     Created { topic: TopicSummary },
 }
 
-pub async fn ask_for_topic(State(state): State<AppState>, _user: AuthUser, Json(req): Json<AskRequest>) -> Result<Json<AskOutcome>, (StatusCode, String)> {
+pub async fn ask_for_topic(State(state): State<AppState>, user: AuthUser, Json(req): Json<AskRequest>) -> Result<Json<AskOutcome>, (StatusCode, String)> {
     let typed = req.query.trim();
     if typed.is_empty() || typed.chars().count() > 100 {
         return Err((StatusCode::BAD_REQUEST, "Describe the topic in 100 characters or fewer.".to_string()));
+    }
+    if let Some(prominence) = req.prominence {
+        if !(1..=5).contains(&prominence) {
+            return Err((StatusCode::BAD_REQUEST, "Prominence is from 1 to 5.".to_string()));
+        }
+        if !auth::is_admin(&state, &user.person_id).await.map_err(internal)? {
+            return Err((StatusCode::FORBIDDEN, "Only an admin can say how prominent a topic is.".to_string()));
+        }
     }
 
     let screening = gates::screen(&state, typed).await.map_err(internal)?;
@@ -227,6 +237,9 @@ pub async fn ask_for_topic(State(state): State<AppState>, _user: AuthUser, Json(
     let id = match resolution {
         resolver::Resolution::Same { topic_id } => {
             tracing::info!(topic_id, "topic request means an existing topic");
+            if let Some(prominence) = req.prominence {
+                set_prominence(&state, &topic_id, prominence).await.map_err(internal)?;
+            }
             let topic = summaries(&state, &[topic_id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
             return Ok(Json(AskOutcome::Existing { topic }));
         }
@@ -235,8 +248,20 @@ pub async fn ask_for_topic(State(state): State<AppState>, _user: AuthUser, Json(
         }
     };
     tracing::info!(topic_id = id, "created a topic stub");
+    if let Some(prominence) = req.prominence {
+        set_prominence(&state, &id, prominence).await.map_err(internal)?;
+    }
     let topic = summaries(&state, &[id]).await.map_err(internal)?.pop().ok_or_else(not_found)?;
     Ok(Json(AskOutcome::Created { topic }))
+}
+
+//a topic keeps the most prominent place it's been given, the lowest number, when more than one entry resolves to it
+async fn set_prominence(state: &AppState, id: &str, prominence: i64) -> Result<(), neo4rs::Error> {
+    state.graph.run(query("
+        MATCH (t:Topic {id: $id})
+        WHERE t.prominence IS NULL OR t.prominence > $prominence
+        SET t.prominence = $prominence
+    ").param("id", id).param("prominence", prominence)).await
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

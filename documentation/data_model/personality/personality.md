@@ -33,6 +33,7 @@ be written, and `personalityReportCharged` is whether a credit was spent on the 
 | HAS_JOB | Person → JobRunning | | A job running for them |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A skill level that takes the trait (see the Skills graph) |
 | CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | An ICF temperament and personality function that matches the domain or trait, or its low end when `opposite` (see the Abilities graph) |
+| TAKES_TRAIT | Occupation → PersonalityTrait | `importance`, `opposite` | An occupation the trait matters to, or its low end when `opposite` (see the Occupations graph) |
 
 ## Example
 ```cypher

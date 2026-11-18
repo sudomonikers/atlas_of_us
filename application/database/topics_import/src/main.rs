@@ -1,9 +1,11 @@
-//fills the topics graph with ESCO's knowledge and the fields it's filed under, by asking the atlas api for each one, the
-//way a user asks for a topic we don't have. The api's gates name it and screen it, its resolver decides whether we
-//already have it, and it creates the stub and publishes TopicCreated, so a run exercises the api and the events end to
-//end. Nothing is filled: a topic is filled when someone needs it. See README.md
+//fills the topics graph from a source: ESCO's knowledge and the fields it's filed under, or Wikipedia's Level 4 vital
+//articles. It asks the atlas api for each one, the way a user asks for a topic we don't have. The api's gates name it
+//and screen it, its resolver decides whether we already have it, and it creates the stub and publishes TopicCreated, so
+//a run exercises the api and the events end to end. Nothing is filled: a topic is filled when someone needs it. See
+//README.md
 mod api;
 mod esco;
+mod vital;
 
 use std::{
     collections::{BTreeMap, HashSet},
@@ -22,7 +24,18 @@ use tokio::sync::Mutex;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-const USAGE: &str = "usage: topics-import <data-dir> [--dry-run] [--limit N] [--rate PER_SECOND]";
+const USAGE: &str = "usage: topics-import <esco|vital> <data-dir> [--dry-run] [--limit N] [--rate PER_SECOND]";
+
+//one topic to ask for: its name, and how prominent the subject is (1 to 5) when the source says
+pub struct Entry {
+    pub label: String,
+    pub prominence: Option<i64>,
+}
+
+enum Source {
+    Esco,
+    Vital,
+}
 
 //every topic asked for, with what the api said, one json line each. Topics already in it are skipped, so a rerun picks
 //up where the last one stopped
@@ -33,6 +46,7 @@ const MAX_QUERY: usize = 100;
 const CONCURRENCY: usize = 8;
 
 struct Options {
+    source: Source,
     dir: PathBuf,
     dry_run: bool,
     limit: Option<usize>,
@@ -60,7 +74,12 @@ async fn main() -> ExitCode {
 
 fn options(args: Vec<String>) -> Option<Options> {
     let mut args = args.into_iter();
-    let mut options = Options { dir: PathBuf::from(args.next()?), dry_run: false, limit: None, rate: 3.0 };
+    let source = match args.next()?.as_str() {
+        "esco" => Source::Esco,
+        "vital" => Source::Vital,
+        _ => return None,
+    };
+    let mut options = Options { source, dir: PathBuf::from(args.next()?), dry_run: false, limit: None, rate: 3.0 };
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--dry-run" => options.dry_run = true,
@@ -73,17 +92,32 @@ fn options(args: Vec<String>) -> Option<Options> {
 }
 
 async fn run(options: Options) -> Result<(), BoxError> {
-    let labels = esco::labels(&options.dir)?;
+    let entries = match options.source {
+        Source::Esco => esco::labels(&options.dir)?.into_iter().map(|label| Entry { label, prominence: None }).collect(),
+        Source::Vital => {
+            let (entries, left_out) = vital::entries(&options.dir)?;
+            for (reason, count) in &left_out {
+                tracing::info!(reason, count, "left out");
+            }
+            let mut by_prominence: BTreeMap<i64, usize> = BTreeMap::new();
+            for entry in &entries {
+                *by_prominence.entry(entry.prominence.unwrap_or_default()).or_default() += 1;
+            }
+            for (prominence, count) in &by_prominence {
+                tracing::info!(prominence, count, "subjects");
+            }
+            entries
+        }
+    };
     let done = asked(&options.dir)?;
-    let too_long = labels.iter().filter(|l| l.chars().count() > MAX_QUERY).count();
-    let mut todo: Vec<String> = labels.iter()
-        .filter(|l| l.chars().count() <= MAX_QUERY && !done.contains(*l))
-        .cloned()
+    let too_long = entries.iter().filter(|e| e.label.chars().count() > MAX_QUERY).count();
+    let mut todo: Vec<&Entry> = entries.iter()
+        .filter(|e| e.label.chars().count() <= MAX_QUERY && !done.contains(&e.label))
         .collect();
     if let Some(limit) = options.limit {
         todo.truncate(limit);
     }
-    tracing::info!(topics = labels.len(), already_asked = done.len(), too_long, to_ask = todo.len(), "loaded");
+    tracing::info!(topics = entries.len(), already_asked = done.len(), too_long, to_ask = todo.len(), "loaded");
     if options.dry_run || todo.is_empty() {
         return Ok(());
     }
@@ -99,11 +133,11 @@ async fn run(options: Options) -> Result<(), BoxError> {
     let ticker = Arc::new(Mutex::new(ticker));
 
     let mut asking = futures::stream::iter(&todo)
-        .map(|label| {
+        .map(|entry| {
             let (api, ticker) = (&api, ticker.clone());
             async move {
                 ticker.lock().await.tick().await;
-                (label, api.ask(label).await)
+                (&entry.label, api.ask(&entry.label, entry.prominence).await)
             }
         })
         .buffer_unordered(CONCURRENCY);

@@ -33,9 +33,13 @@ impl Api {
     }
 
     //asks for one topic (POST /api/topics) and returns the api's outcome: created, existing, not_a_topic or rejected.
-    //Rate limits wait out the waf's window, and server errors are retried
-    pub async fn ask(&self, label: &str) -> Result<Value, BoxError> {
-        let body = json!({"query": label}).to_string();
+    //A prominence is set on the topic, which takes an admin's token. Rate limits wait out the waf's window, and server
+    //errors are retried
+    pub async fn ask(&self, label: &str, prominence: Option<i64>) -> Result<Value, BoxError> {
+        let body = match prominence {
+            Some(prominence) => json!({"query": label, "prominence": prominence}),
+            None => json!({"query": label}),
+        }.to_string();
         //cloudfront signs requests to the lambda's function url, and a signed POST needs the hash of its body
         let hash: String = Sha256::digest(body.as_bytes()).iter().map(|b| format!("{b:02x}")).collect();
         let mut tries = 0;

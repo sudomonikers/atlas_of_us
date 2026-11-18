@@ -90,17 +90,22 @@ impl FromRequestParts<AppState> for AdminUser {
             (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong on our end. Please try again.".to_string())
         };
         let user = <AuthUser as FromRequestParts<AppState>>::from_request_parts(parts, state).await?;
-        let mut rows = state.graph.execute(query("
-            MATCH (p:Person) WHERE p.id = $id AND p.admin = true
-            RETURN p.id AS id
-        ")
-            .param("id", user.person_id.clone())
-        ).await.map_err(|e| internal(&e))?;
-        match rows.next().await.map_err(|e| internal(&e))? {
-            Some(_) => Ok(AdminUser { person_id: user.person_id }),
-            None => Err((StatusCode::FORBIDDEN, "You don't have access to that.".to_string())),
+        match is_admin(state, &user.person_id).await.map_err(|e| internal(&e))? {
+            true => Ok(AdminUser { person_id: user.person_id }),
+            false => Err((StatusCode::FORBIDDEN, "You don't have access to that.".to_string())),
         }
     }
+}
+
+//whether the Person has admin: true, for a handler that lets an admin do more than other users
+pub async fn is_admin(state: &AppState, person_id: &str) -> Result<bool, neo4rs::Error> {
+    let mut rows = state.graph.execute(query("
+        MATCH (p:Person) WHERE p.id = $id AND p.admin = true
+        RETURN p.id AS id
+    ")
+        .param("id", person_id)
+    ).await?;
+    Ok(rows.next().await?.is_some())
 }
 
 #[derive(Serialize, Deserialize)]

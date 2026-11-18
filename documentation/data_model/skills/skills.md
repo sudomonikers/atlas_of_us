@@ -31,6 +31,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A level takes a personality trait. `level` is where on the trait it pulls, above 0.5 for more of it |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is how much it takes on the ability's level scale, over 7 |
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
+| TAKES_SKILL | Occupation → DreyfusLevel | `level`, `importance` | An occupation that takes the skill to this level (see the Occupations graph) |
 | ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
 | LIKES, DISLIKES, BORED_BY, INTIMIDATED_BY | Person → Skill | `intensity`, `reason`, `timestamp` | How they feel about it, at most one of each. `intensity` is how strongly, above 0 up to 1, and `timestamp` when they first said it. These stack: someone can like and dislike a skill for different reasons. They don't need to be on the skill |

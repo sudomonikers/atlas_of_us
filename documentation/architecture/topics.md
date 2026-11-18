@@ -23,15 +23,18 @@ the Skills module (`skills.md`), and this page covers where it differs. For the 
 | Jobs | `application/apis/atlas-jobs/` | Fill a topic's levels and Ideas, resolve Ideas, link skill levels to the topics they need |
 | Evidence | `application/apis/atlas-api/src/evidence/` | Notes and files a person gives about a topic or a skill, shared by every module |
 | Evidence bucket | `application/infrastructure/evidence.tf` | Private storage for files given as evidence |
-| Taxonomy import | `application/database/topics_import/` | Asks the API for each ESCO field and knowledge entry |
+| Taxonomy imports | `application/database/topics_import/` | Asks the API for each ESCO field and knowledge entry, and each Wikipedia vital article that is a subject |
 
 ## Where topics come from
 Every topic is created in one of three ways, and all of them go through the topic resolver:
 
-1. **The taxonomy import.** ESCO's knowledge entries, filed under UNESCO's fields of study, asked for through the API
-   broader first. The resolver, not ESCO's filing, decides where each topic goes, and nothing in the graph ties a topic
-   to ESCO. ESCO leans toward what jobs need, so subjects such as religions, philosophies and hobbies come in through
-   users and skills.
+1. **The taxonomy imports,** asked for through the API broader first. The resolver, not a taxonomy's filing, decides
+   where each topic goes, and nothing in the graph ties a topic to the taxonomy it came from.
+    - **ESCO's knowledge entries,** filed under UNESCO's fields of study. They lean toward what jobs need.
+    - **Wikipedia's Level 4 vital articles,** the 10,000 articles Wikipedia's editors rank as most vital, for general
+      knowledge: religions, philosophies, the sciences, the arts and everyday life. The import takes the articles that
+      are subjects. People, places, organizations and specific works are things in the world, which belong to other
+      graphs. Each topic carries the level it's ranked at as its `prominence`, which only an admin can set.
 2. **A user asking for a topic we don't have,** through the gates.
 3. **The skill requirements job naming a topic a skill needs.** It's created as a stub, and filled only when someone
    needs it.

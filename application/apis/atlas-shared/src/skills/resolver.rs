@@ -5,7 +5,7 @@ use neo4rs::{Graph, query};
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{BoxError, bedrock, events::{self, Bus}};
+use crate::{BoxError, bedrock, judge::Pick, events::{self, Bus}};
 
 //how many of the nearest skills the judge compares a name against
 const CANDIDATES: i64 = 8;
@@ -32,9 +32,9 @@ struct Candidate {
 
 #[derive(Deserialize)]
 struct Verdict {
-    same: i64, //the candidate it's the same as, or -1
-    broader: Vec<i64>,
-    narrower: Vec<i64>,
+    same: Pick, //the candidate it's the same as, or -1
+    broader: Vec<Pick>,
+    narrower: Vec<Pick>,
 }
 
 const JUDGE_PROMPT: &str = "You keep a graph of human skills where every skill exists exactly once. You are given a skill \
@@ -116,14 +116,14 @@ pub async fn resolve(graph: &Graph, bedrock: &aws_sdk_bedrockruntime::Client, na
     }), json!({"name": name, "description": description, "candidates": listed}).to_string()).await?;
     let verdict: Verdict = serde_json::from_value(answer)?;
 
-    let candidate = |i: i64| usize::try_from(i).ok().and_then(|i| candidates.get(i)).map(|c| c.id.clone())
-        .ok_or_else(|| format!("the judge picked candidate {i}, which isn't one"));
-    if verdict.same >= 0 {
-        return Ok((Resolution::Same { skill_id: candidate(verdict.same)? }, vector));
+    let names: Vec<&str> = candidates.iter().map(|c| c.name.as_str()).collect();
+    let candidate = |pick: &Pick| pick.index(&names).map(|i| i.map(|i| candidates[i].id.clone()));
+    if let Some(skill_id) = candidate(&verdict.same)? {
+        return Ok((Resolution::Same { skill_id }, vector));
     }
-    let broader = verdict.broader.iter().map(|&i| candidate(i)).collect::<Result<Vec<_>, _>>()?;
+    let broader = verdict.broader.iter().filter_map(|p| candidate(p).transpose()).collect::<Result<Vec<_>, _>>()?;
     //a candidate can't be both a kind of the name and broader than it
-    let narrower = verdict.narrower.iter().map(|&i| candidate(i)).collect::<Result<Vec<_>, _>>()?
+    let narrower = verdict.narrower.iter().filter_map(|p| candidate(p).transpose()).collect::<Result<Vec<_>, _>>()?
         .into_iter().filter(|id| !broader.contains(id)).collect();
     Ok((Resolution::New { broader, narrower }, vector))
 }

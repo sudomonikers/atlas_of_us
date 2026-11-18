@@ -71,6 +71,7 @@ be written, and `personalityReportCharged` is whether a credit was spent on the 
 | HAS_JOB | Person → JobRunning | | A job running for them |
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A skill level that takes the trait (see the Skills graph) |
 | CORRESPONDS_TO | BodyFunction → PersonalityDomain or PersonalityTrait | `opposite` | An ICF temperament and personality function that matches the domain or trait, or its low end when `opposite` (see the Abilities graph) |
+| TAKES_TRAIT | Occupation → PersonalityTrait | `importance`, `opposite` | An occupation the trait matters to, or its low end when `opposite` (see the Occupations graph) |
 
 #### Example
 ```cypher
@@ -123,7 +124,7 @@ Every topic has six levels, the depths someone can know it to:
 
 | Label | Key properties | What it is |
 |---|---|---|
-| Topic | `id`, `name` (unique), `description`, `aliases`, `vector`, `status` | A subject. `status` is `stub`, `filling`, `ready` or `failed`, as for a skill |
+| Topic | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `prominence` | A subject. `status` is `stub`, `filling`, `ready` or `failed`, as for a skill. `prominence` is how central the subject is to what people know, from 1 to 5: 1 is among the 10 most prominent subjects, 2 the 100, 3 the 1,000, 4 the 10,000 and 5 the 50,000. It's on the topics a taxonomy ranks |
 | BloomLevel | `name`, `rank` (1 to 6), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a topic's six levels, with a second label for which (`Remember` to `Create`) |
 | Idea | `id`, `name`, `type`, `description`, `vector` | A single piece of information. Names repeat across fields, so only the `id` is unique |
 | Evidence | `id`, `kind` (`note` or `file`), `text` or `fileName`, `contentType`, `size`, `key`, `createdAt` | Something a person offers to show their level in a topic or a skill. A file's bytes live in the evidence bucket under `key` |
@@ -142,7 +143,8 @@ Every topic has six levels, the depths someone can know it to:
 | ANALOGOUS_TO | Idea — Idea | no | yes | The same structure in a different field. Not the same Idea |
 | SUPPORTS | Idea → Idea | yes | yes | Evidence or reasoning that leans toward another Idea |
 
-Skills point into Topics with REQUIRES_KNOWLEDGE from a DreyfusLevel to a BloomLevel (see the Skills graph).
+Skills point into Topics with REQUIRES_KNOWLEDGE from a DreyfusLevel to a BloomLevel (see the Skills graph), and
+occupations with TAKES_KNOWLEDGE from an Occupation to a BloomLevel (see the Occupations graph).
 
 #### People and topics
 
@@ -215,6 +217,7 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 | REQUIRES_TRAIT | DreyfusLevel → PersonalityTrait | `level`, `strength`, `reason` | A level takes a personality trait. `level` is where on the trait it pulls, above 0.5 for more of it |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A level takes an ability. `level` is how much it takes on the ability's level scale, over 7 |
 | REQUIRES_KNOWLEDGE | DreyfusLevel → BloomLevel | `strength`, `reason` | A level needs a topic, to the depth of that Bloom level |
+| TAKES_SKILL | Occupation → DreyfusLevel | `level`, `importance` | An occupation that takes the skill to this level (see the Occupations graph) |
 | ACHIEVED | Person → DreyfusLevel | `achievedOn`, `recordedAt`, `levelVersion` | A level they've reached, by their own account: `achievedOn` is the date they gave, `recordedAt` when they said it, and `levelVersion` the version they claimed against |
 | GAVE_EVIDENCE, ABOUT | Person → Evidence → Skill | | Their evidence for their level |
 | LIKES, DISLIKES, BORED_BY, INTIMIDATED_BY | Person → Skill | `intensity`, `reason`, `timestamp` | How they feel about it, at most one of each. `intensity` is how strongly, above 0 up to 1, and `timestamp` when they first said it. These stack: someone can like and dislike a skill for different reasons. They don't need to be on the skill |
@@ -293,8 +296,8 @@ There are 46 abilities, from O\*NET (the Fleishman taxonomy), in four categories
 
 Each ability has O\*NET's level scale, from 0 to 7: an amount, set by its examples at fixed points on it. Stamina's are
 1 "Walk 1/4 mile", 4 "Climb 6 flights of stairs" and 6 "Run 10 miles". What a skill level or an occupation takes is a
-level on this scale, kept over 7. The 894 occupations O\*NET rates on its abilities, with the level and importance its
-job analysts gave each one, are the references a skill's requirements are grounded in.
+level on this scale, kept over 7. The occupations O\*NET rates on its abilities (see the Occupations graph), with the
+level and importance it gave each one, are the references a skill's requirements are grounded in.
 
 The cognitive abilities carry a second label, `Cognitive`. A person's place on an ability is a percentile, as with
 personality traits, with a confidence. It's worked out from what they've recorded: the latest reading of each
@@ -398,7 +401,6 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 |---|---|---|
 | Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples`, `anchorLevels`, `practice` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot, and `anchorLevels` is where each sits on the level scale, over 7, in the same order. Cognitive abilities have a second label, `Cognitive`. `practice` is how much practice changes the ability: `a lot`, `some` or `little` |
 | AbilityTip | `id`, `kind`, `text` | How a person can work on an ability, written for the Atlas. `kind` is `practice`, for what to do, or for an ability practice barely changes how to correct, protect or make up for it; or `impairment`, for working on it around an impairment in what it needs |
-| Occupation | `id`, `onetSoc` (unique), `title`, `description`, `alternateTitles`, `vector` | One of the 894 occupations O\*NET rates on its abilities. `onetSoc` is its O\*NET-SOC code, and `vector` is an embedding of its title, description and alternate titles, which skills find it by |
 | Characteristic | `id`, `name` (unique), `order`, `question`, `choices` | A fact about a body that's one of a few choices rather than a number: sex, handedness, eye color, hair color or blood type. Sex also decides who a person's readings are compared with: people of that sex and their age, or everyone their age when they haven't said. `question` is what Atlas asks, `choices` what can be answered, and `order` the order they're asked in |
 | Measurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 55 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colors`, `side_vision`, `designs`, `uses`, `problems`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values`, `fromAtlas`, `people` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists, and the percentiles can differ between measurements. `fromAtlas` is true on a norm worked out from Atlas users, with how many `people` it's from; the norms seed keeps these |
@@ -421,8 +423,6 @@ spent.
 | HAS_ABILITY | Person → Ability | `value`, `confidence`, `basis`, `updatedAt` | Where they sit among people on the ability, from 0 to 1 with 0.5 typical, and how sure we are of it, worked out from their readings and impairments whenever those change. `basis` names what it came from. No relationship means unmeasured, not average |
 | HAS_TIP | Ability → AbilityTip | | A tip on working on the ability, one of each kind |
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability, `level` on the level scale over 7 (see the Skills graph) |
-| TAKES_ABILITY | Occupation → Ability | `level`, `importance` | What O\*NET's job analysts rated the occupation takes: `level` on the level scale over 7, and `importance` from 0 to 1 |
-| PERFORMED_IN | Skill → Occupation | | The occupation whose work is doing the skill, which its ability requirements were grounded in |
 | HAS_NORM | Measurement → MeasurementNorm | | A measurement's norms |
 | MEASURES | Measurement → Ability | | An ability the measurement shows |
 | HAS_CHARACTERISTIC | Person → Characteristic | `value`, `setAt` | Their answer, one of its `choices`. No relationship means they haven't said |
@@ -478,6 +478,65 @@ spent.
 
 // Andrew is double-jointed
 (andrew)-[:HAS_CONDITION {diagnosed: false, managed: false}]->(:Condition {sourceId: "HP:0001382", source: "HPO", name: "Joint hypermobility"})
+```
+
+### Occupations Graph
+An occupation is a kind of work people do for a living, such as Registered Nurses or Software Developers. Each one is
+a profile of what the work takes across the Atlas: the abilities, the knowledge, the skills and the personality. Set
+beside a person's own profile, it shows how far they are from doing that work, which makes the occupations a map of who
+a person could become.
+
+The occupations are O\*NET's, the U.S. Department of Labor's database of work, seeded from O\*NET 30.0. There are 894,
+the ones O\*NET rates on its abilities. Their ratings are from O\*NET's job analysts and from people who do the work.
+O\*NET's data is CC BY 4.0, and asks for credit wherever it's shown. How the seed is made is in
+`application/database/onet_import/README.md`.
+
+#### What an occupation takes
+O\*NET rates each occupation on four kinds of thing, and each is a part of the Atlas:
+
+| O\*NET rates | Count | In the Atlas | How |
+|---|---|---|---|
+| Abilities | 46 | Abilities | The level on the ability's level scale, over 7, and the importance |
+| Knowledge areas | 33 | Topics | The Bloom level of each topic it takes, from the level O\*NET rates |
+| Skills | 35 | Skills | The Dreyfus level of each skill it takes, from the level O\*NET rates |
+| Work styles | 16 | Personality traits | The importance of the trait each work style is |
+
+Levels are on O\*NET's scale from 0 to 7, and importance on its scale from 1 (not important) to 5 (extremely
+important). Both are kept from 0 to 1. A knowledge area or skill rated at least "important", 3 of 5, is one the
+occupation takes, at the level its rating comes to: O\*NET's level over 7, as a share of the 6 Bloom levels or 5 Dreyfus
+levels, to the nearest. A level of 0.64 is Analyze in a topic, and Competent in a skill.
+
+Which topic, skill or trait each of O\*NET's knowledge areas, skills and work styles is, is chosen by hand. A knowledge
+area can be more than one topic: Law and Government is Law and Government. A work style can be a trait's low end: Stress
+Tolerance is low Vulnerability, and Self-Control is low Anger.
+
+#### Nodes
+
+| Label | Key properties | What it is |
+|---|---|---|
+| Occupation | `id`, `onetSoc` (unique), `title`, `description`, `alternateTitles`, `vector` | One of the 894 occupations O\*NET rates on its abilities. `onetSoc` is its O\*NET-SOC code, and `vector` is an embedding of its title, description and alternate titles, which skills find it by |
+
+#### Relationships
+
+| Relationship | From → To | Properties | Meaning |
+|---|---|---|---|
+| TAKES_ABILITY | Occupation → Ability | `level`, `importance` | What the occupation takes of the ability: `level` on the level scale over 7, and `importance` from 0 to 1 |
+| TAKES_KNOWLEDGE | Occupation → BloomLevel | `level`, `importance` | A topic the occupation takes, to the depth of that Bloom level. `level` is O\*NET's, over 7 |
+| TAKES_SKILL | Occupation → DreyfusLevel | `level`, `importance` | A skill the occupation takes, to that Dreyfus level. `level` is O\*NET's, over 7 |
+| TAKES_TRAIT | Occupation → PersonalityTrait | `importance`, `opposite` | How important the trait is to the work, or its low end when `opposite` |
+| PERFORMED_IN | Skill → Occupation | | The occupation whose work is doing the skill, which the skill's ability requirements were grounded in |
+
+#### Example
+```cypher
+(nurse:Occupation {onetSoc: "29-1141.00", title: "Registered Nurses"})
+
+// nursing takes good near vision, a knowledge of medicine deep enough to analyze, reading people well, and care for
+// others that holds up under stress
+(nurse)-[:TAKES_ABILITY {level: 0.554, importance: 0.72}]->(:Ability {name: "Near Vision"})
+(nurse)-[:TAKES_KNOWLEDGE {level: 0.639, importance: 0.84}]->(:BloomLevel:Analyze {name: "Medicine Analyze"})
+(nurse)-[:TAKES_SKILL {level: 0.626, importance: 0.78}]->(:DreyfusLevel:Competent {name: "Social Perceptiveness Competent"})
+(nurse)-[:TAKES_TRAIT {importance: 0.873, opposite: false}]->(:PersonalityTrait {name: "Altruism"})
+(nurse)-[:TAKES_TRAIT {importance: 0.873, opposite: true}]->(:PersonalityTrait {name: "Vulnerability"})
 ```
 
 # Beyond The Individual

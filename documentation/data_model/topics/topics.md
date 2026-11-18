@@ -36,7 +36,7 @@ Every topic has six levels, the depths someone can know it to:
 
 | Label | Key properties | What it is |
 |---|---|---|
-| Topic | `id`, `name` (unique), `description`, `aliases`, `vector`, `status` | A subject. `status` is `stub`, `filling`, `ready` or `failed`, as for a skill |
+| Topic | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `prominence` | A subject. `status` is `stub`, `filling`, `ready` or `failed`, as for a skill. `prominence` is how central the subject is to what people know, from 1 to 5: 1 is among the 10 most prominent subjects, 2 the 100, 3 the 1,000, 4 the 10,000 and 5 the 50,000. It's on the topics a taxonomy ranks |
 | BloomLevel | `name`, `rank` (1 to 6), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a topic's six levels, with a second label for which (`Remember` to `Create`) |
 | Idea | `id`, `name`, `type`, `description`, `vector` | A single piece of information. Names repeat across fields, so only the `id` is unique |
 | Evidence | `id`, `kind` (`note` or `file`), `text` or `fileName`, `contentType`, `size`, `key`, `createdAt` | Something a person offers to show their level in a topic or a skill. A file's bytes live in the evidence bucket under `key` |
@@ -55,7 +55,8 @@ Every topic has six levels, the depths someone can know it to:
 | ANALOGOUS_TO | Idea — Idea | no | yes | The same structure in a different field. Not the same Idea |
 | SUPPORTS | Idea → Idea | yes | yes | Evidence or reasoning that leans toward another Idea |
 
-Skills point into Topics with REQUIRES_KNOWLEDGE from a DreyfusLevel to a BloomLevel (see the Skills graph).
+Skills point into Topics with REQUIRES_KNOWLEDGE from a DreyfusLevel to a BloomLevel (see the Skills graph), and
+occupations with TAKES_KNOWLEDGE from an Occupation to a BloomLevel (see the Occupations graph).
 
 ## People and topics
 

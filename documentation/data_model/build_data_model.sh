@@ -90,6 +90,7 @@ subgraph personality/personality.md
 subgraph topics/topics.md
 subgraph skills/skills.md
 subgraph abilities/abilities.md
+subgraph occupations/occupations.md
 
 text <<'EOF'
 # Beyond The Individual
