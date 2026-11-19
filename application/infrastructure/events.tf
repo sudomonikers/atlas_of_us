@@ -15,6 +15,10 @@ locals {
     { event = "SkillFilled", source = "atlas.skills", module = "Topics" },
     { event = "TopicFillRequested", source = "atlas.topics", module = "Topics" },
     { event = "ConditionAdded", source = "atlas.abilities", module = "Abilities" },
+    { event = "OccupationCreated", source = "atlas.occupations", module = "Abilities" },
+    { event = "OccupationCreated", source = "atlas.occupations", module = "Topics" },
+    { event = "OccupationCreated", source = "atlas.occupations", module = "Skills" },
+    { event = "OccupationCreated", source = "atlas.occupations", module = "Personality" },
   ] : "${job.event}-${job.module}" => job }
 }
 

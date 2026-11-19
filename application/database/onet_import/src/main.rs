@@ -176,7 +176,7 @@ async fn run(data: &Path, seed: &Path) -> Result<(), BoxError> {
                 text(soc), text(&o.title), text(&o.description), titles.join(", "), vector.join(","), if i + 1 < chunk.len() { "," } else { "" }
             )?;
         }
-        writeln!(out, "] AS o\nMERGE (n:Occupation {{onetSoc: o.soc}})\nON CREATE SET n.id = randomUUID()\nSET n.title = o.title, n.description = o.description, n.alternateTitles = o.alternateTitles, n.vector = o.vector;\n")?;
+        writeln!(out, "] AS o\nMERGE (n:Occupation {{onetSoc: o.soc}})\nON CREATE SET n.id = randomUUID()\nSET n.title = o.title, n.description = o.description, n.alternateTitles = o.alternateTitles, n.vector = o.vector, n.status = 'ready';\n")?;
     }
     for chunk in takes.chunks(BATCH) {
         writeln!(out, "UNWIND [")?;

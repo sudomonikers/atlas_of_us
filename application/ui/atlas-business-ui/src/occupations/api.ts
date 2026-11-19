@@ -64,9 +64,15 @@ export interface Demand {
   noted: string[];
 }
 
+//the parts of what an occupation takes, which the Atlas works out for an occupation someone added
+export type Part = 'abilities' | 'knowledge' | 'skills' | 'personality';
+
 export interface Occupation {
   id: string;
-  onet_soc: string;
+  onet_soc: string | null; //null for an occupation someone added
+  status: 'filling' | 'ready' | 'failed';
+  pending: Part[]; //the parts still being worked out
+  failed: Part[]; //the parts that couldn't be
   title: string;
   description: string;
   alternate_titles: string[];
@@ -81,6 +87,13 @@ export interface Occupation {
 
 export const searchOccupations = (q: string) => request<OccupationRef[]>('GET', `/occupations/search?q=${encodeURIComponent(q)}`);
 export const getClosest = () => request<Closest>('GET', '/occupations/closest');
+//what came of asking for an occupation we don't have (POST /api/occupations)
+export type AskOutcome =
+  | { outcome: 'created' | 'existing'; occupation: OccupationRef }
+  | { outcome: 'not_an_occupation'; kind: string; name: string }
+  | { outcome: 'rejected'; reason: string };
+
+export const askForOccupation = (query: string) => request<AskOutcome>('POST', '/occupations', { query });
 export const getOccupation = (id: string) => request<Occupation>('GET', `/occupations/${encodeURIComponent(id)}`);
 
 export const BLOOM_LEVELS = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'];

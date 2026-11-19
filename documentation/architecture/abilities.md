@@ -207,6 +207,10 @@ with how much it matters and why. It does nothing for a skill already worked out
 requirements written before it, so replaying the event archive to its rule recomputes the skills we have. A skill stays
 usable without them.
 
+An occupation someone adds is rated on the abilities and physical demands its work takes. A job reacts to
+`OccupationCreated` from the Occupations module (see `occupations.md`): one LLM call reads the occupation, each
+ability's anchors, the demands and what the O\*NET occupations most like it take, and rates it on O\*NET's own scales.
+
 ## Linking added conditions
 The seeded conditions link to the body functions and parts they affect by hand. One a person adds is linked by a job:
 the api publishes `ConditionAdded`, and one LLM call reads the condition, its other names and what its broader

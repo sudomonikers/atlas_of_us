@@ -110,6 +110,11 @@ skill. A job reacts to `SkillFilled` from the Skills module (see `skills.md` and
 traits that make a real difference at each level, how much and why, and links the levels to them. It does nothing for
 a skill that already has them, and a skill stays usable without them.
 
+## Occupation requirements
+An occupation someone adds is linked to the traits that matter to its work. A job reacts to `OccupationCreated` from the
+Occupations module (see `occupations.md`): one LLM call reads the occupation and the traits the O\*NET occupations most
+like it take, and names the traits, their importance and which end of each the work wants.
+
 ## Testing and accuracy
 - **How it's tested:** a persona regression harness, described in `ADRs/personality_testing_harness.md`.
 - **Accuracy:** across 13 personas, scores land within about 5 to 6 points of a careful reading of the same answers. This

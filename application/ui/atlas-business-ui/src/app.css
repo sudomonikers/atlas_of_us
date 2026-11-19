@@ -175,6 +175,7 @@ h2 {
 }
 
 .field input,
+.field select,
 .search-input {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -185,6 +186,16 @@ h2 {
 }
 
 /* logging in */
+.phone {
+  display: flex;
+  gap: 8px;
+}
+
+.phone select {
+  width: 11em;
+  flex: none;
+}
+
 .login {
   max-width: 440px;
   margin: 32px 0 0;
@@ -442,6 +453,24 @@ h2 {
 .status-unknown {
   background: var(--line);
   color: var(--ink-soft);
+}
+
+/* adding an occupation */
+.add-occupation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-occupation p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.working {
+  font-style: italic;
 }
 
 /* what the work is like */

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ATLAS, useSession } from '../api';
 import { navigate } from '../router';
 import Login from '../login';
-import { getClosest, percent, searchOccupations, type Closest, type OccupationRef } from './api';
+import { askForOccupation, getClosest, percent, searchOccupations, type Closest, type OccupationRef } from './api';
 
 //the occupations home: search for any occupation, and the ones the logged in user is closest to
 export default function Home() {
@@ -13,8 +13,8 @@ export default function Home() {
       <section className="intro">
         <h1>Occupations</h1>
         <p className="lead">
-          894 kinds of work, each with the knowledge, skills, abilities and personality it takes. See how far you are from any
-          of them.
+          Every kind of work, with the knowledge, skills, abilities and personality it takes. See how far you are from any of
+          them, and add the ones that are missing.
         </p>
         <Search />
       </section>
@@ -29,8 +29,11 @@ export default function Home() {
 const SEARCH_DELAY_MS = 250;
 
 function Search() {
+  const session = useSession();
   const [q, setQ] = useState('');
   const [results, setResults] = useState<OccupationRef[]>([]);
+  //what the last search that came back was for, so adding is offered only once it's shown what we have
+  const [searched, setSearched] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -42,6 +45,7 @@ function Search() {
         .then((found) => {
           if (current) {
             setResults(found);
+            setSearched(typed);
             setError('');
           }
         })
@@ -74,6 +78,55 @@ function Search() {
             </li>
           ))}
         </ul>
+      )}
+      {session.status === 'authenticated' && searched && searched === q.trim() && <AddOccupation key={searched} typed={searched} />}
+    </div>
+  );
+}
+
+//offers to add what was searched for, when it isn't one of the occupations found. The api decides whether it's an
+//occupation and whether we already have it, then opens it, where it fills in as the Atlas works out what it takes
+function AddOccupation({ typed }: { typed: string }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ text: string; to?: { label: string; href: string } }>();
+
+  const add = async () => {
+    setBusy(true);
+    setMessage(undefined);
+    try {
+      const outcome = await askForOccupation(typed);
+      switch (outcome.outcome) {
+        case 'created':
+        case 'existing':
+          navigate(`/occupations/${encodeURIComponent(outcome.occupation.id)}`);
+          return;
+        case 'rejected':
+          setMessage({ text: outcome.reason });
+          return;
+        case 'not_an_occupation':
+          if (outcome.kind === 'skill')
+            setMessage({ text: `${outcome.name} sounds like a skill rather than an occupation.`, to: { label: 'Find it in Skills', href: `${ATLAS}/skills` } });
+          else if (outcome.kind === 'topic')
+            setMessage({ text: `${outcome.name} sounds like a subject to know rather than an occupation.`, to: { label: 'Find it in Knowledge', href: `${ATLAS}/topics` } });
+          else setMessage({ text: "That doesn't sound like work people do for a living. Try the job title." });
+      }
+    } catch (e) {
+      setMessage({ text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="add-occupation">
+      <span className="muted small">Not what you're looking for?</span>
+      <button className="button-quiet" onClick={add} disabled={busy}>
+        {busy ? 'Adding...' : `Add "${typed}"`}
+      </button>
+      {message && (
+        <p className="small" role="status">
+          {message.text} {message.to && <a href={message.to.href}>{message.to.label}</a>}
+        </p>
       )}
     </div>
   );

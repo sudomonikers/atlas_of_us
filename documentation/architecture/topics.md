@@ -103,4 +103,5 @@ Topics events have the source `atlas.topics`. How they move is in `events.md`.
 | `TopicFillFailed` | The fill failed | Admin metrics, the UI |
 | `IdeaCreated` | A fill created an Idea | Search, admin metrics |
 
-The Topics module also reacts to `SkillFilled` from Skills.
+The Topics module also reacts to `SkillFilled` from Skills, and to `OccupationCreated` from Occupations, naming the
+knowledge an added occupation takes at Bloom levels, through the topic resolver (see `occupations.md`).

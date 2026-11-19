@@ -10,6 +10,7 @@ use serde_json::Value;
 
 //one folder per event, and in it one file per module that reacts to it, matching the rule <event>-<module>
 mod condition_added;
+mod occupation_created;
 mod skill_fill_requested;
 mod skill_filled;
 mod topic_fill_requested;
@@ -39,6 +40,10 @@ pub async fn handle(graph: &Graph, handler: &str, event: Value) {
         "SkillFilled-Topics" => skill_filled::topics::run(graph, event.detail).await,
         "TopicFillRequested-Topics" => topic_fill_requested::topics::run(graph, event.detail).await,
         "ConditionAdded-Abilities" => condition_added::abilities::run(graph, event.detail).await,
+        "OccupationCreated-Abilities" => occupation_created::abilities::run(graph, event.detail).await,
+        "OccupationCreated-Topics" => occupation_created::topics::run(graph, event.detail).await,
+        "OccupationCreated-Skills" => occupation_created::skills::run(graph, event.detail).await,
+        "OccupationCreated-Personality" => occupation_created::personality::run(graph, event.detail).await,
         _ => tracing::warn!(handler, source = event.source, detail_type = event.detail_type, detail = %event.detail, "no such handler"),
     }
 }

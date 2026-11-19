@@ -13,6 +13,7 @@ import {
   type Demand,
   type LevelRequirement,
   type Occupation,
+  type Part,
   type TraitRequirement,
 } from './api';
 
@@ -31,10 +32,24 @@ export default function OccupationPage({ id }: { id: string }) {
       .catch((e: Error) => setError(e.message));
   }, [id, who]);
 
+  //an occupation someone just added fills in as each part is worked out, so it's read again until it's done
+  const filling = occupation?.status === 'filling';
+  useEffect(() => {
+    if (!filling) return;
+    const timer = setInterval(() => {
+      getOccupation(id)
+        .then(setOccupation)
+        .catch(() => {});
+    }, FILLING_POLL_MS);
+    return () => clearInterval(timer);
+  }, [id, filling]);
+
   if (error) return <p className="error page">{error}</p>;
   if (!occupation) return <p className="muted page">Loading...</p>;
 
   const signedIn = occupation.closeness !== null;
+  //how each part stands: still being worked out, couldn't be, or there
+  const state = (part: Part): PartState => (occupation.pending.includes(part) ? 'pending' : occupation.failed.includes(part) ? 'failed' : 'done');
   return (
     <div className="page">
       <a
@@ -54,6 +69,11 @@ export default function OccupationPage({ id }: { id: string }) {
           {occupation.alternate_titles.length > 0 && (
             <p className="muted small">Also called {occupation.alternate_titles.slice(0, 6).join(', ')}</p>
           )}
+          {!occupation.onet_soc && (
+            <p className="muted small">
+              Added by someone on Atlas Of Us. What it takes is worked out from the occupations O*NET rates that are most like it.
+            </p>
+          )}
         </div>
         {signedIn && (
           <div className="card summary">
@@ -64,19 +84,31 @@ export default function OccupationPage({ id }: { id: string }) {
         )}
       </section>
 
+      {filling && (
+        <p className="notice" role="status">
+          Working out what this work takes. Each part shows here as it's ready, usually within a minute.
+        </p>
+      )}
+
       {!signedIn && session.status === 'anonymous' && <Login />}
 
       <Section
         title="Knowledge"
         intro="The subjects the work takes, and how deeply, on Bloom's six levels."
         count={occupation.knowledge.length}
+        state={state('knowledge')}
       >
         {occupation.knowledge.map((r) => (
           <LevelRow key={r.id} requirement={r} names={BLOOM_LEVELS} signedIn={signedIn} to={`${ATLAS}/topics/${encodeURIComponent(r.id)}`} />
         ))}
       </Section>
 
-      <Section title="Skills" intro="What the work has you do, and how well, on the Dreyfus model's five levels." count={occupation.skills.length}>
+      <Section
+        title="Skills"
+        intro="What the work has you do, and how well, on the Dreyfus model's five levels."
+        count={occupation.skills.length}
+        state={state('skills')}
+      >
         {occupation.skills.map((r) => (
           <LevelRow key={r.id} requirement={r} names={DREYFUS_LEVELS} signedIn={signedIn} to={`${ATLAS}/skills/${encodeURIComponent(r.id)}`} />
         ))}
@@ -86,24 +118,40 @@ export default function OccupationPage({ id }: { id: string }) {
         title="Abilities"
         intro="What the work takes of your body and mind. The mark is the level the work takes, and the bar is where you stand."
         count={occupation.abilities.length}
+        state={state('abilities')}
       >
         {occupation.abilities.map((r) => (
           <AbilityRow key={r.id} requirement={r} signedIn={signedIn} />
         ))}
       </Section>
 
-      <WorkDemands demands={occupation.demands ?? []} />
+      <WorkDemands demands={occupation.demands ?? []} state={state('abilities')} />
 
       <Section
         title="Personality"
         intro="The traits that matter to the work. The mark is where the work pulls, and the bar is your score."
         count={occupation.traits.length}
+        state={state('personality')}
       >
         {occupation.traits.map((r) => (
           <TraitRow key={r.name} requirement={r} signedIn={signedIn} />
         ))}
       </Section>
     </div>
+  );
+}
+
+//how often a filling occupation is read again
+const FILLING_POLL_MS = 4000;
+
+type PartState = 'pending' | 'failed' | 'done';
+
+//what a section shows in place of its list while its part is being worked out, or when it couldn't be
+function PartNote({ state }: { state: PartState }) {
+  return state === 'pending' ? (
+    <p className="muted working">Working this out...</p>
+  ) : (
+    <p className="error">This couldn't be worked out.</p>
   );
 }
 
@@ -117,9 +165,19 @@ const GROUPS: { group: Demand['group']; title: string }[] = [
 
 //what the work is like physically, and for the logged in user, what it strains that they've noted. The notes are for
 //them alone, and never change how close they are
-function WorkDemands({ demands }: { demands: Demand[] }) {
+function WorkDemands({ demands, state }: { demands: Demand[]; state: PartState }) {
   const shown = demands.filter((d) => d.frequency >= SHOWN);
   const noted = demands.filter((d) => d.noted.length > 0);
+  if (state !== 'done') {
+    return (
+      <section className="section">
+        <div className="section-head">
+          <h2>What the work is like</h2>
+        </div>
+        <PartNote state={state} />
+      </section>
+    );
+  }
   return (
     <section className="section">
       <div className="section-head">
@@ -174,14 +232,20 @@ function joined(items: string[]) {
   return lower.length < 2 ? lower.join('') : `${lower.slice(0, -1).join(', ')} and ${lower[lower.length - 1]}`;
 }
 
-function Section({ title, intro, count, children }: { title: string; intro: string; count: number; children: ReactNode }) {
+function Section({ title, intro, count, state, children }: { title: string; intro: string; count: number; state: PartState; children: ReactNode }) {
   return (
     <section className="section">
       <div className="section-head">
         <h2>{title}</h2>
         <p className="muted">{intro}</p>
       </div>
-      {count === 0 ? <p className="muted">O*NET doesn't rate this work on any.</p> : <ul className="requirements">{children}</ul>}
+      {state !== 'done' ? (
+        <PartNote state={state} />
+      ) : count === 0 ? (
+        <p className="muted">None that matter to this work.</p>
+      ) : (
+        <ul className="requirements">{children}</ul>
+      )}
     </section>
   );
 }

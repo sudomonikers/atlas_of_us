@@ -115,6 +115,11 @@ Requirements on anything other than skills are written by the modules that own t
 `SkillFilled`: Personality links each level to the traits it takes (see `personality.md`), Topics to the knowledge it
 needs (see `topics.md`) and Abilities to the abilities it takes (see `abilities.md`).
 
+### Occupations
+A job reacts to `OccupationCreated` from the Occupations module (see `occupations.md`): it names the skills an added
+occupation takes, at Dreyfus levels. Each name goes through the resolver, so it links to a skill we have or creates a
+stub.
+
 ## What the user sees
 The Skills page has two views:
 

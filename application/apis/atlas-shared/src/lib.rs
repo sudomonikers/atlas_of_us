@@ -2,6 +2,7 @@
 pub mod bedrock;
 pub mod events;
 pub mod judge;
+pub mod occupations;
 pub mod skills;
 pub mod topics;
 

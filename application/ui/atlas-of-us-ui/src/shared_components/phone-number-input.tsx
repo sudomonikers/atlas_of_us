@@ -54,15 +54,25 @@ function fromE164(value: string): Phone {
   return { iso: country.iso, code: country.code, number: formatNational(country.code, digits.slice(country.code.length)) };
 }
 
-//the next phone after the number input changes. A full international number (typed with a +, pasted,
+//the next phone after the number input changes. A full international number (typed with a + or 00, pasted,
 //or autofilled) also picks the country from its calling code
 function typed(phone: Phone, raw: string): Phone {
-  if (raw.trim().startsWith('+')) {
-    const digits = raw.replace(/\D/g, '');
-    const country = findCountry(digits, phone.iso);
-    if (country) return { iso: country.iso, code: country.code, number: formatNational(country.code, digits.slice(country.code.length)) };
+  const digits = raw.replace(/\D/g, '');
+  const international = raw.trim().startsWith('+') ? digits : raw.trim().startsWith('00') ? digits.slice(2) : '';
+  if (international) {
+    const country = findCountry(international, phone.iso);
+    if (country) return { iso: country.iso, code: country.code, number: formatNational(country.code, international.slice(country.code.length)) };
   }
-  return { ...phone, number: formatNational(phone.code, raw) };
+  return { ...phone, number: formatNational(phone.code, withoutCode(phone.code, digits, phone.number.replace(/\D/g, ''))) };
+}
+
+//the number without the country code it was autofilled or pasted with, but no + (14403849524 with +1 picked).
+//A +1 number never starts with 1, so a leading 1 there is always the code. Elsewhere it's the code when it
+//arrives all at once with enough digits after it to be a whole number
+function withoutCode(code: string, digits: string, before: string) {
+  if (code === '1') return digits.replace(/^1/, '');
+  const filled = digits.length - before.length > 1;
+  return filled && digits.startsWith(code) && digits.length - code.length >= 8 ? digits.slice(code.length) : digits;
 }
 
 //formats the number as it's typed: 555-123-4567 for +1, dashed groups of 3 everywhere else

@@ -1,6 +1,8 @@
 //Occupations Graph: O*NET's occupations, each with what the work takes across the Atlas (TAKES_ABILITY,
 //TAKES_KNOWLEDGE, TAKES_SKILL, TAKES_TRAIT), and how far a person is from each. See
 //documentation/data_model/occupations/occupations.md and documentation/architecture/occupations.md
+mod gates;
+
 use std::collections::HashMap;
 
 use axum::{
@@ -12,12 +14,15 @@ use axum::{
 use neo4rs::query;
 use serde::{Deserialize, Serialize};
 
+use atlas_shared::occupations::{PARTS, resolver};
+
 use crate::{auth::AuthUser, bedrock, helpers::lucene, state::AppState};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 pub fn router() -> Router<AppState> {
     Router::new()
+        .route("/", axum::routing::post(ask_for_occupation))
         .route("/search", get(search))
         .route("/closest", get(closest))
         .route("/{id}", get(get_occupation))
@@ -44,6 +49,7 @@ fn not_found() -> (StatusCode, String) {
 
 //abilities and work styles count from O*NET's "important", 3 of its 5, as knowledge and skills do in the seed
 const IMPORTANT: f64 = 0.5;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // What the work is like for the body
@@ -189,6 +195,62 @@ async fn ids(rows: &mut neo4rs::DetachedRowStream) -> Result<Vec<String>, BoxErr
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Asking for an occupation we don't have
+// ---------------------------------------------------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+pub struct AskRequest {
+    query: String, //what the user typed
+}
+
+//what came of asking for an occupation
+#[derive(Serialize)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
+pub enum AskOutcome {
+    //it's something else: kind is skill, topic or other
+    NotAnOccupation { kind: String, name: String },
+    //nonsense, or a slur
+    Rejected { reason: String },
+    //an occupation we already have
+    Existing { occupation: OccupationRef },
+    //a new occupation, whose modules are working out what it takes
+    Created { occupation: OccupationRef },
+}
+
+//adds an occupation someone asked for: the gates name and screen it, the resolver decides whether we have it, and a new
+//one publishes OccupationCreated, which each module answers with its part of what the work takes
+async fn ask_for_occupation(State(state): State<AppState>, _user: AuthUser, Json(req): Json<AskRequest>) -> Result<Json<AskOutcome>, (StatusCode, String)> {
+    let typed = req.query.trim();
+    if typed.is_empty() || typed.chars().count() > 100 {
+        return Err((StatusCode::BAD_REQUEST, "Describe the occupation in 100 characters or fewer.".to_string()));
+    }
+
+    let screening = gates::screen(&state, typed).await.map_err(internal)?;
+    tracing::info!(kind = screening.kind, acceptable = screening.acceptable, "screened an occupation request");
+    if !screening.acceptable {
+        return Ok(Json(AskOutcome::Rejected { reason: screening.rejection_reason }));
+    }
+    if screening.kind != "occupation" {
+        return Ok(Json(AskOutcome::NotAnOccupation { kind: screening.kind, name: screening.title }));
+    }
+
+    let (resolution, vector) = resolver::resolve(&state.graph, &state.bedrock, &screening.title, &screening.description).await.map_err(internal)?;
+    let (id, created) = match resolution {
+        resolver::Resolution::Same { occupation_id } => (occupation_id, false),
+        resolver::Resolution::New => {
+            (resolver::create(&state.graph, &state.bus, &screening.title, &screening.description, vector).await.map_err(internal)?, true)
+        }
+    };
+    tracing::info!(occupation_id = id, created, "resolved an occupation request");
+    let mut rows = state.graph.execute(query("
+        MATCH (o:Occupation {id: $id})
+        RETURN o.id AS id, o.title AS title, o.description AS description
+    ").param("id", id.as_str())).await.map_err(internal)?;
+    let occupation = rows.next().await.map_err(internal)?.ok_or_else(not_found)?.to::<OccupationRef>().map_err(internal)?;
+    Ok(Json(if created { AskOutcome::Created { occupation } } else { AskOutcome::Existing { occupation } }))
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // The occupations closest to a person
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -237,7 +299,7 @@ async fn closest(State(state): State<AppState>, user: AuthUser) -> Result<Json<C
     let mut rows = state.graph.execute(query(&format!("
         MATCH (p:Person {{id: $personId}})
         WITH p, {ON}
-        MATCH (o:Occupation)
+        MATCH (o:Occupation {{status: 'ready'}})
         CALL (p, o, onTopics, onSkills) {{ {requirements} }}
         WITH o, sum(weight) AS total,
              sum(CASE WHEN score IS NULL THEN 0.0 ELSE weight END) AS measured,
@@ -313,7 +375,10 @@ pub struct Demand {
 #[derive(Serialize)]
 pub struct Occupation {
     id: String,
-    onet_soc: String,
+    onet_soc: Option<String>, //O*NET's code, for one of its occupations. None for one someone added
+    status: String,           //filling while its modules work out what it takes, then ready
+    pending: Vec<String>,     //the parts still being worked out: abilities, knowledge, skills or personality
+    failed: Vec<String>,      //the parts that couldn't be worked out
     title: String,
     description: String,
     alternate_titles: Vec<String>,
@@ -336,6 +401,9 @@ async fn get_occupation(State(state): State<AppState>, user: Option<AuthUser>, P
         OPTIONAL MATCH (p:Person {{id: $personId}})
         WITH o, p, {ON}
         RETURN o.id AS id, o.onetSoc AS onet_soc, o.title AS title, o.description AS description,
+               coalesce(o.status, 'ready') AS status,
+               [part IN $parts WHERE o.status = 'filling' AND o[part + 'At'] IS NULL AND o[part + 'FailedAt'] IS NULL] AS pending,
+               [part IN $parts WHERE o[part + 'FailedAt'] IS NOT NULL] AS failed,
                coalesce(o.alternateTitles, []) AS alternate_titles,
                COLLECT {{
                    MATCH (o)-[r:TAKES_KNOWLEDGE]->(b:BloomLevel)<-[:HAS_LEVEL]-(t:Topic)
@@ -379,6 +447,7 @@ async fn get_occupation(State(state): State<AppState>, user: Option<AuthUser>, P
         .param("personId", person_id.as_str())
         .param("important", IMPORTANT)
         .param("frequent", FREQUENT)
+        .param("parts", PARTS.to_vec())
     ).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     let knowledge: Vec<LevelRequirement> = row.get("knowledge").map_err(internal)?;
@@ -409,6 +478,9 @@ async fn get_occupation(State(state): State<AppState>, user: Option<AuthUser>, P
     Ok(Json(Occupation {
         id: row.get("id").map_err(internal)?,
         onet_soc: row.get("onet_soc").map_err(internal)?,
+        status: row.get("status").map_err(internal)?,
+        pending: row.get("pending").map_err(internal)?,
+        failed: row.get("failed").map_err(internal)?,
         title: row.get("title").map_err(internal)?,
         description: row.get("description").map_err(internal)?,
         alternate_titles: row.get("alternate_titles").map_err(internal)?,
