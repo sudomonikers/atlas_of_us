@@ -115,9 +115,17 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
         return Err(bad_request("That skill's levels aren't written yet."));
     }
 
+    set_person_level(&state.graph, &user.person_id, &id, req.rank, achieved_on).await.map_err(internal)?;
+    tracing::info!(skill_id = id, rank = req.rank, "placed a person on a skill");
+    Ok(StatusCode::NO_CONTENT)
+}
+
+//places the person at one of the skill's levels, with when they reached it if they said. The caller checks the level
+//is one they can be placed at
+pub async fn set_person_level(graph: &Graph, person_id: &str, id: &str, rank: i64, achieved_on: Option<String>) -> Result<(), neo4rs::Error> {
     //the level joins the ones they've reached, with the version of it they read. A move down corrects their level, so the
     //levels above it come off. Saying they have the skill takes back any time they said they didn't
-    state.graph.run(query("
+    graph.run(query("
         MATCH (p:Person {id: $personId}), (s:Skill {id: $id})-[:HAS_LEVEL]->(l:DreyfusLevel {rank: $rank})
         OPTIONAL MATCH (p)-[lacks:DOES_NOT_HAVE]->(s)
         DELETE lacks
@@ -130,13 +138,11 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
         ON CREATE SET a.recordedAt = datetime()
         SET a.levelVersion = l.version, a.achievedOn = CASE WHEN $achievedOn IS NULL THEN null ELSE date($achievedOn) END
     ")
-        .param("personId", user.person_id.as_str())
-        .param("id", id.as_str())
-        .param("rank", req.rank)
+        .param("personId", person_id)
+        .param("id", id)
+        .param("rank", rank)
         .param("achievedOn", achieved_on)
-    ).await.map_err(internal)?;
-    tracing::info!(skill_id = id, rank = req.rank, "placed a person on a skill");
-    Ok(StatusCode::NO_CONTENT)
+    ).await
 }
 
 //takes the logged in user off a skill, with every level they reached in it, how much they practice it, and all their

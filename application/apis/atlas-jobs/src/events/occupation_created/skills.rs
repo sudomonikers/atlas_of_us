@@ -4,15 +4,13 @@
 //don't. See "Where occupations come from" in documentation/architecture/occupations.md
 use std::{collections::HashMap, env};
 
-use atlas_shared::skills::resolver::{self, Resolution};
+use atlas_shared::skills::{DREYFUS_LEVELS, resolver::{self, Resolution}};
 use neo4rs::{BoltType, Graph, query};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use super::{Occupation, importance};
 use crate::bedrock::{BoxError, invoke};
-
-const DREYFUS_LEVELS: [&str; 5] = ["Novice", "Advanced Beginner", "Competent", "Proficient", "Expert"];
 
 //an O*NET occupation near this one, with the skills it takes, to what level and how important each is, 1 to 5
 #[derive(Deserialize, Serialize)]

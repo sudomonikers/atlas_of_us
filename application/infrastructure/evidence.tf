@@ -59,3 +59,19 @@ resource "aws_iam_role_policy" "api_evidence" {
     }]
   })
 }
+
+###JOBS ACCESS
+# atlas-jobs reads a resume someone uploaded for the skills and knowledge it shows (apis/atlas-jobs/src/jobs/resume_import.rs)
+resource "aws_iam_role_policy" "jobs_evidence" {
+  name = "${local.jobs_name}-evidence"
+  role = aws_iam_role.jobs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:GetObject"]
+      Resource = "${aws_s3_bucket.evidence.arn}/evidence/*"
+    }]
+  })
+}

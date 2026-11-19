@@ -25,7 +25,8 @@ function Skills() {
   const path = usePath();
   //an open skill lives in the url, /skills/<id>, and always shows in the explorer
   const skillId = path.startsWith('/skills/') ? decodeURIComponent(path.slice('/skills/'.length)) || undefined : undefined;
-  const [chosen, setView] = useState<View>('explorer');
+  //?view=mine opens My Skills, for links to it from elsewhere
+  const [chosen, setView] = useState<View>(() => (new URLSearchParams(window.location.search).get('view') === 'mine' ? 'mine' : 'explorer'));
   //the explorer's board, kept here so it's still there after a look at My Skills
   const [board, setBoard] = useState<SkillBoard>(emptyBoard);
   const [guide, setGuide] = useState(false);

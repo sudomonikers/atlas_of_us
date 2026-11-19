@@ -11,6 +11,7 @@ import { getAffectedBy, type AffectedBy } from '../abilities/api';
 import { AtlasError } from '../shared_components/atlas-error';
 import { LevelSteps } from '../shared_components/level_steps';
 import { Thinking } from '../shared_components/thinking';
+import { ResumeLink } from '../resume/resume_link';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -90,6 +91,7 @@ export default function MySkills() {
     <section style={styles.panel} className="comic-panel comic-pop">
       <h2 style={styles.heading}>My Skills</h2>
       <p style={styles.text}>The skills you have, grouped by the level you have them at.</p>
+      <ResumeLink />
       {error && <AtlasError message={error} />}
       {!error && !skills && <Thinking label="Gathering what you can do" />}
       {skills && !skills.length && <p style={styles.text}>Nothing here yet. Open a skill in the Skills Explorer and add yourself to it.</p>}

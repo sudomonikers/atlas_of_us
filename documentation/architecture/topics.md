@@ -85,12 +85,14 @@ and the Ideas around it, which is how the Ideas topics share show up.
 
 ### Placing yourself on a topic
 On a `ready` topic, the user reads the levels from Remember up and says which one is them. That's their one
-`ENGAGES_TOPIC` to the topic, shown on the topic and on their profile.
+`ENGAGES_TOPIC` to the topic, shown on the topic and on their profile. Importing a resume places them on topics too,
+at the levels they confirm (see `resume_import.md`).
 
 They can back it up with **evidence**, notes or files. Evidence is shared by every module: a skill uses the same
 service, storage and UI pieces, and each module builds its own walkthrough on them. Files go from the browser straight
-to the private evidence bucket, and the API checks them before adding them. Files can be downloaded by their owner, and
-by anyone when the owner's profile is public.
+to the private evidence bucket, and the API checks them before adding them. One file can be evidence about several
+things, as an imported resume is, and it's deleted once no evidence refers to it. Files can be downloaded by their
+owner, and by anyone when the owner's profile is public.
 
 ## Events
 Topics events have the source `atlas.topics`. How they move is in `events.md`.

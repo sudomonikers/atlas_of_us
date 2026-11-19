@@ -15,6 +15,17 @@ export interface Profile {
   abilities: ProfileAbilities;
   topics: EngagedTopic[]; //the topics they've placed themselves on, deepest first
   skills: AchievedSkill[]; //the skills they've placed themselves on, highest level first
+  achievements: Achievement[]; //the noteworthy things they did, the most recent first
+}
+
+//something noteworthy someone did, such as an award, a certification or a result they can point to, with the skills
+//and topics it demonstrates
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string | null;
+  year: number | null;
+  demonstrates: { id: string; name: string; kind: 'skill' | 'topic' }[]; //skills first, then topics
 }
 
 //what a profile shows of someone's abilities: Atlas's summary, where they stand on each, and the conditions and

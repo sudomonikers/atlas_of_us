@@ -1,5 +1,5 @@
 //Profiles: what a person shares about themselves at /u/{username}, gathered from each part of the Atlas they've been
-//mapped on, with the overall summary of them (overall.rs) and the graph of everything they're linked to (graph.rs).
+//mapped on and their achievements, with the overall summary of them (overall.rs) and the graph of everything they're linked to (graph.rs).
 //Each part's module owns its data, and this one decides who gets to see it
 mod graph;
 pub mod overall;
@@ -8,7 +8,7 @@ use axum::{Json, Router, extract::{Path, State}, http::StatusCode, response::Htm
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::AuthUser, domains::{abilities, personality, skills, topics}, state::AppState};
+use crate::{achievements, auth::AuthUser, domains::{abilities, personality, skills, topics}, state::AppState};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -52,6 +52,7 @@ pub struct Profile {
     abilities: ProfileAbilities,
     topics: Vec<topics::PersonTopic>, //the topics they've placed themselves on, deepest first
     skills: Vec<skills::PersonSkill>, //the skills they've placed themselves on, deepest first
+    achievements: Vec<achievements::PersonAchievement>, //the noteworthy things they did, the most recent first
 }
 
 //what a profile shows of someone's abilities: Atlas's summary, where they stand on each, and the conditions and
@@ -83,6 +84,7 @@ pub async fn get_profile(
         },
         topics: topics::person_topics(&state.graph, &person.id).await?,
         skills: skills::person_skills(&state.graph, &person.id).await?,
+        achievements: achievements::person_achievements(&state.graph, &person.id).await?,
         username: person.username,
         first_name: person.first_name,
         public: person.public,

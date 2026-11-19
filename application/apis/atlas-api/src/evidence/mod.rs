@@ -97,10 +97,27 @@ fn file_key(person_id: &str, evidence_id: &str) -> String {
     format!("evidence/{person_id}/{evidence_id}")
 }
 
-//deletes files from the evidence bucket. Their Evidence is already gone, so a file that can't be deleted is only logged
-async fn delete_files(state: &AppState, keys: &[String]) {
+//deletes files from the evidence bucket that no evidence refers to anymore. One file can be evidence about several
+//nodes, such as a resume about each skill and topic it was imported to. Their Evidence is already gone, so a file that
+//can't be deleted is only logged
+pub async fn delete_files(state: &AppState, keys: &[String]) {
     let Some(bucket) = state.evidence_bucket.as_deref() else { return };
-    for key in keys {
+    if keys.is_empty() {
+        return;
+    }
+    let unused: Vec<String> = match state.graph.execute(query("
+        UNWIND $keys AS key
+        WITH key WHERE NOT EXISTS { MATCH (e:Evidence {key: key}) }
+        RETURN collect(DISTINCT key) AS unused
+    ").param("keys", keys.to_vec())).await {
+        Ok(mut rows) => match rows.next().await {
+            Ok(Some(row)) => row.get("unused").unwrap_or_default(),
+            Ok(None) => Vec::new(),
+            Err(e) => return tracing::error!("couldn't check which evidence files are still used: {e}"),
+        },
+        Err(e) => return tracing::error!("couldn't check which evidence files are still used: {e}"),
+    };
+    for key in &unused {
         if let Err(e) = state.s3.delete_object().bucket(bucket).key(key).send().await {
             tracing::error!(key, "couldn't delete an evidence file: {}", DisplayErrorContext(e));
         }
@@ -197,7 +214,7 @@ pub struct FileRequest {
 }
 
 //the key of an upload the person started, or a bad request for an id that can't be one
-fn upload_key(person_id: &str, upload_id: &str) -> Result<(String, String), (StatusCode, String)> {
+pub fn upload_key(person_id: &str, upload_id: &str) -> Result<(String, String), (StatusCode, String)> {
     let upload_id = uuid::Uuid::parse_str(upload_id).map_err(|_| bad_request("That upload doesn't exist."))?.to_string();
     Ok((file_key(person_id, &upload_id), upload_id))
 }
@@ -318,4 +335,94 @@ async fn get_file(State(state): State<AppState>, user: Option<AuthUser>, Path(ev
         .await
         .map_err(|e| internal(DisplayErrorContext(e)))?;
     Ok(Json(FileUrl { url: presigned.uri().to_string() }))
+}
+
+//a url to upload a file to the evidence bucket that a module reads before it becomes evidence, such as a resume read
+//for what it shows the person can do. It becomes evidence with attach_file
+pub async fn presign_upload(state: &AppState, person_id: &str, content_type: &str, size: i64) -> Result<Upload, (StatusCode, String)> {
+    if size <= 0 || size > MAX_FILE_BYTES {
+        return Err(too_big());
+    }
+    let bucket = bucket(state)?;
+    let upload_id = uuid::Uuid::new_v4().to_string();
+    let presigned = state.s3.put_object()
+        .bucket(bucket)
+        .key(file_key(person_id, &upload_id))
+        .content_type(content_type)
+        .presigned(PresigningConfig::expires_in(UPLOAD_URL_TTL).map_err(internal)?)
+        .await
+        .map_err(|e| internal(DisplayErrorContext(e)))?;
+    Ok(Upload { upload_id, url: presigned.uri().to_string() })
+}
+
+//an upload presign_upload made, once it's in the bucket
+pub struct Uploaded {
+    pub key: String,
+    pub size: i64,
+    pub content_type: String,
+}
+
+//the upload the person made, or a bad request when it didn't arrive or is too big
+pub async fn uploaded(state: &AppState, person_id: &str, upload_id: &str) -> Result<Uploaded, (StatusCode, String)> {
+    let (key, _) = upload_key(person_id, upload_id)?;
+    let head = state.s3.head_object().bucket(bucket(state)?).key(&key).send().await.map_err(|e| {
+        if e.as_service_error().is_some_and(|e| e.is_not_found()) {
+            bad_request("That upload didn't arrive. Try again.")
+        } else {
+            internal(DisplayErrorContext(e))
+        }
+    })?;
+    let size = head.content_length().unwrap_or_default();
+    if size > MAX_FILE_BYTES {
+        delete_files(state, &[key]).await;
+        return Err(too_big());
+    }
+    Ok(Uploaded { key, size, content_type: head.content_type().unwrap_or_default().to_string() })
+}
+
+//adds a file already in the bucket as evidence about the node, unless the person has given as much evidence about it
+//as they can, or this file already is. `source` says where it came from, such as resume, so it can be replaced with a
+//newer one (see remove_from_source). Returns whether it was added
+pub async fn attach_file(graph: &Graph, person_id: &str, about: About<'_>, file: &Uploaded, file_name: &str, source: &str) -> Result<bool, neo4rs::Error> {
+    let label = about.label;
+    let mut rows = graph.execute(query(&format!("
+        MATCH (p:Person {{id: $personId}}), (a:{label} {{id: $about}})
+        WHERE COUNT {{ (p)-[:GAVE_EVIDENCE]->(:Evidence)-[:ABOUT]->(a) }} < $max
+          AND NOT EXISTS {{ (p)-[:GAVE_EVIDENCE]->(:Evidence {{key: $key}})-[:ABOUT]->(a) }}
+        CREATE (p)-[:GAVE_EVIDENCE]->(e:Evidence {{id: randomUUID(), kind: 'file', fileName: $fileName, contentType: $contentType,
+                                                  size: $size, key: $key, source: $source, createdAt: datetime()}})-[:ABOUT]->(a)
+        RETURN e.id AS id
+    "))
+        .param("personId", person_id)
+        .param("about", about.id)
+        .param("max", MAX_EVIDENCE)
+        .param("key", file.key.as_str())
+        .param("fileName", file_name)
+        .param("contentType", file.content_type.as_str())
+        .param("size", file.size)
+        .param("source", source)
+    ).await?;
+    Ok(rows.next().await?.is_some())
+}
+
+//what remove_from_source took away: the skills and topics it was about, and the keys of its files, which the caller
+//deletes with delete_files once it has added what replaces them
+pub struct Removed {
+    pub about: Vec<String>,
+    pub keys: Vec<String>,
+}
+
+//takes away the evidence from `source`, such as resume, that the person gave about the skills and topics with these
+//ids, so a newer file from the same source can take its place
+pub async fn remove_from_source(graph: &Graph, person_id: &str, source: &str, ids: &[String]) -> Result<Removed, neo4rs::Error> {
+    let mut rows = graph.execute(query("
+        OPTIONAL MATCH (:Person {id: $personId})-[:GAVE_EVIDENCE]->(e:Evidence {source: $source})-[:ABOUT]->(n)
+        WHERE (n:Skill OR n:Topic) AND n.id IN $ids
+        WITH collect(e) AS evidence, collect(DISTINCT n.id) AS about, collect(DISTINCT e.key) AS keys
+        FOREACH (e IN evidence | DETACH DELETE e)
+        RETURN about, keys
+    ").param("personId", person_id).param("source", source).param("ids", ids.to_vec())).await?;
+    let row = rows.next().await?.ok_or("no row")
+        .map_err(|e| neo4rs::Error::UnexpectedMessage(e.to_string()))?;
+    Ok(Removed { about: row.get("about").unwrap_or_default(), keys: row.get("keys").unwrap_or_default() })
 }

@@ -22,11 +22,13 @@ The code both crates run lives once, in `atlas-shared`:
 |---|---|
 | `bedrock` | `answer` (a forced tool call on `SMALL_MODEL`, Claude Haiku 4.5) and `embed` (Titan Text Embeddings V2) |
 | `events` | The `Bus` and `publish`, which adds `eventId`, `schemaVersion` and `occurredAt` and logs the event when there's no bus |
-| `skills::resolver` | `resolve`, `create_stub`, `embedding_text` and `MIN_SCORE` |
+| `skills::resolver` | `resolve`, `create_stub`, `embedding_text` and `MIN_SCORE`, with `DREYFUS_LEVELS` in `skills` |
 | `topics::resolver` | The same for topics, used by the API's topic gates and the `SkillFilled-Topics` job, with `BLOOM_LEVELS` in `topics` |
+| `skills::gates`, `topics::gates` | `screen`, which normalizes, classifies and screens a name: what a person asks for in search, and each new name the `resume_import` job finds |
+| `resume` | What the `resume_import` job finds and the API shows for the person to confirm |
 
 Functions take the graph, the Bedrock client and the bus they need as arguments, so they work the same in either
-crate. Code only one crate runs stays in it: the gates in the API (`domains/skills/gates.rs`), and atlas-jobs' own
+crate. Code only one crate runs stays in it: the occupation gates in the API (`domains/occupations/gates.rs`), and atlas-jobs' own
 `bedrock::invoke`, which retries when throttled and keeps the `BedrockCutoff` node for the long Sonnet calls.
 
 The crates are separate packages with their own `Cargo.lock`, not a Cargo workspace, so each still builds and deploys

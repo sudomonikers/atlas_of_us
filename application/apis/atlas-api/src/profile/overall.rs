@@ -1,15 +1,16 @@
 //the overall summary: Atlas's write-up of the whole person, at the top of the Overall view of their profile. Asking for
 //it gathers everything they've been mapped on here (their personality traits, abilities, conditions and impairments,
-//topics and skills, and how their skills link to the rest) and hands that to atlas-jobs' overall_summary job, which
+//topics and skills, how their skills link to the rest, and their achievements) and hands that to atlas-jobs' overall_summary job, which
 //writes it and keeps it with what it was written from. Each write costs a credit (see credits/), given back if it
 //fails. Whatever has changed since then makes it stale, so the person can ask for it again
 use std::collections::HashMap;
 
+use atlas_shared::{skills::DREYFUS_LEVELS, topics::BLOOM_LEVELS};
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use neo4rs::{Graph, query};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth::AuthUser, credits::{refund, spend}, domains::{abilities, personality}, helpers::jobs::queue, state::AppState};
+use crate::{achievements, auth::AuthUser, credits::{refund, spend}, domains::{abilities, personality}, helpers::jobs::queue, state::AppState};
 
 use super::{graph::person_graph, internal};
 
@@ -25,9 +26,6 @@ const WRITING_MINUTES: i64 = 5;
 //the summary's properties on the Person, which credits are spent and given back by
 const FEATURE: &str = "overallSummary";
 
-const BLOOM: [&str; 6] = ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"];
-const DREYFUS: [&str; 5] = ["Novice", "Advanced Beginner", "Competent", "Proficient", "Expert"];
-
 //what the summary is written from, in the order it's gathered, so the same things always come out the same
 #[derive(Serialize)]
 struct Input {
@@ -38,6 +36,18 @@ struct Input {
     topics: Vec<Leveled>,
     skills: Vec<Leveled>,
     skills_take: Vec<Takes>,
+    //left out while there are none, so a summary written before achievements were gathered isn't made stale by them
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    achievements: Vec<Accomplished>,
+}
+
+//something noteworthy they did, with the skills and topics of theirs it demonstrates
+#[derive(Serialize)]
+struct Accomplished {
+    title: String,
+    description: Option<String>,
+    year: Option<i64>,
+    demonstrates: Vec<String>,
 }
 
 //where they stand on a personality trait, 0 to 100
@@ -112,11 +122,11 @@ async fn gather(graph: &Graph, person_id: &str) -> Result<(Input, usize), (Statu
     let topics = leveled(graph, person_id, "
         MATCH (:Person {id: $personId})-[:ENGAGES_TOPIC]->(l:BloomLevel)<-[:HAS_LEVEL]-(t:Topic)
         RETURN t.name AS name, max(l.rank) AS rank ORDER BY rank DESC, name
-    ", &BLOOM).await?;
+    ", &BLOOM_LEVELS).await?;
     let skills = leveled(graph, person_id, "
         MATCH (:Person {id: $personId})-[:ACHIEVED]->(l:DreyfusLevel)<-[:HAS_LEVEL]-(s:Skill)
         RETURN s.name AS name, max(l.rank) AS rank ORDER BY rank DESC, name
-    ", &DREYFUS).await?;
+    ", &DREYFUS_LEVELS).await?;
 
     //how their skills link to the rest of them, from the graph of everything they're linked to
     let linked = person_graph(graph, person_id).await?;
@@ -132,8 +142,15 @@ async fn gather(graph: &Graph, person_id: &str) -> Result<(Input, usize), (Statu
     }).filter(|t| !(t.traits.is_empty() && t.abilities.is_empty() && t.topics.is_empty() && t.skills.is_empty())).collect();
     skills_take.sort_by(|a, b| a.skill.cmp(&b.skill));
 
+    let achievements = achievements::person_achievements(graph, person_id).await?.into_iter().map(|a| Accomplished {
+        demonstrates: a.demonstrates.into_iter().map(|d| d.name).collect(),
+        title: a.title,
+        description: a.description,
+        year: a.year,
+    }).collect();
+
     let parts = [!personality.is_empty(), !abilities.is_empty(), !topics.is_empty(), !skills.is_empty()].iter().filter(|&&p| p).count();
-    Ok((Input { age, personality, abilities, conditions_and_impairments, topics, skills, skills_take }, parts))
+    Ok((Input { age, personality, abilities, conditions_and_impairments, topics, skills, skills_take, achievements }, parts))
 }
 
 //the summary as it's kept on the person

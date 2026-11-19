@@ -6,7 +6,6 @@ mod goals;
 mod personality_fits;
 mod practice;
 mod timeline;
-mod gates;
 
 use std::collections::HashMap;
 
@@ -21,13 +20,13 @@ use neo4rs::query;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use atlas_shared::skills::resolver;
+use atlas_shared::skills::{gates, resolver};
 
 use crate::{auth::AuthUser, bedrock, events, helpers::lucene, state::AppState};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-pub use achievement::{PersonSkill, person_skills};
+pub use achievement::{PersonSkill, person_skills, set_person_level};
 
 //a Cypher predicate that `level` is the highest level `person` has achieved in `skill`: their level in it now. They have
 //an ACHIEVED to each level they've reached, and are taken to have every level below the highest
@@ -227,7 +226,7 @@ pub async fn ask_for_skill(State(state): State<AppState>, _user: AuthUser, Json(
         return Err((StatusCode::BAD_REQUEST, "Describe the skill in 100 characters or fewer.".to_string()));
     }
 
-    let screening = gates::screen(&state, typed).await.map_err(internal)?;
+    let screening = gates::screen(&state.bedrock, typed).await.map_err(internal)?;
     tracing::info!(kind = screening.kind, acceptable = screening.acceptable, "screened a skill request");
     if !screening.acceptable {
         return Ok(Json(AskOutcome::Rejected { reason: screening.rejection_reason }));
@@ -534,12 +533,18 @@ pub struct FillStatus {
 //asks for a stub's levels to be filled, or a failed fill to be tried again. Anything else is left as it is, so it's safe
 //to call every time a skill is opened. The ui then polls GET /{id} until it's ready
 pub async fn request_fill(State(state): State<AppState>, _user: AuthUser, Path(id): Path<String>) -> Result<Json<FillStatus>, (StatusCode, String)> {
+    Ok(Json(FillStatus { status: fill_stub(&state, &id).await? }))
+}
+
+//asks for a stub's levels to be filled, or a failed fill to be tried again, and returns the skill's status. Anything
+//else is left as it is
+pub async fn fill_stub(state: &AppState, id: &str) -> Result<String, (StatusCode, String)> {
     let mut rows = state.graph.execute(query("
         MATCH (s:Skill {id: $id})
         WITH s, s.status AS before
         SET s.status = CASE WHEN before IN ['stub', 'failed'] THEN 'filling' ELSE before END
         RETURN before, s.status AS status
-    ").param("id", id.as_str())).await.map_err(internal)?;
+    ").param("id", id)).await.map_err(internal)?;
     let row = rows.next().await.map_err(internal)?.ok_or_else(not_found)?;
     let before: String = row.get("before").map_err(internal)?;
     let status: String = row.get("status").map_err(internal)?;
@@ -549,9 +554,9 @@ pub async fn request_fill(State(state): State<AppState>, _user: AuthUser, Path(i
         if let Err(e) = events::publish(&state.bus, "atlas.skills", "SkillFillRequested", 1, json!({"skillId": id})).await {
             //nothing will fill it, so put it back for the next person who opens it to try again
             state.graph.run(query("MATCH (s:Skill {id: $id, status: 'filling'}) SET s.status = $before")
-                .param("id", id.as_str()).param("before", before)).await.map_err(internal)?;
+                .param("id", id).param("before", before)).await.map_err(internal)?;
             return Err(internal(e));
         }
     }
-    Ok(Json(FillStatus { status }))
+    Ok(status)
 }

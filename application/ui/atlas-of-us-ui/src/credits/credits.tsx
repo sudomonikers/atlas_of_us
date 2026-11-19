@@ -11,6 +11,7 @@ import { checkout, confirm, manage, price, useCredits, type Kind } from './api';
 //what credits buy, so far
 const FEATURES = [
   { name: 'Your abilities summary', body: 'Everything you\'ve added to Abilities, written up as one picture of your body and mind.', path: '/abilities' },
+  { name: 'Your resume, imported', body: 'The skills and knowledge your resume shows, read out of it for you to check and add.', path: '/resume' },
   { name: 'Your personality report', body: 'Every trait from every chapter, written up in one place, with your strengths and what to watch for.', path: '/personality' },
 ];
 

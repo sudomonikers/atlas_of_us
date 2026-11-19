@@ -148,7 +148,8 @@ how many hours a week they practice it and how they feel about it: liking it, di
 intimidated by it, each as strongly as they say and with a reason if they want. They can back the level up with
 evidence, notes or files, which works the same as for a topic (see `topics.md`). Their level shows on the skill, in My
 Skills, and on their profile. Practice and feelings can be changed from the skill's page and from My Skills, and
-feelings can be given for any skill, whether they're on it or not.
+feelings can be given for any skill, whether they're on it or not. Importing a resume places them on skills too, at
+the levels they confirm (see `resume_import.md`).
 
 ## Community review
 Level content is shared by everyone placed on that skill. If one user could rewrite "Competent", everyone else's claim

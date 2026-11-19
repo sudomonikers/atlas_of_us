@@ -1,4 +1,5 @@
 //the topics sub-graph. See documentation/architecture/topics.md
+pub mod gates;
 pub mod resolver;
 
 //the six levels of Bloom's taxonomy every topic has, by rank

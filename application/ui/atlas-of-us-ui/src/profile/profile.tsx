@@ -13,7 +13,7 @@ import { navigate, replace, useSearch } from '../router';
 import { Nav } from '../shared_components/nav';
 import { Toggle } from '../shared_components/toggle';
 import { AtlasError } from '../shared_components/atlas-error';
-import { getProfile, type Profile as ProfileData, type ConditionOrImpairment, type ProfileAbilities } from './api';
+import { getProfile, type Achievement, type Profile as ProfileData, type ConditionOrImpairment, type ProfileAbilities } from './api';
 import { Dots } from '../shared_components/thinking';
 import { OverallSection } from './overall';
 
@@ -23,13 +23,14 @@ const comic = 'var(--font-comic)';
 
 //the Overall view, then one tab per part of the Atlas a profile shows. The open one is in the url as ?tab=, so a link
 //can open on it
-type Tab = 'overall' | 'personality' | 'abilities' | 'topics' | 'skills';
+type Tab = 'overall' | 'personality' | 'abilities' | 'topics' | 'skills' | 'achievements';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overall', label: 'Overall' },
   { id: 'personality', label: 'Personality' },
   { id: 'abilities', label: 'Abilities' },
   { id: 'topics', label: 'Topics' },
   { id: 'skills', label: 'Skills' },
+  { id: 'achievements', label: 'Achievements' },
 ];
 
 //everything we know about someone, at /u/{username}, one section per part of them. Anyone can see it once
@@ -150,6 +151,7 @@ export default function Profile({ username }: { username: string }) {
           {tab === 'abilities' && <AbilitiesSection abilities={profile.abilities} firstName={profile.first_name} mine={mine} />}
           {tab === 'topics' && <TopicsSection topics={profile.topics} firstName={profile.first_name} />}
           {tab === 'skills' && <SkillsSection skills={profile.skills} firstName={profile.first_name} />}
+          {tab === 'achievements' && <AchievementsSection achievements={profile.achievements} firstName={profile.first_name} mine={mine} />}
         </>
       )}
 
@@ -358,6 +360,51 @@ function SkillsSection({ skills, firstName }: { skills: AchievedSkill[]; firstNa
   );
 }
 
+//the noteworthy things they did, the most recent first, each with when, what came of it, and the skills and topics it
+//demonstrates
+function AchievementsSection({ achievements, firstName, mine }: { achievements: Achievement[]; firstName: string; mine: boolean }) {
+  return (
+    <section style={styles.section} className="comic-panel" role="tabpanel">
+      {!achievements.length &&
+        (mine ? (
+          <p>
+            No achievements yet. Import your resume and I'll pick out your awards, certifications and results.{' '}
+            <a style={styles.go} href="/resume" onClick={follow('/resume')}>
+              Import my resume ▶
+            </a>
+          </p>
+        ) : (
+          <p>{firstName} hasn't added any achievements yet.</p>
+        ))}
+      {achievements.map((a) => (
+        <div key={a.id} style={styles.entry}>
+          <div style={styles.entryHead}>
+            <span style={{ ...styles.entryName, color: gunmetal }}>{a.title}</span>
+            {a.year !== null && <span style={styles.entryLevel}>{a.year}</span>}
+          </div>
+          {a.description && <p style={styles.achievementText}>{a.description}</p>}
+          {a.demonstrates.length > 0 && (
+            <p style={styles.demonstrates}>
+              Shows{' '}
+              {a.demonstrates.map((d, i) => {
+                const to = `/${d.kind === 'skill' ? 'skills' : 'topics'}/${encodeURIComponent(d.id)}`;
+                return (
+                  <span key={d.id}>
+                    {i > 0 && ', '}
+                    <a style={styles.demonstrated} href={to} onClick={follow(to)}>
+                      {d.name}
+                    </a>
+                  </span>
+                );
+              })}
+            </p>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 const styles: Record<string, CSSProperties> = {
   page: {
     position: 'fixed',
@@ -494,6 +541,19 @@ const styles: Record<string, CSSProperties> = {
   since: {
     fontSize: 15,
     color: blue,
+  },
+  achievementText: {
+    margin: 0,
+    fontSize: 17,
+    lineHeight: 1.45,
+  },
+  demonstrates: {
+    margin: 0,
+    fontSize: 15,
+  },
+  demonstrated: {
+    color: 'var(--brown-red)',
+    fontWeight: 600,
   },
   traits: {
     margin: 0,

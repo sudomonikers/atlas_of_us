@@ -8,6 +8,8 @@ mod feedback;
 mod admin;
 mod profile;
 mod credits;
+mod achievements;
+mod resume;
 
 use axum::{
     Json, Router,
@@ -95,6 +97,7 @@ async fn main() {
         .nest("/api/profiles", profile::router())
         .nest("/api/overall", profile::overall::router())
         .nest("/api/credits", credits::router())
+        .nest("/api/resume", resume::router())
         .route("/share/{username}", get(profile::share_page))
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(TraceLayer::new_for_http()

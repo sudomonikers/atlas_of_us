@@ -4,6 +4,7 @@ import { navigate } from '../router';
 import { AtlasError } from '../shared_components/atlas-error';
 import { LevelSteps } from '../shared_components/level_steps';
 import { Thinking } from '../shared_components/thinking';
+import { ResumeLink } from '../resume/resume_link';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const blue = 'var(--air-force-blue)';
@@ -34,6 +35,7 @@ export default function MyKnowledge() {
     <section style={styles.panel} className="comic-panel comic-pop">
       <h2 style={styles.heading}>My Knowledge</h2>
       <p style={styles.text}>The topics you know, and how deeply you know them.</p>
+      <ResumeLink />
       {error && <AtlasError message={error} />}
       {!error && !topics && <Thinking label="Gathering what you know" />}
       {topics && !topics.length && <p style={styles.text}>Nothing here yet. Open a topic in the Topics Explorer and add yourself to it.</p>}

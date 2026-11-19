@@ -31,7 +31,7 @@ resource "aws_lambda_function" "jobs" {
   environment {
     variables = merge(
       { for name, param in data.aws_ssm_parameter.api : name => param.value if !contains(["JWT_SECRET", "STRIPE_SECRET_KEY"], name) },
-      { BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6", EVENT_BUS_NAME = aws_cloudwatch_event_bus.atlas.name },
+      { BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6", EVENT_BUS_NAME = aws_cloudwatch_event_bus.atlas.name, EVIDENCE_BUCKET = aws_s3_bucket.evidence.id },
     )
   }
 

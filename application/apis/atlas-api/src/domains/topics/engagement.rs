@@ -75,16 +75,21 @@ async fn set_level(State(state): State<AppState>, user: AuthUser, Path(id): Path
         return Err((StatusCode::BAD_REQUEST, "That topic's levels aren't written yet.".to_string()));
     }
 
-    //keeps when they first placed themselves on the topic
-    state.graph.run(query("
+    set_person_level(&state.graph, &user.person_id, &id, req.rank).await.map_err(internal)?;
+    tracing::info!(topic_id = id, rank = req.rank, "placed a person on a topic");
+    Ok(StatusCode::NO_CONTENT)
+}
+
+//places the person at one of the topic's levels, in place of any level they were at before, keeping when they first
+//placed themselves on it. The caller checks the level is one they can be placed at
+pub async fn set_person_level(graph: &Graph, person_id: &str, id: &str, rank: i64) -> Result<(), neo4rs::Error> {
+    graph.run(query("
         MATCH (p:Person {id: $personId}), (t:Topic {id: $id})-[:HAS_LEVEL]->(l:BloomLevel {rank: $rank})
         OPTIONAL MATCH (p)-[old:ENGAGES_TOPIC]->(:BloomLevel)<-[:HAS_LEVEL]-(t)
         WITH p, l, collect(old) AS olds, min(old.since) AS since
         FOREACH (o IN olds | DELETE o)
         CREATE (p)-[:ENGAGES_TOPIC {since: coalesce(since, datetime()), updatedAt: datetime()}]->(l)
-    ").param("personId", user.person_id.as_str()).param("id", id.as_str()).param("rank", req.rank)).await.map_err(internal)?;
-    tracing::info!(topic_id = id, rank = req.rank, "placed a person on a topic");
-    Ok(StatusCode::NO_CONTENT)
+    ").param("personId", person_id).param("id", id).param("rank", rank)).await
 }
 
 //takes the logged in user off a topic, with all their evidence for it
