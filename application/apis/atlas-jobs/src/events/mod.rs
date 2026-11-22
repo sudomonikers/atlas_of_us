@@ -39,6 +39,7 @@ pub async fn handle(graph: &Graph, handler: &str, event: Value) {
         "SkillFilled-Abilities" => skill_filled::abilities::run(graph, event.detail).await,
         "SkillFilled-Topics" => skill_filled::topics::run(graph, event.detail).await,
         "TopicFillRequested-Topics" => topic_fill_requested::topics::run(graph, event.detail).await,
+        "TopicFillRequested-Quiz" => topic_fill_requested::quiz::run(graph, event.detail).await,
         "ConditionAdded-Abilities" => condition_added::abilities::run(graph, event.detail).await,
         "OccupationCreated-Abilities" => occupation_created::abilities::run(graph, event.detail).await,
         "OccupationCreated-Topics" => occupation_created::topics::run(graph, event.detail).await,

@@ -14,6 +14,7 @@ locals {
     { event = "SkillFilled", source = "atlas.skills", module = "Abilities" },
     { event = "SkillFilled", source = "atlas.skills", module = "Topics" },
     { event = "TopicFillRequested", source = "atlas.topics", module = "Topics" },
+    { event = "TopicFillRequested", source = "atlas.topics", module = "Quiz" },
     { event = "ConditionAdded", source = "atlas.abilities", module = "Abilities" },
     { event = "OccupationCreated", source = "atlas.occupations", module = "Abilities" },
     { event = "OccupationCreated", source = "atlas.occupations", module = "Topics" },

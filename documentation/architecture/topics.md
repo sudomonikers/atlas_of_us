@@ -65,6 +65,9 @@ screen.
    loop of prerequisites is taken out.
 5. It publishes `IdeaCreated` for each new Idea and `TopicFilled` for the topic, or `TopicFillFailed`.
 
+Alongside the fill, a second job writes the topic's **questions**, one multiple-choice question on each of its
+Remember, Understand and Apply levels, so anyone can be tested on it. A topic that has questions already keeps them.
+
 ## Skill requirements
 A job reacts to `SkillFilled` from the Skills module. One LLM call names the knowledge each of the skill's levels needs,
 how deeply as a Bloom level, how much and why. Each name goes through the topic resolver, so it links to a topic we have
@@ -103,7 +106,7 @@ Topics events have the source `atlas.topics`. How they move is in `events.md`.
 | Event | When | Who cares |
 |---|---|---|
 | `TopicCreated` | A topic is created, by any route | Search, admin metrics |
-| `TopicFillRequested` | Someone needs a stub filled | The fill job |
+| `TopicFillRequested` | Someone needs a stub filled | The fill job, the questions job |
 | `TopicFilled` | A topic's levels and Ideas are written for the first time | Prerequisites between Ideas in different topics, recommendations |
 | `TopicFillFailed` | The fill failed | Admin metrics, the UI |
 | `IdeaCreated` | A fill created an Idea | Search, admin metrics |

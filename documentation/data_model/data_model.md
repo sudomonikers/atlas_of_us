@@ -167,7 +167,8 @@ occupations with TAKES_KNOWLEDGE from an Occupation to a BloomLevel (see the Occ
 #### Testing what someone knows
 Any topic can be tested. Each of its levels can have a question that TESTS it, and a right answer at a level stands for
 every level below it. A person answers a topic's questions from the highest level down, and the first they get right
-places them on the topic at that level with ENGAGES_TOPIC, unless they're at a higher level already.
+places them on the topic at that level with ENGAGES_TOPIC, unless they're at a higher level already. A topic that's
+filled gets a question on each of its Remember, Understand and Apply levels when its fill is asked for.
 
 A collection groups topics to go through in order, such as Common Knowledge and Life Knowledge, each topic tested at
 Remember, Understand and Apply (see `documentation/architecture/collections.md`). A collection's `id` and `name` are
