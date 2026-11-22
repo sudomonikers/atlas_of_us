@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { Classroom } from './classroom';
 import { Kitchen } from './kitchen';
+import { Study } from './study';
 
 //where a collection's board hangs: the scene drawn behind it, the wall's color while it draws, and how far down the
 //board starts, clear of what runs along the top of the scene
@@ -16,6 +17,7 @@ const CLASSROOM: Scene = { Backdrop: Classroom, wall: '#efe6cf', top: 76 };
 const SCENES: Record<string, Scene> = {
   'common-knowledge': CLASSROOM,
   'life-knowledge': { Backdrop: Kitchen, wall: '#e4ead6', top: 104 },
+  'digital-knowledge': { Backdrop: Study, wall: '#dde4ea', top: 112 },
 };
 
 export const sceneFor = (collectionId: string): Scene => SCENES[collectionId] ?? CLASSROOM;

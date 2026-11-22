@@ -1,0 +1,78 @@
+# Digital Knowledge: what getting by safely and well online and on our devices takes. Principles that hold across
+# devices, apps and countries, not one product's menus. Related topics sit together, most familiar first
+
+# Staying secure
+Internet Safety
+Cybersecurity
+Password Security
+Password Managers
+Two-Factor Authentication
+Phishing
+Online Scams
+Social Engineering
+Malware
+Ransomware
+Software Updates
+Public Wi-Fi Security
+Account Recovery
+
+# Privacy
+Digital Footprint
+Browser Cookies
+Web Tracking
+App Permissions
+Location Tracking
+Data Brokers
+Encryption
+End-to-End Encryption
+Virtual Private Networks
+
+# How it works
+Computer Basics
+The Internet
+Computer Networks
+Domain Names
+Web Browsers
+Search Engines
+Email
+Wi-Fi
+Home Networking
+Cloud Storage
+Smartphones
+Operating Systems
+
+# Files and data
+File Management
+File Formats
+Data Compression
+Data Backup
+Digital Storage
+Spreadsheets
+
+# Feeds, media and AI
+Social Media
+Recommendation Algorithms
+Online Advertising
+Deepfakes
+Screen Time
+Artificial Intelligence
+Generative AI
+Large Language Models
+Prompt Engineering
+
+# Money and rights online
+Online Banking
+Digital Payments
+Online Shopping
+Cryptocurrency
+Blockchain
+Terms of Service
+Copyright
+Creative Commons
+Open-Source Software
+
+# Getting along online
+Online Etiquette
+Video Conferencing
+Cyberbullying
+Digital Accessibility

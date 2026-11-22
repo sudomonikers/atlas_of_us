@@ -25,6 +25,7 @@ someone knows" in `../data_model/topics/topics.md`). The UI asks for a collectio
 |---|---|---|---|
 | Common Knowledge | `common-knowledge` | A classroom | About two hundred topics most adults were taught at school or have met in everyday life, from counting to climate change |
 | Life Knowledge | `life-knowledge` | A kitchen | About eighty topics adult life takes that school mostly skipped: money, paperwork, work, health, the home, getting around and the people in your life |
+| Digital Knowledge | `digital-knowledge` | A study | About sixty topics getting by safely and well online and on our devices takes: security, privacy, how it all works, files, feeds and AI, money online and getting along |
 
 Each list is ours. It leaves out what only one country teaches or requires, such as its own history, laws or tax
 rates, and asks about principles that hold in most places. Related topics sit next to each other, and the most familiar
@@ -66,6 +67,7 @@ topic they've finished stays finished. Collections are free.
 
 ## Scenes
 Each collection's board hangs in a scene drawn for it, in the Atlas's flat, inked style: a classroom wall for Common
-Knowledge, and a kitchen for Life Knowledge, with the fridge, the corkboard of bills and the keys around the board. A
+Knowledge, a kitchen for Life Knowledge, with the fridge, the corkboard of bills and the keys around the board, and a
+study for Digital Knowledge, with the router on the bookcase and a crossed-out password stuck to the monitor. A
 scene keeps what matters at its sides and along its top and bottom, so on a narrow screen the board covers the middle
 and the scene still shows around it. A collection without a scene of its own uses the classroom.

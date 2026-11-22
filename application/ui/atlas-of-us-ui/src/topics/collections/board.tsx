@@ -406,7 +406,10 @@ const styles: Record<string, CSSProperties> = {
     padding: '6px 12px',
     background: '#fff',
     color: gunmetal,
-    border: `3px solid ${gunmetal}`,
+    //in parts, so the right and wrong colors can change only the color
+    borderWidth: 3,
+    borderStyle: 'solid',
+    borderColor: gunmetal,
     borderRadius: corners,
     boxShadow: `3px 3px 0 ${paleBlue}`,
     font: 'inherit',
