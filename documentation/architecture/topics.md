@@ -55,9 +55,10 @@ screen.
 
 ## Filling a stub
 1. The API marks the topic `filling` and publishes `TopicFillRequested`.
-2. The fill job writes **each of the six Bloom levels**, as a skill's levels are written, and the topic's **core
-   Ideas**: concepts, claims, norms or values, each after the Ideas it requires. Contested claims are named with their
-   rivals as separate claims.
+2. The fill job names the topic's **core Ideas**: concepts, claims, norms or values, each after the Ideas it requires.
+   Contested claims are named with their rivals as separate claims. It then writes **each of the six Bloom levels**
+   from those Ideas, in the topic's own terms: what someone at the level can do, a task that shows it, the mistake it
+   gets past, and who is usually there.
 3. **Each Idea is resolved** against the Ideas we have: the **same** Idea is reused, an **analogous** one (the same
    structure in another field, such as entropy in physics and in information theory) is linked, and anything else is
    new.

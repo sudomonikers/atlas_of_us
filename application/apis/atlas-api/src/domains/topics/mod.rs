@@ -275,6 +275,9 @@ pub struct Level {
     rank: i64,
     name: String,
     description: Option<String>,
+    task: Option<String>,    //an exercise someone at the level can do and someone below can't
+    mistake: Option<String>, //the mistake someone at the level below still makes
+    who: Option<String>,     //who is usually at the level
     observable_signs: Option<Vec<String>>,
     example_evidence: Option<Vec<String>>,
     version: Option<i64>,
@@ -319,8 +322,9 @@ pub async fn get_topic(State(state): State<AppState>, Path(id): Path<String>) ->
                COLLECT {
                    MATCH (t)-[:HAS_LEVEL]->(l:BloomLevel)
                    WITH l ORDER BY l.rank
-                   RETURN {rank: l.rank, name: l.name, description: l.description, observable_signs: l.observableSigns,
-                           example_evidence: l.exampleEvidence, version: l.version, trust: l.trust}
+                   RETURN {rank: l.rank, name: l.name, description: l.description, task: l.task, mistake: l.mistake,
+                           who: l.who, observable_signs: l.observableSigns, example_evidence: l.exampleEvidence,
+                           version: l.version, trust: l.trust}
                } AS levels,
                COLLECT {
                    MATCH (t)-[:INCLUDES]->(i:Idea)

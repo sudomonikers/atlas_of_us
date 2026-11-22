@@ -187,6 +187,24 @@ function Levels({ levels, rank, mine, onRank }: { levels: Level[]; rank: number;
             )}
           </div>
           {level.description && <p style={styles.text}>{level.description}</p>}
+          {level.who && (
+            <div>
+              <h4 style={styles.subheading}>Who's usually here</h4>
+              <p style={styles.text}>{level.who}</p>
+            </div>
+          )}
+          {level.task && (
+            <div>
+              <h4 style={styles.subheading}>Something they can do</h4>
+              <p style={styles.text}>{level.task}</p>
+            </div>
+          )}
+          {level.mistake && (
+            <div>
+              <h4 style={styles.subheading}>A mistake they've gotten past</h4>
+              <p style={styles.text}>{level.mistake}</p>
+            </div>
+          )}
           {!!level.observable_signs?.length && (
             <div>
               <h4 style={styles.subheading}>You can see it when they</h4>

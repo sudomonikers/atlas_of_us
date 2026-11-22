@@ -38,6 +38,9 @@ export interface Level {
   rank: number; //1 (Remember) to 6 (Create)
   name: string;
   description: string | null;
+  task: string | null; //an exercise someone at the level can do and someone below can't
+  mistake: string | null; //the mistake someone at the level below still makes
+  who: string | null; //who is usually at the level
   observable_signs: string[] | null;
   example_evidence: string[] | null;
   version: number | null;

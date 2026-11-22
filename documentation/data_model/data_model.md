@@ -125,7 +125,7 @@ Every topic has six levels, the depths someone can know it to:
 | Label | Key properties | What it is |
 |---|---|---|
 | Topic | `id`, `name` (unique), `description`, `aliases`, `vector`, `status`, `prominence` | A subject. `status` is `stub`, `filling`, `ready` or `failed`, as for a skill. `prominence` is how central the subject is to what people know, from 1 to 5: 1 is among the 10 most prominent subjects, 2 the 100, 3 the 1,000, 4 the 10,000 and 5 the 50,000. It's on the topics a taxonomy ranks |
-| BloomLevel | `name`, `rank` (1 to 6), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a topic's six levels, with a second label for which (`Remember` to `Create`) |
+| BloomLevel | `name`, `rank` (1 to 6), `description`, `task`, `mistake`, `who`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a topic's six levels, with a second label for which (`Remember` to `Create`). `task` is an exercise someone at the level can do and someone below can't, `mistake` the mistake someone at the level below still makes, and `who` who is usually at it |
 | Idea | `id`, `name`, `type`, `description`, `vector` | A single piece of information. Names repeat across fields, so only the `id` is unique |
 | Evidence | `id`, `kind` (`note` or `file`), `text` or `fileName`, `contentType`, `size`, `key`, `createdAt` | Something a person offers to show their level in a topic or a skill. A file's bytes live in the evidence bucket under `key` |
 | Collection | `id` (unique), `name` (unique), `description` | A group of topics to go through in order, such as General Schooling Knowledge. It isn't a topic: it has no levels, and nobody is placed on it |
