@@ -1,8 +1,8 @@
 // =============================================================================
-// Atlas of Us — Common knowledge seed
+// Atlas of Us — General schooling knowledge seed
 // Spec: documentation/data_model/topics/topics.md
 //
-// The Common Knowledge collection, by the id the UI asks for it by, and the
+// The General Schooling Knowledge collection, by the id the UI asks for it by, and the
 // topics most people know something about that it CONTAINS, each by its id,
 // with `order` its place in the walkthrough. Each has three QuizQuestions, one
 // TESTS each of its Remember, Understand and Apply levels. `answer` is the
@@ -14,11 +14,11 @@
 // when the level has none.
 // =============================================================================
 
-MERGE (c:Collection {id: "common-knowledge"})
-SET c.name = "Common Knowledge",
-    c.description = "The topics most people know something about, from school or from everyday life.";
+MERGE (c:Collection {id: "general-schooling-knowledge"})
+SET c.name = "General Schooling Knowledge",
+    c.description = "The topics most people were taught at school, from counting to climate change.";
 
-MATCH (:Collection {id: "common-knowledge"})-[contains:CONTAINS]->(:Topic)
+MATCH (:Collection {id: "general-schooling-knowledge"})-[contains:CONTAINS]->(:Topic)
 DELETE contains;
 
 UNWIND [
@@ -73,7 +73,7 @@ UNWIND [
   {id: "5fecc8d3-463b-404d-a2e8-bf83fac0f96a", name: "Poetry", order: 48, questions: [{rank: 1, prompt: "What is a group of lines forming a unit in a poem called?", choices: ["A chapter","A verse play","A paragraph","A stanza"], answer: 3, explanation: "Poems are divided into stanzas."}, {rank: 2, prompt: "Why might a poet repeat a line throughout a poem?", choices: ["Because they ran out of words","Repeated lines are required in all poems","To make the poem shorter","To emphasize an idea and give the poem rhythm"], answer: 3, explanation: "Repetition stresses what matters and creates a pattern."}, {rank: 3, prompt: "You're writing a four-line poem rhyming AABB. Lines 1 and 2 end in \"night\" and \"light\". Which words could end lines 3 and 4?", choices: ["\"sea\" and \"free\"","\"bright\" and \"sea\"","\"tree\" and \"light\"","\"sea\" and \"night\""], answer: 0, explanation: "AABB means lines 3 and 4 rhyme with each other, on a new sound."}]},
   {id: "b7d80c3f-4960-4641-8124-721f89f7e8fd", name: "Mythology", order: 49, questions: [{rank: 1, prompt: "Who is the king of the gods in Greek mythology?", choices: ["Poseidon","Apollo","Hades","Zeus"], answer: 3, explanation: "Zeus rules from Mount Olympus."}, {rank: 2, prompt: "Why did ancient peoples tell myths about thunder, the seasons and the sun?", choices: ["To entertain only children","To record exact historical dates","To replace their laws","To explain natural events they couldn't otherwise account for"], answer: 3, explanation: "Myths offered explanations for the world before modern science."}, {rank: 3, prompt: "You're naming a delivery company after a figure from Greek myth, to suggest speed. Which fits?", choices: ["Hermes, the messenger of the gods","Hades, god of the underworld","Atlas, who holds up the sky","Athena, goddess of wisdom"], answer: 0, explanation: "Hermes, with his winged sandals, carried messages for the gods."}]}
 ] AS x
-MATCH (t:Topic {id: x.id}), (c:Collection {id: "common-knowledge"})
+MATCH (t:Topic {id: x.id}), (c:Collection {id: "general-schooling-knowledge"})
 MERGE (c)-[contains:CONTAINS]->(t)
 SET contains.order = x.order
 WITH t, x
@@ -135,7 +135,7 @@ UNWIND [
   {id: "76ab5013-b675-46b6-b2a7-95624872c105", name: "Light", order: 98, questions: [{rank: 1, prompt: "Which travels faster through air, light or sound?", choices: ["Sound","They travel at the same speed","It depends on the time of day","Light"], answer: 3, explanation: "Light is vastly faster, which is why lightning is seen before thunder is heard."}, {rank: 2, prompt: "Why does a straw look bent in a glass of water?", choices: ["Light bends as it passes from water into air","The water bends the straw","Light can't travel through water","The glass is curved"], answer: 0, explanation: "Light changes direction when it crosses from one material into another, which is refraction."}, {rank: 3, prompt: "You're making a periscope from a tube and two flat mirrors. How should you set the mirrors?", choices: ["Both lying flat","At right angles to each other","Parallel to each other, each at 45 degrees","Facing each other, both upright"], answer: 2, explanation: "Each mirror at 45 degrees turns the light 90 degrees, so light coming in the top leaves at the bottom."}]},
   {id: "849db49f-05cc-43e7-99ac-095ed2dc2b4f", name: "Sound", order: 99, questions: [{rank: 1, prompt: "What does a sound's pitch depend on?", choices: ["Its loudness","Its color","The frequency of its vibrations","Its weight"], answer: 2, explanation: "Faster vibrations make a higher pitch."}, {rank: 2, prompt: "Why can't sound travel through outer space?", choices: ["Space is too cold","Sound only travels downward","Sound needs a material to carry its vibrations, and space is nearly empty","Light blocks it"], answer: 2, explanation: "Sound is a vibration passed through matter."}, {rank: 3, prompt: "You see lightning and hear the thunder 6 seconds later. Sound travels about 340 meters per second. How far away was the strike?", choices: ["About 340 meters","About 2 kilometers","About 6 kilometers","About 60 meters"], answer: 1, explanation: "6 seconds times 340 meters per second is about 2,040 meters."}]}
 ] AS x
-MATCH (t:Topic {id: x.id}), (c:Collection {id: "common-knowledge"})
+MATCH (t:Topic {id: x.id}), (c:Collection {id: "general-schooling-knowledge"})
 MERGE (c)-[contains:CONTAINS]->(t)
 SET contains.order = x.order
 WITH t, x
@@ -197,7 +197,7 @@ UNWIND [
   {id: "6351fe56-22c7-4c16-9ead-9278c52b9cf1", name: "The Holocaust", order: 148, questions: [{rank: 1, prompt: "About how many Jews were murdered in the Holocaust?", choices: ["About 600,000","About 60,000","About 60 million","About 6 million"], answer: 3, explanation: "Around six million Jews were murdered."}, {rank: 2, prompt: "What did the Nuremberg Laws of 1935 show about how Nazi persecution worked?", choices: ["Discrimination was written into the legal system as state policy","It relied only on mob violence","It was kept entirely secret","It applied only outside Germany"], answer: 0, explanation: "The laws stripped Jews of citizenship and rights by law."}, {rank: 3, prompt: "A friend shares a post claiming the Holocaust's death toll was invented. How do you check the claim?", choices: ["Ask the person who posted it","Believe it if many people have shared it","Compare it with Nazi records, camp documents and survivor testimony gathered by historians","Look for other posts that agree"], answer: 2, explanation: "The death toll is established by the Nazis' own records and overwhelming evidence."}]},
   {id: "75c03090-4bc2-4157-8c14-b770448909e7", name: "Cold War", order: 149, questions: [{rank: 1, prompt: "Which wall, a symbol of the Cold War, came down in 1989?", choices: ["The Great Wall","The Berlin Wall","Hadrian's Wall","The Western Wall"], answer: 1, explanation: "The Berlin Wall divided East and West Berlin."}, {rank: 2, prompt: "Why is it called the Cold War?", choices: ["It happened in cold countries","It took place in winter","No weapons existed","The superpowers never fought each other directly"], answer: 3, explanation: "The rivalry played out through arms races and proxy wars, not direct battle."}, {rank: 3, prompt: "You lead a country in a nuclear standoff with a rival. Going by how the Cuban Missile Crisis ended, what should you do?", choices: ["Cut off all contact","Strike first before they can","Talk directly and offer a trade that lets both sides back down","Issue a public ultimatum with no way out"], answer: 2, explanation: "Kennedy and Khrushchev ended it with a quiet deal: Soviet missiles out of Cuba, US missiles out of Turkey."}]}
 ] AS x
-MATCH (t:Topic {id: x.id}), (c:Collection {id: "common-knowledge"})
+MATCH (t:Topic {id: x.id}), (c:Collection {id: "general-schooling-knowledge"})
 MERGE (c)-[contains:CONTAINS]->(t)
 SET contains.order = x.order
 WITH t, x
@@ -259,7 +259,7 @@ UNWIND [
   {id: "10605acd-cac2-41ca-b10a-621bd6770553", name: "Sexual Health", order: 198, questions: [{rank: 1, prompt: "What can protect against HPV, a common sexually transmitted infection?", choices: ["Antibiotics","Vitamin C","Painkillers","A vaccine"], answer: 3, explanation: "The HPV vaccine protects against the virus types that cause most related cancers."}, {rank: 2, prompt: "Why are condoms recommended even when using other birth control?", choices: ["They're the only birth control that works","They replace the need for testing","They prevent all diseases","They also reduce the spread of sexually transmitted infections"], answer: 3, explanation: "Condoms protect against STIs, which most other methods don't."}, {rank: 3, prompt: "Someone is diagnosed with chlamydia. What should they do to avoid catching it again?", choices: ["Rely on the pill for protection","Nothing, one infection gives immunity","Stop the treatment once symptoms ease","Make sure their partners are tested and treated too"], answer: 3, explanation: "An untreated partner can pass it straight back."}]},
   {id: "0e62726a-8a85-4bf3-8a30-6714383fbe8d", name: "Substance Use", order: 199, questions: [{rank: 1, prompt: "Which organ breaks down most of the alcohol in the body?", choices: ["The liver","The lungs","The kidneys","The stomach"], answer: 0, explanation: "The liver metabolizes alcohol."}, {rank: 2, prompt: "Why is nicotine so hard to quit?", choices: ["It has no effects","It improves health","It's highly addictive, and stopping causes withdrawal","It's only habit"], answer: 2, explanation: "The body comes to depend on nicotine."}, {rank: 3, prompt: "You're at a party and plan to have a couple of drinks. How do you keep your blood alcohol lower?", choices: ["Drink on an empty stomach","Drink quickly to get it over with","Have coffee to sober up","Pace your drinks, eat food and alternate with water"], answer: 3, explanation: "Food and time slow how fast alcohol builds up. Coffee doesn't lower it."}]}
 ] AS x
-MATCH (t:Topic {id: x.id}), (c:Collection {id: "common-knowledge"})
+MATCH (t:Topic {id: x.id}), (c:Collection {id: "general-schooling-knowledge"})
 MERGE (c)-[contains:CONTAINS]->(t)
 SET contains.order = x.order
 WITH t, x
@@ -277,7 +277,7 @@ UNWIND [
   {id: "2d8d84a8-afa2-4ab6-accb-0eeaa2629ba6", name: "Boolean Logic", order: 204, questions: [{rank: 1, prompt: "Who is Boolean logic named after?", choices: ["Alan Turing","Charles Babbage","George Boole","Ada Lovelace"], answer: 2, explanation: "The 19th-century mathematician George Boole developed it."}, {rank: 2, prompt: "What is the difference between AND and OR in logic?", choices: ["AND needs both conditions true, OR needs at least one","They are the same","OR needs both conditions true","AND needs neither condition"], answer: 0, explanation: "OR is satisfied by either input; AND only by both."}, {rank: 3, prompt: "A door alarm sounds if the door is open AND the alarm is armed. The door is open but the alarm is off. Does it sound?", choices: ["Yes","Only sometimes","No","It depends on the time"], answer: 2, explanation: "AND needs both conditions true."}]},
   {id: "49f8a636-aa20-41b0-ab83-8e09832806f2", name: "Computer Hardware", order: 205, questions: [{rank: 1, prompt: "What does CPU stand for?", choices: ["Computer power unit","Central processing unit","Central program utility","Core performance upgrade"], answer: 1, explanation: "The CPU carries out a computer's instructions."}, {rank: 2, prompt: "Why does a computer lose what's in its RAM when it's turned off?", choices: ["RAM is a type of hard disk","It's deleted on purpose","RAM needs power to hold data, unlike long-term storage","RAM stores nothing"], answer: 2, explanation: "RAM is volatile memory."}, {rank: 3, prompt: "You want a computer to start up and open files much faster. Which part should you replace an old hard disk with?", choices: ["A bigger monitor","A new keyboard","A sound card","A solid-state drive"], answer: 3, explanation: "Solid-state drives read and write data far faster than spinning disks."}]}
 ] AS x
-MATCH (t:Topic {id: x.id}), (c:Collection {id: "common-knowledge"})
+MATCH (t:Topic {id: x.id}), (c:Collection {id: "general-schooling-knowledge"})
 MERGE (c)-[contains:CONTAINS]->(t)
 SET contains.order = x.order
 WITH t, x

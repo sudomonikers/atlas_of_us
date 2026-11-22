@@ -80,8 +80,8 @@ The Topics page has four views, and opens on the Topics Explorer:
 - **The Topics Explorer** is one board of every topic, on the shared graph board (see `ADRs/graph_board.md`), the same
   as the Skills Explorer. Expanding a topic shows its Ideas, the topics around it and the skills that need it.
 - **My Knowledge** lists the topics the user has placed themselves on.
-- **Collections** lists the collections of topics most people know something about, such as Common Knowledge and
-  Life Knowledge. Going through one places them on what they know (see `collections.md`).
+- **Collections** lists the collections of topics most people know something about, such as General Schooling
+  Knowledge and Life Knowledge. Going through one places them on what they know (see `collections.md`).
 - **Explore** says why what you know matters, over a small map of every topic, and walks through the six Bloom levels
   and the four kinds of Idea with one example topic.
 

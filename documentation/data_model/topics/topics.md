@@ -40,7 +40,7 @@ Every topic has six levels, the depths someone can know it to:
 | BloomLevel | `name`, `rank` (1 to 6), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a topic's six levels, with a second label for which (`Remember` to `Create`) |
 | Idea | `id`, `name`, `type`, `description`, `vector` | A single piece of information. Names repeat across fields, so only the `id` is unique |
 | Evidence | `id`, `kind` (`note` or `file`), `text` or `fileName`, `contentType`, `size`, `key`, `createdAt` | Something a person offers to show their level in a topic or a skill. A file's bytes live in the evidence bucket under `key` |
-| Collection | `id` (unique), `name` (unique), `description` | A group of topics to go through in order, such as Common Knowledge. It isn't a topic: it has no levels, and nobody is placed on it |
+| Collection | `id` (unique), `name` (unique), `description` | A group of topics to go through in order, such as General Schooling Knowledge. It isn't a topic: it has no levels, and nobody is placed on it |
 | QuizQuestion | `id` (unique), `prompt`, `choices`, `answer`, `explanation`, `createdAt` | A multiple-choice question that shows one level of a topic. `answer` is the index of the right one of its four `choices`, and `explanation` says why it's right |
 
 ## Relationships within Topics
@@ -82,7 +82,7 @@ every level below it. A person answers a topic's questions from the highest leve
 places them on the topic at that level with ENGAGES_TOPIC, unless they're at a higher level already. A topic that's
 filled gets a question on each of its Remember, Understand and Apply levels when its fill is asked for.
 
-A collection groups topics to go through in order, such as Common Knowledge and Life Knowledge, each topic tested at
+A collection groups topics to go through in order, such as General Schooling Knowledge and Life Knowledge, each topic tested at
 Remember, Understand and Apply (see `documentation/architecture/collections.md`). A collection's `id` and `name` are
 unique (migration `025_collections.cypher`).
 
@@ -105,8 +105,8 @@ unique (migration `025_collections.cypher`).
 (andrew)-[:BELIEVES {conviction: 0.8, warrant: "engine and practice"}]->(kguns)
 (andrew)-[:GAVE_EVIDENCE]->(:Evidence {kind: "note", text: "Prepared a Najdorf repertoire for my club's league"})-[:ABOUT]->(cot)
 
-// The Pythagorean Theorem is 20th in the Common Knowledge collection, with a question at its Apply level
-(:Collection {name: "Common Knowledge"})-[:CONTAINS {order: 20}]->(pythagoras:Topic {name: "Pythagorean Theorem"})
+// The Pythagorean Theorem is 20th in the General Schooling Knowledge collection, with a question at its Apply level
+(:Collection {name: "General Schooling Knowledge"})-[:CONTAINS {order: 20}]->(pythagoras:Topic {name: "Pythagorean Theorem"})
 (pythagoras)-[:HAS_LEVEL]->(pythagorasApply:BloomLevel:Apply {rank: 3})
 (question:QuizQuestion {
   prompt: "A ladder's base is 5 m from a wall and it reaches 12 m up the wall. How long is the ladder?",

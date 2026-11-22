@@ -15,7 +15,7 @@ const CLASSROOM: Scene = { Backdrop: Classroom, wall: '#efe6cf', top: 76 };
 
 //each collection's scene, by its id. A collection without one hangs its board in the classroom
 const SCENES: Record<string, Scene> = {
-  'common-knowledge': CLASSROOM,
+  'general-schooling-knowledge': CLASSROOM,
   'life-knowledge': { Backdrop: Kitchen, wall: '#e4ead6', top: 104 },
   'digital-knowledge': { Backdrop: Study, wall: '#dde4ea', top: 112 },
 };

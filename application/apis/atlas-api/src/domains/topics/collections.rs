@@ -1,6 +1,6 @@
-//collections: groups of topics to go through in order, such as Common Knowledge and Life Knowledge, each topic with how
-//much of it the person showed through its questions (see quiz.rs). The UI asks for a collection by its id. See
-//documentation/architecture/collections.md
+//collections: groups of topics to go through in order, such as General Schooling Knowledge and Life Knowledge, each
+//topic with how much of it the person showed through its questions (see quiz.rs). The UI asks for a collection by its
+//id. See documentation/architecture/collections.md
 use axum::{
     Json, Router,
     extract::{Path, State},

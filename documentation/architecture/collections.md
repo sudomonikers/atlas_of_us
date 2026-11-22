@@ -23,7 +23,7 @@ someone knows" in `../data_model/topics/topics.md`). The UI asks for a collectio
 
 | Collection | Id | Scene | What's in it |
 |---|---|---|---|
-| Common Knowledge | `common-knowledge` | A classroom | About two hundred topics most adults were taught at school or have met in everyday life, from counting to climate change |
+| General Schooling Knowledge | `general-schooling-knowledge` | A classroom | About two hundred topics most adults were taught at school, from counting to climate change |
 | Life Knowledge | `life-knowledge` | A kitchen | About eighty topics adult life takes that school mostly skipped: money, paperwork, work, health, the home, getting around and the people in your life |
 | Digital Knowledge | `digital-knowledge` | A study | About sixty topics getting by safely and well online and on our devices takes: security, privacy, how it all works, files, feeds and AI, money online and getting along |
 

@@ -1,10 +1,10 @@
 // =============================================================================
-// Atlas of Us — Migration 022: common knowledge
+// Atlas of Us — Migration 022: general schooling knowledge
 //
-// The questions the common knowledge walkthrough asks about its topics, each a
+// The questions the general schooling knowledge walkthrough asks about its topics, each a
 // QuizQuestion that TESTS one of a topic's levels
 // (documentation/data_model/topics/topics.md). Run it
-// before collections/common_knowledge.cypher.
+// before collections/general_schooling_knowledge.cypher.
 //
 // Idempotent: safe to re-run.
 // =============================================================================
