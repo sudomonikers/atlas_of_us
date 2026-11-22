@@ -5,12 +5,13 @@ atlas api for each topic, the way a user asks for a topic we don't have (`POST /
 screen it, its resolver decides whether we already have it, and it creates the stub and publishes `TopicCreated`. The
 import only reads its files, so a run exercises the api and the events end to end.
 
-There are two sources, each with its own data folder:
+There are three sources, each with its own data folder:
 
 | Source | Folder | What it asks for |
 |---|---|---|
 | `esco` | `data/` | ESCO's knowledge entries and the fields of study they're filed under |
 | `vital` | `data/vital/` | Wikipedia's Level 4 vital articles that are subjects, each with its `prominence` |
+| `list` | `lists/<name>/` | The topic names in `names.txt`, one a line, a list we wrote |
 
 Every topic it creates is a stub, with its six Bloom levels empty and no Ideas. A topic is filled when someone needs it.
 
@@ -57,6 +58,15 @@ An article is a subject unless it's one of these, which belong to other graphs:
 
 A dry run prints how many were left out for each, and how many subjects there are at each prominence. A few specific
 things in sections of subjects still come through, such as famous bridges and sports leagues.
+
+## Lists
+A list is ours: `lists/<name>/names.txt`, one topic name a line, with blank lines and lines starting with `#` left out.
+Each collection's topics start as a list (see `documentation/architecture/collections.md`). A run's
+`results.jsonl` says which topic each name became, by its id, and the collection's seed is written from it.
+
+```sh
+cargo run --release -- list lists/life_knowledge
+```
 
 ## Running it
 The topics migration (`application/database/migrations/003_topics_indexes.cypher`) has to be run first.

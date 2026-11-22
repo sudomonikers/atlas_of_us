@@ -3,7 +3,7 @@
 //
 // Many Apply questions asked what would happen or why, which shows
 // Understand. This deletes every Apply question, with everyone's answers to
-// it, so common_knowledge_seed.cypher writes the new ones, each asking what
+// it, so collections/common_knowledge.cypher writes the new ones, each asking what
 // to do or to carry out one of the topic's methods. Run it, then the seed.
 //
 // Idempotent: safe to re-run.

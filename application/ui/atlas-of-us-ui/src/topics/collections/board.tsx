@@ -6,7 +6,7 @@ import { Typed } from '../../shared_components/typed';
 import { useTypewriter } from '../../shared_components/typewriter';
 import { brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
 import { answer, BLOOM_NAMES, nextQuestion, type Answered, type CollectionTopic, type Question } from '../api';
-import { Classroom } from './classroom';
+import type { Scene } from './scenes/scenes';
 
 const paleBlue = 'var(--pale-blue)';
 const paleRed = 'var(--pale-red)';
@@ -20,15 +20,17 @@ type Step =
   | { kind: 'answered'; topicId: string; question: Question; choice: number | null; result: Answered };
 
 interface BoardProps {
+  name: string; //the collection's
+  scene: Scene;
   topics: CollectionTopic[];
   onTopic: (id: string, change: Partial<CollectionTopic>) => void; //a topic they finished, with the level they're at
   onExit: () => void;
 }
 
-//the common knowledge walkthrough, played full screen like a scene: each question is written up on a whiteboard, and
-//they answer it in the box docked below. What they answer is kept as they go, so leaving and coming back picks up at
+//going through a collection, played full screen like a scene: each question is written up on a whiteboard hung in the
+//collection's scene, and they answer it in the box docked below. What they answer is kept as they go, so leaving and coming back picks up at
 //the question they were on
-export default function Board({ topics, onTopic, onExit }: BoardProps) {
+export default function Board({ name, scene, topics, onTopic, onExit }: BoardProps) {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   //topics they skipped this time, asked about again once they come back
@@ -107,11 +109,11 @@ export default function Board({ topics, onTopic, onExit }: BoardProps) {
   }, [shown, chose, next]);
 
   return (
-    <div style={styles.stage}>
-      <Classroom />
-      <div style={styles.top}>
+    <div style={{ ...styles.stage, background: scene.wall }}>
+      <scene.Backdrop />
+      <div style={{ ...styles.top, paddingTop: scene.top }}>
         <button className="comic-lift" style={styles.exit} onClick={onExit}>
-          ◀ Common Knowledge
+          ◀ {name}
         </button>
         <span style={styles.count} className="comic-chip">
           {done} / {topics.length}
@@ -269,7 +271,6 @@ const styles: Record<string, CSSProperties> = {
     zIndex: 50,
     display: 'flex',
     flexDirection: 'column',
-    background: '#efe6cf',
     textAlign: 'left',
   },
   top: {
@@ -277,8 +278,8 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    //below the alphabet banner along the top of the wall
-    padding: '76px 16px 0',
+    //the top padding is the scene's, below what runs along the top of it
+    padding: '0 16px',
   },
   exit: {
     ...button,

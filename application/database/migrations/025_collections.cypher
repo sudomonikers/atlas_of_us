@@ -3,7 +3,7 @@
 //
 // A Collection groups topics to go through in order, each one it CONTAINS with
 // its `order` (documentation/data_model/topics/topics.md). Common Knowledge is
-// one, which common_knowledge_seed.cypher writes. This adds the constraints and
+// one, which collections/common_knowledge.cypher writes. This adds the constraints and
 // removes the order each topic on the common knowledge list carried itself.
 // Run it, then the seed.
 //

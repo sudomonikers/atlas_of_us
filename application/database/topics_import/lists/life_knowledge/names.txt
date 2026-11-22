@@ -1,0 +1,99 @@
+# Life Knowledge: what adult life takes that school mostly skipped, in the order the walkthrough asks about them.
+# One topic name a line. Lines starting with # are left out.
+
+# Money
+Personal Budgeting
+Saving Money
+Emergency Funds
+Bank Accounts
+Compound Interest
+Debit and Credit Cards
+Credit Scores
+Personal Loans
+Debt Management
+Mortgages
+Investing
+Index Funds
+Retirement Savings
+Comparison Shopping
+
+# Paperwork and the law
+Income Tax
+Tax Returns
+Contracts
+Renting a Home
+Tenant Rights
+Buying a Home
+Insurance
+Car Insurance
+Wills
+Consumer Rights
+Warranties
+Identity Documents
+Small Claims Court
+Personal Data Privacy
+
+# Work
+Job Searching
+Resumes
+Cover Letters
+Job Interviews
+Employment Contracts
+Workplace Rights
+Salary Negotiation
+Payslips
+Professional Communication
+Workplace Etiquette
+Time Management
+Self-Employment
+Career Planning
+
+# Health
+Navigating Healthcare
+Health Insurance
+Prescription Medications
+Nutrition Labels
+Sleep Hygiene
+Stress Management
+Preventive Healthcare
+Vaccinations
+Dental Care
+
+# Home
+Cooking
+Meal Planning
+Food Safety
+Food Storage
+Household Chemical Safety
+Laundry
+Home Maintenance
+Basic Plumbing
+Electrical Safety
+Hand Tools
+Household Utilities
+Home Energy Saving
+Fire Safety
+Pest Control
+Gardening
+
+# Getting around
+Traffic Laws
+Car Maintenance
+Car Financing
+Road Safety
+Public Transportation
+Cycling Safety
+Travel Planning
+Passports and Visas
+
+# People and life
+Parenting
+Child Safety
+Pet Care
+Caring for Aging Parents
+Etiquette
+Conflict Resolution
+Romantic Relationships
+Friendship
+Emergency Preparedness
+Grief

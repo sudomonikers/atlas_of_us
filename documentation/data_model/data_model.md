@@ -169,10 +169,9 @@ Any topic can be tested. Each of its levels can have a question that TESTS it, a
 every level below it. A person answers a topic's questions from the highest level down, and the first they get right
 places them on the topic at that level with ENGAGES_TOPIC, unless they're at a higher level already.
 
-A collection groups topics to go through in order. Common Knowledge is one: the topics most people know something
-about, from school or from life, each tested at Remember, Understand and Apply (see
-`documentation/architecture/common_knowledge.md`). A collection's `id` and `name` are unique (migration
-`025_collections.cypher`).
+A collection groups topics to go through in order, such as Common Knowledge and Life Knowledge, each topic tested at
+Remember, Understand and Apply (see `documentation/architecture/collections.md`). A collection's `id` and `name` are
+unique (migration `025_collections.cypher`).
 
 #### Example
 ```cypher

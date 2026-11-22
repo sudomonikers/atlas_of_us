@@ -17,7 +17,7 @@ the Skills module (`skills.md`), and this page covers where it differs. For the 
 
 | Piece | Where | What it does |
 |---|---|---|
-| UI | `application/ui/atlas-of-us-ui/src/topics/` | The Topics Explorer, My Knowledge, Common Knowledge, Explore, the topic and Idea pages |
+| UI | `application/ui/atlas-of-us-ui/src/topics/` | The Topics Explorer, My Knowledge, Collections, Explore, the topic and Idea pages |
 | API | `application/apis/atlas-api/src/domains/topics/` | Search, the gates, reading topics and Ideas, asking for a fill, placing yourself and your evidence, testing a topic with its questions, and collections of topics |
 | Topic resolver | `application/apis/atlas-shared/src/topics/` | Decides whether a topic is new and where it sits. Shared by the API and the jobs |
 | Jobs | `application/apis/atlas-jobs/` | Fill a topic's levels and Ideas, resolve Ideas, link skill levels to the topics they need |
@@ -77,8 +77,8 @@ The Topics page has four views, and opens on the Topics Explorer:
 - **The Topics Explorer** is one board of every topic, on the shared graph board (see `ADRs/graph_board.md`), the same
   as the Skills Explorer. Expanding a topic shows its Ideas, the topics around it and the skills that need it.
 - **My Knowledge** lists the topics the user has placed themselves on.
-- **Common Knowledge** walks through the topics most people know something about and places them on what they
-  know (see `common_knowledge.md`).
+- **Collections** lists the collections of topics most people know something about, such as Common Knowledge and
+  Life Knowledge. Going through one places them on what they know (see `collections.md`).
 - **Explore** says why what you know matters, over a small map of every topic, and walks through the six Bloom levels
   and the four kinds of Idea with one example topic.
 
@@ -88,8 +88,8 @@ and the Ideas around it, which is how the Ideas topics share show up.
 ### Placing yourself on a topic
 On a `ready` topic, the user reads the levels from Remember up and says which one is them. That's their one
 `ENGAGES_TOPIC` to the topic, shown on the topic and on their profile. Importing a resume places them on topics too,
-at the levels they confirm (see `resume_import.md`), and so does going through common knowledge, at the levels their
-answers show (see `common_knowledge.md`).
+at the levels they confirm (see `resume_import.md`), and so does going through a collection, at the levels their
+answers show (see `collections.md`).
 
 They can back it up with **evidence**, notes or files. Evidence is shared by every module: a skill uses the same
 service, storage and UI pieces, and each module builds its own walkthrough on them. Files go from the browser straight

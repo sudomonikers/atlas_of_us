@@ -2,12 +2,12 @@ import type { CSSProperties } from 'react';
 import { navigate } from '../../router';
 import { brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
 
-//a way into the common knowledge walkthrough, from My Knowledge
-export function CommonKnowledgeLink() {
+//a way into the collections, from My Knowledge
+export function CollectionsLink() {
   return (
     <div style={styles.row}>
-      <span style={styles.text}>Most of us know something about the same things. Go through them and I'll add what you know.</span>
-      <button className="comic-lift" style={styles.button} onClick={() => navigate('/topics?view=common')}>
+      <span style={styles.text}>Most of us know a lot of the same things, from school and from life. Go through them and I'll add what you know.</span>
+      <button className="comic-lift" style={styles.button} onClick={() => navigate('/topics?view=collections')}>
         Go through them
       </button>
     </div>

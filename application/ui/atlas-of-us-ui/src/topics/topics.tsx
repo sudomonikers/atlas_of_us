@@ -4,7 +4,7 @@ import Explorer, { type Opened } from './explorer';
 import { emptyBoard, place, type TopicBoard } from './topic_board';
 import MyKnowledge from './my_knowledge';
 import Explained from './explained';
-import CommonKnowledge from './common_knowledge/common_knowledge';
+import Collections from './collections/collections';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
@@ -15,14 +15,14 @@ const gunmetal = 'var(--gunmetal-black)';
 const ivory = 'var(--ivory-white)';
 const comic = 'var(--font-comic)';
 
-//the page's views: the board of every topic, the user's own knowledge, the common knowledge walkthrough, and a guide to
-//topics and Ideas
-type View = 'explorer' | 'mine' | 'common' | 'explore';
+//the page's views: the board of every topic, the user's own knowledge, the collections of topics to go through, and a
+//guide to topics and Ideas
+type View = 'explorer' | 'mine' | 'collections' | 'explore';
 
 const VIEWS: { id: View; label: string; to: string; bubble: string }[] = [
   { id: 'explorer', label: 'Topics Explorer', to: '/topics', bubble: 'Everything a person can know about, from barley to black holes. Search for a topic, then follow the Ideas it is made of.' },
   { id: 'mine', label: 'My Knowledge', to: '/topics?view=mine', bubble: "What you know now, how deeply, and what you'd like to know." },
-  { id: 'common', label: 'Common Knowledge', to: '/topics?view=common', bubble: "Most of us know something about the same things. Let's see what you know." },
+  { id: 'collections', label: 'Collections', to: '/topics?view=collections', bubble: "Most of us know a lot of the same things, from school and from life. Let's see what you know." },
   { id: 'explore', label: 'Explore', to: '/topics?view=explore', bubble: 'Knowing about something has depths, and topics are made of Ideas. Here is how it works.' },
 ];
 
@@ -87,7 +87,7 @@ function Topics() {
 
         {view === 'explorer' && <Explorer opened={opened} board={board} onBoard={setBoard} />}
         {view === 'mine' && <MyKnowledge />}
-        {view === 'common' && <CommonKnowledge />}
+        {view === 'collections' && <Collections />}
         {view === 'explore' && (
           <Explained
             onExplore={(topic) => {

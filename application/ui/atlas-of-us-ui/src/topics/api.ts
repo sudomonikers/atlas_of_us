@@ -179,6 +179,7 @@ export interface CollectionSummary {
   name: string;
   description: string | null;
   size: number; //how many topics it contains
+  done: number; //how many of them they've answered the questions of
 }
 
 //a topic in a collection, with where they are with it
@@ -196,9 +197,6 @@ export interface Collection {
   description: string | null;
   topics: CollectionTopic[]; //in order
 }
-
-//the Common Knowledge collection's id
-export const COMMON_KNOWLEDGE = 'common-knowledge';
 
 export const getCollections = () => request<CollectionSummary[]>('GET', '/collections');
 

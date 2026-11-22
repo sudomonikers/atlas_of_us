@@ -1,5 +1,5 @@
-//fills the topics graph from a source: ESCO's knowledge and the fields it's filed under, or Wikipedia's Level 4 vital
-//articles. It asks the atlas api for each one, the way a user asks for a topic we don't have. The api's gates name it
+//fills the topics graph from a source: ESCO's knowledge and the fields it's filed under, Wikipedia's Level 4 vital
+//articles, or a list of names we wrote. It asks the atlas api for each one, the way a user asks for a topic we don't have. The api's gates name it
 //and screen it, its resolver decides whether we already have it, and it creates the stub and publishes TopicCreated, so
 //a run exercises the api and the events end to end. Nothing is filled: a topic is filled when someone needs it. See
 //README.md
@@ -24,7 +24,7 @@ use tokio::sync::Mutex;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-const USAGE: &str = "usage: topics-import <esco|vital> <data-dir> [--dry-run] [--limit N] [--rate PER_SECOND]";
+const USAGE: &str = "usage: topics-import <esco|vital|list> <data-dir> [--dry-run] [--limit N] [--rate PER_SECOND]";
 
 //one topic to ask for: its name, and how prominent the subject is (1 to 5) when the source says
 pub struct Entry {
@@ -35,6 +35,14 @@ pub struct Entry {
 enum Source {
     Esco,
     Vital,
+    List,
+}
+
+//a list we wrote: one topic name a line in names.txt, in order. Blank lines and lines starting with # are left out
+fn list(dir: &Path) -> Result<Vec<Entry>, BoxError> {
+    let text = fs::read_to_string(dir.join("names.txt"))?;
+    Ok(text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(|label| Entry { label: label.to_string(), prominence: None }).collect())
 }
 
 //every topic asked for, with what the api said, one json line each. Topics already in it are skipped, so a rerun picks
@@ -77,6 +85,7 @@ fn options(args: Vec<String>) -> Option<Options> {
     let source = match args.next()?.as_str() {
         "esco" => Source::Esco,
         "vital" => Source::Vital,
+        "list" => Source::List,
         _ => return None,
     };
     let mut options = Options { source, dir: PathBuf::from(args.next()?), dry_run: false, limit: None, rate: 3.0 };
@@ -108,6 +117,7 @@ async fn run(options: Options) -> Result<(), BoxError> {
             }
             entries
         }
+        Source::List => list(&options.dir)?,
     };
     let done = asked(&options.dir)?;
     let too_long = entries.iter().filter(|e| e.label.chars().count() > MAX_QUERY).count();

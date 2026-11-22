@@ -1,6 +1,6 @@
-//collections: groups of topics to go through in order, such as Common Knowledge, each topic with how much of it the
-//person showed through its questions (see quiz.rs). The UI asks for a collection by its id. See
-//documentation/architecture/common_knowledge.md
+//collections: groups of topics to go through in order, such as Common Knowledge and Life Knowledge, each topic with how
+//much of it the person showed through its questions (see quiz.rs). The UI asks for a collection by its id. See
+//documentation/architecture/collections.md
 use axum::{
     Json, Router,
     extract::{Path, State},
@@ -35,15 +35,18 @@ struct CollectionSummary {
     name: String,
     description: Option<String>,
     size: i64, //how many topics it contains
+    done: i64, //how many of them the person has answered the questions of
 }
 
-//every collection, by name
-async fn list(State(state): State<AppState>) -> Result<Json<Vec<CollectionSummary>>, (StatusCode, String)> {
-    let mut rows = state.graph.execute(query("
-        MATCH (c:Collection)
-        RETURN c.id AS id, c.name AS name, c.description AS description, COUNT { (c)-[:CONTAINS]->(:Topic) } AS size
+//every collection, by name, with how far through it the person is
+async fn list(State(state): State<AppState>, user: AuthUser) -> Result<Json<Vec<CollectionSummary>>, (StatusCode, String)> {
+    let mut rows = state.graph.execute(query(&format!("
+        MATCH (c:Collection), (p:Person {{id: $personId}})
+        RETURN c.id AS id, c.name AS name, c.description AS description,
+               COUNT {{ (c)-[:CONTAINS]->(:Topic) }} AS size,
+               COUNT {{ MATCH (c)-[:CONTAINS]->(t:Topic) WHERE {DONE} }} AS done
         ORDER BY c.name
-    ")).await.map_err(internal)?;
+    ")).param("personId", user.person_id)).await.map_err(internal)?;
     let mut collections = Vec::new();
     while let Some(row) = rows.next().await.map_err(internal)? {
         collections.push(row.to::<CollectionSummary>().map_err(internal)?);
