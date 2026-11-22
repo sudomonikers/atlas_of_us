@@ -128,6 +128,8 @@ Every topic has six levels, the depths someone can know it to:
 | BloomLevel | `name`, `rank` (1 to 6), `description`, `observableSigns`, `exampleEvidence`, `version`, `trust` | One of a topic's six levels, with a second label for which (`Remember` to `Create`) |
 | Idea | `id`, `name`, `type`, `description`, `vector` | A single piece of information. Names repeat across fields, so only the `id` is unique |
 | Evidence | `id`, `kind` (`note` or `file`), `text` or `fileName`, `contentType`, `size`, `key`, `createdAt` | Something a person offers to show their level in a topic or a skill. A file's bytes live in the evidence bucket under `key` |
+| Collection | `id` (unique), `name` (unique), `description` | A group of topics to go through in order, such as Common Knowledge. It isn't a topic: it has no levels, and nobody is placed on it |
+| QuizQuestion | `id` (unique), `prompt`, `choices`, `answer`, `explanation`, `createdAt` | A multiple-choice question that shows one level of a topic. `answer` is the index of the right one of its four `choices`, and `explanation` says why it's right |
 
 #### Relationships within Topics
 
@@ -142,6 +144,8 @@ Every topic has six levels, the depths someone can know it to:
 | CONTRADICTS | Idea — Idea | no | n/a | Ideas that can't both hold. How the graph holds falsehoods without taking sides |
 | ANALOGOUS_TO | Idea — Idea | no | yes | The same structure in a different field. Not the same Idea |
 | SUPPORTS | Idea → Idea | yes | yes | Evidence or reasoning that leans toward another Idea |
+| TESTS | QuizQuestion → BloomLevel | yes | n/a | The level of its topic the question shows |
+| CONTAINS | Collection → Topic | yes | n/a | A topic in the collection. `order` is where it comes. A topic can be in many collections |
 
 Skills point into Topics with REQUIRES_KNOWLEDGE from a DreyfusLevel to a BloomLevel (see the Skills graph), and
 occupations with TAKES_KNOWLEDGE from an Occupation to a BloomLevel (see the Occupations graph).
@@ -152,12 +156,23 @@ occupations with TAKES_KNOWLEDGE from an Occupation to a BloomLevel (see the Occ
 | --- | --- | --- | --- |
 | ENGAGES_TOPIC | BloomLevel | `since`, `updatedAt` | How deeply they know the topic, by their own account. One per topic |
 | GAVE_EVIDENCE, ABOUT | Evidence → Topic | | Their evidence for their level. It's about the topic, not the level, so it stays when they move up |
+| ANSWERED_QUIZ | QuizQuestion | `choice`, `correct`, `answeredAt` | How they answered a question. `choice` is the index of the choice they picked, or missing when they said they didn't know |
 | UNDERSTANDS | Idea | | They grasp it. Any type |
 | BELIEVES | Idea (claim) | `conviction` (−1 to +1), `warrant`, `centrality`, `reason`, `since` | Whether they think it's true. Separate from understanding it. 0 conviction is undecided, which is different from no relationship |
 | ENDORSES | Idea (norm) | `intensity`, `reason` | Commitment to an ought |
 | HOLDS | Idea (value) | `intensity`, `since` | Holding a value dear |
 | CURIOUS_ABOUT | Idea or Topic | `intensity` | Interest, which doubles as a learning goal |
 | INTIMIDATED_BY, BORED_BY | Idea or Topic | `intensity` | How they feel about it, as for skills |
+
+#### Testing what someone knows
+Any topic can be tested. Each of its levels can have a question that TESTS it, and a right answer at a level stands for
+every level below it. A person answers a topic's questions from the highest level down, and the first they get right
+places them on the topic at that level with ENGAGES_TOPIC, unless they're at a higher level already.
+
+A collection groups topics to go through in order. Common Knowledge is one: the topics most people know something
+about, from school or from life, each tested at Remember, Understand and Apply (see
+`documentation/architecture/common_knowledge.md`). A collection's `id` and `name` are unique (migration
+`025_collections.cypher`).
 
 #### Example
 ```cypher
@@ -177,6 +192,19 @@ occupations with TAKES_KNOWLEDGE from an Occupation to a BloomLevel (see the Occ
 (andrew)-[:UNDERSTANDS]->(naj)
 (andrew)-[:BELIEVES {conviction: 0.8, warrant: "engine and practice"}]->(kguns)
 (andrew)-[:GAVE_EVIDENCE]->(:Evidence {kind: "note", text: "Prepared a Najdorf repertoire for my club's league"})-[:ABOUT]->(cot)
+
+// The Pythagorean Theorem is 20th in the Common Knowledge collection, with a question at its Apply level
+(:Collection {name: "Common Knowledge"})-[:CONTAINS {order: 20}]->(pythagoras:Topic {name: "Pythagorean Theorem"})
+(pythagoras)-[:HAS_LEVEL]->(pythagorasApply:BloomLevel:Apply {rank: 3})
+(question:QuizQuestion {
+  prompt: "A ladder's base is 5 m from a wall and it reaches 12 m up the wall. How long is the ladder?",
+  choices: ["17 m", "13 m", "11 m", "about 10.9 m"], answer: 1,
+  explanation: "5² + 12² = 169, and the square root of 169 is 13."
+})-[:TESTS]->(pythagorasApply)
+
+// Andrew gets it right, which places Andrew at Apply
+(andrew)-[:ANSWERED_QUIZ {choice: 1, correct: true}]->(question)
+(andrew)-[:ENGAGES_TOPIC]->(pythagorasApply)
 
 // Lulu disagrees, holds the principles firmly, and wants to learn the Najdorf
 (lulu)-[:BELIEVES {conviction: 0.6}]->(kgsound)

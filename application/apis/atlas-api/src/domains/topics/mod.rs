@@ -1,7 +1,9 @@
 //Topics Graph: Topic nodes that INCLUDE Idea nodes (concept | claim | norm | value), each Topic with 6 Bloom levels
 //linked by HAS_LEVEL. How topics are searched for, asked for and filled is described in
 //documentation/architecture/topics.md
+pub mod collections;
 mod engagement;
+mod quiz;
 
 use std::collections::HashMap;
 
@@ -37,6 +39,7 @@ pub fn router() -> Router<AppState> {
         .route("/ideas/{id}", get(get_idea))
         .route("/ideas/{id}/neighbors/{group}", get(get_idea_page))
         .merge(engagement::router())
+        .merge(quiz::router())
 }
 
 /// Healthcheck for the topics router.

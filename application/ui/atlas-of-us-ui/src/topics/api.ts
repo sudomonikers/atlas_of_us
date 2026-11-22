@@ -172,3 +172,60 @@ export const topicEvidence = (id: string) => evidenceApi(`/topics/${encodeURICom
 
 //every topic the logged in user has placed themselves on, deepest first
 export const getEngagements = () => request<EngagedTopic[]>('GET', '/topics/engagements');
+
+//a collection, a group of topics to go through in order, without its topics
+export interface CollectionSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  size: number; //how many topics it contains
+}
+
+//a topic in a collection, with where they are with it
+export interface CollectionTopic {
+  id: string;
+  name: string;
+  description: string | null;
+  done: boolean; //they've answered its questions
+  rank: number | null; //the level they're at, from its questions or anywhere else
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  description: string | null;
+  topics: CollectionTopic[]; //in order
+}
+
+//the Common Knowledge collection's id
+export const COMMON_KNOWLEDGE = 'common-knowledge';
+
+export const getCollections = () => request<CollectionSummary[]>('GET', '/collections');
+
+export const getCollection = (id: string) => request<Collection>('GET', `/collections/${encodeURIComponent(id)}`);
+
+//a question about a topic, without its answer
+export interface Question {
+  id: string;
+  rank: number; //the level it tests
+  prompt: string;
+  choices: string[];
+}
+
+export interface Answered {
+  correct: boolean;
+  answer: number; //the right choice
+  explanation: string;
+  next: Question | null; //the next question below, when they got this one wrong
+  placed: number | null; //the level they were placed at, once the questions are done and it's higher than they were
+  rank: number | null; //the level they're at once the questions are done
+}
+
+//the question to ask next about a topic: its highest, or the next below the last they got wrong. None once they're
+//done with it
+export const nextQuestion = (topicId: string) =>
+  request<{ question: Question | null }>('GET', `/topics/${encodeURIComponent(topicId)}/question`);
+
+//answers a question with the index of a choice, or null when they don't know it
+export const answer = (questionId: string, choice: number | null) =>
+  request<Answered>('POST', `/topics/questions/${encodeURIComponent(questionId)}/answer`, { choice });

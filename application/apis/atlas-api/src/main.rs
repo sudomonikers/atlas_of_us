@@ -88,6 +88,7 @@ async fn main() {
         .nest("/api/auth", auth::router())
         .nest("/api/personality", personality::router())
         .nest("/api/topics", topics::router())
+        .nest("/api/collections", topics::collections::router())
         .nest("/api/skills", skills::router())
         .nest("/api/abilities", abilities::router())
         .nest("/api/occupations", occupations::router())
