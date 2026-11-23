@@ -7,7 +7,7 @@ export function CollectionsLink() {
   return (
     <div style={styles.row}>
       <span style={styles.text}>Most of us know a lot of the same things, from school and from life. Go through them and I'll add what you know.</span>
-      <button className="comic-lift" style={styles.button} onClick={() => navigate('/topics?view=collections')}>
+      <button className="comic-lift" style={styles.button} onClick={() => navigate('/topics')}>
         Go through them
       </button>
     </div>

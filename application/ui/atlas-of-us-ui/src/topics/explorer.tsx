@@ -5,6 +5,10 @@ import { IdeaPage } from './idea_page';
 import { place, type Placed, type TopicBoard } from './topic_board';
 import { TopicPage } from './topic_page';
 import { navigate } from '../router';
+import Explained from './explained';
+
+//the Explore view's url, where the board is
+const EXPLORE = '/topics?view=explore';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
 const brownRed = 'var(--brown-red)';
@@ -30,8 +34,8 @@ interface ExplorerProps {
   onBoard: Dispatch<SetStateAction<TopicBoard>>;
 }
 
-//the Topics Explorer view. The board of every topic, to search, zoom around, select and expand; and a topic's or an
-//Idea's page once one is opened. What's open is in the url, and the trail hopped through sits above it
+//the Explore view. The guide to topics and Ideas around the board of every topic, to search, zoom around, select and
+//expand; and a topic's or an Idea's page once one is opened. What's open is in the url, and the trail hopped through sits above it
 export default function Explorer({ opened, board, onBoard }: ExplorerProps) {
   const [trail, setTrail] = useState<Placed[]>([]);
 
@@ -45,7 +49,7 @@ export default function Explorer({ opened, board, onBoard }: ExplorerProps) {
   };
   //selects a topic or an Idea on the board and goes back to it. An Idea floats beside the first topic it's in
   const showInGraph = (placed: Placed) => {
-    navigate('/topics');
+    navigate(EXPLORE);
     if (placed.kind === 'topic') return onBoard((b) => place(b, placed));
     getIdea(placed.idea.id)
       .then((read) => onBoard((b) => place(b, placed, read.topics.items[0]?.id)))
@@ -54,12 +58,12 @@ export default function Explorer({ opened, board, onBoard }: ExplorerProps) {
   //a page opened straight from its url starts a trail of its own
   const loaded = useCallback((placed: Placed) => setTrail((t) => (t.some((p) => idOf(p) === idOf(placed)) ? t : [placed])), []);
 
-  if (!opened) return <TopicGraph board={board} onBoard={onBoard} onOpen={(placed) => open(placed, 'board')} onOpenSkill={openSkill} />;
+  if (!opened) return <Explained board={<TopicGraph board={board} onBoard={onBoard} onOpen={(placed) => open(placed, 'board')} onOpenSkill={openSkill} />} />;
 
   return (
     <>
       <nav style={styles.trail} aria-label="Topics and Ideas you've opened">
-        <button className="comic-lift" style={styles.crumb} onClick={() => navigate('/topics')}>
+        <button className="comic-lift" style={styles.crumb} onClick={() => navigate(EXPLORE)}>
           The atlas
         </button>
         {shown.map((placed) => (

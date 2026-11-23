@@ -23,6 +23,7 @@ import { SCENARIOS, THUMBS, type Kind, type ScenarioInfo } from './scenarios';
 import MyPersonality from './my_personality';
 import { DOMAIN_LOOK, DOMAIN_TRAITS } from './poles';
 import { Disclosure } from '../shared_components/disclosure';
+import { ViewTabs } from '../shared_components/view_tabs';
 import { ProgressMeter } from '../shared_components/progress-meter';
 import { Checkbox } from '../shared_components/checkbox';
 import { setConfig, useConfig, useSession } from '../auth/api';
@@ -460,22 +461,7 @@ function Dashboard() {
           )}
         </header>
 
-        <div style={dash.views}>
-          <button className="comic-lift" style={{ ...dash.viewButton, ...dash.replay }} onClick={() => navigate('/personality?intro')}>
-            Replay the intro ▶
-          </button>
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              className="comic-lift"
-              style={{ ...dash.viewButton, ...(view === v.id ? dash.viewButtonActive : {}) }}
-              aria-pressed={view === v.id}
-              onClick={() => setView(v.id)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <ViewTabs views={VIEWS} current={view} onChoose={setView} onReplay={() => navigate('/personality?intro')} />
 
         {view !== 'explore' && loggedIn && (recalculating || unscored > 0) && (
           <ScoreBar running={recalculating} unscored={unscored} outOfBudget={outOfBudget} error={scoreError} onScore={score} />
@@ -1682,19 +1668,6 @@ const dash: Record<string, CSSProperties> = {
     fontSize: 22,
     letterSpacing: 1,
     color: brownRed,
-  },
-  views: {
-    maxWidth: 1100,
-    margin: '0 auto 32px',
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  //at the far end of the row of views
-  replay: {
-    order: 1,
-    marginLeft: 'auto',
-    fontSize: 20,
   },
   viewButton: {
     padding: '4px 20px',

@@ -40,7 +40,7 @@ export default function MyKnowledge() {
       <ResumeLink />
       {error && <AtlasError message={error} />}
       {!error && !topics && <Thinking label="Gathering what you know" />}
-      {topics && !topics.length && <p style={styles.text}>Nothing here yet. Go through a collection, or open a topic in the Topics Explorer and add yourself to it.</p>}
+      {topics && !topics.length && <p style={styles.text}>Nothing here yet. Go through a collection, or open a topic in Explore and add yourself to it.</p>}
       {!!topics?.length && (
         <ul style={styles.list}>
           {topics.map(({ topic, rank, evidence }) => (

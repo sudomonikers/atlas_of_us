@@ -1,8 +1,5 @@
-import { useState, type CSSProperties } from 'react';
-import { getTopicMap, IDEA_TYPES, type IdeaType, type TopicRef } from './api';
-import { useMap } from '../shared_components/use_map';
-import { GraphBoard, MapWaiting, type LinkKind } from '../shared_components/graph_board';
-import { BoardLayout } from '../shared_components/board_layout';
+import type { CSSProperties, ReactNode } from 'react';
+import { IDEA_TYPES, type IdeaType } from './api';
 import { Disclosure } from '../shared_components/disclosure';
 
 //STYLE_GUIDE.md palette, defined as variables in App.css
@@ -97,17 +94,9 @@ const IN_THE_ATLAS = [
 ];
 
 
-//the Explore view: why what you know matters, over a map of every topic, what Bloom's taxonomy is, each of its levels, the kinds of Idea, then how the Atlas uses them
-//how the map draws a topic's link to the broader topic it's part of, as the explorer's board does
-const PART_OF: LinkKind[] = [{ id: 'part_of', label: 'Part of', line: 'solid', arrow: true, color: gunmetal, length: 90 }];
-
-interface ExplainedProps {
-  onExplore: (topic: TopicRef) => void; //a topic or a field on the map was clicked, to explore from it
-}
-
-export default function Explained({ onExplore }: ExplainedProps) {
-  const map = useMap(getTopicMap);
-  const [layout] = useState(() => new BoardLayout());
+//the Explore view: why what you know matters, over the board of every topic to explore, what Bloom's taxonomy is, each
+//of its levels, the kinds of Idea, then how the Atlas uses them
+export default function Explained({ board }: { board: ReactNode }) {
   return (
     <div style={styles.column}>
       <header style={styles.why}>
@@ -116,23 +105,7 @@ export default function Explained({ onExplore }: ExplainedProps) {
         </span>
         <h2 style={styles.heading}>What you know is how you see.</h2>
       </header>
-      {map.nodes ? (
-        <GraphBoard
-          preview
-          label="Every topic in the Atlas"
-          noun="topics"
-          items={map.items}
-          kinds={PART_OF}
-          hierarchy="part_of"
-          layout={layout}
-          onSelect={(id) => {
-            const topic = id ? map.byId.get(id) : undefined;
-            if (topic) onExplore({ id: topic.id, name: topic.name, status: topic.status });
-          }}
-        />
-      ) : (
-        <MapWaiting error={map.error} preview />
-      )}
+      {board}
 
       <section style={{ ...styles.panel, ...styles.intro }} className="comic-panel comic-pop">
         <div style={styles.introColumn}>

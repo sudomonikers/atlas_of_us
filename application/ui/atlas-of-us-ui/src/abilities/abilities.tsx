@@ -23,6 +23,7 @@ import { HUMAN_BODY, indexBody, meshesOf, partIds, type Body } from './body_part
 import { THUMBS } from './chapter_thumbs';
 import { CharacteristicChoice } from './characteristic_choice';
 import Explore from './explore';
+import { ViewTabs } from '../shared_components/view_tabs';
 import { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
 import ConditionsAndImpairments from './conditions_and_impairments';
@@ -238,22 +239,7 @@ function Header({ view }: { view: View }) {
           </div>
         </div>
       </header>
-      <div style={styles.views}>
-        <button className="comic-lift" style={{ ...styles.viewButton, ...styles.replay }} onClick={() => navigate('/abilities?intro')}>
-          Replay the intro ▶
-        </button>
-        {VIEWS.map((v) => (
-          <button
-            key={v.id}
-            className="comic-lift"
-            style={{ ...styles.viewButton, ...(view === v.id ? styles.viewButtonActive : {}) }}
-            aria-pressed={view === v.id}
-            onClick={() => replace(v.to)}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
+      <ViewTabs views={VIEWS} current={view} onChoose={(v) => replace(VIEWS.find((x) => x.id === v)!.to)} onReplay={() => navigate('/abilities?intro')} />
     </>
   );
 }
@@ -577,34 +563,6 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 16,
-  },
-  views: {
-    maxWidth: 1100,
-    margin: '0 auto 32px',
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  //at the far end of the row of views
-  replay: {
-    order: 1,
-    marginLeft: 'auto',
-    fontSize: 20,
-  },
-  viewButton: {
-    padding: '4px 20px',
-    background: ivory,
-    color: gunmetal,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
-    boxShadow: `3px 4px 0 ${gunmetal}`,
-    fontFamily: comic,
-    fontSize: 24,
-    letterSpacing: 1.5,
-  },
-  viewButtonActive: {
-    background: brownRed,
-    color: ivory,
   },
   menuBubble: {
     maxWidth: 520,

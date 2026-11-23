@@ -8,12 +8,17 @@ import { brownRed, comic, gunmetal, ivory } from '../../shared_components/palett
 import { BLOOM_NAMES, getCollection, getCollections, type Collection, type CollectionSummary, type CollectionTopic } from '../api';
 import { sceneFor } from './scenes/scenes';
 
+//each collection's picture, a still of its board in its scene, by its id
+const THUMBS: Record<string, string> = Object.fromEntries(
+  Object.entries(import.meta.glob<string>('./thumbs/*.jpg', { eager: true, import: 'default' })).map(([path, url]) => [path.split('/')[2].replace('.jpg', ''), url]),
+);
+
 const Board = lazy(() => import('./board'));
 
 const paleCinnamon = 'var(--pale-cinnamon)';
 const corners = '14px 8px 16px 10px / 8px 16px 10px 14px';
-const VIEW = '/topics?view=collections';
-const collectionUrl = (id: string) => `${VIEW}&c=${encodeURIComponent(id)}`;
+const VIEW = '/topics';
+const collectionUrl = (id: string) => `${VIEW}?c=${encodeURIComponent(id)}`;
 
 //the Collections view: every collection of topics there is to go through, and one of them once it's opened, with how far
 //through it they are and what they showed. Going through it opens its board full screen. The url says which collection
@@ -52,13 +57,20 @@ function AllCollections() {
       {!error && !collections && <Thinking label="Gathering the collections" />}
       {collections && !collections.length && <p style={styles.text}>There aren't any collections yet. Come back soon.</p>}
       {!!collections?.length && (
-        <ul style={styles.list}>
-          {collections.map((c) => (
+        <ul style={styles.cards}>
+          {collections.map((c, i) => (
             <li key={c.id}>
-              <button className="comic-lift" style={styles.card} onClick={() => navigate(collectionUrl(c.id))}>
+              <button
+                className="comic-lift"
+                style={{ ...styles.card, '--tilt': `${[-0.8, 0.6, -0.4, 0.9][i % 4]}deg` } as CSSProperties}
+                onClick={() => navigate(collectionUrl(c.id))}
+              >
+                {THUMBS[c.id] && <img src={THUMBS[c.id]} alt="" style={styles.thumb} loading="lazy" />}
                 <span style={styles.cardName}>{c.name}</span>
                 {c.description && <span style={styles.cardText}>{c.description}</span>}
-                <ProgressMeter done={c.done} total={c.size} label="done" />
+                <span style={styles.cardProgress}>
+                  <ProgressMeter done={c.done} total={c.size} label="done" />
+                </span>
               </button>
             </li>
           ))}
@@ -232,12 +244,22 @@ const styles: Record<string, CSSProperties> = {
     flexDirection: 'column',
     gap: 8,
   },
+  //the collections side by side, each a card with its picture
+  cards: {
+    margin: '6px 0 0',
+    padding: 0,
+    listStyle: 'none',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
+    gap: 22,
+  },
   card: {
     width: '100%',
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
-    padding: '12px 16px',
+    padding: '16px 18px',
     background: ivory,
     color: gunmetal,
     border: `3px solid ${gunmetal}`,
@@ -247,9 +269,21 @@ const styles: Record<string, CSSProperties> = {
     textAlign: 'left',
     cursor: 'pointer',
   },
+  thumb: {
+    width: '100%',
+    aspectRatio: '16 / 10',
+    objectFit: 'cover',
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '12px 8px 14px 7px / 8px 14px 7px 12px',
+    background: '#fbfbf6',
+  },
+  //along the bottom of the card, so the cards in a row line up whatever their descriptions
+  cardProgress: {
+    marginTop: 'auto',
+  },
   cardName: {
     fontFamily: comic,
-    fontSize: 24,
+    fontSize: 26,
     letterSpacing: 1,
     color: brownRed,
   },

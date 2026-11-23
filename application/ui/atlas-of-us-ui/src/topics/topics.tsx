@@ -1,29 +1,27 @@
 import { useState, type CSSProperties } from 'react';
 import { navigate, replace, usePath, useSearch } from '../router';
 import Explorer, { type Opened } from './explorer';
-import { emptyBoard, place, type TopicBoard } from './topic_board';
+import { emptyBoard, type TopicBoard } from './topic_board';
 import MyKnowledge from './my_knowledge';
-import Explained from './explained';
 import Collections from './collections/collections';
 import { Nav } from '../shared_components/nav';
 import { RequireLogin } from '../auth/require-login';
 import { Mascot } from '../shared_components/mascot';
+import { ViewTabs } from '../shared_components/view_tabs';
 
-//STYLE_GUIDE.md palette, defined as variables in App.css
-const brownRed = 'var(--brown-red)';
-const gunmetal = 'var(--gunmetal-black)';
-const ivory = 'var(--ivory-white)';
-const comic = 'var(--font-comic)';
-
-//the page's views: the board of every topic, the user's own knowledge, the collections of topics to go through, and a
-//guide to topics and Ideas
-type View = 'explorer' | 'mine' | 'collections' | 'explore';
+//the page's views: the collections of topics to go through, the user's own knowledge, and a guide to topics and Ideas
+//around the board of every topic
+type View = 'collections' | 'mine' | 'explore';
 
 const VIEWS: { id: View; label: string; to: string; bubble: string }[] = [
-  { id: 'explorer', label: 'Topics Explorer', to: '/topics', bubble: 'Everything a person can know about, from barley to black holes. Search for a topic, then follow the Ideas it is made of.' },
+  { id: 'collections', label: 'Collections', to: '/topics', bubble: "Most of us know a lot of the same things, from school and from life. Let's see what you know." },
   { id: 'mine', label: 'My Knowledge', to: '/topics?view=mine', bubble: "What you know now, how deeply, and what you'd like to know." },
-  { id: 'collections', label: 'Collections', to: '/topics?view=collections', bubble: "Most of us know a lot of the same things, from school and from life. Let's see what you know." },
-  { id: 'explore', label: 'Explore', to: '/topics?view=explore', bubble: 'Knowing about something has depths, and topics are made of Ideas. Here is how it works.' },
+  {
+    id: 'explore',
+    label: 'Explore',
+    to: '/topics?view=explore',
+    bubble: 'Everything a person can know about, from barley to black holes. Search for a topic, follow the Ideas it is made of, and see how knowing something has depths.',
+  },
 ];
 
 //what's open from the url: a topic at /topics/<id>, or an Idea at /topics/ideas/<id>
@@ -40,19 +38,19 @@ function openedFrom(path: string): Opened | undefined {
 function Topics() {
   const path = usePath();
   const params = new URLSearchParams(useSearch());
-  //an open topic or Idea lives in the url, and always shows in the explorer
+  //an open topic or Idea lives in the url, and always shows in Explore
   const opened = openedFrom(path);
-  //?view opens one of the page's views, and the explorer is the one without it
-  const chosen: View = VIEWS.find((v) => v.id === params.get('view'))?.id ?? 'explorer';
-  //the explorer's board, kept here so it's still there after a look at Explore
+  //?view opens one of the page's views, and Collections is the one without it
+  const chosen: View = VIEWS.find((v) => v.id === params.get('view'))?.id ?? 'collections';
+  //the explorer's board, kept here so it's still there after a look at another view
   const [board, setBoard] = useState<TopicBoard>(emptyBoard);
-  const view = opened ? 'explorer' : chosen;
+  const view = opened ? 'explore' : chosen;
   const current = VIEWS.find((v) => v.id === view)!;
   //leaving an open topic or Idea is a step the back button can undo; switching between the views replaces the url in place
   const choose = (next: View) => {
-    if (opened) {
-      if (next !== 'explorer') navigate(VIEWS.find((v) => v.id === next)!.to);
-    } else replace(VIEWS.find((v) => v.id === next)!.to);
+    const to = VIEWS.find((v) => v.id === next)!.to;
+    if (opened) navigate(to);
+    else replace(to);
   };
 
   return (
@@ -65,37 +63,17 @@ function Topics() {
           </h1>
           <div style={dash.guide}>
             <Mascot />
-            <div style={dash.bubble} className="comic-bubble comic-pop">
+            <div key={view} style={dash.bubble} className="comic-bubble comic-pop">
               {current.bubble}
             </div>
           </div>
         </header>
 
-        <div style={dash.views}>
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              className="comic-lift"
-              style={{ ...dash.viewButton, ...(view === v.id ? dash.viewButtonActive : {}) }}
-              aria-pressed={view === v.id}
-              onClick={() => choose(v.id)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <ViewTabs views={VIEWS} current={view} onChoose={choose} />
 
-        {view === 'explorer' && <Explorer opened={opened} board={board} onBoard={setBoard} />}
-        {view === 'mine' && <MyKnowledge />}
         {view === 'collections' && <Collections />}
-        {view === 'explore' && (
-          <Explained
-            onExplore={(topic) => {
-              setBoard((b) => place(b, { kind: 'topic', topic }));
-              replace('/topics');
-            }}
-          />
-        )}
+        {view === 'mine' && <MyKnowledge />}
+        {view === 'explore' && <Explorer opened={opened} board={board} onBoard={setBoard} />}
       </div>
     </RequireLogin>
   );
@@ -132,28 +110,6 @@ const dash: Record<string, CSSProperties> = {
     maxWidth: 520,
     '--tilt': '-1deg',
   } as CSSProperties,
-  views: {
-    maxWidth: 1100,
-    margin: '0 auto 32px',
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  viewButton: {
-    padding: '4px 20px',
-    background: ivory,
-    color: gunmetal,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '14px 8px 12px 6px / 8px 12px 6px 14px',
-    boxShadow: `3px 4px 0 ${gunmetal}`,
-    fontFamily: comic,
-    fontSize: 24,
-    letterSpacing: 1.5,
-  },
-  viewButtonActive: {
-    background: brownRed,
-    color: ivory,
-  },
 };
 
 export default Topics;
