@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { CATEGORIES, handOf, inYourHands, type Ability, type Measurement } from './api';
+import { handOf } from '../characteristics/api';
+import { CATEGORIES, inYourHands, type Ability, type Measurement } from './api';
 import { ABILITIES, AREA_OVERVIEW } from './explore_copy';
 import { AREA_CHAPTER, THUMBS } from './chapter_thumbs';
 import { MotionPanel, type MotionName } from './motion';
@@ -243,7 +244,7 @@ export default function Explore({ known }: { known: Known }) {
               {inOrder(area.abilities, picked, columns).map((a) =>
                 a.id === picked ? (
                   <li key={a.id} data-card={a.id} style={{ ...styles.cardSlot, ...styles.wide }}>
-                    <AbilityDetail ability={a} tests={testsOf(a)} hand={handOf(known.me)} chapter={AREA_CHAPTER[area.id]} onClose={close} />
+                    <AbilityDetail ability={a} tests={testsOf(a)} hand={handOf(known.characteristics)} chapter={AREA_CHAPTER[area.id]} onClose={close} />
                   </li>
                 ) : (
                   <AbilityCard key={a.id} ability={a} picture={pictureOf(testsOf(a))} onPick={() => pick(a.id)} />

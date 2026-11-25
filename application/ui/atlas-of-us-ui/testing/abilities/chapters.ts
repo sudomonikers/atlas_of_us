@@ -8,7 +8,6 @@ import { button, STEP_MS } from './play.ts';
 //what the api has, for telling what a scene asks for by its title
 export interface Catalog {
   measurements: { id: string; name: string; test: string | null }[];
-  characteristics: { id: string; name: string; choices: string[] }[];
   conditions: { name: string; plain_name: string | null; checklist: string | null }[];
 }
 
@@ -43,11 +42,6 @@ async function saving(page: Page, url: RegExp, method: string, click: () => Prom
   const [saved] = await Promise.all([page.waitForResponse((r) => url.test(r.url()) && r.request().method() === method, { timeout: 3 * STEP_MS }), click()]);
   if (!saved.ok()) throw new Error(`saving: ${saved.status()} ${await saved.text()}`);
   return saved;
-}
-
-async function characteristic(page: Page, name: string, choice: string) {
-  await read(page);
-  await saving(page, /\/api\/abilities\/me$/, 'PUT', () => page.getByRole('group', { name }).getByRole('button', { name: choice, exact: true }).click());
 }
 
 //types a reading in, or plays the test that takes it, and keeps what the api saved
@@ -116,12 +110,10 @@ async function conditionsAndImpairments(page: Page, persona: Abilities, catalog:
   await search.fill('');
 }
 
-//does what one scene asks, by its name: the measurement or characteristic it's about, or one of the lists
+//does what one scene asks, by its name: the measurement it's about, or one of the lists
 async function act(page: Page, name: string, persona: Abilities, catalog: Catalog, recorded: Recorded) {
   const m = catalog.measurements.find((x) => x.name === name);
   if (m) return measurement(page, m, persona, recorded);
-  const c = catalog.characteristics.find((x) => x.name === name);
-  if (c) return persona.characteristics[name] && characteristic(page, name, persona.characteristics[name]);
   if (name === 'Your conditions and impairments') return conditionsAndImpairments(page, persona, catalog);
 }
 

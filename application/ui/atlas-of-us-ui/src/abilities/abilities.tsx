@@ -1,27 +1,24 @@
 import { Suspense, lazy, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { getMeshIndex, toggled, useShowing, type LayerId, type MeshIndex } from './anatomy_layers';
+import { getCharacteristics, handOf, type Characteristic } from '../characteristics/api';
 import {
   getAbilities,
   getAffectedBy,
   getAnatomy,
   getConditions,
   getImpairments,
-  getMe,
-  handOf,
   getMeasurements,
   type Ability,
   type AffectedBy,
   type Conditions,
   type Impairment,
   type Impairments,
-  type Me,
   type Measurements,
   type PartSummary,
   type Reading,
 } from './api';
 import { HUMAN_BODY, indexBody, meshesOf, partIds, type Body } from './body_parts';
 import { THUMBS } from './chapter_thumbs';
-import { CharacteristicChoice } from './characteristic_choice';
 import Explore from './explore';
 import { LayerButtons } from './body_stage';
 import { MeasurementCard } from './measurement_card';
@@ -116,7 +113,7 @@ function Traits() {
   const [meshes, setMeshes] = useState<MeshIndex>();
   const [abilities, setAbilities] = useState<Ability[]>();
   const [measurements, setMeasurements] = useState<Measurements>();
-  const [me, setMe] = useState<Me>();
+  const [characteristics, setCharacteristics] = useState<Characteristic[]>();
   const [impairments, setImpairments] = useState<Impairments>();
   const [conditions, setConditions] = useState<Conditions>();
   const [affectedBy, setAffectedBy] = useState<AffectedBy[]>();
@@ -128,7 +125,7 @@ function Traits() {
     getMeshIndex().then(setMeshes, failed);
     getAbilities().then(setAbilities, failed);
     getMeasurements().then(setMeasurements, failed);
-    getMe().then(setMe, failed);
+    getCharacteristics().then(setCharacteristics, failed);
     getImpairments().then(setImpairments, failed);
     getConditions().then(setConditions, failed);
     getAffectedBy().then(setAffectedBy, failed);
@@ -136,8 +133,8 @@ function Traits() {
 
   const body = useMemo(() => (anatomy && meshes ? indexBody(anatomy, meshes) : undefined), [anatomy, meshes]);
   const loaded = useMemo<Loaded | undefined>(
-    () => (anatomy && body && abilities && measurements && me && impairments && conditions && affectedBy ? { anatomy, body, abilities: abilities.filter(askedAbout), measurements, me, impairments, conditions, affectedBy } : undefined),
-    [anatomy, body, abilities, measurements, me, impairments, conditions, affectedBy],
+    () => (anatomy && body && abilities && measurements && characteristics && impairments && conditions && affectedBy ? { anatomy, body, abilities: abilities.filter(askedAbout), measurements, characteristics, impairments, conditions, affectedBy } : undefined),
+    [anatomy, body, abilities, measurements, characteristics, impairments, conditions, affectedBy],
   );
 
   //a save that moves where the user stands on their abilities gives them back, worked out again, with what it saved.
@@ -149,11 +146,6 @@ function Traits() {
     getAffectedBy().then(setAffectedBy, failed);
   };
   const changes: Changes = {
-    measurements: (data, abilities) => {
-      setMeasurements(data);
-      setAbilities(abilities);
-    },
-    me: setMe,
     readings: (id, readings, abilities) => {
       setMeasurements((data) => data && { ...data, measurements: data.measurements.map((m) => (m.id === id ? { ...m, readings } : m)) });
       setAbilities(abilities);
@@ -279,8 +271,6 @@ function Chapters({ loaded }: { loaded: Loaded }) {
 
 //what a scene's panel can change, passed up so everything showing it stays the same
 export interface Changes {
-  measurements: (data: Measurements, abilities: Ability[]) => void;
-  me: (me: Me) => void; //their own abilities
   readings: (id: string, readings: Reading[], abilities: Ability[]) => void; //a measurement's readings
   impaired: (saved: Impairment, abilities: Ability[]) => void; //an impairment noted or changed
   unimpaired: (id: string, abilities: Ability[]) => void;
@@ -528,15 +518,11 @@ interface ScenePanelProps {
 
 //the one thing the user can do on a scene
 function ScenePanel({ scene, loaded, changes, testStage, onTesting, onSkip }: ScenePanelProps) {
-  const { anatomy, measurements, me, impairments, conditions, affectedBy } = loaded;
+  const { anatomy, measurements, characteristics, impairments, conditions, affectedBy } = loaded;
   const panel = scene.panel!;
-  if (panel.kind === 'characteristic') {
-    const c = me.characteristics.find((x) => x.id === panel.id);
-    return c ? <CharacteristicChoice key={c.id} characteristic={c} onMe={changes.me} onMeasurements={changes.measurements} /> : null;
-  }
   if (panel.kind === 'measurement') {
     const m = measurements.measurements.find((x) => x.id === panel.id);
-    return m ? <MeasurementCard key={m.id} measurement={m} hand={handOf(me)} stage={testStage} onTesting={onTesting} onSkip={onSkip} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
+    return m ? <MeasurementCard key={m.id} measurement={m} hand={handOf(characteristics)} stage={testStage} onTesting={onTesting} onSkip={onSkip} onChanged={(readings, abilities) => changes.readings(m.id, readings, abilities)} /> : null;
   }
   return (
     <ConditionsAndImpairments

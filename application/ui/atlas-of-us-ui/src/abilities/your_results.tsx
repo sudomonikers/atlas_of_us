@@ -53,23 +53,16 @@ function brief(percentile: number, better: Better) {
   return `${percentile < 20 ? 'well below' : percentile < 40 ? 'below' : percentile <= 60 ? 'about' : percentile <= 80 ? 'above' : 'well above'} typical for`;
 }
 
-//the basics: what they've said about themselves, and the latest of their size and vitals, each against people like them
+//the basics: the latest of their size and vitals, each against people like them
 function Glance({ known }: { known: Known }) {
-  const said = known.me.characteristics.filter((c) => c.value);
   const measured = known.measurements.measurements.filter((m) => GLANCE_GROUPS.includes(m.group) && m.readings.length);
-  if (!said.length && !measured.length) return null;
+  if (!measured.length) return null;
   return (
     <section style={styles.section} aria-labelledby="glance">
       <h2 id="glance" style={styles.heading}>
         At a glance
       </h2>
       <ul style={styles.tiles}>
-        {said.map((c) => (
-          <li key={c.id} style={styles.tile}>
-            <span style={styles.tileName}>{c.name}</span>
-            <span style={styles.tileValue}>{c.value}</span>
-          </li>
-        ))}
         {measured.map((m) => (
           <ReadingTile key={m.id} measurement={m} />
         ))}

@@ -1,9 +1,9 @@
 // The Abilities tests. Every persona with `abilities` has its body, its readings and its conditions and impairments, and plays as
 // its own test, all at once. Each one logs in through the ui's login form, skips the story that opens Abilities,
-// and plays every chapter in the real ui the way a player would: picking its characteristics, typing in its
+// and plays every chapter in the real ui the way a player would: typing in its
 // measurements, playing every test the app runs to its own score, and
 // adding its impairments and conditions. Everything it entered before is cleared first, so every run starts from
-// nothing, like a new player.
+// nothing, like a new player, and its characteristics are set through the api, since its sex decides who it's compared with.
 // A test passes when its persona plays through and every test it played saved the reading it played to. Where it
 // stands on each ability is attached to it, and ./reporter.ts compares them with the targets and the previous run.
 import { test } from '@playwright/test';
@@ -24,25 +24,26 @@ interface Measurement {
   test: string | null;
 }
 interface Characteristic {
-  id: string;
+  key: string;
   name: string;
-  choices: string[];
+  value: string | null;
 }
 
-//takes back everything the persona entered in Abilities, and has the story open it again. The ui has no button
-//for either
-async function reset(token: string) {
+//takes back everything the persona entered in Abilities, has the story open it again, and sets its characteristics
+//to its own, taking back the ones it doesn't have. The ui has no button for the first two
+async function reset(token: string, mine: Record<string, string>) {
   await call('DELETE', '/abilities/me', undefined, token);
   await call('PATCH', '/auth/config', { abilities_intro_seen: false }, token);
+  const all = await call<Characteristic[]>('GET', '/characteristics', undefined, token);
+  await call('PUT', '/characteristics', Object.fromEntries(all.map((c) => [c.key, mine[c.name] ?? null])), token);
 }
 
 async function catalog(token: string): Promise<Catalog> {
-  const [{ measurements }, { characteristics }, { conditions }] = await Promise.all([
+  const [{ measurements }, { conditions }] = await Promise.all([
     call<{ measurements: Measurement[] }>('GET', '/abilities/measurements', undefined, token),
-    call<{ characteristics: Characteristic[] }>('GET', '/abilities/me', undefined, token),
     call<{ conditions: Catalog['conditions'] }>('GET', '/abilities/conditions', undefined, token),
   ]);
-  return { measurements, characteristics, conditions };
+  return { measurements, conditions };
 }
 
 for (const [file, persona] of Object.entries(personas)) {
@@ -51,7 +52,7 @@ for (const [file, persona] of Object.entries(personas)) {
 
   test(file, async ({ page }, testInfo) => {
     const token = await login(persona); //makes sure the account exists. The browser logs in through the form
-    await reset(token);
+    await reset(token, mine.characteristics);
     const known = await catalog(token);
     await page.clock.install();
 

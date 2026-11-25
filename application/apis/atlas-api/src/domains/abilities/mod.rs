@@ -8,12 +8,11 @@ mod community;
 mod conditions;
 mod ideas;
 mod impairments;
-mod me;
 mod norms;
 mod search;
 mod summary;
 
-pub use abilities::{person_abilities, person_conditions_and_impairments, ConditionOrImpairment, PersonAbility, ABILITY_NEEDS_BODY};
+pub use abilities::{refresh, person_abilities, person_conditions_and_impairments, ConditionOrImpairment, PersonAbility, ABILITY_NEEDS_BODY};
 pub use summary::person_summary;
 
 use axum::{
@@ -32,9 +31,7 @@ use crate::{auth::AuthUser, state::AppState};
 
 use norms::Norm;
 
-//the sex a person (p) is compared with, male or female, from their answer to the Sex characteristic. null, with no
-//answer, compares them with everyone
-pub const SEX: &str = r#"toLower(COLLECT { MATCH (p)-[s:HAS_CHARACTERISTIC]->(:Characteristic {name: "Sex"}) RETURN s.value }[0])"#;
+use super::characteristics::SEX;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -42,7 +39,7 @@ pub fn router() -> Router<AppState> {
         .route("/measurements", get(measurements))
         .route("/measurements/{id}/readings", post(add_reading))
         .route("/readings/{id}", delete(delete_reading))
-        .route("/me", get(me::get_me).put(me::set_me).delete(me::clear_me))
+        .route("/me", delete(clear_me))
         .merge(abilities::router())
         .merge(ideas::router())
         .merge(impairments::router())
@@ -316,4 +313,19 @@ async fn delete_reading(State(state): State<AppState>, user: AuthUser, Path(id):
         community::renorm(&state, &row.get::<String>("measurement").map_err(internal)?).await?;
     }
     Ok(Json(abilities::refresh(&state, &user.person_id).await?))
+}
+
+//clears everything the logged in user has entered in Abilities, in one go: their readings, impairments and conditions,
+//where they stand on each ability, which those were all it came from, and the summary written from them
+pub async fn clear_me(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, (StatusCode, String)> {
+    state.graph.run(query("
+        MATCH (p:Person {id: $personId})
+        REMOVE p.abilitiesSummary, p.abilitiesSummaryInput, p.abilitiesSummaryAt, p.abilitiesSummaryAskedAt, p.abilitiesSummaryFailedAt
+        WITH p
+        OPTIONAL MATCH (p)-[r:HAS_MEASUREMENT|HAS_IMPAIRMENT|HAS_CONDITION|HAS_ABILITY]->()
+        DELETE r
+    ")
+        .param("personId", user.person_id)
+    ).await.map_err(internal)?;
+    Ok(StatusCode::NO_CONTENT)
 }

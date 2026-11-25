@@ -1,4 +1,5 @@
-import { handOf, inYourHands, type Ability, type Conditions, type Impairments, type Me, type Measurement, type Measurements } from './api';
+import { handOf, type Characteristic } from '../characteristics/api';
+import { inYourHands, type Ability, type Conditions, type Impairments, type Measurement, type Measurements } from './api';
 import type { LayerId } from './anatomy_layers';
 import { type MotionName } from './motion';
 import { plain, STRONG, WEAK } from './plain';
@@ -15,7 +16,6 @@ export interface Shot {
 
 //the one thing the user can do on a scene, under what Atlas says
 export type Panel =
-  | { kind: 'characteristic'; id: string }
   | { kind: 'measurement'; id: string }
   | { kind: 'conditions' };
 
@@ -33,7 +33,7 @@ export interface Scene {
 export interface Known {
   abilities: Ability[];
   measurements: Measurements;
-  me: Me;
+  characteristics: Characteristic[]; //which hand they use names the hand in a test's steps
   impairments: Impairments;
   conditions: Conditions;
 }
@@ -183,11 +183,11 @@ function abilities(id: string, title: string, category: Ability['category'], mot
     id,
     title,
     blurb,
-    scenes: ({ abilities, measurements, me }) => {
+    scenes: ({ abilities, measurements, characteristics }) => {
       const { group, tested } = chapterSteps(abilities, measurements, category);
       return [
         ...intro.map((text, i): Scene => ({ id: `intro-${i + 1}`, text, stage: { motion } })),
-        ...tested.map((m) => measuring(m, group.filter((a) => askedFor(a).some((s) => s.id === m.id)), handOf(me))),
+        ...tested.map((m) => measuring(m, group.filter((a) => askedFor(a).some((s) => s.id === m.id)), handOf(characteristics))),
         {
           id: 'results',
           text: summary(group, measurements),
@@ -222,18 +222,15 @@ const basics = (measurements: Measurements) => BASICS.flatMap((name) => measurem
 export const CHAPTERS: Chapter[] = [
   {
     id: 'basics',
-    title: 'Physical Characteristics',
-    blurb: 'Your size and shape, which hand you use, your heart rate and your blood pressure.',
-    scenes: ({ measurements, me }) => [
+    title: 'Size and vitals',
+    blurb: 'Your size and shape, your heart rate and your blood pressure.',
+    scenes: ({ measurements, characteristics }) => [
       {
         id: 'intro',
-        text: "Let's start with the easy ones: how tall you are and what you weigh, the shape and reach of your body, which hand you use, and your heart rate and blood pressure. You probably know some of these already, and the rest only need a scale, a tape measure or a minute with your pulse. If you don't know one, like your blood type, just skip it. You can always add it later if you want to.",
+        text: "Let's start with the easy ones: how tall you are and what you weigh, the shape and reach of your body, and your heart rate and blood pressure. You probably know some of these already, and the rest only need a scale, a tape measure or a minute with your pulse. I compare each one with people your age, and your sex if you've told me it in Characteristics. If you don't know one, just skip it. You can always add it later if you want to.",
         stage: { motion: 'height' },
       },
-      ...me.characteristics.map(
-        (c): Scene => ({ id: c.id, title: c.name, text: c.question, stage: { motion: 'hello' }, panel: { kind: 'characteristic', id: c.id } }),
-      ),
-      ...basics(measurements).map((m) => measuring(m, [], handOf(me))),
+      ...basics(measurements).map((m) => measuring(m, [], handOf(characteristics))),
     ],
     progress: ({ measurements }) => {
       const all = basics(measurements);

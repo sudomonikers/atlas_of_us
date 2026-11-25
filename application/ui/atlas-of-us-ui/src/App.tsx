@@ -10,6 +10,7 @@ const Admin = lazy(() => import('./admin/admin'))
 const Blog = lazy(() => import('./blog/blog'))
 const Credits = lazy(() => import('./credits/credits'))
 const Abilities = lazy(() => import('./abilities/abilities'))
+const Characteristics = lazy(() => import('./characteristics/characteristics'))
 const Personality = lazy(() => import('./personality/personality'))
 const Profile = lazy(() => import('./profile/profile'))
 const Resume = lazy(() => import('./resume/resume'))
@@ -31,6 +32,7 @@ function Page({ path }: { path: string }) {
   if (path === '/skills' || path.startsWith('/skills/')) return <Skills />
   if (path === '/topics' || path.startsWith('/topics/')) return <Topics />
   if (path === '/abilities') return <Abilities />
+  if (path === '/characteristics') return <Characteristics />
   return <Home />
 }
 

@@ -15,7 +15,7 @@ the graph itself, read `../data_model/abilities/abilities.md`.
 | Skill requirements | `application/apis/atlas-jobs/src/events/skill_filled/abilities.rs` | Links a filled skill's levels to the abilities they take |
 | Condition links | `application/apis/atlas-jobs/src/events/condition_added/abilities.rs` | Links a condition a person added to the body functions and parts it affects |
 | Summary | `application/apis/atlas-jobs/src/jobs/abilities_summary.rs` | Writes Atlas's summary of everything a person has added |
-| Seeds | `application/database/abilities_seed.cypher`, `onet_occupations_seed.cypher`, `abilities_norms_seed.cypher`, `abilities_characteristics_seed.cypher`, `abilities_functions_seed.cypher`, `abilities_anatomy_seed.cypher`, `abilities_conditions_seed.cypher` | The abilities and the occupations rated on them, from O\*NET, the measurements with their norms, from NHANES, the characteristics, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
+| Seeds | `application/database/abilities_seed.cypher`, `onet_occupations_seed.cypher`, `abilities_norms_seed.cypher`, `abilities_functions_seed.cypher`, `abilities_anatomy_seed.cypher`, `abilities_conditions_seed.cypher` | The abilities and the occupations rated on them, from O\*NET, the measurements with their norms, from NHANES, the body functions, from the WHO's ICF, the anatomy, from FMA and BodyParts3D, and common conditions, from Mondo and HPO |
 | Norms import | `application/database/abilities_norms_import/` | Works out the norms from NHANES, adds the self-tests with their published norms, and writes the norms seed |
 | ICF import | `application/database/icf_import/` | Reads the WHO's ICF and its definitions from the ICD-API, and writes the body functions seed |
 | Anatomy import | `application/database/anatomy_import/` | Reads FMA and BodyParts3D, writes the anatomy seed, and turns BodyParts3D's models into the 3D body |
@@ -33,13 +33,12 @@ themselves, at home by following written steps or in the app, which times and sc
 surveys and studies. The Atlas's own tests are compared with Atlas users: the api works out their norms from
 everyone's readings as readings come in. One of them, of typed answers, is scored by the api with Bedrock: a fast model
 reads the answers, and embeddings measure how unusual they are. A person's percentile is worked out when
-it's read, from their reading, their age when they took it and their sex for norms, so better norms update everyone at
-once. Measurements that show an ability, such as push-ups for Dynamic Strength, are linked to it.
+it's read, from their reading, their age when they took it and their sex, from their Characteristics, so better norms
+update everyone at once. Measurements that show an ability, such as push-ups for Dynamic Strength, are linked to it.
 
-Characteristics, such as a person's sex, which hand they use, their eye color and their blood type, are facts about a
-body that are one of a few choices rather than a number. A person answers each once, and can change it. Their sex also
-decides who their readings are compared with, or everyone their age when they haven't said, so changing it works out
-their abilities again. Which hand they use names the hand in the steps of the tests done with one.
+Characteristics, such as a person's sex and which hand they use, are their own module (see `characteristics.md`).
+Their sex decides who their readings are compared with, or everyone their age when they haven't said, so changing it
+works out their abilities again. Which hand they use names the hand in the steps of the tests done with one.
 
 Body functions are the WHO's ICF, the international standard for describing how a body works. Functions are linked to
 the abilities they underlie and the measurements that read them, so an impairment shows which abilities it can hold
@@ -70,8 +69,7 @@ with how far through each the person is. Atlas narrates each scene, and each sce
 to rate, or one list to fill in. A scene about a measurement or an ability shows a comic animation of someone doing it,
 drawn in the same marker as the story, and a scene about where things sit in the body shows the 3D model of it, with
 the camera flying to the parts it's about. The chapters are:
-- Physical Characteristics: their sex, which hand they use and their other characteristics, then their size and shape (height,
-  weight, body fat, waist, arm span, upper arm and leg lengths, hand span), resting heart rate and blood pressure.
+- Size and vitals: their size and shape (height, weight, body fat, waist, arm span, upper arm and leg lengths, hand span), resting heart rate and blood pressure.
 - Strength and fitness, Coordination and speed, Senses, Mind: one chapter for each category of abilities. Each opens
   on what its abilities are, then has a scene for every measurement that shows one of its abilities, and ends on how
   they did: Atlas sums it up in plain words over a breakdown
@@ -80,8 +78,8 @@ the camera flying to the parts it's about. The chapters are:
 - Conditions and disabilities: impairments, then conditions. Each one lights up where it sits and tints the parts of
   the abilities it can affect.
 
-Your results shows everything a person has added as a whole: Atlas's summary of it, their characteristics with their size
-and vitals against people like them, every ability they have a place on laid out by area, the same drawn on the 3D body
+Your results shows everything a person has added as a whole: Atlas's summary of it, their size and vitals against
+people like them, every ability they have a place on laid out by area, the same drawn on the 3D body
 with picking an ability lighting up the parts it uses and what its place comes from, their conditions and impairments, and what's
 still to find out, with the chapter that finds it. Explore is a guide to the abilities: what they are, where they
 come from (Fleishman's taxonomy and O\*NET), what they can't tell you, how the Atlas places people on them, and what

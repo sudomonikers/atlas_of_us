@@ -8,12 +8,13 @@ So to figure out what an individual can possible be, the Atlas Of Us has a compr
 1. Personality (We use the Big 5 Theorem to model Personality Traits)
 2. Topics (We have a comprehensive knowledge graph of all there is to know. These are facts and things that can be considered true)
 3. Skills (These are things a person is CAPABLE of doing)
-4. Abilities (We model the human body in our database, and have users incoroporate their specific details)
-5. Social Network (We create a social network of friends, family, organizations the users are apart of, jobs, influence, social status, etc.)
-6. Things (Things? Well yes, this is a bit of a catch all but its used to model things the users own)
-7. Events (recorded historical events that happened in human history, not specific to a Person)
-8. Places (physical locations in the world)
-9. Works (Specific creations like Monet's Water Lilies or "The Prestige")
+4. Characteristics (Facts about a person's body that are one of a few choices, like their sex, which hand they use or their blood type)
+5. Abilities (We model the human body in our database, and have users incoroporate their specific details)
+6. Social Network (We create a social network of friends, family, organizations the users are apart of, jobs, influence, social status, etc.)
+7. Things (Things? Well yes, this is a bit of a catch all but its used to model things the users own)
+8. Events (recorded historical events that happened in human history, not specific to a Person)
+9. Places (physical locations in the world)
+10. Works (Specific creations like Monet's Water Lilies or "The Prestige")
 
 ## What we don't do - yet
 These 6 traits give us a pretty decent snapshot of each individual's stable inertia in time, but of course it doesn't account for a person's STATE. I might score extremely high in the Assertiveness personality trait, but if I got horrible sleep the night before I may act more tentatively today since I am feeling low-energy. State in any given moment is NOT something we currently model, though we have plans to incorporate this in the future.

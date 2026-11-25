@@ -113,38 +113,6 @@ export const scoreAnswers = (id: string, answers: string[], measuredOn: string) 
 //removes a reading, returning the user's abilities
 export const deleteReading = (id: string) => request<Ability[]>('DELETE', `/abilities/readings/${encodeURIComponent(id)}`);
 
-//a fact about the user's body that's one of a few choices, such as which hand they use, with their answer
-export interface Characteristic {
-  id: string;
-  name: string;
-  question: string; //what Atlas asks
-  choices: string[];
-  value: string | null; //one of the choices, or null when they haven't said
-}
-
-//the user's own abilities that are set rather than recorded as readings
-export interface Me {
-  characteristics: Characteristic[]; //in the order they're asked
-}
-
-export const getMe = () => request<Me>('GET', '/abilities/me');
-
-//the characteristics to change, by id, each to one of its choices or to null to take the answer back. The rest stay
-//as they are
-export interface MeChange {
-  characteristics: Record<string, string | null>;
-}
-
-//changes the user's characteristics. Returns them, and the user's abilities when their sex changed, since who they're
-//compared with moves every percentile
-export const setMe = (change: MeChange) => request<{ me: Me; abilities: Ability[] | null }>('PUT', '/abilities/me', change);
-
-//the hand the user uses most, left or right, when they've said it's one of them
-export const handOf = (me: Me) => {
-  const said = me.characteristics.find((c) => c.name === 'Handedness')?.value;
-  return said === 'Left' || said === 'Right' ? said.toLowerCase() : null;
-};
-
 //words about a stronger and weaker hand or arm, with the user's own hands named when they're known
 export const inYourHands = (text: string, hand: string | null) => {
   if (!hand) return text;

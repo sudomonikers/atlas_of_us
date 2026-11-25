@@ -311,7 +311,7 @@ export const twoPlayers: Script = {
           prompt: 'Where do you want to start?',
           animation: 'your_turn',
           choices: [
-            { label: 'Physical Characteristics: a scale, a tape measure and your pulse.', chapter: 'basics' },
+            { label: 'Size and vitals: a scale, a tape measure and your pulse.', chapter: 'basics' },
             { label: 'Strength and fitness: strength, stamina, flexibility and balance.', chapter: 'body' },
             { label: 'Coordination and speed: the games Daniel aced.', chapter: 'coordination' },
             { label: 'Senses: your eyes and ears.', chapter: 'senses' },

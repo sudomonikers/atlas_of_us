@@ -89,6 +89,7 @@ EOF
 subgraph personality/personality.md
 subgraph topics/topics.md
 subgraph skills/skills.md
+subgraph characteristics/characteristics.md
 subgraph abilities/abilities.md
 subgraph occupations/occupations.md
 subgraph achievements/achievements.md

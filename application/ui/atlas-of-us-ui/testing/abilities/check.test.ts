@@ -1,5 +1,5 @@
-// Checks every persona's abilities without playing anything: each characteristic, measurement, impairment and
-// condition it names is one the chapters ask about, each reading is one the ui takes and its test can be played to,
+// Checks every persona's abilities without playing anything: each characteristic it names is one the api has, each
+// measurement, impairment and condition one the chapters ask about, each reading is one the ui takes and its test can be played to,
 // and it has a target for every ability what it enters places, and none for the rest. Run after any change to what the
 // chapters ask.
 import { expect, test } from '@playwright/test';
@@ -96,9 +96,9 @@ function problems(p: Abilities, known: Known) {
 
 //what the api has, read as a persona
 async function knownTo(token: string): Promise<Known> {
-  const [{ measurements }, { characteristics }, { functions }, anatomy, { conditions }] = await Promise.all([
+  const [{ measurements }, characteristics, { functions }, anatomy, { conditions }] = await Promise.all([
     call<{ measurements: Measurement[] }>('GET', '/abilities/measurements', undefined, token),
-    call<{ characteristics: Known['characteristics'] }>('GET', '/abilities/me', undefined, token),
+    call<Known['characteristics']>('GET', '/characteristics', undefined, token),
     call<{ functions: { name: string }[] }>('GET', '/abilities/impairments', undefined, token),
     call<{ name: string }[]>('GET', '/abilities/anatomy', undefined, token),
     call<{ conditions: { name: string }[] }>('GET', '/abilities/conditions', undefined, token),

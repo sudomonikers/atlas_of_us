@@ -291,6 +291,52 @@ How skills get into the graph, get filled out and get reviewed is in `documentat
 (andrew)-[:PRACTICES {hoursPerWeek: 5}]->(c)
 ```
 
+### Characteristics Graph
+A characteristic is a fact about a person's body that's one of a few choices rather than a number: their sex, which
+hand they use, their eye color, their hair color and their blood type. They don't change, or hardly ever, and a person
+answers each one once. Measurements, such as height and grip strength, are numbers and are in the Abilities graph, and
+conditions are in the Abilities graph too.
+
+There's no node per characteristic. Each Person has at most one Characteristics node, made the first time they answer
+one, with an answer as a property for each characteristic they've answered. The questions Atlas asks and the choices
+that can be answered are in the api, `domains/characteristics`, which only takes an answer that's one of the choices.
+
+| Property | Name | Choices |
+|---|---|---|
+| `sex` | Sex | `Female`, `Male` |
+| `handedness` | Handedness | `Right`, `Left`, `Both` |
+| `eyeColor` | Eye Color | `Brown`, `Hazel`, `Amber`, `Green`, `Blue`, `Gray` |
+| `hairColor` | Hair Color | `Black`, `Dark brown`, `Light brown`, `Blonde`, `Red`, `Auburn` |
+| `bloodType` | Blood Type | `O+`, `O-`, `A+`, `A-`, `B+`, `B-`, `AB+`, `AB-` |
+
+A property that isn't there is a characteristic they haven't answered, or have taken back. A person's characteristics
+are private to them.
+
+Two of them are used by Abilities. Sex decides who a person's readings are compared with: people of that sex and their
+age, or everyone their age when they haven't said, so a change of sex works out where they stand on every ability
+again. Which hand they use names the hand in the steps of the tests done with one.
+
+#### Nodes
+
+| Label | Key properties | What it is |
+|---|---|---|
+| Characteristics | `sex`, `handedness`, `eyeColor`, `hairColor`, `bloodType`, `updatedAt` | A person's answers, each one of its choices above. `updatedAt` is when they last changed one |
+
+#### Relationships
+
+| Relationship | From → To | Properties | Meaning |
+|---|---|---|---|
+| HAS_CHARACTERISTICS | Person → Characteristics | | Their characteristics. No relationship means they haven't answered any |
+
+#### Example
+```cypher
+// Andrew is a right-handed man with brown eyes. He hasn't said what his hair color or blood type is
+(andrew)-[:HAS_CHARACTERISTICS]->(:Characteristics {sex: "Male", handedness: "Right", eyeColor: "Brown", updatedAt: datetime()})
+
+// Lulu is a left-handed woman with type O+ blood
+(lulu)-[:HAS_CHARACTERISTICS]->(:Characteristics {sex: "Female", handedness: "Left", bloodType: "O+", updatedAt: datetime()})
+```
+
 ### Abilities Graph
 A person's body is an important part of who they are. It affects the Skills they can have and the Ideas they can
 understand, and influences their PersonalityTraits. The graph is more than skin, muscle and bone: it's everything from
@@ -368,8 +414,8 @@ removed, by age group, once a group has at least 100 people, with smaller groups
 
 Each measurement has **norms**: the value at each of a list of percentiles, for a sex (male, female or all) and an age
 band. A person records the raw value, and their percentile is worked out when it's read, against the norm for
-their sex for norms and their age on the day they measured it. Someone who hasn't given a sex for norms is compared
-with everyone. `better` says which way is good: `higher` (grip strength), `lower` (resting heart rate) or `neither`
+their sex, from their Characteristics (see the Characteristics graph), and their age on the day they measured it.
+Someone who hasn't given their sex is compared with everyone. `better` says which way is good: `higher` (grip strength), `lower` (resting heart rate) or `neither`
 (height, where a percentile only says where someone sits).
 
 A measurement that shows an ability links to it: grip strength shows Static Strength, VO2 max shows Stamina, and the
@@ -429,7 +475,6 @@ CC BY 4.0, and HPO's terms stay as HPO wrote them, with HPO credited wherever th
 |---|---|---|
 | Ability | `id`, `name` (unique), `onetId`, `category`, `group`, `description`, `examples`, `anchorLevels`, `practice` | One of the 46 abilities. `category` is `Cognitive`, `Psychomotor`, `Physical` or `Sensory`, and `group` is O\*NET's group within it, such as "Fine Manipulative Abilities". `examples` are O\*NET's level anchors, from things that take a little of the ability to things that take a lot, and `anchorLevels` is where each sits on the level scale, over 7, in the same order. Cognitive abilities have a second label, `Cognitive`. `practice` is how much practice changes the ability: `a lot`, `some` or `little` |
 | AbilityTip | `id`, `kind`, `text` | How a person can work on an ability, written for the Atlas. `kind` is `practice`, for what to do, or for an ability practice barely changes how to correct, protect or make up for it; or `impairment`, for working on it around an impairment in what it needs |
-| Characteristic | `id`, `name` (unique), `order`, `question`, `choices` | A fact about a body that's one of a few choices rather than a number: sex, handedness, eye color, hair color or blood type. Sex also decides who a person's readings are compared with: people of that sex and their age, or everyone their age when they haven't said. `question` is what Atlas asks, `choices` what can be answered, and `order` the order they're asked in |
 | Measurement | `id`, `name` (unique), `unit`, `better`, `group`, `min`, `max`, `description`, `confidence`, `test`, `timer`, `atlasNorms`, `protocol`, `source` | One of the 55 measurements. `better` is `higher`, `lower` or `neither`, `group` is `Body`, `Vitals`, `Fitness`, `Senses`, `Reflexes`, `Attention` or `Reasoning`, and `min` and `max` are the lowest and highest readings that can be recorded. `confidence` is how much a reading says about the abilities it shows, 0 to 1. `test` is `home` for a self-test done at home, with its steps in `protocol`, or the test the app runs (`simple_reaction`, `choice_reaction`, `digit_span`, `trail_making`, `matrices`, `series`, `rotation`, `paper_folding`, `perspective`, `syllogisms`, `symbols`, `flanker`, `cards`, `broken_words`, `hidden_shapes`, `tapping`, `tracking`, `timing`, `steering`, `track_count`, `near_chart`, `colors`, `side_vision`, `designs`, `uses`, `problems`, or `eye_chart` for visual acuity), and missing on the others. `timer` is the seconds a home test of how many in a set time counts down. `atlasNorms` is true for a test compared with Atlas users. `source` is where its norms come from |
 | MeasurementNorm | `sex`, `ageFrom`, `ageTo`, `percentiles`, `values`, `fromAtlas`, `people` | The value at each percentile for a sex (`male`, `female` or `all`) and age band. `ageTo` is missing on the oldest band. `percentiles` and `values` are parallel lists, and the percentiles can differ between measurements. `fromAtlas` is true on a norm worked out from Atlas users, with how many `people` it's from; the norms seed keeps these |
 | BodyFunction | `id`, `code` (unique), `name`, `description`, `includes`, `excludes`, `group`, `subgroup`, `sourceUri` | One of the body functions. `group` is the group it's under, such as "Mental functions", and `subgroup` the group under that, where there is one. `code` and `sourceUri` are the ICF code and the WHO's permanent URI for it, which the seed matches on |
@@ -453,7 +498,6 @@ spent.
 | REQUIRES_ABILITY | DreyfusLevel → Ability | `level`, `strength`, `reason` | A skill level that takes the ability, `level` on the level scale over 7 (see the Skills graph) |
 | HAS_NORM | Measurement → MeasurementNorm | | A measurement's norms |
 | MEASURES | Measurement → Ability | | An ability the measurement shows |
-| HAS_CHARACTERISTIC | Person → Characteristic | `value`, `setAt` | Their answer, one of its `choices`. No relationship means they haven't said |
 | HAS_MEASUREMENT | Person → Measurement | `id`, `value`, `measuredOn`, `recordedAt`, `answers` | One reading, in the measurement's unit. A person has one per reading, and the latest `measuredOn` is their current value. `answers` is what they typed, on a reading of a test of typed answers |
 | SUBFUNCTION_OF | BodyFunction → BodyFunction | | A narrower function, a kind or part of a broader one (Short-term memory → Memory functions) |
 | SUBPART_OF | BodyPart → BodyPart | | A part of a larger whole (Left femur → Skeleton of left lower limb) |

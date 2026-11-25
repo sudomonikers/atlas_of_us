@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthUser, credits::{refund, spend}, helpers::jobs::queue, state::AppState};
 
-use super::{abilities, age_on, bad, date, internal, reading, rows};
+use super::{super::characteristics, abilities, age_on, bad, date, internal, reading, rows};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/summary", get(get_summary).post(ask))
@@ -119,10 +119,9 @@ async fn gather(state: &AppState, person_id: &str) -> Result<(Input, usize), (St
     let waiting = unplaced.into_iter().filter(|(_, shown_by)| shown_by.iter().any(|m| read.contains(m))).map(|(name, _)| name).collect();
 
     let graph = &state.graph;
-    let characteristics = list(graph, person_id, "
-        MATCH (p:Person {id: $personId})-[h:HAS_CHARACTERISTIC]->(c:Characteristic)
-        RETURN {name: c.name, value: h.value} AS item ORDER BY c.order
-    ").await?;
+    let characteristics = characteristics::of(graph, person_id).await?.into_iter()
+        .filter_map(|c| Some(Said { name: c.name.to_string(), value: c.value? }))
+        .collect();
     let conditions = list(graph, person_id, &format!("
         MATCH (p:Person {{id: $personId}})-[h:HAS_CONDITION]->(c:Condition)
         WITH h, c, coalesce(c.plainName, c.name) AS name
