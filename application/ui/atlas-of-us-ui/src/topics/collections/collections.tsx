@@ -4,7 +4,7 @@ import { AtlasError } from '../../shared_components/atlas-error';
 import { LevelSteps } from '../../shared_components/level_steps';
 import { ProgressMeter } from '../../shared_components/progress-meter';
 import { Thinking } from '../../shared_components/thinking';
-import { brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
+import { blue, brownRed, comic, gunmetal, ivory } from '../../shared_components/palette';
 import { BLOOM_NAMES, getCollection, getCollections, type Collection, type CollectionSummary, type CollectionTopic } from '../api';
 import { sceneFor } from './scenes/scenes';
 
@@ -46,16 +46,11 @@ function AllCollections() {
   }, []);
 
   return (
-    <section style={styles.panel} className="comic-panel comic-pop">
-      <h2 style={styles.heading}>Collections</h2>
-      <p style={styles.text}>
-        Groups of topics most of us know something about. Go through one and answer a question about putting each topic
-        to use. Miss it, or say you don't know, and I'll ask a simpler one. I'll add each to what you know, at the level
-        you showed.
-      </p>
+    <>
+      <HowCollectionsWork />
       {error && <AtlasError message={error} />}
       {!error && !collections && <Thinking label="Gathering the collections" />}
-      {collections && !collections.length && <p style={styles.text}>There aren't any collections yet. Come back soon.</p>}
+      {collections && !collections.length && <p style={{ ...styles.text, ...styles.empty }}>There aren't any collections yet. Come back soon.</p>}
       {!!collections?.length && (
         <ul style={styles.cards}>
           {collections.map((c, i) => (
@@ -76,6 +71,78 @@ function AllCollections() {
           ))}
         </ul>
       )}
+    </>
+  );
+}
+
+//the skills section of every resume, saying nothing about what anyone knows
+const RESUME_FILLER = ['Microsoft Office', 'Team player', 'Fast learner', 'Detail-oriented', 'Excellent communicator'];
+
+//how a collection goes, drawn as a strip
+const COLLECTION_STEPS = ['Pick a collection', 'Answer what I ask', 'Watch your map fill in'];
+
+//why collections ask about what most people know, drawn as an old way / our way strip, above the collections
+function HowCollectionsWork() {
+  return (
+    <section style={styles.intro} className="comic-panel comic-pop">
+      <div style={styles.introColumn}>
+        <span className="comic-stamp" style={{ ...styles.introStamp, color: brownRed }}>
+          The old way
+        </span>
+        <h2 style={styles.introHeading}>Nobody puts fractions on a resume.</h2>
+
+        <figure style={styles.oldWay}>
+          <p style={styles.oldWayPrompt}>Skills</p>
+          <div style={styles.crossedOut}>
+            {RESUME_FILLER.map((line) => (
+              <span key={line} className="comic-chip">
+                {line}
+              </span>
+            ))}
+            {/* scribbled out twice over, one pass for each row */}
+            <svg style={styles.scribble} viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden>
+              <path
+                d="M2 7 C14 1 22 12 34 6 C46 0 54 12 66 6 C76 1 86 11 98 3 M3 17 C14 10 22 20 34 14 C46 8 54 20 66 14 C76 9 86 19 97 12"
+                fill="none"
+                style={{ stroke: brownRed }}
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          </div>
+          <figcaption style={styles.oldWayCaption}>
+            Meanwhile you know how interest adds up, why the seasons change and what a phishing email looks like, and it's
+            written down nowhere.
+          </figcaption>
+        </figure>
+      </div>
+
+      <div style={styles.introColumn}>
+        <span className="comic-stamp" style={{ ...styles.introStamp, color: blue }}>
+          Our way
+        </span>
+        <h2 style={styles.introHeading}>So we ask.</h2>
+        <ol style={styles.introSteps}>
+          {COLLECTION_STEPS.map((step, i) => (
+            <li key={step} style={styles.introStepSlot}>
+              {i > 0 && (
+                <span style={styles.introStepArrow} aria-hidden>
+                  →
+                </span>
+              )}
+              <span style={styles.introStep}>
+                <span style={styles.introNumber}>{i + 1}</span>
+                <span style={styles.introStepTitle}>{step}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p style={styles.introClosing}>
+          One question a topic. Miss it, or say you don't know, and I'll ask a simpler one. Miss that too and you've found
+          a gap. Everyone has a few, and it's better to know where yours are.
+        </p>
+      </div>
     </section>
   );
 }
@@ -244,9 +311,136 @@ const styles: Record<string, CSSProperties> = {
     flexDirection: 'column',
     gap: 8,
   },
+  //the old way, drawn as a scrap of paper that's been crossed out
+  oldWay: {
+    margin: 0,
+    padding: '12px 16px',
+    background: ivory,
+    border: `3px dashed ${gunmetal}`,
+    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
+    transform: 'rotate(0.6deg)',
+  },
+  oldWayPrompt: {
+    margin: '0 0 10px',
+    fontSize: 19,
+    fontStyle: 'italic',
+  },
+  //what gets scribbled out, with the scribble laid over it
+  crossedOut: {
+    position: 'relative',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  scribble: {
+    position: 'absolute',
+    inset: '-6px -4px',
+    width: 'calc(100% + 8px)',
+    height: 'calc(100% + 12px)',
+    pointerEvents: 'none',
+  },
+  oldWayCaption: {
+    marginTop: 10,
+    fontSize: 18,
+  },
+  //the old way on the left, ours on the right; they stack on narrow screens
+  intro: {
+    maxWidth: 1100,
+    margin: '0 auto 36px',
+    padding: '26px clamp(16px, 4vw, 30px)',
+    boxSizing: 'border-box',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+    gap: '20px 40px',
+    background: '#fff',
+    borderRadius: 'var(--wobbly)',
+    '--panel-fill': 'var(--pale-red)',
+    '--tilt': '-0.3deg',
+  } as CSSProperties,
+  introColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+  },
+  introStamp: {
+    alignSelf: 'flex-start',
+    fontSize: 16,
+  },
+  introHeading: {
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 32,
+    letterSpacing: 1,
+    lineHeight: 1.05,
+    color: brownRed,
+  },
+  introClosing: {
+    margin: 0,
+    paddingTop: 14,
+    borderTop: `3px dashed ${gunmetal}`,
+    fontSize: 18,
+    lineHeight: 1.35,
+    color: blue,
+  },
+  //the three steps in a row, wrapping under each other on narrow screens
+  introSteps: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: 8,
+  },
+  introStepSlot: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  introStepArrow: {
+    fontSize: 22,
+    color: brownRed,
+  },
+  introStep: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'stretch',
+    width: 112,
+    padding: '10px 6px 8px',
+    background: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
+    boxShadow: '3px 3px 0 var(--pale-blue)',
+    textAlign: 'center',
+  },
+  introNumber: {
+    display: 'grid',
+    placeItems: 'center',
+    width: 36,
+    height: 36,
+    background: blue,
+    color: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '50% 46% 52% 48%',
+    fontFamily: comic,
+    fontSize: 20,
+  },
+  introStepTitle: {
+    fontFamily: comic,
+    fontSize: 18,
+    letterSpacing: 0.5,
+    lineHeight: 1.05,
+  },
+  empty: {
+    maxWidth: 1100,
+    margin: '0 auto',
+  },
   //the collections side by side, each a card with its picture
   cards: {
-    margin: '6px 0 0',
+    maxWidth: 1100,
+    margin: '0 auto 40px',
     padding: 0,
     listStyle: 'none',
     display: 'grid',

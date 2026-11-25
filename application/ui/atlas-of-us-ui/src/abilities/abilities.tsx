@@ -41,7 +41,7 @@ import { Nav } from '../shared_components/nav';
 import { Thinking } from '../shared_components/thinking';
 import { Typed } from '../shared_components/typed';
 import { useTypewriter } from '../shared_components/typewriter';
-import { brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
+import { blue, brownRed, comic, gunmetal, ivory } from '../shared_components/palette';
 import { failure } from '../shared_components/use_save';
 
 //the story that opens Abilities, loaded only when it plays
@@ -247,19 +247,93 @@ function Header({ view }: { view: View }) {
 //the chapters to pick from, each with its picture and how far through it the user is
 function Chapters({ loaded }: { loaded: Loaded }) {
   return (
-    <ol style={styles.cards}>
-      {CHAPTERS.map((c, i) => (
-        <li key={c.id}>
-          <button className="comic-lift" style={{ ...styles.card, '--tilt': `${[-0.8, 0.6, -0.4, 0.9][i % 4]}deg` } as CSSProperties} onClick={() => navigate(`/abilities?chapter=${c.id}`)}>
-            <span style={styles.number}>Chapter {i + 1}</span>
-            {THUMBS[c.id] && <img src={THUMBS[c.id]} alt="" style={styles.thumb} loading="lazy" />}
-            <span style={styles.cardTitle}>{c.title}</span>
-            <span style={styles.blurb}>{c.blurb}</span>
-            {c.progress && <span style={styles.progress}>{c.progress(loaded)}</span>}
-          </button>
-        </li>
-      ))}
-    </ol>
+    <>
+      <HowAbilitiesWork />
+      <ol style={styles.cards}>
+        {CHAPTERS.map((c, i) => (
+          <li key={c.id}>
+            <button className="comic-lift" style={{ ...styles.card, '--tilt': `${[-0.8, 0.6, -0.4, 0.9][i % 4]}deg` } as CSSProperties} onClick={() => navigate(`/abilities?chapter=${c.id}`)}>
+              <span style={styles.number}>Chapter {i + 1}</span>
+              {THUMBS[c.id] && <img src={THUMBS[c.id]} alt="" style={styles.thumb} loading="lazy" />}
+              <span style={styles.cardTitle}>{c.title}</span>
+              <span style={styles.blurb}>{c.blurb}</span>
+              {c.progress && <span style={styles.progress}>{c.progress(loaded)}</span>}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </>
+  );
+}
+
+//the self-rating the old way asks for, with the answer everyone gives
+const SELF_RATINGS = ['Poor', 'Below average', 'Average', 'Above average', 'Excellent'];
+
+//how a chapter goes, drawn as a strip
+const ABILITY_STEPS = ['Pick a chapter', 'Do the test', 'Get the real number'];
+
+//why the Atlas measures abilities instead of asking about them, drawn as an old way / our way strip, above the chapters
+function HowAbilitiesWork() {
+  return (
+    <section style={styles.intro} className="comic-panel comic-pop">
+      <div style={styles.introColumn}>
+        <span className="comic-stamp" style={{ ...styles.introStamp, color: brownRed }}>
+          The old way
+        </span>
+        <h2 style={styles.introHeading}>Everyone thinks they're above average.</h2>
+
+        <figure style={styles.oldWay}>
+          <p style={styles.oldWayPrompt}>"How would you rate your hand-eye coordination?"</p>
+          <div style={styles.crossedOut}>
+            {SELF_RATINGS.map((rating) => (
+              <span key={rating} className="comic-chip" style={rating === 'Above average' ? styles.circled : undefined}>
+                {rating}
+              </span>
+            ))}
+            {/* scribbled out, like a kid defacing a worksheet */}
+            <svg style={styles.scribble} viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden>
+              <path
+                d="M2 14 C14 2 22 18 34 8 C46 0 54 18 66 9 C76 2 86 16 98 5"
+                fill="none"
+                style={{ stroke: brownRed }}
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          </div>
+          <figcaption style={styles.oldWayCaption}>
+            In one study, 93% of American drivers rated their own skill above the median. Somebody's wrong.
+          </figcaption>
+        </figure>
+      </div>
+
+      <div style={styles.introColumn}>
+        <span className="comic-stamp" style={{ ...styles.introStamp, color: blue }}>
+          Our way
+        </span>
+        <h2 style={styles.introHeading}>So we measure.</h2>
+        <ol style={styles.introSteps}>
+          {ABILITY_STEPS.map((step, i) => (
+            <li key={step} style={styles.introStepSlot}>
+              {i > 0 && (
+                <span style={styles.introStepArrow} aria-hidden>
+                  →
+                </span>
+              )}
+              <span style={styles.introStep}>
+                <span style={styles.introNumber}>{i + 1}</span>
+                <span style={styles.introStepTitle}>{step}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p style={styles.introClosing}>
+          Push-ups, eye charts, reaction times. Real numbers, compared with people your age, seen only by you, and lined up
+          against what every skill takes.
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -598,6 +672,134 @@ const styles: Record<string, CSSProperties> = {
   number: {
     fontSize: 14,
     color: 'var(--air-force-blue)',
+  },
+  //the old way, drawn as a scrap of paper that's been crossed out
+  oldWay: {
+    margin: 0,
+    padding: '12px 16px',
+    background: ivory,
+    border: `3px dashed ${gunmetal}`,
+    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
+    transform: 'rotate(0.6deg)',
+  },
+  oldWayPrompt: {
+    margin: '0 0 10px',
+    fontSize: 19,
+    fontStyle: 'italic',
+  },
+  //what gets scribbled out, with the scribble laid over it
+  crossedOut: {
+    position: 'relative',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  scribble: {
+    position: 'absolute',
+    inset: '-6px -4px',
+    width: 'calc(100% + 8px)',
+    height: 'calc(100% + 12px)',
+    pointerEvents: 'none',
+  },
+  oldWayCaption: {
+    marginTop: 10,
+    fontSize: 18,
+  },
+  //the answer everyone gives, circled
+  circled: {
+    outline: `3px solid ${brownRed}`,
+    outlineOffset: 3,
+    borderRadius: '50% 46% 52% 48%',
+  },
+  //the old way on the left, ours on the right; they stack on narrow screens
+  intro: {
+    maxWidth: 1100,
+    margin: '0 auto 36px',
+    padding: '26px clamp(16px, 4vw, 30px)',
+    boxSizing: 'border-box',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+    gap: '20px 40px',
+    background: '#fff',
+    borderRadius: 'var(--wobbly)',
+    '--panel-fill': 'var(--pale-red)',
+    '--tilt': '-0.3deg',
+  } as CSSProperties,
+  introColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+  },
+  introStamp: {
+    alignSelf: 'flex-start',
+    fontSize: 16,
+  },
+  introHeading: {
+    fontFamily: comic,
+    fontWeight: 400,
+    fontSize: 32,
+    letterSpacing: 1,
+    lineHeight: 1.05,
+    color: brownRed,
+  },
+  introClosing: {
+    margin: 0,
+    paddingTop: 14,
+    borderTop: `3px dashed ${gunmetal}`,
+    fontSize: 18,
+    lineHeight: 1.35,
+    color: blue,
+  },
+  //the three steps in a row, wrapping under each other on narrow screens
+  introSteps: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: 8,
+  },
+  introStepSlot: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  introStepArrow: {
+    fontSize: 22,
+    color: brownRed,
+  },
+  introStep: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'stretch',
+    width: 112,
+    padding: '10px 6px 8px',
+    background: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '14px 8px 16px 10px / 8px 16px 10px 14px',
+    boxShadow: '3px 3px 0 var(--pale-blue)',
+    textAlign: 'center',
+  },
+  introNumber: {
+    display: 'grid',
+    placeItems: 'center',
+    width: 36,
+    height: 36,
+    background: blue,
+    color: ivory,
+    border: `3px solid ${gunmetal}`,
+    borderRadius: '50% 46% 52% 48%',
+    fontFamily: comic,
+    fontSize: 20,
+  },
+  introStepTitle: {
+    fontFamily: comic,
+    fontSize: 18,
+    letterSpacing: 0.5,
+    lineHeight: 1.05,
   },
   thumb: {
     width: '100%',
