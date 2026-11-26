@@ -71,7 +71,7 @@ const Heart = ({ x, y, s = 1 }: { x: number; y: number; s?: number }) => (
 const LAYERS: { name: string; note: string; scene: ReactNode }[] = [
   {
     name: 'Personality',
-    note: "How you tick. We map you across the Big Five by dropping you into situations and asking why you'd do what you do, plus the parts of being human the Big Five leaves out.",
+    note: "How you tick. We map you across the full spectrum of human personality (based on the last ~100 years of Psychology) by dropping you into situations and asking you what you would do in each situation and WHY.",
     scene: (
       <Atlas
         back={
@@ -98,7 +98,7 @@ const LAYERS: { name: string; note: string; scene: ReactNode }[] = [
   },
   {
     name: 'What you know',
-    note: 'Every idea people hold, true, disputed or flat-out wrong, and how deeply you hold each one.',
+    note: 'There are an infinite number of things you could know about in this world, but each person has their own unique set of things they understand. We help you figure out your specific set as well as the things you might be missing. After all - you might be capable of a million different things, but that capability is wasted if you don\'t know about it!',
     scene: (
       <Atlas
         head="scene-read"
@@ -122,7 +122,7 @@ const LAYERS: { name: string; note: string; scene: ReactNode }[] = [
   },
   {
     name: 'What you can do',
-    note: 'Every skill from cooking to coding, measured from fumbling novice to effortless expert.',
+    note: 'Every skill from cooking to coding, measured from fumbling novice to effortless expert. The specific combination of different skills is unique to almost everyone, and shapes the possibilities of life!',
     scene: (
       <Atlas
         back={HIP}
@@ -144,7 +144,7 @@ const LAYERS: { name: string; note: string; scene: ReactNode }[] = [
   },
   {
     name: 'Your body',
-    note: 'The physical you, because what you can become depends on what you have to work with.',
+    note: 'Each person has a set of innate abilities that gates what they can and cannot do, and indicates performing better or wose in different situations. We measure almost all of them to give you a clear picture of what you would be good at.',
     scene: (
       <Atlas
         back={
@@ -163,162 +163,7 @@ const LAYERS: { name: string; note: string; scene: ReactNode }[] = [
         front={<path className="scene-sweat" d="M64 47 C61.5 51 62 53 64 53 C66 53 66.5 51 64 47 Z" style={{ fill: paleBlue }} strokeWidth="1.5" />}
       />
     ),
-  },
-  {
-    name: 'Your people',
-    note: 'Friends, family, the places you work and the circles you move in.',
-    scene: (
-      <Atlas
-        back={
-          <>
-            {HIP}
-            <g className="scene-wave" style={RIGHT}>
-              <Limb d="M72 68 C82 60 86 50 84 40" />
-              <Hand x={84} y={38} />
-            </g>
-          </>
-        }
-        front={
-          <>
-            <g className="scene-wave" style={{ transformBox: 'view-box', transformOrigin: '104px 104px', animationDelay: '0.5s' }}>
-              <Limb d="M104 104 C112 98 116 90 116 82" w={11} />
-              <circle cx="116" cy="80" r="4" style={{ fill: skin }} />
-            </g>
-            <path d="M84 119 Q98 88 112 119Z" style={{ fill: paleRed }} />
-            <circle cx="98" cy="88" r="10" style={{ fill: skin }} />
-            <path d="M90 84 C92 74 106 74 106 84 C102 80 94 80 90 84Z" style={{ fill: gunmetal }} strokeWidth={2} />
-            <g className="comic-blink" style={{ fill: gunmetal, stroke: 'none' }}>
-              <circle cx="94.5" cy="88" r="1.6" />
-              <circle cx="101.5" cy="88" r="1.6" />
-            </g>
-            <path d="M95 92 Q98 94 101 92" fill="none" strokeWidth={2} />
-            <g className="scene-float">
-              <Heart x={76} y={64} s={0.7} />
-            </g>
-          </>
-        }
-      />
-    ),
-  },
-  {
-    name: 'Your stuff',
-    note: "The things you own and use, which say more about you than you'd think.",
-    scene: (
-      <Atlas
-        back={
-          <>
-            <Limb d="M28 68 C16 60 20 50 30 44" />
-            <Limb d="M72 68 C84 60 80 50 70 44" />
-            <Hand x={30} y={43} />
-            <Hand x={70} y={43} />
-          </>
-        }
-        front={
-          <g className="scene-juggle" style={{ transformBox: 'view-box', transformOrigin: '50px 10px' }}>
-            <rect x="44" y="-16" width="12" height="12" rx="1" style={{ fill: cinnamon }} strokeWidth={2} />
-            <path d="M50 -16 V-4" fill="none" style={{ stroke: brownRed }} strokeWidth={2.5} />
-            <circle cx="69" cy="20" r="6" style={{ fill: brownRed }} strokeWidth={2} />
-            <path d="M65 17 Q69 20 73 17" fill="none" strokeWidth={1.5} />
-            <rect x="24" y="15" width="14" height="10" rx="2" style={{ fill: blue }} strokeWidth={2} />
-            <circle cx="31" cy="20" r="2.8" style={{ fill: '#fff' }} strokeWidth={1.5} />
-          </g>
-        }
-      />
-    ),
-  },
-  {
-    name: 'Events',
-    note: 'The moments in history that shaped the world you were born into.',
-    scene: (
-      <Atlas
-        back={
-          <>
-            <Limb d="M28 68 C20 80 26 88 32 86" />
-            <Limb d="M72 68 C80 80 74 88 68 86" />
-          </>
-        }
-        front={
-          <>
-            <rect x="32" y="70" width="36" height="32" rx="3" style={{ fill: '#fff' }} strokeWidth={2.5} />
-            <text x="50" y="98" textAnchor="middle" fontSize="16" style={{ fill: gunmetal, fontFamily: comic }} stroke="none">
-              13
-            </text>
-            <g className="scene-tear">
-              <rect x="32" y="78" width="36" height="24" style={{ fill: '#fff' }} strokeWidth={2.5} />
-              <text x="50" y="98" textAnchor="middle" fontSize="16" style={{ fill: gunmetal, fontFamily: comic }} stroke="none">
-                12
-              </text>
-            </g>
-            <path d="M32 79 V73 Q32 70 35 70 H65 Q68 70 68 73 V79Z" style={{ fill: brownRed }} strokeWidth={2.5} />
-            <Hand x={30} y={88} />
-            <Hand x={70} y={88} />
-          </>
-        }
-      />
-    ),
-  },
-  {
-    name: 'Places',
-    note: "Where you've been, where you are, and everywhere you could go.",
-    scene: (
-      <Atlas
-        back={
-          <>
-            {HIP}
-            <Limb d="M72 68 C84 60 84 48 80 40" />
-            <path d="M80 38 V30" fill="none" strokeWidth={5} />
-            <path d="M80 38 V30" fill="none" style={{ stroke: skin }} strokeWidth={2} />
-            <Hand x={80} y={40} />
-          </>
-        }
-        front={
-          <>
-            <g className="scene-spin" style={{ transformBox: 'view-box', transformOrigin: '80px 14px' }}>
-              <circle cx="80" cy="14" r="15" style={{ fill: paleBlue }} />
-              <path d="M70 6 C76 2 82 8 78 14 C74 18 68 14 70 6Z M84 16 C90 12 96 18 92 24 C88 28 82 22 84 16Z" style={{ fill: blue }} stroke="none" />
-              <ellipse cx="80" cy="14" rx="15" ry="4.5" fill="none" strokeWidth={1.5} />
-            </g>
-            <g className="scene-drop">
-              <path d="M80 -2 C76 -8 72 -10 72 -15 A8 8 0 0 1 88 -15 C88 -10 84 -8 80 -2Z" style={{ fill: brownRed }} strokeWidth={2} />
-              <circle cx="80" cy="-15" r="2.8" style={{ fill: '#fff' }} strokeWidth={1.5} />
-            </g>
-          </>
-        }
-      />
-    ),
-  },
-  {
-    name: 'Works',
-    note: 'The books, films, songs and art that made you who you are.',
-    scene: (
-      <Atlas
-        back={
-          <>
-            <Limb d="M28 68 C16 76 14 84 18 90" />
-            <ellipse cx="12" cy="92" rx="13" ry="8" style={{ fill: skin }} />
-            <circle cx="6" cy="90" r="2.5" style={{ fill: brownRed }} stroke="none" />
-            <circle cx="13" cy="88" r="2.5" style={{ fill: blue }} stroke="none" />
-            <circle cx="19" cy="92" r="2.5" style={{ fill: cinnamon }} stroke="none" />
-            <Hand x={18} y={92} />
-          </>
-        }
-        front={
-          <>
-            <path d="M92 90 L84 119 M118 90 L126 119 M105 90 V116" fill="none" style={{ stroke: cinnamon }} strokeWidth={4} />
-            <rect x="84" y="50" width="42" height="40" rx="2" style={{ fill: '#fff' }} />
-            <path className="scene-paint" pathLength={100} d="M90 82 Q105 56 120 82" fill="none" style={{ stroke: brownRed }} strokeWidth={4} />
-            <path className="scene-paint" pathLength={100} d="M95 82 Q105 66 115 82" fill="none" style={{ stroke: blue, animationDelay: '0.3s' }} strokeWidth={4} />
-            <g className="scene-brush" style={RIGHT}>
-              <Limb d="M72 68 C80 74 84 74 88 70" />
-              <path d="M88 70 L98 62" fill="none" strokeWidth={4} />
-              <path d="M97 63 L101 59" fill="none" style={{ stroke: brownRed }} strokeWidth={4} />
-              <Hand x={88} y={70} />
-            </g>
-          </>
-        }
-      />
-    ),
-  },
+  }
 ];
 
 //Atlas acting out each part of a person we map, one at a time. Moves on every few seconds, or click through
@@ -327,7 +172,7 @@ export function Scenes() {
   const go = (n: number) => setI((n + LAYERS.length) % LAYERS.length);
 
   useEffect(() => {
-    const t = setTimeout(() => setI((i + 1) % LAYERS.length), 6000);
+    const t = setTimeout(() => setI((i + 1) % LAYERS.length), 10000);
     return () => clearTimeout(t);
   }, [i]);
 

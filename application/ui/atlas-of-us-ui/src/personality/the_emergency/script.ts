@@ -56,7 +56,7 @@ export const theEmergency: Script = {
     },
 
     fire_think: {
-      steps: [{ text: 'Not water. Burner off, then cover it. You turn the knob, slide the baking sheet over the pot, and the flames go out, like someone pulled a plug.', animation: 'lid' }],
+      steps: [{ text: 'Not water. Burner off, then cover it. You turn the knob, slide the baking sheet over the pot, and the flames go out like someone pulled a plug.', animation: 'lid' }],
       next: 'chaos',
     },
 
@@ -94,7 +94,7 @@ export const theEmergency: Script = {
     },
 
     chaos_steady: {
-      steps: [{ text: 'Window, oven, door. It\'s Mr. Okafor from downstairs, in his slippers: "Is everyone okay?" One by one, everything calms down, except the alarm.', animation: 'steady' }],
+      steps: [{ text: 'You tackle the problems in order. At the door, it\'s Mr. Okafor from downstairs, in his slippers: "Is everyone okay?" he asks. One by one, everything calms down, except the alarm.', animation: 'steady' }],
       next: 'panic',
     },
 
@@ -152,7 +152,7 @@ export const theEmergency: Script = {
     },
 
     panic_tell: {
-      steps: [{ text: '"It\'s out, honestly, it\'s fine," you tell her. She nods, but keeps shaking.', animation: 'tell' }],
+      steps: [{ text: '"It\'s out! Honestly, it\'s fine," you tell her. She nods, but keeps shaking.', animation: 'tell' }],
       next: 'all_clear',
     },
 
@@ -171,6 +171,7 @@ export const theEmergency: Script = {
             { label: 'Pretty well. I kept my head.', next: 'later' },
             { label: 'I got through it, but I was all over the place.', next: 'later' },
             { label: 'Not well. Other people did the work.', next: 'later' },
+            { label: 'Something else.', next: 'later', other: true },
           ],
         },
       ],

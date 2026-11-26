@@ -254,6 +254,7 @@ export const thePromotion: Script = {
             { label: "Crushed. But it's one job, and something better will come along.", next: 'later' },
             { label: "Like I'm not as good as I thought I was.", next: 'later' },
             { label: "Like there's no point trying. It always goes this way.", next: 'later' },
+            { label: 'Something else.', next: 'later', other: true },
           ],
         },
       ],

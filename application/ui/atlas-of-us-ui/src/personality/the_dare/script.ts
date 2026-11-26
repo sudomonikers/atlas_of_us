@@ -33,10 +33,11 @@ export const theDare: Script = {
           animation: 'packing',
           facets: ['Self-Discipline', 'Orderliness'],
           choices: [
-            { label: 'Packed days ago, off a list, with a rough plan for every day.', next: 'packed_early' },
+            { label: 'Packed days ago with a fully checked off list, and a plan for every day.', next: 'packed_early' },
             { label: 'Mostly packed, and an idea of the first few days.', next: 'packed_mostly' },
             { label: "I'll throw some things in a bag in the morning.", next: 'packed_late' },
             { label: "Kit's right. Passport, phone, see what happens.", next: 'packed_nothing' },
+            { label: 'Something else.', next: 'arriving', other: true },
           ],
         },
       ],
@@ -53,7 +54,7 @@ export const theDare: Script = {
     },
 
     packed_late: {
-      steps: [{ text: 'At four thirty in the morning, you throw whatever is clean into a bag and run out to the cab.', animation: 'bag_messy' }],
+      steps: [{ text: 'At four thirty in the morning, you throw whatever is clean into a bag and run out to the taxi.', animation: 'bag_messy' }],
       next: 'arriving',
     },
 
@@ -97,8 +98,8 @@ export const theDare: Script = {
           facets: ['Excitement-Seeking'],
           choices: [
             { label: "I'd copy Kit's list, and add a couple more.", next: 'the_bridge' },
-            { label: "A bit of Kit's, a bit of the calm stuff.", next: 'the_bridge' },
-            { label: 'The calm stuff. Kit can do the rest alone.', next: 'the_bridge' },
+            { label: "A bit of Kit's, and a few of the calmer things as well.", next: 'the_bridge' },
+            { label: 'The calm stuff. Kit can do the crazy things alone.', next: 'the_bridge' },
             { label: "No list. I'd go where nobody else is going and see what turns up.", next: 'the_bridge' },
             { label: 'Something else.', next: 'the_bridge', other: true },
           ],
@@ -112,7 +113,7 @@ export const theDare: Script = {
     the_bridge: {
       steps: [
         { text: 'On day four, Kit heads up to the gorge for the bungee jump. It\'s on the way to everything else on the napkin, so you go along.', animation: 'bridge' },
-        { text: 'The old railway bridge stands two hundred feet above a green river. In the middle of it, a man with a clipboard, a cooler and a pile of ropes is running the bungee jump.', animation: 'bridge' },
+        { text: 'The old railway bridge stands two hundred feet above a green river. In the middle of it a man with a clipboard, a cooler and a pile of ropes is running the bungee jump.', animation: 'bridge' },
         { text: 'Kit goes first, screaming the whole way down, and comes back up grinning from ear to ear.', animation: 'kit_jumps' },
         { speaker: MAN, text: 'You want to go next? I have a free slot. It\'s very safe. Mostly.', animation: 'edge' },
         {

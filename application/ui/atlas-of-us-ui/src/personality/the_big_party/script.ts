@@ -27,8 +27,8 @@ export const theBigParty: Script = {
         { text: "Your friend Dani is turning forty. She's rented the old ballroom above the bowling alley, booked a live band, and invited, by her own count, two hundred people.", animation: 'invite' },
         { text: "You'll know about four of them: Dani, her partner Theo, and a couple of people she used to work with.", animation: 'invite' },
         { text: 'It\'s Saturday night. You can hear the party from the street already, with music coming through the windows and a lot of people all talking at once.', animation: 'street' },
-        { text: "A sign at the bottom of the stairs says BAND ON AT 8:30. It's 8:27 now, and once the band starts, nobody is going to hear a word anyone says.", animation: 'stairs' },
-        { text: "That gives you three minutes to meet people. Up you go.", animation: 'stairs' },
+        { text: "A sign at the bottom of the stairs says BAND ON AT 8:30. It's 8:15 now, and once the band starts, nobody is going to hear a word anyone says.", animation: 'stairs' },
+        { text: "That gives you fifteen minutes to meet people. Up you go.", animation: 'stairs' },
       ],
       next: 'walking_in',
     },
@@ -66,7 +66,7 @@ export const theBigParty: Script = {
     },
 
     by_the_wall: {
-      steps: [{ text: 'Theo pours you something fizzy. You find a spot along the wall near the bar and watch the room for a while.', animation: 'room_wall' }],
+      steps: [{ text: 'Theo pours you something fizzy. You chit chat for a bit before he gets pulled away to serve drinks to someone else.', animation: 'room_wall' }],
       next: 'the_room',
     },
 
@@ -126,7 +126,7 @@ export const theBigParty: Script = {
     // -------------------------------------------------------------------------
     the_corner: {
       steps: [
-        { text: 'The band is loud, and a lot better than anyone expected. Half the room is already dancing.', animation: 'dance' },
+        { text: 'The band is loud, and a lot better than anyone expected. Half the room is dancing.', animation: 'dance' },
         { text: "In a corner, Mei, one of the few people here you know, is sitting on her own. She hasn't touched her drink, and she's been staring at the same spot on the floor for a while.", animation: 'corner_priya' },
         { text: 'By the fire exit, an older man in a good suit is standing by himself, holding an empty plate and looking for somewhere to put it.', animation: 'corner_man' },
         {
@@ -137,7 +137,7 @@ export const theBigParty: Script = {
           choices: [
             { label: 'Go and sit with Mei.', next: 'priya' },
             { label: 'Go over to the man by the fire exit.', next: 'leonard' },
-            { label: 'Leave them to it, and go and dance.', next: 'dancing' },
+            { label: 'Leave them to it, and go dance.', next: 'dancing' },
             { label: 'Something else.', next: 'the_stage', other: true },
           ],
         },
@@ -186,7 +186,7 @@ export const theBigParty: Script = {
           facets: ['Self-Consciousness', 'Excitement-Seeking'],
           choices: [
             { label: "I'm up there before she's finished pointing.", next: 'volunteer' },
-            { label: 'I go up, if she makes me.', next: 'dragged_up' },
+            { label: 'I go up, but only if she makes me.', next: 'dragged_up' },
             { label: 'I cheer from the floor.', next: 'cheer_on' },
             { label: 'I find somewhere else to be until it\'s over.', next: 'hide' },
             { label: 'Something else.', next: 'the_end', other: true },

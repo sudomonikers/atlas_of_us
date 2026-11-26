@@ -25,7 +25,7 @@ export const theFeud: Script = {
         { text: "It's a Saturday in April. You get home after a week at your mom's place to the sound of hammering.", animation: 'hammering' },
         { text: 'Your neighbor, Graham, has torn down the old fence between your yards and put up a new one. It\'s six feet tall, dark brown, and very solid.', animation: 'new_fence' },
         { text: "But it's a good three feet onto your side of the property line. Your plum tree is on his side of it now.", animation: 'meter' },
-        { speaker: GRAHAM, text: "Morning! The old one was rotten. And it was in the wrong place anyway, it always has been. I've looked at the plans.", animation: 'graham_plans' },
+        { speaker: GRAHAM, text: "Morning! The old fence was rotten. And it was in the wrong place anyway, it always has been. I've looked at the plans.", animation: 'graham_plans' },
         { speaker: GRAHAM, text: "I paid for the whole thing myself, so I'd think carefully before you make this into a big deal. I'm not moving it.", animation: 'graham_push' },
         {
           id: 'the_fence',

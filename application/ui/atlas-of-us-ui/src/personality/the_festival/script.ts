@@ -52,7 +52,7 @@ export const theFestival: Script = {
     tour: {
       steps: [
         { text: 'The guide holds up an umbrella with a paper fish tied to the top so everyone can find her. Eleven strangers follow the fish through the crowd, and so do you.', animation: 'fountain_tour' },
-        { text: 'After the first stop, she tells everyone they\'re free to explore on their own for the rest of the afternoon.', animation: 'fountain_tour' },
+        { text: 'You walk for a while, the tour guide explaining various installations the whole time. When it\'s finished, she tells everyone they\'re free to explore on their own for the rest of the afternoon.', animation: 'fountain_tour' },
       ],
       next: 'the_map',
     },
@@ -131,6 +131,7 @@ export const theFestival: Script = {
             { label: 'Stop and take it in.', next: 'mural_close' },
             { label: 'Snap a photo on the way past.', next: 'mural_notice' },
             { label: 'Keep walking.', next: 'mural_notice' },
+            { label: 'Something else.', next: 'mural_notice', other: true },
           ],
         },
       ],
@@ -141,7 +142,7 @@ export const theFestival: Script = {
         { text: "You stop to look, and the longer you look, the more you find. One of the birds is carrying a tiny key. A single window in the painted rooftops is lit up. And down by the ground, no bigger than a mouse, there's a little painted door.", animation: 'mural_close' },
         {
           id: 'what_you_see',
-          prompt: "People are walking straight past all of this. What do you make of it? Tell me which part, if any, you'd stop for, and whether any of it gets to you.",
+          prompt: "People are walking straight past all of this. What do you make of it?",
           animation: 'mural_close',
           facets: ['Artistic Interests'],
         },
@@ -162,6 +163,7 @@ export const theFestival: Script = {
             { label: 'Sign it.', next: 'signed' },
             { label: "Don't sign.", next: 'evening' },
             { label: 'Sign it, and send it to everyone I know.', next: 'signed_shared' },
+            { label: 'Something else.', next: 'evening', other: true },
           ],
         },
       ],
@@ -245,13 +247,13 @@ export const theFestival: Script = {
         { text: 'Before you go, I have a couple of questions about you. Your actual life, that is, not the festival.', animation: 'keepsakes' },
         {
           id: 'going_alone',
-          prompt: "When there's something on you'd like to go to, but nobody can come with you, do you go anyway? When did you last go somewhere like that on your own, and how was it?",
+          prompt: "When there's something you'd like to go to, but nobody can come with you, do you go anyway? When did you last go somewhere like that on your own, and how was it?",
           animation: 'keepsakes',
           facets: ['Self-Consciousness', 'Gregariousness'],
         },
         {
           id: 'been_anywhere',
-          prompt: "And in the last six months, how many times have you been to a gallery, museum, show or gig? How many times have you gone somewhere you'd never been before? Tell me about the last one of each. If it was none, that's an answer too.",
+          prompt: "And in the last six months, how many times have you been to a gallery, museum, show or gig? How many times have you gone somewhere you'd never been before? If it was none, that's an answer too.",
           animation: 'keepsakes',
           facets: ['Artistic Interests', 'Adventurousness'],
         },

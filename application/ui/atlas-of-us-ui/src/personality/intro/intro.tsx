@@ -7,10 +7,6 @@ import { sameAnswer, type Choice, type Script, type Stage } from './script';
 import { StageView } from './stage';
 import { noteWatched } from './watched';
 
-// The story that opens Personality: Sam and Priya told across the whole screen, a step at a time, with the whiteboard
-// behind it and the real Atlas over it during the interludes. It ends on where the user wants to start, and opens that
-// scene or view. Anyone can watch it; the scenes take an account.
-
 const Whiteboard = lazy(() => import('./whiteboard'));
 
 //every skill the interludes show, and whether a step brings on what it links to

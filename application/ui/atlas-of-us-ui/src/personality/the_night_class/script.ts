@@ -25,9 +25,9 @@ export const theNightClass: Script = {
     opening: {
       steps: [
         { text: 'The Night Class', animation: 'title_card' },
-        { text: "January. You have to take an evening class at the college called 'Big Questions'. You didn't pick it: it's required, ten weeks in a row on Wednesdays.", animation: 'notice' },
+        { text: "January. You have to take an evening class at the college called 'Big Questions'. You didn't pick it: it's required, and it\'s ten weeks in a row on Wednesdays.", animation: 'notice' },
         { text: "Your first class is in Room 14 at 7pm. It's the old part of the college, and it still has a blackboard. Rain taps form a melody on the windows while a dozen strangers circle the tables.", animation: 'room' },
-        { speaker: MARGARET, text: "The teacher sweeps into the room. 'Evening, all. No right answers in here. Well. We'll see.'", animation: 'margaret' },
+        { speaker: MARGARET, text: "The teacher sweeps into the room. 'Evening, all. No right answers in here.'", animation: 'margaret' },
         { speaker: MARGARET, text: "We'll start with an old argument the Greeks started over two thousand years ago. It's called the Ship of Theseus.", animation: 'margaret' },
         { text: 'She draws a ship on the board.', animation: 'ship' },
         { speaker: MARGARET, text: 'Theseus was a hero of Athens, and after he died, the Athenians kept his ship in the harbor as a monument. People came from all over to see it.', animation: 'ship' },

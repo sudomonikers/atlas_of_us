@@ -82,6 +82,7 @@ export const theCommittee: Script = {
             { label: "I'll come for one, and keep up with the chat.", next: 'pub_one' },
             { label: "I'll skip the bar, but read the chat and do my part.", next: 'pub_skip' },
             { label: "I'd mute the chat, and just get on with my part on my own.", next: 'pub_mute' },
+            { label: 'Something else.', next: 'the_programs', other: true }
           ],
         },
       ],
@@ -113,14 +114,14 @@ export const theCommittee: Script = {
     the_programs: {
       steps: [
         { text: 'It\'s midnight, the night before the festival, and the programs have to be at the printer by eight in the morning.', animation: 'desk' },
-        { text: "They're fine. The times are right, and the map more or less works. But the layout is cramped, there's probably a typo in there somewhere, and doing them properly would take another two hours.", animation: 'desk_draft' },
+        { text: "They're fine. The times are right, and the map more or less works. But the layout is cramped, there's probably a typo in there somewhere, and doing them properly would take another several hours.", animation: 'desk_draft' },
         {
           id: 'the_programs',
           prompt: 'What do you do? Pick one, and tell me why.',
           animation: 'desk_draft',
           facets: ['Achievement-Striving'],
           choices: [
-            { label: "Two more hours. If it's got my name on it, it's done right.", next: 'prog_proper' },
+            { label: "I get to work for a few more hours. If it's got my name on it, it's done right.", next: 'prog_proper' },
             { label: 'Half an hour on the worst parts, then bed.', next: 'prog_half' },
             { label: 'Send them as they are. Nobody reads a program.', next: 'prog_send' },
             { label: 'Something else.', next: 'the_morning', other: true },
@@ -170,7 +171,7 @@ export const theCommittee: Script = {
     },
 
     split_list: {
-      steps: [{ text: "Ten minutes later, everyone has a job. The signs go up, the flags come untangled, and somebody talks the band's van in over the phone.", animation: 'sorted' }],
+      steps: [{ text: "Ten minutes later, everyone has a job. The signs go up, the flags come untangled, and somebody directs the band's van in over the phone.", animation: 'sorted' }],
       next: 'the_banner',
     },
 
@@ -196,7 +197,7 @@ export const theCommittee: Script = {
       steps: [
         { text: 'Then Barry unrolls the banner. He painted it in a hurry this morning, and he\'s the first to say so.', animation: 'banner' },
         { text: 'It says WELCOME TO THE LARCH ROAD STREET FESTIVLE. The letters slope downhill, and the paint has dripped everywhere.', animation: 'banner' },
-        { speaker: BARRY, text: "It's rough, I know. Ten minutes, start to finish. Anyway, it goes up over the road at quarter to eleven.", animation: 'banner' },
+        { speaker: BARRY, text: "It's rough, I know. I only had 10 minutes to work on it. Anyway, it goes up over the road at quarter to eleven.", animation: 'banner' },
         { text: "A proper one would mean you, on your knees in the church basement with a bedsheet and a paint roller, for the next forty minutes, while everyone else gets a coffee and watches the band's soundcheck.", animation: 'banner' },
         {
           id: 'the_banner',

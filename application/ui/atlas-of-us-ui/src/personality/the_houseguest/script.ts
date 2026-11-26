@@ -74,14 +74,14 @@ export const theHouseguest: Script = {
         { text: "You've had a long day. Your room is right there, and it has a door.", animation: 'your_door' },
         {
           id: 'the_evenings',
-          prompt: 'What do you do, most evenings that week? Pick the closest, and tell me why.',
+          prompt: 'What do you do?',
           animation: 'your_door',
           facets: ['Friendliness'],
           choices: [
-            { label: 'Say yes. Pasta, the TV, chatting till late.', next: 'eve_yes' },
+            { label: 'Say yes. Pasta, the TV, and chatting till late sounds pretty good.', next: 'eve_yes' },
             { label: 'A cup of tea and a quick chat, then off to my room.', next: 'eve_tea' },
             { label: "Say I'm exhausted, and close my door.", next: 'eve_door' },
-            { label: "Stay out late most nights. I need my own space.", next: 'eve_out' },
+            { label: "Find something to do outside. I need my own space.", next: 'eve_out' },
             { label: 'Something else.', next: 'late', other: true },
           ],
         },
@@ -89,7 +89,7 @@ export const theHouseguest: Script = {
     },
 
     eve_yes: {
-      steps: [{ text: 'Rory makes a pretty terrible carbonara. The two of you watch three episodes of something, and at one point, they actually laugh out loud.', animation: 'eve_yes' }],
+      steps: [{ text: 'Rory makes a pretty terrible carbonara. The two of you watch three episodes of something, and at one point, actually laugh out loud.', animation: 'eve_yes' }],
       next: 'late',
     },
 
@@ -104,7 +104,7 @@ export const theHouseguest: Script = {
     },
 
     eve_out: {
-      steps: [{ text: "You get home after eleven every night. The lamp is on, and Rory is asleep, or pretending to be.", animation: 'eve_out' }],
+      steps: [{ text: "You get home after eleven. The lamp is on, and Rory is asleep, or pretending to be.", animation: 'eve_out' }],
       next: 'late',
     },
 

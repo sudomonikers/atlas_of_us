@@ -86,8 +86,8 @@ const WARN = 2; //the choice both of them make
 const shoplifter = { kind: 'scene', scene: SHOPLIFTER, animation: 'plea', prompt: SHOPLIFTER_PROMPT, choices: SHOPLIFTER_CHOICES } as const;
 
 //what each of them wrote about the same choice in The Shoplifter
-const SAM_WHY = "Honestly calling the cops on a kid over a box of Tylenol is insane. The sign's there to cover Frank. I'd tell him to scram and not come back, and I wouldn't even mention it to Frank.";
-const PRIYA_WHY = "I believe him, mostly. He looked scared, not sneaky. I'd keep the things, give him the number for the free clinic on Hale Street, and tell Frank exactly what happened on Monday. If Frank wants to call the police after that, it's his store.";
+const SAM_WHY = "Honestly calling the cops on a kid over a box of Tylenol is insane. The sign's there to cover Frank. I'd tell the kid to scram and not come back, and I wouldn't even mention it to Frank.";
+const PRIYA_WHY = "I believe him, mostly. He looked scared, not sneaky. I'd keep the things, give him the number for the free clinic on Hale Street, and tell Frank exactly what happened on Monday. If Frank wants to call the police after that, that's his choice.";
 
 //Sam's answers behind Immoderation, with the contest he lost
 const samImmoderation: Evidence[] = [
@@ -257,7 +257,7 @@ export const sameAnswer: Script = {
     opening: {
       steps: [
         { text: 'Same Answer', animation: 'title_card' },
-        { text: "You've probably taken one of these. Fifty statements, five little circles each, and at the end a label: a Commander, a Mediator, a Golden Retriever.", animation: 'quiz_sheet' },
+        { text: "You've probably taken a personality test like this before. Fifty ambiguous statements, five little circles each, and at the end you get some sort of archtype label: a Commander, a Mediator, a Golden Retriever, etc.", animation: 'quiz_sheet' },
         {
           id: 'party',
           prompt: '"I love large parties." How much do you agree?',
@@ -276,7 +276,7 @@ export const sameAnswer: Script = {
     party_answered: {
       steps: [
         { text: "Now, which party were you picturing? A wedding where you know everyone? An office party where you know your boss? A stranger's house at one in the morning?", animation: 'quiz_parties' },
-        { text: "Whatever you picked, the quiz got one circle. It didn't hear which party, or why. And that's exactly the part that tells people apart.", animation: 'quiz_circle' },
+        { text: "Whatever you picked, the quiz got one circle. It didn't hear which party, or why. And that's exactly the part that tells people apart that traditional personality tests suck at differentiating between.", animation: 'quiz_circle' },
         { text: 'This is the story of two people who gave the same answers, and turned out to be nothing alike.', animation: 'two_silhouettes' },
       ],
       next: 'sam',
@@ -297,7 +297,7 @@ export const sameAnswer: Script = {
 
     priya: {
       steps: [
-        { text: "This is Priya. She's in at five every morning, before anyone else. The ovens are hot, the orders are checked, and the till balances to the cent.", animation: 'priya_morning' },
+        { text: "This is Priya. She also works at Rosa\'s bakery and starts her day at five every morning, before anyone else. The ovens are hot, the orders are checked, and the till balances to the cent.", animation: 'priya_morning' },
         { text: 'When the walk-in fridge died on a Saturday last summer, she moved four hundred dollars of butter to the café next door before anyone else had noticed. Rosa found out on Monday.', animation: 'priya_fridge' },
         { text: 'The same kind of quiz called her a supporter: someone who helps other people lead. She took that to mean she was not one of them.', animation: 'priya_quiz' },
         { speaker: PRIYA, text: "I'd love my own bakery one day. But I'm not a people person, and I hate selling. I'm not who you picture running a place.", animation: 'priya_window' },
@@ -345,10 +345,10 @@ export const sameAnswer: Script = {
       steps: [
         { text: "Let's step out of the story for a moment. The Atlas doesn't hand you statements to rate. It puts you in eighteen situations, from a friend's fortieth to a grease fire in your kitchen.", stage: { kind: 'scenes' } },
         { text: 'Each one is a short story you click through, with its own art and its own sounds. Every so often, it stops and asks you what you would do.', stage: { kind: 'scenes', picked: [SHOPLIFTER] } },
-        { text: "Here's one. You're working the register at Frank's corner store, alone for the first time. Frank's one rule is taped up by the till: always call the police. And you've just caught a boy in a school uniform with a sandwich and a bottle of children's Tylenol.", stage: shoplifter },
-        { text: 'You pick what you would do, and then you say why, in your own words. The why is the part that counts.', stage: { ...shoplifter, choice: WARN } },
+        { text: "Here's one. You're working the register at Frank's corner store, alone for the first time. Frank's one rule is taped up by the till: always call the police on shoplifters. And you've just caught a boy in a school uniform stealing a sandwich and a bottle of children's Tylenol.", stage: shoplifter },
+        { text: 'You pick what you would do, and then you say why, in your own words. The why is the part that really matters.', stage: { ...shoplifter, choice: WARN } },
         { text: "Every option has a good reason behind it. There's no right answer to find, so the only thing to do is say what you'd really do.", stage: { ...shoplifter, choice: WARN } },
-        { text: 'And every chapter ends by asking about your own life: when you last broke a rule, and why. A real story from your life says more than any made-up one.', stage: { kind: 'scenes', picked: [SHOPLIFTER] } },
+        { text: 'And every chapter ends by asking about your own life. A real story from your life says more than what you do in any made-up story.', stage: { kind: 'scenes', picked: [SHOPLIFTER] } },
       ],
       next: 'same_choice',
     },
@@ -363,7 +363,7 @@ export const sameAnswer: Script = {
         { text: 'A quiz would stop there. Same answer, same score. But then they each say why.', animation: 'both_same_choice' },
         { text: "Sam: the sign is only there to cover Frank, calling the police on a kid over Tylenol is insane, and he wouldn't even mention it.", stage: { ...shoplifter, choice: WARN, answer: SAM_WHY } },
         { text: "Priya: the boy looked scared, not sneaky. She'd give him the number of a free clinic, and tell Frank exactly what happened on Monday.", stage: { ...shoplifter, choice: WARN, answer: PRIYA_WHY } },
-        { text: 'One of them bent the rule because he thought the rule was wrong. The other bent it because she felt for the boy, and then owned up to it. The same choice, for opposite reasons.', animation: 'both_split' },
+        { text: 'One of them bent the rule because he thought the rule was wrong. The other bent it because she felt for the boy, and then owned up to it. They made the same choice, but for very different reasons. A traditional personality test would completely misrepresent both of them.', animation: 'both_split' },
       ],
       next: 'what_it_reads',
     },
@@ -376,11 +376,11 @@ export const sameAnswer: Script = {
       steps: [
         { text: 'The Atlas reads every answer for thirty traits: the facets of the Big Five, the model of personality psychologists have tested more than any other.', stage: { kind: 'explore' } },
         { text: "Whenever you ask, it reads the chapters you've finished, and you get a first look. Here's Sam's, after six.", stage: { kind: 'traits', person: samEarly } },
-        { text: 'An early read comes from only a chapter or two, and some traits have not come up yet. As he plays on, every chapter adds evidence, and the picture fills in and firms up.', stage: { kind: 'traits', person: samEarly } },
+        { text: 'An early read comes from only a chapter or two, and some traits have not come up yet. As he plays on, every chapter adds evidence, and his scores fill in and firm up.', stage: { kind: 'traits', person: samEarly } },
         { text: "After all eighteen, every trait has been seen in several different situations. Here's Sam.", stage: { kind: 'traits', person: sam } },
         { text: 'High Assertiveness, Gregariousness and Excitement-Seeking. He takes charge, loves a crowd, and chases the new thing.', stage: { kind: 'traits', person: sam, picked: ['Assertiveness', 'Gregariousness', 'Excitement-Seeking'] } },
-        { text: 'And Priya. High Orderliness, Self-Discipline and Achievement-Striving, and low Anxiety. Organized, persistent, ambitious, and calm when things go wrong.', stage: { kind: 'traits', person: priya, picked: ['Orderliness', 'Self-Discipline', 'Achievement-Striving', 'Anxiety'] } },
-        { text: "You can set your bars against everyone the Atlas has measured. And neither end of a bar is the good one. A low score just means you're nearer the other end.", stage: { kind: 'traits', person: priya, compare: true } },
+        { text: 'And Priya - High Orderliness, Self-Discipline and Achievement-Striving, and low Anxiety. Organized, persistent, ambitious, and calm when things go wrong.', stage: { kind: 'traits', person: priya, picked: ['Orderliness', 'Self-Discipline', 'Achievement-Striving', 'Anxiety'] } },
+        { text: "You can set your bars against everyone the Atlas has measured and see how you compare to the rest of humanity, which can be pretty interesting!", stage: { kind: 'traits', person: priya, compare: true } },
       ],
       next: 'why',
     },
@@ -400,18 +400,6 @@ export const sameAnswer: Script = {
         { text: "This time, Atlas holds its ground. At the end of that same chapter, asked about his real life, he'd said he blew his whole bonus in a weekend.", stage: { kind: 'why', person: sam, trait: 'Immoderation' } },
         { speaker: SAM, text: '...Okay. Fair.', animation: 'sam_phone_sheepish' },
         { text: 'When a note does change what an answer shows, the evidence changes with it, and the trait is worked out again. Either way, you get a reason.', stage: { kind: 'why', person: sam, trait: 'Immoderation' } },
-      ],
-      next: 'body',
-    },
-
-    // -------------------------------------------------------------------------
-    // interlude: the body meets personality
-    // -------------------------------------------------------------------------
-    body: {
-      interlude: 'Your conditions and impairments',
-      steps: [
-        { text: "One more thing shows on Priya's traits. In Abilities, she noted her social phobia. So beside Assertiveness, Self-Efficacy and Self-Consciousness there's a note: it can affect how these show up.", stage: { kind: 'traits', person: priya, picked: ['Assertiveness', 'Self-Efficacy', 'Self-Consciousness'] } },
-        { text: "It doesn't change her scores. Those come from what she said and did. It just helps her read them, and it's only ever shown to her.", stage: { kind: 'traits', person: priya, picked: ['Assertiveness', 'Self-Efficacy', 'Self-Consciousness'] } },
       ],
       next: 'the_report',
     },
@@ -450,7 +438,7 @@ export const sameAnswer: Script = {
         { text: "Here's Sam against it, at Proficient: running a place well. Where it leans on confidence and taking charge, he's over the bar: pitching, selling and believing in it are no trouble at all.", stage: { kind: 'skill', skill: BUSINESS, rank: PROFICIENT, person: sam, traits: ['Assertiveness', 'Self-Efficacy'] } },
         { text: 'Where it leans on order, discipline and caution, he falls short, by a long way. The books, the stock, the boring Tuesday decisions that keep a place alive.', stage: { kind: 'skill', skill: BUSINESS, rank: PROFICIENT, person: sam, traits: ['Orderliness', 'Self-Discipline', 'Cautiousness'] } },
         { text: "And here's Priya. Order, discipline, ambition and a sense of duty: all over the bar, and most by a lot.", stage: { kind: 'skill', skill: BUSINESS, rank: PROFICIENT, person: priya, traits: ['Orderliness', 'Self-Discipline', 'Achievement-Striving', 'Dutifulness'] } },
-        { text: "Her gaps are Assertiveness and Adventurousness: walking into a supplier's office to ask for a better price, and taking the leap at all. The very things she assumed ruled her out are the only things short.", stage: { kind: 'skill', skill: BUSINESS, rank: PROFICIENT, person: priya, traits: ['Assertiveness', 'Adventurousness'] } },
+        { text: "Her gaps are Assertiveness and Adventurousness - something like walking into a supplier's office to ask for a better price might be difficult things for her. The very things she assumed ruled her out are the only things short.", stage: { kind: 'skill', skill: BUSINESS, rank: PROFICIENT, person: priya, traits: ['Assertiveness', 'Adventurousness'] } },
         { text: 'Every skill in the Atlas works this way. Once your traits are in, every skill you open shows where your personality helps, and where you will have to work around it.', stage: { kind: 'skill', skill: BUSINESS, rank: PROFICIENT, person: priya } },
       ],
       next: 'deciding',
@@ -464,7 +452,7 @@ export const sameAnswer: Script = {
         { speaker: SAM, text: 'So the guy everyone called a born leader is the one who would sink the place.', animation: 'sam_counter_quiet' },
         { text: "Not sink it. Personality changes slowly, but it isn't the whole story. It tells you where something will come easily, and where you'll be fighting yourself.", animation: 'sam_counter_quiet' },
         { text: "Sam's gaps are the kind you plan around: systems, habits, and someone beside you who loves what you hate.", animation: 'sam_plan' },
-        { text: "And Priya's gaps are the kind you can practice. She doesn't need to become loud. She needs to be able to ask for what the bakery needs, and mean it. As for the leap, buying the bakery would be it.", animation: 'priya_plan' },
+        { text: "And Priya's gaps are the kind you can practice. She doesn't need to become loud. She needs to be able to ask for what the bakery needs, and mean it.", animation: 'priya_plan' },
       ],
       next: 'other_way',
     },
@@ -476,8 +464,8 @@ export const sameAnswer: Script = {
       interlude: 'What you are made for',
       steps: [
         { text: "So far we've gone from a skill to a person. The Atlas works the other way too: start from the person, and ask which skills fit them.", stage: { kind: 'fit', person: sam, skills: [BUSINESS, SELLING, ACCOUNTS], rank: BEGINNER } },
-        { text: "For Sam, it starts with Selling Products. At the first levels he clears every bar it sets: warmth, confidence, and asking for the sale. Accounting Records, it's honest, is not his.", stage: { kind: 'fit', person: sam, skills: [BUSINESS, SELLING, ACCOUNTS], rank: BEGINNER, focus: [SELLING] } },
-        { text: "Higher up, even selling asks for the discipline he's short on. So he knows where the work is before he's in over his head.", stage: { kind: 'fit', person: sam, skills: [SELLING], rank: PROFICIENT } },
+        { text: "For Sam, it starts with Selling Products. At the first levels he clears every bar it sets: warmth, confidence, and asking for the sale. Accounting Records... it's honest, is not for him.", stage: { kind: 'fit', person: sam, skills: [BUSINESS, SELLING, ACCOUNTS], rank: BEGINNER, focus: [SELLING] } },
+        { text: "Higher up, even selling asks for the discipline he's short on. So he knows he might need to change a bit in order to reach the highest levels.", stage: { kind: 'fit', person: sam, skills: [SELLING], rank: PROFICIENT } },
         { text: "For Priya, it's the opposite. Accounting Records and Inventory Management, where every line is green but the ones her social phobia can reach.", stage: { kind: 'fit', person: priya, skills: [BUSINESS, ACCOUNTS, 'Inventory Management'], rank: PROFICIENT, focus: [ACCOUNTS, 'Inventory Management'] } },
         { text: 'Where Sam falls short, at the books, Priya is strong almost across the board. Where Priya falls short, at selling, Sam is strongest. Put the two side by side, and something becomes obvious that no quiz would ever have shown them.', stage: { kind: 'fit', person: priya, skills: [SELLING, ACCOUNTS], rank: PROFICIENT } },
       ],
@@ -491,7 +479,7 @@ export const sameAnswer: Script = {
       steps: [
         { text: 'They buy the bakery together.', animation: 'both_keys' },
         { text: 'Priya runs it: the books, the stock, the ovens at five. Sam runs the front: the regulars, the Friday pizza, the stall at the night market, which turns out to be a very good idea.', animation: 'both_bakery_open' },
-        { text: "Once a month, Priya calls the flour supplier herself. The first time, she wrote out what she'd say on an index card. Now she doesn't need the card.", animation: 'priya_phone' },
+        { text: "Once a month, Priya calls the flour supplier herself. The first time, she wrote out what she'd say on an index card. Since then it's gotten easier and easier. Now she doesn't need the card at all!", animation: 'priya_phone' },
         { speaker: ROSA, text: 'I should have known it would take both of you.', animation: 'rosa_visit' },
         { speaker: SAM, text: 'In my defense, a quiz told me I could do it all myself.', animation: 'rosa_visit' },
       ],
@@ -504,7 +492,7 @@ export const sameAnswer: Script = {
     the_point: {
       steps: [
         { text: 'Sam and Priya ticked the same boxes and made the same choices. Everyone, Sam and Priya included, had them filed under the wrong labels.', animation: 'two_silhouettes' },
-        { text: 'What told them apart was the why. Once something actually listened to it, each of them found out what they had to offer, and what they needed beside them.', animation: 'two_lit' },
+        { text: 'What told them apart was the why. Once something actually listened to it, each of them found out what they had to offer, and what (or who!) they needed beside them.', animation: 'two_lit' },
         { text: 'Neither of them did anything special. They played a few stories on their breaks, and said what they really thought.', animation: 'two_lit' },
       ],
       next: 'your_turn',
@@ -512,7 +500,7 @@ export const sameAnswer: Script = {
 
     your_turn: {
       steps: [
-        { text: "Now it's your turn. Finish a chapter and have me score it for your first look. After all eighteen, your report, every skill set against your personality, and a profile you can share if you want to.", animation: 'your_turn' },
+        { text: "Now it's your turn. Finish the chapters at your own pace and have me score it. After all eighteen you get your report, a profile you can share if you want to, and recommendations for how you can best fit into all the different possibilities of the world.", animation: 'your_turn' },
         { text: 'Be honest, not impressive. Say why. Be specific. And jokes are fine: how you answer says something too.', animation: 'your_turn' },
         {
           id: 'start',

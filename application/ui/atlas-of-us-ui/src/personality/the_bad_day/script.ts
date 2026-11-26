@@ -24,9 +24,9 @@ export const theBadDay: Script = {
     opening: {
       steps: [
         { text: 'The Bad Day', animation: 'title_card' },
-        { text: 'It\'s Tuesday. Your phone died overnight, so your alarm never went off. You wake up to bright sunlight, which is never a good sign.', animation: 'bedroom' },
+        { text: 'It\'s Tuesday. You wake up to bright sunlight, which is never a good sign. So you check your phone and see your alarm never went off.', animation: 'bedroom' },
         { text: "Today is your interview for a job you'd really love. It starts at 9:30, and you can't be late.", animation: 'bedroom' },
-        { text: "You skip the shower, skip breakfast, and throw on yesterday's shirt. Somehow, you're in a cab and nearly there.", animation: 'car' },
+        { text: "You are running late, so you finish your morning activities quickly and jump in a taxi.", animation: 'car' },
         { text: "It's 9:26. The building is just past this next traffic light. You've got four minutes.", animation: 'car_watch' },
       ],
       next: 'the_lights',
@@ -37,15 +37,15 @@ export const theBadDay: Script = {
     // -------------------------------------------------------------------------
     the_lights: {
       steps: [
-        { text: "The light turns green, but the car in front of your cab doesn't move. The driver is looking down at their phone, laughing at something.", animation: 'lights' },
+        { text: "The light turns green, but the car in front of your taxi doesn't move. The driver is looking down at their phone, laughing at something.", animation: 'lights' },
         {
           id: 'the_lights',
           prompt: 'What do you do? Pick one, and tell me what goes through your head.',
           animation: 'lights',
           facets: ['Anger'],
           choices: [
-            { label: 'Tell the driver to lean on the horn.', next: 'lights_horn' },
-            { label: 'Mutter at them, and drum on the seat.', next: 'lights_mutter' },
+            { label: 'Tell the driver to honk the horn.', next: 'lights_horn' },
+            { label: 'Mutter at them under your breath, and drum your fingers on the seat.', next: 'lights_mutter' },
             { label: "Give them a second. They'll look up.", next: 'lights_wait' },
             { label: "Shrug. A few seconds won't make any difference now.", next: 'lights_shrug' },
             { label: 'Something else.', next: 'the_printer', other: true },
@@ -70,24 +70,24 @@ export const theBadDay: Script = {
     },
 
     lights_shrug: {
-      steps: [{ text: 'Somebody behind you honks instead. The car in front finally pulls away, and so does your cab.', animation: 'lights_horn' }],
+      steps: [{ text: 'Somebody behind you honks instead. The car in front finally pulls away, and so does your taxi.', animation: 'lights_horn' }],
       next: 'the_printer',
     },
 
     the_printer: {
       steps: [
-        { text: "You throw the fare at the driver and run inside. You still need copies of your résumé, and there's a print shop in the lobby: three copies, on the good paper.", animation: 'printer' },
-        { text: 'The printer whirs, makes a noise like a sigh, and stops. The screen says PAPER JAM IN TRAY 2. There is no tray 2.', animation: 'printer_jam' },
+        { text: "You throw the fare at the driver and run inside. You still need copies of your résumé, and there's a print shop in the lobby. You need to print out three copies on the good paper.", animation: 'printer' },
+        { text: 'The printer whirs, makes a noise like a sigh, and stops. The screen says PAPER JAM IN TRAY 2. ...There is no tray 2.', animation: 'printer_jam' },
         {
           id: 'the_printer',
           prompt: 'What do you do? Pick one, and tell me how you feel right now.',
           animation: 'printer_jam',
           facets: ['Anger'],
           choices: [
-            { label: 'Thump it. Sometimes that works.', next: 'printer_thump' },
+            { label: 'Hit it. Sometimes that works.', next: 'printer_thump' },
             { label: 'Open every door, and find the jam.', next: 'printer_fix' },
             { label: "Forget the copies. I'll go in without them.", next: 'printer_leave' },
-            { label: 'Say a lot of words to it that I wouldn\'t say in front of my mom.', next: 'printer_swear' },
+            { label: 'Cuss angrily at the stupid printer.', next: 'printer_swear' },
             { label: 'Something else.', next: 'the_gary', other: true },
           ],
         },
@@ -116,19 +116,19 @@ export const theBadDay: Script = {
 
     the_gary: {
       steps: [
-        { speaker: GARY, text: "Morning! Here for an interview? Quick one before you go up: you need to fill in a visitor form.", animation: 'gary' },
+        { speaker: GARY, text: "Morning! Here for an interview? Quick thing before you go up: you need to fill in a visitor form.", animation: 'gary' },
         { text: 'You tell him you\'re late for your interview. He nods, and keeps talking anyway.', animation: 'gary' },
-        { speaker: GARY, text: "This won't take a sec. It's just that the new forms have two boxes for the date, and nobody knows which one to fill in. Also, sorry, but is that yesterday's shirt?", animation: 'gary_more' },
+        { speaker: GARY, text: "This won't take a sec. It's just that the new forms have two boxes for the date, and nobody knows which one to fill in.", animation: 'gary_more' },
         {
           id: 'the_gary',
           prompt: 'What do you do? Pick one, and tell me exactly what you say.',
           animation: 'gary_more',
           facets: ['Anger', 'Cooperation'],
           choices: [
-            { label: 'Answer his question, quickly, to get it over with.', next: 'gary_answer' },
+            { label: 'Answer his question quickly, to get it over with.', next: 'gary_answer' },
             { label: "Tell him I'll come and find him after the interview.", next: 'gary_later' },
             { label: 'Walk off mid-sentence.', next: 'gary_walk' },
-            { label: 'Snap at him. Gary, not now!', next: 'gary_snap' },
+            { label: 'Snap at him: Gary, not now!', next: 'gary_snap' },
             { label: 'Something else.', next: 'the_meeting', other: true },
           ],
         },
@@ -168,8 +168,8 @@ export const theBadDay: Script = {
     // -------------------------------------------------------------------------
     the_call: {
       steps: [
-        { text: "The interview goes fine, in the end. But then at lunch, your card gets declined. Twice. The bank has frozen it for suspicious activity, and the suspicious activity was you, buying a sandwich.", animation: 'call' },
-        { text: '"Your call is important to us." You are number 14 in line. The hold music is the same eight notes, over and over again.', animation: 'call_hold' },
+        { text: "The interview goes fine, in the end. But then at lunch, your card gets declined. Twice. The bank has frozen it for suspicious activity, and the suspicious activity was you - buying a sandwich.", animation: 'call' },
+        { text: '"Your call is very important to us." You are number 14 in line. The hold music is the same eight notes, over and over again.', animation: 'call_hold' },
         { text: "Forty minutes later, someone finally answers, transfers you to another department, and the line goes dead.", animation: 'call_dropped' },
         { text: 'You call back. It\'s another thirty-five minutes of waiting. Number 9. Number 3. The same eight notes.', animation: 'call_queue' },
         { speaker: AGENT, text: "Hi there, you've reached Leanne. Before I can help you, I just need to verify your identity again. Can I get your full name, date of birth, and street address?", animation: 'call_leanne' },
@@ -182,7 +182,7 @@ export const theBadDay: Script = {
           facets: ['Anger', 'Cooperation'],
           choices: [
             { label: "Stay calm. It's not her fault.", next: 'call_calm' },
-            { label: 'Tell her, firmly, that I need this fixed today.', next: 'call_firm' },
+            { label: 'Tell her firmly that you need this fixed today.', next: 'call_firm' },
             { label: 'Lose it. Two hours, and you\'re telling me they\'ve gone home?', next: 'call_shout' },
             { label: 'Tell her exactly what I think of this bank, and hang up.', next: 'call_hang_up' },
             { label: 'Something else.', next: 'the_waitress', other: true },
@@ -226,9 +226,9 @@ export const theBadDay: Script = {
           animation: 'cafe_jo',
           facets: ['Altruism', 'Anger'],
           choices: [
-            { label: "Eat around it. She's got enough on tonight.", next: 'jo_eat' },
-            { label: "Tell her, kindly, and say there's no rush.", next: 'jo_kind' },
-            { label: "Send it back. I'm paying for what I ordered.", next: 'jo_back' },
+            { label: "Eat around it. She's got enough going on tonight.", next: 'jo_eat' },
+            { label: "Tell her kindly that the order is wrong and you\'d like the right one, but there's no rush.", next: 'jo_kind' },
+            { label: "Send it back. I'll eat what I ordered.", next: 'jo_back' },
             { label: 'Ask for the manager. Someone should know about this.', next: 'jo_manager' },
             { label: 'Something else.', next: 'the_end', other: true },
           ],
@@ -242,7 +242,7 @@ export const theBadDay: Script = {
     },
 
     jo_kind: {
-      steps: [{ text: 'Jo closes her eyes for a second. "Thank you," she says. The risotto comes out ten minutes later, with free garlic bread.', animation: 'jo_risotto' }],
+      steps: [{ text: 'Jo closes her eyes for a second. "I\'m so sorry, I\'ll get the right one." she says. The risotto comes out ten minutes later, with free garlic bread.', animation: 'jo_risotto' }],
       next: 'the_end',
     },
 

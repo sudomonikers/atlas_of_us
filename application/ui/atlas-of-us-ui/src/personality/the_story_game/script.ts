@@ -72,6 +72,7 @@ export const theStoryGame: Script = {
             { label: 'Keep it close to the real world.', next: 'the_gate' },
             { label: 'A little magic, around the edges.', next: 'the_gate' },
             { label: 'Let it get as wild as it wants.', next: 'the_gate' },
+            { label: 'Something else.', next: 'the_gate', other: true },
           ],
         },
       ],
@@ -145,6 +146,7 @@ export const theStoryGame: Script = {
           choices: [
             { label: 'Listen to the whole thing.', next: 'poem_read' },
             { label: 'Politely skip it.', next: 'poem_skipped' },
+            { label: 'Something else.', next: 'ending', other: true },
           ],
         },
       ],

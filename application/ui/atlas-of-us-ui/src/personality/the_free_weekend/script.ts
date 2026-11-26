@@ -136,7 +136,7 @@ export const theFreeWeekend: Script = {
     },
 
     hour_book: {
-      steps: [{ text: "It's harder to get into than you remembered. You read the first page twice, and then suddenly you're forty pages in.", animation: 'hour_book' }],
+      steps: [{ text: "It's easier to get into than you remembered. You read the first page twice, and then suddenly you're forty pages in.", animation: 'hour_book' }],
       next: 'the_end',
     },
 

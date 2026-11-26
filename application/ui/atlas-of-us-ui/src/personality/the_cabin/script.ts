@@ -83,7 +83,7 @@ export const theCabin: Script = {
             { label: "I love it. Let's pick the city tonight.", next: 'ny_yes' },
             { label: 'Keep the cabin, but try one new thing each year.', next: 'ny_some' },
             { label: "No. The cabin is the point. That's what makes it ours.", next: 'ny_no' },
-            { label: 'Say it sounds fun, and hope everyone forgets by morning.', next: 'ny_nod' },
+            { label: 'Say it sounds fun, but hope everyone forgets by morning.', next: 'ny_nod' },
             { label: 'Something else.', next: 'nine_oclock', other: true },
           ],
         },
@@ -132,7 +132,7 @@ export const theCabin: Script = {
             { label: 'I keep picturing his car off the road, in the snow.', next: 'wait_crash' },
             { label: 'Do something: call the store at the bottom of the mountain, then the highway patrol.', next: 'wait_call' },
             { label: "His phone's died, and he's driving slowly. He'll turn up.", next: 'wait_fine' },
-            { label: "I'm annoyed. Typical Cal, and now everyone's on edge.", next: 'wait_cross' },
+            { label: "I'm annoyed. Typical Cal - now everyone's on edge.", next: 'wait_cross' },
             { label: 'Something else.', next: 'feeling', other: true },
           ],
         },
@@ -150,7 +150,7 @@ export const theCabin: Script = {
     },
 
     wait_fine: {
-      steps: [{ text: '"He\'s fine," you tell everyone. "His phone died, that\'s all. Deal me in."', animation: 'calm' }],
+      steps: [{ text: '"He\'s fine," you tell everyone. "His phone probably died, that\'s all. Deal me in."', animation: 'calm' }],
       next: 'feeling',
     },
 
@@ -163,14 +163,15 @@ export const theCabin: Script = {
       steps: [
         {
           id: 'the_feeling',
-          prompt: "While you wait, what's going on inside you? Pick the closest, and tell me where in your body you feel it.",
+          prompt: "While you wait, what's going on inside you? How much worry do you feel?",
           animation: 'inside',
           facets: ['Emotionality', 'Anxiety'],
           choices: [
-            { label: "It's huge. My chest is tight and my hands won't keep still.", next: 'rosa' },
+            { label: "I'm pretty anxious. My chest is tight and my hands won't keep still.", next: 'rosa' },
             { label: 'I feel it, but I push it down. Someone has to stay calm.', next: 'rosa' },
             { label: 'Not much, honestly. I just get on with the dishes.', next: 'rosa' },
             { label: "I couldn't say. I don't really notice until later.", next: 'rosa' },
+            { label: 'Something else.', next: 'rosa', other: true },
           ],
         },
       ],
@@ -191,7 +192,7 @@ export const theCabin: Script = {
           choices: [
             { label: 'Hold her, and end up crying too.', next: 'tears_cry' },
             { label: 'Sit with her, and hold her hand until it passes.', next: 'tears_hand' },
-            { label: "Feel awkward. I wish she wouldn't, it isn't helping.", next: 'tears_awkward' },
+            { label: "Feel awkward. I wish she wouldn't cry, it isn't helping.", next: 'tears_awkward' },
             { label: 'Make some hot chocolate, and get on with sorting things out.', next: 'tears_cocoa' },
             { label: 'Something else.', next: 'arrival', other: true },
           ],
@@ -263,7 +264,7 @@ export const theCabin: Script = {
     },
 
     faith_none: {
-      steps: [{ text: '"Same," says Cal, through a mouthful of chili. Rosa isn\'t so sure, and says so, and it turns into an hour.', animation: 'fire_talk' }],
+      steps: [{ text: '"Same," says Cal, through a mouthful of chili. Rosa isn\'t so sure, and says so.', animation: 'fire_talk' }],
       next: 'night',
     },
 
