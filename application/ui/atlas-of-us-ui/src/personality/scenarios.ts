@@ -25,7 +25,7 @@ export type Kind = 'story' | 'interview' | 'live';
 export interface ScenarioInfo {
   id: string;
   title: string;
-  kinds: Kind[]; //the situation type. Whether it's timed comes from its script's clock
+  kinds: Kind[]; //the situation type
   blurb: string;
   facets: PersonalityTrait[];
 }

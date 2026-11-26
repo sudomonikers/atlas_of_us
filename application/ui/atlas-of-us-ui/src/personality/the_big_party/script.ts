@@ -2,9 +2,8 @@ import type { Script } from '../personality';
 
 // The Big Party: a ballroom under a mirror ball
 // A friend's 40th in the old ballroom above a bowling alley: two hundred people, a loud band, and the player knows about
-// four of them. A real three-minute clock runs from walking in until the band starts, and once they start it's too
-// loud to talk, so hanging back costs the chance to meet anyone. Running out jumps straight to band_early, skipping
-// whatever was left. Then a friend low in a corner and a stranger on his own, and the band calling people up on stage.
+// four of them. Three minutes from walking in until the band starts, and once they start it's too loud to talk, so
+// hanging back costs the chance to meet anyone. Then a friend low in a corner and a stranger on his own, and the band calling people up on stage.
 // Written to the IPIP-NEO items in ../scene_grouping.md: finding it hard to approach others (N4.3), feeling comfortable
 // around people (E1.3), loving large parties (E2.1), talking to lots of different people at parties (E2.2), making
 // friends easily (E1.1), cheering people up (E1.5), anticipating others' needs (A3.2), fearing drawing attention to
@@ -18,10 +17,9 @@ export const theBigParty: Script = {
   title: 'The Big Party',
   facets: ['Self-Consciousness', 'Friendliness', 'Gregariousness', 'Excitement-Seeking', 'Altruism'],
   start: 'opening',
-  clock: { seconds: 180, from: 'walking_in', until: 'band_on', late: 'band_early' },
   sections: {
     // -------------------------------------------------------------------------
-    // the invitation, before the clock starts
+    // the invitation
     // -------------------------------------------------------------------------
     opening: {
       steps: [
@@ -36,7 +34,7 @@ export const theBigParty: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // the clock is running
+    // three minutes before the band
     // -------------------------------------------------------------------------
     walking_in: {
       steps: [
@@ -118,15 +116,8 @@ export const theBigParty: Script = {
       next: 'band_on',
     },
 
-    // the clock stops here when the player gets through in time
     band_on: {
       steps: [{ text: 'Right at 8:30, the drummer counts in, and the room gets twice as loud.', animation: 'band_on' }],
-      next: 'the_corner',
-    },
-
-    // and jumps here, from wherever they were, when it runs out
-    band_early: {
-      steps: [{ text: 'The drummer counts in right in the middle of your sentence, and the room gets twice as loud. Whatever you were about to do, nobody can hear you now.', animation: 'band_on' }],
       next: 'the_corner',
     },
 

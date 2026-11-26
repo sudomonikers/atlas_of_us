@@ -19,17 +19,10 @@ export interface SavedAnswer {
 //the longest answer or reasoning the api keeps, in characters
 export const MAX_ANSWER_LENGTH = 2000;
 
-//where a scenario's clock stood when an answer was given
-export interface AnswerClock {
-  seconds: number; //how long the clock runs in total
-  left: number; //whole seconds left when answered, or when the clock stopped if it already had
-  ran_out: boolean; //the clock hit zero before the user finished
-}
-
 //replaces any earlier answer to the same question. facets are the traits the question was written to draw out, so the
 //scorer knows what the person had a chance to show
-export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, facets: string[], clock?: AnswerClock) =>
-  request<SavedAnswer>('PUT', '/personality/answers', { question_id, answer, reasoning, context, facets, clock });
+export const saveAnswer = (question_id: string, answer: string, reasoning: string | undefined, context: string, facets: string[]) =>
+  request<SavedAnswer>('PUT', '/personality/answers', { question_id, answer, reasoning, context, facets });
 
 //whether the user's answers are being scored, how many scenarios they've finished since they were last scored, and
 //whether the month's AI budget has run out, so nothing can be scored

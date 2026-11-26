@@ -1,9 +1,8 @@
 import type { Script } from '../personality';
 
-// The Emergency: a pot of oil, a kitchen full of smoke, and three real minutes
-// You're hosting dinner, and the pot of oil for the fries catches fire. A real clock starts with the flames: how long you take to
-// answer the first prompt is how long you stood there, and every prompt after it costs real seconds while the alarm
-// screams. Running out jumps straight to too_late, so the prompts in between can go unanswered.
+// The Emergency: a pot of oil and a kitchen full of smoke
+// You're hosting dinner, and the pot of oil for the fries catches fire, then three more things go wrong at once while
+// the alarm screams.
 // Written to the IPIP-NEO items in ../scene_grouping.md: panicking easily (N6.1), remaining calm under pressure (N6.6),
 // waiting for others to lead the way (E3.6), becoming overwhelmed by events (N6.2), feeling unable to deal with things
 // (N6.3), handling tasks smoothly (C1.3) and loving to help others (A3.3).
@@ -15,10 +14,9 @@ export const theEmergency: Script = {
   title: 'The Emergency',
   facets: ['Vulnerability', 'Assertiveness', 'Altruism', 'Self-Efficacy'],
   start: 'opening',
-  clock: { seconds: 180, from: 'the_fire', until: 'all_clear', late: 'too_late' },
   sections: {
     // -------------------------------------------------------------------------
-    // before the clock starts
+    // dinner
     // -------------------------------------------------------------------------
     opening: {
       steps: [
@@ -27,7 +25,6 @@ export const theEmergency: Script = {
         { text: "Your sister has brought Femi, her new boyfriend. Tess, your oldest friend, is telling the story about the canoe trip again, and everyone's laughing.", animation: 'guests' },
         { text: 'You slip into the kitchen to make the fries. The pot of oil has been heating up on the stove for a while now.', animation: 'pan' },
         { text: 'You turn to the freezer to grab the fries. When you turn back around, the pot is on fire, and the flames are licking the cabinet above it.', animation: 'fire' },
-        { text: 'From here on, the clock is real.', animation: 'fire' },
       ],
       next: 'the_fire',
     },
@@ -160,7 +157,7 @@ export const theEmergency: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // over, either way
+    // over
     // -------------------------------------------------------------------------
     all_clear: {
       steps: [
@@ -174,24 +171,6 @@ export const theEmergency: Script = {
             { label: 'Pretty well. I kept my head.', next: 'later' },
             { label: 'I got through it, but I was all over the place.', next: 'later' },
             { label: 'Not well. Other people did the work.', next: 'later' },
-          ],
-        },
-      ],
-    },
-
-    too_late: {
-      steps: [
-        { text: 'Three minutes have gone by. The smoke has filled the apartment, and the alarm in the hallway has joined in. Mr. Okafor from downstairs has called 911.', animation: 'late' },
-        { text: "Everyone is standing out on the sidewalk in their socks when the fire truck pulls up. A firefighter goes in, and comes back out holding your blackened pot.", animation: 'engine' },
-        {
-          id: 'how_it_went',
-          prompt: "Nobody's hurt, but it got away from you. How do you think you did? Pick one, and tell me how your body feels now.",
-          animation: 'engine',
-          facets: ['Vulnerability', 'Self-Efficacy'],
-          choices: [
-            { label: 'I did what I could. It was a lot, all at once.', next: 'later' },
-            { label: "Badly. I didn't know what to do.", next: 'later' },
-            { label: "Fine. That's what the fire department is for.", next: 'later' },
           ],
         },
       ],

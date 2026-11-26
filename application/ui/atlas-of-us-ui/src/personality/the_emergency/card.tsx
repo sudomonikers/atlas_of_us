@@ -5,9 +5,8 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 // The Emergency is told on a fire safety card, the kind tucked in a seat pocket: a laminated card with a red header,
 // numbered panels and captions in capitals, flat isometric rooms, faceless people in plain colors, ISO signs and
 // thick red arrows. You're always the one in yellow. A cue names a room, its panel number and caption, and the parts
-// to show: a new panel slides in, and new parts in the same panel pop in after it. While the real clock runs, smoke
-// fills the panel. Everything is SVG in a fixed 1600x900 space, scaled to cover the screen, and the people keep to
-// the top two thirds, clear of the text box.
+// to show: a new panel slides in, and new parts in the same panel pop in after it. Everything is SVG in a fixed
+// 1600x900 space, scaled to cover the screen, and the people keep to the top two thirds, clear of the text box.
 
 const W = 1600;
 const H = 900;
@@ -180,7 +179,6 @@ type Pose = { head: Pt; torso: Pt[]; legs: Pt[][]; arms: Pt[][] };
 interface Who {
   shirt: string;
   legs?: string;
-  helmet?: boolean;
 }
 
 const YOU: Who = { shirt: YELLOW };
@@ -192,7 +190,6 @@ const NELL_COAT: Who = { shirt: '#6f675e', legs: '#9fb3c4' };
 const OKAFOR: Who = { shirt: '#8b6b4a' };
 const TEAL: Who = { shirt: '#3c9c9c' };
 const GRAY: Who = { shirt: '#8f98a3' };
-const FIREFIGHTER: Who = { shirt: '#2c3a52', legs: '#2c3a52', helmet: true };
 
 const LEGS: Pt[][] = [[[-5, -92], [-6, -48], [-7, -3]], [[5, -92], [6, -48], [7, -3]]];
 const ARMS_DOWN: Pt[] = [[-11, -130], [-16, -106], [-16, -84]];
@@ -231,7 +228,6 @@ function figure([x, y]: Pt, pose: Pose, who: Who, flip = false, cls?: string): I
     { d: legs, line: who.legs ?? TROUSERS, w: 12, t, cls },
     { d: torso, line: who.shirt, w: 30, t, cls },
     { d: circle(hx, hy, 13), fill: SKIN, w: 3, t, cls },
-    ...(who.helmet ? [{ d: `M ${hx - 15} ${hy + 1} Q ${hx - 15} ${hy - 19} ${hx} ${hy - 19} Q ${hx + 15} ${hy - 19} ${hx + 15} ${hy + 1} L ${hx + 21} ${hy + 4} L ${hx - 21} ${hy + 4} Z`, fill: YELLOW, w: 3, t, cls }] : []),
     { d: arms, line: INK, w: 16, t, cls },
     { d: arms, line: who.shirt, w: 10, t, cls },
     { d: hands, fill: SKIN, w: 3, t, cls },
@@ -316,7 +312,7 @@ const windowOpen = (r: ReturnType<typeof iso>, x0: number, x1: number, z0: numbe
 // the rooms and what's in them, each in painter's order. Parts starting with _ are always shown
 // ---------------------------------------------------------------------------
 
-type Room = 'cover' | 'dining' | 'kitchen' | 'stairs' | 'street' | 'back';
+type Room = 'cover' | 'dining' | 'kitchen' | 'stairs' | 'back';
 
 //the kitchen: units along the right-hand wall with the hob in the middle, the fridge-freezer on the left-hand wall,
 //the door through to the hall beyond it, and a window at the far end
@@ -394,12 +390,6 @@ const KITCHEN: Record<string, Item[]> = {
     ...cloud(k.P(1.9, 0.5, 1.9), 220),
     ...cloud(k.P(2.0, 1.7, 1.75), 160),
   ],
-  smoke_thick: [
-    ...cloud(k.P(0.6, 1.0, 1.4), 220, '#6c7279'),
-    ...cloud(k.P(3.5, 1.0, 1.35), 230, '#6c7279'),
-    ...cloud(k.P(1.4, 2.0, 1.1), 270, '#6c7279'),
-    ...cloud(k.P(3.0, 1.9, 0.9), 250, '#6c7279'),
-  ],
   alarm: [{ d: [16, 28, 40].map((r) => `M ${ALARM_K[0] - r} ${ALARM_K[1] - r * 0.8} q ${-r * 0.5} ${r * 0.8} 0 ${r * 1.6} M ${ALARM_K[0] + r} ${ALARM_K[1] - r * 0.8} q ${r * 0.5} ${r * 0.8} 0 ${r * 1.6}`).join(' '), line: RED, w: 5, cls: 'ec-pulse' }],
   bang: [...burst(DOOR_K[0] - 70, DOOR_K[1] - 30, 54, 'BANG!'), ...burst(DOOR_K[0] - 40, DOOR_K[1] + 60, 40, 'BANG!', YELLOW, 18)],
   callouts: [...callout(ALARM_K[0] + 50, ALARM_K[1] - 40, '1'), ...callout(DOOR_K[0] - 150, DOOR_K[1] - 70, '2'), ...callout(OVEN[0] - 40, OVEN[1] + 20, '3')],
@@ -408,7 +398,6 @@ const KITCHEN: Record<string, Item[]> = {
   arrow_tray: arrow([[PAN[0] + 4, PAN[1] - 150], [PAN[0] + 4, PAN[1] - 50]]),
   warn: warnSign(1250, 220, 200),
   tick: tickSign(1270, 220, 170),
-  exit: exitSign(1240, 240, 160),
 };
 
 //the dining room: six round the table, a window with curtains, a picture on the wall
@@ -495,49 +484,6 @@ const STAIRS: Record<string, Item[]> = {
   bubble: bubble(NELL_AT[0] + 150, NELL_AT[1] - 230, 210, "IT'S FINE!"),
 };
 
-//the street: the front of your building, the pavement, and a fire engine at the curb
-const st = iso(670, 345);
-const STREET: Record<string, Item[]> = {
-  _room: [
-    st.onF(0, 0, 6, 1.15, '#c9c6bf'),
-    { d: [1, 2, 3, 4, 5].map((x) => st.path([x, 0, 0], [x, 1.15, 0])).join(' '), line: '#aaa79f', w: 1.5 },
-    ...st.box(0, 1.15, 0, 6, 0.12, 0.12, '#9a978f'),
-    st.onF(0, 1.27, 6, 2.6, '#5b5f66'),
-    { d: [0.2, 1.4, 2.6, 3.8, 5.0].map((x) => st.path([x, 2.2, 0], [x + 0.7, 2.2, 0])).join(' '), line: WHITE, w: 4 },
-    st.onR(0, 6, 0, 2.4, '#b8775a'),
-    { d: [0.4, 0.8, 1.2, 1.6, 2.0].map((z) => st.path([0, 0, z], [6, 0, z])).join(' '), line: '#a1654b', w: 1.5 },
-    { d: st.face([-0.1, -0.12, 2.4], [6, -0.12, 2.4], [6, 0, 2.4], [-0.1, 0, 2.4]), fill: WALL_TOP, w: 2.5 },
-    st.onR(2.2, 2.9, 0, 2.0, '#2f4a6b'),
-    ...[[0.5, 1.5], [3.5, 4.5], [4.9, 5.7]].map(([x0, x1]) => st.onR(x0, x1, 0.8, 1.7, '#f3d27a')),
-    { d: st.path([5.6, 0.9, 0], [5.6, 0.9, 2.3]), line: INK, w: 5 },
-    { d: circle(...st.P(5.6, 0.9, 2.35), 12), fill: '#fff3b0' },
-  ],
-  smoke: [...cloud(st.P(3.0, -0.2, 2.6), 160), ...cloud(st.P(4.1, -0.3, 2.9), 120)],
-  crowd: [
-    ...st.fig(0.2, 0.85, 'stand', NELL_COAT),
-    ...st.fig(0.6, 0.6, 'stand', YOU),
-    ...st.fig(1.0, 0.8, 'stand', TESS),
-    ...st.fig(1.3, 0.55, 'stand', SIS),
-    ...st.fig(1.5, 0.35, 'stand', OKAFOR),
-    ...st.fig(1.7, 0.85, 'stand', FEMI),
-  ],
-  firefighter: [
-    ...st.fig(2.6, 0.3, 'hold', FIREFIGHTER, true),
-    ...st.cyl(2.48, 0.05, 1.12, 0.1, 0.06, '#2b2b2b', '#151515'),
-  ],
-  engine: [
-    ...st.box(2.8, 1.45, 0.3, 2.3, 1.0, 1.3, RED),
-    ...st.box(5.1, 1.45, 0.3, 0.9, 1.0, 1.05, RED),
-    st.onR(5.25, 5.85, 0.85, 1.25, GLASS, 2.45),
-    { d: st.face([6, 1.55, 0.8], [6, 2.35, 0.8], [6, 2.35, 1.25], [6, 1.55, 1.25]), fill: GLASS, w: 2.5 },
-    st.onR(2.8, 6, 0.55, 0.65, YELLOW, 2.45),
-    { d: [3.4, 4.0, 4.6].map((x) => st.path([x, 2.45, 0.7], [x, 2.45, 1.5])).join(' '), line: shade(RED, -0.3), w: 2 },
-    { d: `${st.path([2.9, 1.7, 1.62], [5.0, 1.7, 1.62])} ${st.path([2.9, 2.2, 1.62], [5.0, 2.2, 1.62])} ${[3.1, 3.4, 3.7, 4.0, 4.3, 4.6, 4.9].map((x) => st.path([x, 1.7, 1.62], [x, 2.2, 1.62])).join(' ')}`, line: '#d9dde1', w: 4 },
-    ...[3.3, 4.6, 5.55].map((x) => ({ d: poly(...Array.from({ length: 16 }, (_, i): Pt => st.P(x + Math.cos((i / 16) * Math.PI * 2) * 0.28, 2.45, 0.3 + Math.sin((i / 16) * Math.PI * 2) * 0.28))), fill: INK })),
-  ],
-  lights: [...st.box(5.3, 1.6, 1.35, 0.18, 0.2, 0.1, '#4a8fe0'), ...st.box(5.3, 2.1, 1.35, 0.18, 0.2, 0.1, '#4a8fe0')].map((it) => ({ ...it, cls: 'ec-blink' })),
-};
-
 //flat pages, drawn straight onto the panel: the cover, the card's last page, and the back
 const COVER: Record<string, Item[]> = {
   sign: warnSign(250, 190, 320),
@@ -576,7 +522,7 @@ const BACK: Record<string, Item[]> = {
   }),
 };
 
-const ART: Record<Room, Record<string, Item[]>> = { cover: COVER, dining: DINING, kitchen: KITCHEN, stairs: STAIRS, street: STREET, back: BACK };
+const ART: Record<Room, Record<string, Item[]>> = { cover: COVER, dining: DINING, kitchen: KITCHEN, stairs: STAIRS, back: BACK };
 
 // ---------------------------------------------------------------------------
 // the cues
@@ -624,8 +570,6 @@ const cues: Record<string, Cue> = {
   jo_nell: { room: 'stairs', n: 8, caption: 'ASK FOR HELP', parts: ['smoke_door', 'nell_still', 'jo_sit', 'you_go'], mix: LANDING },
   tell: { room: 'stairs', n: 8, caption: "IT'S OUT. IT'S FINE.", parts: ['smoke_door', 'nell', 'breath', 'you_tell', 'bubble'], mix: LANDING },
   clear: { room: 'kitchen', n: 9, caption: 'ALL CLEAR', parts: ['window_open', 'burned', 'tray', 'you_stand', 'tick'], mix: QUIET },
-  late: { room: 'kitchen', n: 9, caption: 'GET OUT AND STAY OUT', parts: ['tray', 'smoke', 'smoke_thick', 'alarm', 'exit'], mix: { alarm: 0.8, kitchen: 0.3 } },
-  engine: { room: 'street', n: 10, caption: 'CALL 911', parts: ['smoke', 'crowd', 'firefighter', 'engine', 'lights'], mix: { kitchen: 0.25 } },
   chips: { room: 'dining', n: 1, caption: 'ENJOY YOUR MEAL (AGAIN)', parts: ['breeze', 'chairs_back', 'back_row', 'table', 'chips', 'front_seats', 'front_row'], mix: { dinner: 0.45 } },
   homework: { room: 'back', caption: 'NOW, ABOUT YOU', parts: ['tiles'], mix: { kitchen: 0.3 } },
   goodbye: { room: 'cover', caption: 'FOR NEXT TIME', parts: ['blanket', 'note'], mix: { kitchen: 0.3 } },
@@ -648,7 +592,6 @@ const shot = (name: string, volume: number, delay: number): OneShot => ({ src: n
 const ONE_SHOTS: Record<string, OneShot> = {
   three: shot('knock', 0.8, 1.2),
   nell_panic: shot('breath', 0.6, 0.3),
-  engine: shot('siren', 0.7, 0.2),
 };
 
 const MASTER_VOLUME = 0.8;
@@ -755,7 +698,7 @@ function Caption({ cue }: { cue: Cue }) {
   );
 }
 
-function SafetyCard({ animation, clock }: { animation: string; clock?: number }) {
+function SafetyCard({ animation }: { animation: string }) {
   //an animation this scene has no cue for holds whatever cue came before it
   const first = cues[animation] ? animation : FIRST_CUE;
   const [active, setActive] = useState(first);
@@ -789,8 +732,6 @@ function SafetyCard({ animation, clock }: { animation: string; clock?: number })
     if (oneShot) sound.current?.play(oneShot);
   }, [active]);
 
-  //smoke thickens over the panel as the clock runs down
-  const haze = clock === undefined ? 0 : (1 - clock) * 0.55;
   return (
     <div style={styles.scene}>
       <style>{keyframes}</style>
@@ -798,10 +739,6 @@ function SafetyCard({ animation, clock }: { animation: string; clock?: number })
         <Card />
       </Sheet>
       <Panel key={`${panelOf(shown.cue)}-${shown.visit}`} shown={shown} />
-      {/* faded as a whole svg, which the browser can do without redrawing it */}
-      <Sheet viewBox={VIEW} style={{ opacity: haze, transition: 'opacity 1s linear' }}>
-        <path d={round(66, 114, 1468, 756, 14)} fill={SMOKE} />
-      </Sheet>
       <Sheet viewBox={VIEW}>
         <Caption cue={shown.cue} />
       </Sheet>
@@ -873,12 +810,6 @@ const keyframes = `
 }
 @keyframes ec-march {
   to { stroke-dashoffset: -56; }
-}
-.ec-blink {
-  animation: ec-blink 0.6s steps(1) infinite;
-}
-@keyframes ec-blink {
-  50% { fill: #dfeaff; }
 }
 `;
 

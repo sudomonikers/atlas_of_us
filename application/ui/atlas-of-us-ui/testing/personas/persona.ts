@@ -12,8 +12,8 @@ export interface Account {
 }
 
 //a scripted answer to one prompt. A string answers a free-text prompt. { choice, text } picks a choice with text as the
-//reasoning, left is the clock's seconds remaining when it's given, and ran_out: true runs the clock out straight after it
-export type Answer = string | { choice: number; text: string; left?: number; ran_out?: boolean };
+//reasoning
+export type Answer = string | { choice: number; text: string };
 
 //an impairment the persona notes, in a body function or a body part, by its name as the ui shows it
 export interface Impairment {

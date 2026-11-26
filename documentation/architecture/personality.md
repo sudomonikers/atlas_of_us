@@ -36,7 +36,6 @@ exactly one chapter (see `scene_grouping.md` in the personality UI folder).
 - **Each prompt names the facets** it was written to test. The scorer gets them as a hint, not a limit.
 - **Chapters come in three modes:** a **story** with choices, a **live** chapter that watches what the player actually does
   in the app, and an **interview** with pinned-down questions about habits and inner states.
-- **Some chapters run a real clock,** and each answer records how much time was left.
 - **Every chapter ends with a real-life question** about the player's own life, the strongest evidence we get.
 - **Each chapter and its questions are also in the graph,** so answers attach to them and scoring knows the play order.
   How to add a chapter is in `CREATE_SCENE.md` in the personality UI folder.

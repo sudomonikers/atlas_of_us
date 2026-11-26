@@ -34,9 +34,6 @@ pub struct ScoredAnswer {
     context: Option<String>, //the story the person saw just before the question
     answer: String,
     reasoning: Option<String>,
-    clock_seconds: Option<i64>,
-    clock_left: Option<i64>,
-    clock_ran_out: Option<bool>,
     facets: Vec<String>, //the traits the question was written to draw out
     pub scoring: Option<String>, //json list of the answer's Shifts. Only sent with contests
     contests: Option<String>, //json list of the person's contests of the answer's evidence
@@ -201,7 +198,6 @@ Each answer includes:
 - written_to_draw_out: the traits the question was designed to reveal.
 - real_life: true when the question asks about the person's own life rather than the story.
 - answer and reasoning: what the person said. For a multiple choice question, the answer is the choice they picked and the reasoning is their own explanation.
-- clock: only present when the scene had a countdown. It gives the total time, the time left when they answered, and whether time ran out.
 - person_later_added: only present when the person contested evidence from an earlier scoring of this answer. Each note gives the trait, whether they were explaining their answer (explain) or saying the evidence misread them (wrong), what they wrote, and whether a reviewer accepted it.
 
 ## What to record
@@ -270,10 +266,6 @@ pub fn answer_json(index: usize, a: &ScoredAnswer) -> Result<serde_json::Value, 
     Ok(json!({
         "index": index, "scenario": a.scenario, "story": a.context, "question": a.prompt, "written_to_draw_out": a.facets,
         "real_life": a.real_life, "answer": a.answer, "reasoning": a.reasoning,
-        //only answers given under a scenario's clock have one
-        "clock": a.clock_seconds.zip(a.clock_left).map(|(seconds, left)| json!({
-            "total_seconds": seconds, "seconds_left": left, "ran_out": a.clock_ran_out.unwrap_or(false),
-        })),
         "person_later_added": personality_contest::notes(a.contests.as_deref())?,
     }))
 }

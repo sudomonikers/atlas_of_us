@@ -32,7 +32,7 @@
 | E1 Friendliness | E1.1, E1.3, E1.5, E1.8, E1.10 | `E1.5`: an active, warm + item |
 | E2 Gregariousness | E2.1, E2.2, E2.3, E2.6, E2.9 | `E2.3`: groups, not just parties |
 | E3 Assertiveness | E3.1, E3.2, E3.5, E3.6, E3.10 | `E3.10`: a second − item |
-| E4 Activity Level | E4.1, E4.2, E4.3, E4.4, E4.6 | `E4.4`: juggling many things can be timed live |
+| E4 Activity Level | E4.1, E4.2, E4.3, E4.4, E4.6 | `E4.4`: juggling many things can be played live |
 | E5 Excitement-Seeking | E5.1, E5.2, E5.5, E5.6, E5.9 | `E5.9`: a − item; the four kept are all + |
 | E6 Cheerfulness | E6.1, E6.2, E6.5, E6.6, E6.10 | `E6.10`: a − item; the four kept are all + |
 | O1 Imagination | O1.1, O1.2, O1.3, O1.4, O1.10 | `O1.10`: a − item; the four kept are all + |
@@ -68,10 +68,10 @@
 |---|---|---|---|---|
 | 1 | The Story Game | Live | 6 | E6, O1, O2, O5 |
 | 2 | The Night Class | Story | 6 | E3, O5, O6, A5 |
-| 3 | The Big Party | Story, timed beats | 9 | N4, E1, E2, E5, A3 |
+| 3 | The Big Party | Story | 9 | N4, E1, E2, E5, A3 |
 | 4 | The Time Study | Interview | 8 | N1, C1, C2, C4, C5 |
 | 5 | The Night Market | Story | 7 | N5, A2, A6, C1, C6 |
-| 6 | The Bad Day | Story, timed | 7 | N2, A3, A4 |
+| 6 | The Bad Day | Story | 7 | N2, A3, A4 |
 | 7 | The Dare | Story | 9 | N1, E5, C2, C5, C6 |
 | 8 | The Shoplifter | Story | 7 | O6, A1, A2, A6, C3 |
 | 9 | The Committee | Story | 9 | E2, E3, E4, A3, C1, C4 |
@@ -80,9 +80,9 @@
 | 12 | The Festival | Live | 8 | N4, E2, E6, O2, O4 |
 | 13 | The Free Weekend | Story | 11 | E2, E4, O1, O2, O5, C3, C5 |
 | 14 | The Stranger | Story | 6 | A1, A3, A6 |
-| 15 | The Emergency | Live, timed | 7 | N6, E3, A3, C1 |
+| 15 | The Emergency | Live | 7 | N6, E3, A3, C1 |
 | 16 | The Feud | Story | 7 | N2, N4, A1, A4 |
-| 17 | The Cabin | Story + Interview, real clock | 13 | N1, N5, O3, O4, O6 |
+| 17 | The Cabin | Story + Interview | 13 | N1, N5, O3, O4, O6 |
 | 18 | The Portrait | Interview | 12 | N3, N5, E4, E6, O3, A5 |
 
 **Total:** 150 items.
@@ -122,7 +122,7 @@ An evening class on big questions, with a thought experiment and a lively room.
   - `A5.5` − Believe that I am better than others. ★
 
 ### 3. The Big Party
-*Story, timed beats*
+*Story*
 
 A friend's 40th: two hundred people, a loud band, and you know about four of them.
 
@@ -178,7 +178,7 @@ A fable: you reach a market town at dusk with ten silver, and the coach home at 
   - `A2.6` − Cheat to get ahead. ★
 
 ### 6. The Bad Day
-*Story, timed*
+*Story*
 
 A comedy of small disasters on the way to a job interview: traffic, a broken printer, a receptionist who keeps talking, and a bank's call center.
 
@@ -339,9 +339,9 @@ A man stops you in the street. His wallet was stolen and he needs bus fare to ge
   - `A3.4` + Am concerned about others. ★
 
 ### 15. The Emergency
-*Live, timed*
+*Live*
 
-A grease fire breaks out in the kitchen during a dinner you're hosting, and the clock is real.
+A grease fire breaks out in the kitchen during a dinner you're hosting.
 
 - **The first seconds**
   - `N6.1` + Panic easily. ★
@@ -372,7 +372,7 @@ A neighbor builds a fence a meter onto your land.
   - `A4.9` − Get back at others. ★
 
 ### 17. The Cabin
-*Story + Interview, real clock*
+*Story + Interview*
 
 A winter weekend in the same mountain cabin with old friends, as every year. The snacks are there all weekend with nobody pushing them, one friend wants to break the tradition, and another, driving up alone, is three hours late on an icy road with his phone off. Nothing in it depends on the player's own family or faith. It ends with a few counted questions about binges.
 
@@ -383,7 +383,7 @@ A winter weekend in the same mountain cabin with old friends, as every year. The
   - `O4.5` − Prefer to stick with things that I know. ★
   - `O4.6` − Dislike changes. ★
   - `O4.10` − Am attached to conventional ways. ★
-- **Cal still isn't here, and his phone is off (a real clock runs)**
+- **Cal still isn't here, and his phone is off**
   - `N1.1` + Worry about things. ★
   - `N1.2` + Fear for the worst. ★
   - `O3.1` + Experience my emotions intensely. ★

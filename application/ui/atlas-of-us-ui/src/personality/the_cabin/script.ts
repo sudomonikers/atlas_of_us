@@ -3,9 +3,7 @@ import type { Script } from '../personality';
 // The Cabin: a winter weekend with old friends, a counter full of snacks, and a friend who doesn't arrive
 // Every winter, the same friends rent the same cabin in the mountains. The snacks are there all weekend with nobody
 // pushing them, Jun wants to break the tradition, and Cal, driving up on his own, is three hours late on an icy road
-// with his phone off. A real clock runs while you wait for him: how long you sit with each prompt is how long you sat
-// with the worry. Running out jumps straight to too_long, where Cal turns up before you've finished. Later, by the fire,
-// Maya asks whether any religion has it right.
+// with his phone off. Later, by the fire, Maya asks whether any religion has it right.
 // Written to the IPIP-NEO items in ../scene_grouping.md: rarely overindulging (N5.6), controlling cravings (N5.8),
 // preferring what you know (O4.5), disliking change (O4.6), conventional ways (O4.10), one true religion (O6.4),
 // worrying (N1.1), fearing the worst (N1.2), feeling emotions intensely (O3.1), rarely noticing them (O3.8),
@@ -21,7 +19,6 @@ export const theCabin: Script = {
   title: 'The Cabin',
   facets: ['Anxiety', 'Immoderation', 'Emotionality', 'Adventurousness', 'Liberalism'],
   start: 'opening',
-  clock: { seconds: 180, from: 'the_wait', until: 'rosa', late: 'too_long' },
   sections: {
     // -------------------------------------------------------------------------
     // the snacks
@@ -114,13 +111,12 @@ export const theCabin: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // three hours late, and the clock starts
+    // three hours late
     // -------------------------------------------------------------------------
     nine_oclock: {
       steps: [
         { text: "By nine, the chili is cold, and Cal still isn't here. It's been snowing hard since dinner, and the road up the mountain is all switchbacks and black ice.", animation: 'window' },
         { text: 'You call him again. It goes straight to voicemail, just like the last five times.', animation: 'voicemail' },
-        { text: 'From here on, the clock is real.', animation: 'voicemail' },
       ],
       next: 'the_wait',
     },
@@ -181,7 +177,7 @@ export const theCabin: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // the clock stops here when the player gets through in time
+    // Rosa
     // -------------------------------------------------------------------------
     rosa: {
       steps: [
@@ -230,30 +226,6 @@ export const theCabin: Script = {
         { text: 'Rosa hugs him so hard that he drops his bag.', animation: 'hug' },
       ],
       next: 'by_the_fire',
-    },
-
-    // -------------------------------------------------------------------------
-    // the clock ran out: Cal turns up before you've finished
-    // -------------------------------------------------------------------------
-    too_long: {
-      steps: [
-        { text: "It's ten o'clock, and there's still nothing. Then headlights sweep across the window, and tires crunch on the snow outside.", animation: 'headlights' },
-        { speaker: CAL, text: "Sorry! Sorry. They closed the road for an hour to clear a crash, and my phone died. I've been stuck behind a snowplow since seven.", animation: 'cal_in' },
-        { text: 'Rosa bursts into tears, and won\'t let go of him. "My brother skidded off a road like this, years ago. I remember that phone call."', animation: 'rosa_relief' },
-        {
-          id: 'the_tears',
-          prompt: "Rosa is sobbing on Cal's shoulder. What do you do, and what do you make of it? Pick the closest.",
-          animation: 'rosa_relief',
-          facets: ['Emotionality'],
-          choices: [
-            { label: 'Hold her, and end up crying too.', next: 'by_the_fire' },
-            { label: 'Hold her hand until it passes.', next: 'by_the_fire' },
-            { label: "Feel awkward. I wish she wouldn't, he's fine.", next: 'by_the_fire' },
-            { label: 'Make some hot chocolate, and heat up some chili for Cal.', next: 'by_the_fire' },
-            { label: 'Something else.', next: 'by_the_fire', other: true },
-          ],
-        },
-      ],
     },
 
     // -------------------------------------------------------------------------

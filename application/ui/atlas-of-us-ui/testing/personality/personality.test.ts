@@ -16,7 +16,6 @@ const SCORING_MS = 10 * 60_000; //longest scoring should take
 
 //the player's text box: what's been written out so far, then the hidden rest of the text holding its space
 const TEXT = 'p:has(> span[style*="visibility: hidden"])';
-//polled on an interval: the page's requestAnimationFrame stops while its clock is paused
 const showing = (page: Page, text: string) =>
   page.waitForFunction(([sel, text]) => document.querySelector(sel)?.textContent === text, [TEXT, text], { polling: 50, timeout: STEP_MS });
 //until the player has moved off the step showing text, or closed
@@ -29,21 +28,7 @@ const written = (page: Page, text: string) =>
     return p?.textContent === text && p.lastElementChild?.textContent === '';
   }, [TEXT, text]);
 
-//pauses the page's clock a moment from now. With every persona playing at once, the page's clock can pass the moment
-//before the pause reaches it, so it's read again and tried again
-async function pauseSoon(page: Page) {
-  for (let tries = 0; ; tries++) {
-    try {
-      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 100);
-    } catch (e) {
-      if (tries >= 5 || !String(e).includes('to the past')) throw e;
-    }
-  }
-}
-
-//plays one scene in the ui, from its card on the dashboard to the end.
-//The page's clock is paused while a scene's clock runs, so each timed answer is given with exactly the seconds left
-//the persona has for it
+//plays one scene in the ui, from its card on the dashboard to the end
 async function playScene(page: Page, name: string, mine: Record<string, Answer>, first: boolean) {
   const script = SCENES[name];
   await page.getByRole('button').filter({ has: page.getByText(script.title, { exact: true }) }).click({ timeout: STEP_MS });
@@ -53,20 +38,9 @@ async function playScene(page: Page, name: string, mine: Record<string, Answer>,
     await page.getByRole('button', { name: "Let's go ▶" }).click();
   }
 
-  let paused = false;
-  let spent = 0; //ms the paused clock has been moved on since the scene's clock started
-  const resume = async () => {
-    if (paused) await page.clock.resume();
-    paused = false;
-  };
   for (const s of walk(name, script, mine)) {
     try {
       await showing(page, s.text);
-      if (s.starts) {
-        await pauseSoon(page);
-        paused = true;
-        spent = 0;
-      }
       if (!s.key) {
         //the first press writes the rest of the text out if it's still being written, the next moves on
         await page.keyboard.press('ArrowRight');
@@ -77,32 +51,18 @@ async function playScene(page: Page, name: string, mine: Record<string, Answer>,
         await page.keyboard.press('ArrowRight');
         if (s.choice) await page.getByRole('button', { name: s.choice, exact: true }).click();
         await page.locator('textarea').fill(s.answer!);
-        if (paused && s.left !== undefined) {
-          //the clock jumps to its late section the moment it reaches 0, so left: 0 answers with 0.4s to go, which the ui rounds to 0
-          const ms = Math.min(script.clock!.seconds - s.left, script.clock!.seconds - 0.4) * 1000 - spent;
-          if (ms > 0) {
-            await page.clock.fastForward(ms);
-            spent += ms;
-          }
-        }
         const [saved] = await Promise.all([
           page.waitForResponse((r) => r.url().endsWith('/api/personality/answers') && r.request().method() === 'PUT', { timeout: STEP_MS }),
           page.getByRole('button', { name: 'Continue ▶' }).click(),
         ]);
         if (!saved.ok()) throw new Error(`saving the answer: ${saved.status()} ${await saved.text()}`);
         await movedOn(page, s.text);
-        if (s.ranOut && paused) {
-          await page.clock.fastForward(script.clock!.seconds * 1000 - spent + 1000);
-          await resume();
-        }
       }
-      if (s.stops) await resume();
     } catch (e) {
       const alert = await page.getByRole('alert').first().textContent({ timeout: 1000 }).catch(() => undefined);
       throw new Error(`${name}: at ${s.key ?? `"${s.text.slice(0, 50)}"`}: ${alert ? `the ui says "${alert}"` : (e as Error).message.split('\n')[0]}`, { cause: e });
     }
   }
-  await resume();
   await page.locator(TEXT).waitFor({ state: 'detached', timeout: STEP_MS });
 }
 
@@ -123,7 +83,6 @@ for (const [file, persona] of Object.entries(personas)) {
     //the story that opens Personality has played, so the page opens on the chapters, and the note on getting the most
     //out of a scene shows before the first one, as it does for a new player
     await call('PATCH', '/auth/config', { personality_intro_seen: true, scene_start_note_hidden: false }, token);
-    await page.clock.install();
 
     await test.step('log in', async () => {
       await page.goto('/login');

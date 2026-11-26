@@ -5,9 +5,9 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 // The Bad Day is drawn like the Sunday funnies: thick black ink, flat color printed in Ben-Day dots and slightly out
 // of register with the line work, sound effects in big outlined lettering, and speech balloons. The player is the one
 // in a solid red jumper, never dotted, so they stand out on every panel. A cue names a page and the parts of it to
-// show: parts already up stay put, new ones pop in after them, and turning to a new page knocks the old one off. While
-// the clock runs, a watch in the corner counts the fictional minutes from 9:26 to half past. Everything is SVG in a
-// fixed 1600x900 space, scaled to cover the screen. The pictures keep to the top two thirds, clear of the text box.
+// show: parts already up stay put, new ones pop in after them, and turning to a new page knocks the old one off.
+// Everything is SVG in a fixed 1600x900 space, scaled to cover the screen. The pictures keep to the top two thirds,
+// clear of the text box.
 
 const W = 1600;
 const H = 900;
@@ -472,20 +472,6 @@ function PageView({ shown, leaving }: { shown: Shown; leaving?: boolean }) {
   return <Layers viewBox={VIEW} layers={layers} className={leaving ? 'bd-out' : undefined} style={styles.page} />;
 }
 
-//the fictional time while the real clock runs: 9:26 when it starts, half past when it runs out
-function Watch({ clock }: { clock: number }) {
-  const minute = 30 - Math.ceil(clock * 4);
-  return (
-    <g>
-      <rect x={1408} y={36} width={64} height={140} fill={C.black} />
-      <rect x={1356} y={64} width={168} height={86} rx={18} fill={C.paper} stroke={C.black} strokeWidth={7} />
-      <text x={1440} y={128} textAnchor="middle" fill={minute >= 29 ? C.red : C.black} style={{ ...styles.letters, fontSize: 60 }}>
-        9:{minute}
-      </text>
-    </g>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // sound
 // ---------------------------------------------------------------------------
@@ -524,7 +510,7 @@ const CROSSFADE = 1.5; //seconds
 
 // ---------------------------------------------------------------------------
 
-function Funnies({ animation, clock }: { animation: string; clock?: number }) {
+function Funnies({ animation }: { animation: string }) {
   //an animation this scene has no cue for holds whatever cue came before it
   const first = cues[animation] ? animation : FIRST_CUE;
   const [active, setActive] = useState(first);
@@ -586,7 +572,6 @@ function Funnies({ animation, clock }: { animation: string; clock?: number }) {
       {prev && <PageView key={`${prev.cue.page}-${prev.visit}`} shown={prev} leaving />}
       <PageView key={`${now.cue.page}-${now.visit}`} shown={now} />
       <Sheet viewBox={VIEW}>
-        {clock !== undefined && <Watch clock={clock} />}
         <rect x={30} y={30} width={W - 60} height={H - 60} rx={8} fill="none" stroke={C.black} strokeWidth={10} />
       </Sheet>
 

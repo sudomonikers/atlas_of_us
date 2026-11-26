@@ -62,9 +62,7 @@ Every persona is a test, and they all run at once:
 2. Call `DELETE /api/personality/answers` to clear its answers and scores, so every run starts like a new player.
 3. Open its own Playwright browser context and log in through the UI's login form.
 4. Play every scene in the UI as a player does: open its card, click through the text, pick the persona's choices and
-   type its answers. The UI builds the context, choices offered, facets and clock it sends with each answer. While a
-   scene's clock runs, the page's clock is paused and moved on so each timed answer is given with the seconds left the
-   persona has for it, and a persona that runs out moves the clock past the end.
+   type its answers. The UI builds the context, choices offered and facets it sends with each answer.
 5. Once every scene is played, press "Score my answers" on the dashboard, as a player does, and wait for scoring to
    finish.
 6. Read back the scores and attach them to the test. A test passes when its persona plays through.
@@ -72,8 +70,7 @@ Every persona is a test, and they all run at once:
    `personality/results/` as JSON (which the next run compares against) and as a markdown report.
 
 The `personality-check` project (`personality/check.test.ts`) checks every persona without playing: every prompt on its
-path has an answer, every answer is used, any clock it runs out is running, and every trait has a target. It is run
-after any change to a scene's prompts.
+path has an answer, every answer is used, and every trait has a target. It is run after any change to a scene's prompts.
 
 ### The measure
 - The headline number is the **average gap** between score and target across all 430 persona-trait pairs, on the 0 to 1 scale.

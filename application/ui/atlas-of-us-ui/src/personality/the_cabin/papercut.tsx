@@ -6,8 +6,8 @@ import { createSoundscape, type OneShot, type Soundscape } from '../soundscape';
 // big wooden table, with the snack counter along the top wall, the stone fireplace on the right and snow at the
 // window. Every part casts a soft shadow, as if it's been laid on the floor of the room, and speech is paper bubbles.
 // A cue names a room and the parts to show: a new room is laid down, and new parts in the same room drop in after it.
-// The wall clock keeps the time, and while the real clock runs, its hands go round from nine to ten. Everything is SVG
-// in a fixed 1600x900 space, scaled to cover the screen, kept to the top two thirds, clear of the text box.
+// The wall clock keeps the time. Everything is SVG in a fixed 1600x900 space, scaled to cover the screen, kept to the
+// top two thirds, clear of the text box.
 
 const W = 1600;
 const H = 900;
@@ -293,7 +293,6 @@ const LODGE: Record<string, Item[]> = {
   rosa_hug: [person([186, 440], 90, ROSA, 'hug')],
   dropped: [{ d: round(110, 540, 70, 48, 10), fill: '#5b4a3a' }],
   love: [heart(150, 330, 1.6), heart(190, 300, 1.1, '#e86aa0')],
-  relief_tears: [tear(170, 400, 1.2), tear(176, 470, 1.2, 0.6)],
   //everyone on the rug by the fire
   circle: [byFire('you', YOU), byFire('rosa', ROSA), byFire('jun', JUN), byFire('maya', MAYA), byFire('cal', CAL)],
   maya_bubble: [...bubble(760, 110, 440, ['Does any religion', 'actually have it right?'], [1330, 240])],
@@ -408,7 +407,7 @@ type Mix = Partial<Record<Bed, number>>;
 
 interface Cue {
   room: Room;
-  time?: number; //the wall clock, in hours, whenever the real clock isn't running
+  time?: number; //the wall clock, in hours
   parts: string[];
   mix: Mix;
 }
@@ -452,7 +451,6 @@ const cues: Record<string, Cue> = {
   headlights: { room: 'lodge', time: 22, parts: ['rosa', 'jun', 'maya', 'you', 'cal_spot', 'night', 'beams'], mix: WAITING },
   cal_in: { room: 'lodge', time: 22, parts: ['night', 'crowd', 'rosa_by', 'cal_in', 'sorry'], mix: LATE },
   hug: { room: 'lodge', time: 22, parts: ['night', 'crowd', 'cal_hug', 'rosa_hug', 'dropped', 'love'], mix: LATE },
-  rosa_relief: { room: 'lodge', time: 22, parts: ['night', 'crowd', 'cal_hug', 'rosa_hug', 'dropped', 'relief_tears'], mix: LATE },
   fire: { room: 'lodge', time: 25, parts: [...LATE_NIGHT, 'circle'], mix: LATE },
   fire_question: { room: 'lodge', time: 25, parts: [...LATE_NIGHT, 'circle', 'maya_bubble'], mix: QUIET },
   fire_talk: { room: 'lodge', time: 25.2, parts: [...LATE_NIGHT, 'circle', 'talk'], mix: LATE },
@@ -565,12 +563,12 @@ function Scene({ shown, time }: { shown: Shown; time: number }) {
         ),
       };
     });
-  //the hands move every second while the real clock runs
+  //the hands turn to each cue's time
   if (clockAt) layers.push({ key: 'clock', moving: 'clock', node: <WallClock at={clockAt} time={time} /> });
   return <Layers viewBox={VIEW} layers={layers} className="cb-in" />;
 }
 
-function PaperCabin({ animation, clock }: { animation: string; clock?: number }) {
+function PaperCabin({ animation }: { animation: string }) {
   //an animation this scene has no cue for holds whatever cue came before it
   const first = cues[animation] ? animation : FIRST_CUE;
   const [active, setActive] = useState(first);
@@ -604,8 +602,7 @@ function PaperCabin({ animation, clock }: { animation: string; clock?: number })
     if (oneShot) sound.current?.play(oneShot);
   }, [active]);
 
-  //while the real clock runs, the wall clock's hands go round from nine to ten
-  const time = clock === undefined ? (shown.cue.time ?? 21) : 22 - clock;
+  const time = shown.cue.time ?? 21;
   return (
     <div style={styles.scene}>
       <style>{keyframes}</style>

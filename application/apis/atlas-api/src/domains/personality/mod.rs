@@ -372,7 +372,6 @@ pub struct ScenarioQuestion {
 
 const MAX_ANSWER_CHARS: usize = 2000;
 const MAX_CONTEXT_CHARS: usize = 8000;
-const MAX_CLOCK_SECONDS: i64 = 24 * 60 * 60;
 
 #[derive(Deserialize)]
 pub struct AnswerPayload {
@@ -380,17 +379,8 @@ pub struct AnswerPayload {
     answer: String, //the picked choice, or the whole answer when the question has no choices
     reasoning: Option<String>, //why, in the user's words
     context: String, //the story the user saw just before the question, and the choices offered, for the scorer
-    clock: Option<AnswerClock>, //only for answers given once a scenario's clock has started
     #[serde(default)]
     facets: Vec<String>, //the traits the question was written to draw out
-}
-
-//where the scenario's clock stood when the answer was given
-#[derive(Deserialize)]
-pub struct AnswerClock {
-    seconds: i64, //how long the clock runs in total
-    left: i64, //seconds left when answered, or when the clock stopped if it already had
-    ran_out: bool, //the clock hit zero before the person finished
 }
 
 #[derive(Serialize, Deserialize)]
@@ -405,7 +395,7 @@ pub struct Answer {
 
 //saves the logged in user's answer, replacing any earlier answer to the same question.
 //Answering the first question of a scenario starts a fresh run, so it first clears the rest of their answers to it: a
-//replay down another branch, or one where the clock runs out sooner, would otherwise keep answers from the old run.
+//replay down another branch would otherwise keep answers from the old run.
 //Answers are scored when the person asks for it, see score_new
 pub async fn answer_question(
     State(state): State<AppState>,
@@ -418,9 +408,6 @@ pub async fn answer_question(
     }
     if body.context.chars().count() > MAX_CONTEXT_CHARS {
         return Err((StatusCode::BAD_REQUEST, "That question's story is too long to save. Try reloading the page.".to_string()));
-    }
-    if body.clock.as_ref().is_some_and(|c| !(1..=MAX_CLOCK_SECONDS).contains(&c.seconds) || !(0..=c.seconds).contains(&c.left)) {
-        return Err((StatusCode::BAD_REQUEST, "That scenario's clock doesn't look right. Try reloading the page.".to_string()));
     }
 
     //a first answer clears the old run's answers, each in its own transaction. Deleting a relationship locks the question
@@ -445,7 +432,7 @@ pub async fn answer_question(
         MERGE (p)-[a:ANSWERED]->(q)
         ON CREATE SET a.id = randomUUID()
         SET a.answer = $answer, a.reasoning = $reasoning, a.context = $context, a.answeredDate = datetime(), a.scoring = null, a.contests = null,
-            a.clockSeconds = $clockSeconds, a.clockLeft = $clockLeft, a.clockRanOut = $clockRanOut, a.facets = $facets
+            a.facets = $facets
         RETURN s.name AS scenario, q.id AS question_id, q.key AS question_key,
                a.answer AS answer, a.reasoning AS reasoning, toString(a.answeredDate) AS answered_date
     ")
@@ -454,10 +441,6 @@ pub async fn answer_question(
         .param("answer", body.answer)
         .param("reasoning", body.reasoning)
         .param("context", body.context)
-        //null clears the clock from an earlier answer to the same question
-        .param("clockSeconds", body.clock.as_ref().map(|c| c.seconds))
-        .param("clockLeft", body.clock.as_ref().map(|c| c.left))
-        .param("clockRanOut", body.clock.as_ref().map(|c| c.ran_out))
         .param("facets", body.facets)
     ).await.map_err(internal)?;
     let Some(row) = rows.next().await.map_err(internal)? else {
@@ -520,8 +503,7 @@ pub struct ScoringStatus {
     out_of_budget: bool, //the month's bedrock budget ran out, so nothing gets scored (see infrastructure/budget.tf)
 }
 
-//a scenario (s) the person (p) has finished, by answering its last question. Earlier questions can go unanswered, when a
-//scenario's clock runs out before them
+//a scenario (s) the person (p) has finished, by answering its last question
 const FINISHED: &str = "
     EXISTS {
         MATCH (s)-[:HAS_QUESTION]->(last:PersonalityScenarioQuestion)<-[:ANSWERED]-(p)
@@ -640,7 +622,7 @@ pub async fn contest_evidence(
         RETURN a.scoring AS scoring, a.contests AS contests, toString(datetime()) AS now, scoring_running, pending, collect({
             id: each.id, scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
             context: each.context, answer: each.answer, reasoning: each.reasoning,
-            clock_seconds: each.clockSeconds, clock_left: each.clockLeft, clock_ran_out: each.clockRanOut, facets: each.facets,
+            facets: each.facets,
             scoring: each.scoring, contests: each.contests
         }) AS scene
     ")
@@ -737,9 +719,6 @@ struct ScoredAnswer {
     context: Option<String>, //the story the person saw just before the question
     answer: String,
     reasoning: Option<String>,
-    clock_seconds: Option<i64>,
-    clock_left: Option<i64>,
-    clock_ran_out: Option<bool>,
     facets: Vec<String>, //the traits the question was written to draw out
     scoring: Option<String>, //json list of the answer's Shifts. Only read for contests
     contests: Option<String>, //json list of the person's contests of the answer's Shifts
@@ -771,7 +750,7 @@ async fn start_scoring(state: &AppState, person_id: &str, request_id: &RequestId
             RETURN collect({{
                 id: a.id, scenario: s.title, prompt: q.prompt, real_life: coalesce(q.real_life, false),
                 context: a.context, answer: a.answer, reasoning: a.reasoning,
-                clock_seconds: a.clockSeconds, clock_left: a.clockLeft, clock_ran_out: a.clockRanOut, facets: a.facets,
+                facets: a.facets,
                 contests: a.contests, answered: toString(a.answeredDate)
             }}) AS answers
         "))

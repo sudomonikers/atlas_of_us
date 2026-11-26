@@ -48,20 +48,14 @@ export interface Walked {
   key?: string; //the prompt's id, on a prompt
   choice?: string; //the label of the choice the persona picks
   answer?: string; //the persona's typed answer, or its reasoning for a choice
-  left?: number; //the clock's seconds remaining when the answer is given
-  ranOut?: boolean; //runs the clock out straight after the answer
-  starts?: boolean; //moving on from this step starts the clock
-  stops?: boolean; //moving on from this step stops the clock
 }
 
 type Position = { section: string; index: number };
 
 //walks one scene the way the ui's ScriptPlayer does, yielding every step on the persona's path. Throws where the
-//persona's answers can't be played: a prompt on its path with no answer, or a clock run out where none is running
+//persona's answers can't be played: a prompt on its path with no answer, or a choice it doesn't have
 export function* walk(name: string, script: Script, mine: Record<string, Answer>): Generator<Walked> {
   let pos: Position | undefined = { section: script.start, index: 0 };
-  let started = false;
-  let stopped = false;
   while (pos) {
     const sec: Section = script.sections[pos.section];
     const step = sec.steps[pos.index];
@@ -71,7 +65,7 @@ export function* walk(name: string, script: Script, mine: Record<string, Answer>
       const a = mine[step.id];
       if (a === undefined) throw new Error(`${name}: no answer for ${step.id}`);
       const picked = typeof a === 'string' ? undefined : a;
-      Object.assign(out, { key: step.id, choice: step.choices?.[picked?.choice ?? -1]?.label, answer: picked ? picked.text : a, left: picked?.left, ranOut: picked?.ran_out });
+      Object.assign(out, { key: step.id, choice: step.choices?.[picked?.choice ?? -1]?.label, answer: picked ? picked.text : a });
       if (step.choices) {
         if (!picked || !step.choices[picked.choice]) throw new Error(`${name}: ${step.id} needs one of its ${step.choices.length} choices`);
         next = { section: step.choices[picked.choice].next, index: 0 };
@@ -79,14 +73,7 @@ export function* walk(name: string, script: Script, mine: Record<string, Answer>
     }
     if (!next && pos.index + 1 < sec.steps.length) next = { ...pos, index: pos.index + 1 };
     else if (!next) next = sec.next ? { section: sec.next, index: 0 } : undefined;
-    if (script.clock && next) {
-      out.starts = !started && next.section === script.clock.from;
-      out.stops = started && !stopped && next.section === script.clock.until;
-      if (out.ranOut && !(started && !stopped && !out.stops)) throw new Error(`${name}: ${out.key} runs the clock out, but the clock isn't running after it`);
-      started ||= out.starts;
-      stopped ||= out.stops || !!out.ranOut;
-    }
     yield out;
-    pos = out.ranOut ? { section: script.clock!.late, index: 0 } : next;
+    pos = next;
   }
 }

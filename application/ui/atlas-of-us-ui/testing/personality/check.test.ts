@@ -1,6 +1,5 @@
 // Checks every persona's personality without playing anything: every prompt on its path has an answer, every answer is
-// used, any clock it runs out is running, and it has a target for every trait the api scores. Run after any change to a
-// scene's prompts.
+// used, and it has a target for every trait the api scores. Run after any change to a scene's prompts.
 import { expect, test } from '@playwright/test';
 import { call } from '../harness.ts';
 import { personas } from '../personas/index.ts';

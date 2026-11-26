@@ -1,10 +1,9 @@
 import type { Script } from '../personality';
 
 // The Bad Day: a comedy of small disasters
-// Your phone died in the night, and you have a job interview at 9:30. A real four-minute clock runs from the traffic
-// lights to the interview room door, through a driver who won't move, a print shop printer that jams and a receptionist
-// who keeps talking. Running out jumps straight to meeting_late, skipping whatever was left. Then an
-// afternoon on hold to the bank, and a waitress who gets your dinner wrong and is clearly having a worse day than you.
+// Your phone died in the night, and you have a job interview at 9:30. Four minutes from the traffic lights to the
+// interview room door, through a driver who won't move, a print shop printer that jams and a receptionist who keeps
+// talking. Then an afternoon on hold to the bank, and a waitress who gets your dinner wrong and is clearly having a worse day than you.
 // Written to the IPIP-NEO items in ../scene_grouping.md: getting angry easily (N2.1), getting irritated easily (N2.2),
 // not being easily annoyed (N2.8), losing my temper (N2.5), yelling at people (A4.7), insulting people (A4.8) and being
 // indifferent to the feelings of others (A3.7).
@@ -18,10 +17,9 @@ export const theBadDay: Script = {
   title: 'The Bad Day',
   facets: ['Anger', 'Cooperation', 'Altruism'],
   start: 'opening',
-  clock: { seconds: 240, from: 'the_lights', until: 'the_meeting', late: 'meeting_late' },
   sections: {
     // -------------------------------------------------------------------------
-    // the morning, before the clock starts
+    // the morning
     // -------------------------------------------------------------------------
     opening: {
       steps: [
@@ -35,7 +33,7 @@ export const theBadDay: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // the clock is running
+    // four minutes to get there
     // -------------------------------------------------------------------------
     the_lights: {
       steps: [
@@ -158,15 +156,10 @@ export const theBadDay: Script = {
     },
 
     // -------------------------------------------------------------------------
-    // the interview room, on time or not
+    // the interview room
     // -------------------------------------------------------------------------
     the_meeting: {
       steps: [{ text: 'You burst into the interview room at exactly 9:30. It\'s empty. Then the phone on the wall rings. It\'s Gary, from the front desk: the interviewer is running forty minutes late.', animation: 'meeting' }],
-      next: 'the_call',
-    },
-
-    meeting_late: {
-      steps: [{ text: "It's 9:30, and you're not there yet. By the time you burst into the interview room, it's 9:34. It's empty. Then the phone on the wall rings. It's Gary, from the front desk: the interviewer is running forty minutes late.", animation: 'meeting' }],
       next: 'the_call',
     },
 

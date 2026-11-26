@@ -113,8 +113,7 @@ MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key I
 DETACH DELETE old;
 
 
-// The Big Party. walk_in and work_the_room are on a clock, so either can be skipped when it runs out. the_corner
-// branches: cheer_up is only asked after sitting with Mei. the_stage branches: up_there is only asked on stage
+// The Big Party. the_corner branches: cheer_up is only asked after sitting with Mei. the_stage branches: up_there is only asked on stage
 MATCH (s:PersonalityScenario {name: 'the_big_party'})
 UNWIND [
   {order: 0, key: 'walk_in', prompt: 'What do you do first? Pick one, and tell me why.'},
@@ -215,8 +214,7 @@ WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
 DETACH DELETE old;
 
-// The Bad Day. the_lights, the_printer and the_gary are on a clock, so the last two can be skipped when it runs out.
-// No other branches add or skip questions
+// The Bad Day. No branches add or skip questions: every path asks all eight
 MATCH (s:PersonalityScenario {name: 'the_bad_day'})
 UNWIND [
   {order: 0, key: 'the_lights', prompt: 'What do you do? Pick one, and tell me what goes through your head.'},
@@ -391,8 +389,7 @@ WITH s, collect(q.key) AS keys
 MATCH (s)-[:HAS_QUESTION]->(old:PersonalityScenarioQuestion) WHERE NOT old.key IN keys
 DETACH DELETE old;
 
-// The Cabin. the_wait and the_feeling are on a clock, so the_feeling can be skipped when it runs out. the_tears is
-// asked either way, while waiting or when Cal turns up
+// The Cabin
 MATCH (s:PersonalityScenario {name: 'the_cabin'})
 UNWIND [
   {order: 0, key: 'the_snacks', prompt: "How does the snack counter go for you, over a whole weekend like this? Pick the closest, and tell me why."},

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { DOMAINS, fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, scoreAnswers, type AnswerClock, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
+import { DOMAINS, fetchTraits, getProgress, getScoring, MAX_ANSWER_LENGTH, saveAnswer, scoreAnswers, type Trait, type SavedAnswer, type ScenarioQuestion } from './api';
 import { theStoryGame } from './the_story_game/script';
 import { theFestival } from './the_festival/script';
 import { theBigParty } from './the_big_party/script';
@@ -140,21 +140,12 @@ export interface Section {
   next?: string; //id of the Section that follows; omitted on the final Section, ignored when the last step is a PromptFrame with choices
 }
 
-//a real countdown over part of the script. Prompts between from and until can be skipped when it runs out
-export interface Clock {
-  seconds: number;
-  from: string; //id of the Section that starts it
-  until: string; //id of the Section that stops it
-  late: string; //id of the Section jumped to the moment it runs out
-}
-
 export interface Script {
   id: string;
   title: string;
   facets: PersonalityTrait[]; //every trait this scenario is designed to measure
   start: string; //id of the first Section
   sections: Record<string, Section>;
-  clock?: Clock;
 }
 
 const isPrompt = (step: Step): step is PromptFrame => 'prompt' in step;
@@ -171,7 +162,7 @@ interface ScenarioProgress {
   completedAt?: string; //ISO timestamp
 }
 
-//some questions answered is in progress, the last one is complete. Questions on a clock can be skipped
+//some questions answered is in progress, the last one is complete
 function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQuestion[]>) {
   const progress: Record<string, ScenarioProgress> = {};
   for (const name of new Set(answers.map((a) => a.scenario))) {
@@ -193,16 +184,15 @@ function toProgress(answers: SavedAnswer[], questions: Record<string, ScenarioQu
  * ------------------------------------------------------------------------------------------- */
 
 //the tags on a scenario card, with what each means on hover
-const KIND_LOOK: Record<Kind | 'timed', { label: string; meaning: string }> = {
+const KIND_LOOK: Record<Kind, { label: string; meaning: string }> = {
   story: { label: 'Story', meaning: 'A story you play through, choosing as it goes' },
   interview: { label: 'Interview', meaning: 'Someone asks you about yourself' },
   live: { label: 'Live', meaning: 'Things happen in the moment and you react' },
-  timed: { label: 'Timed', meaning: 'Part of it runs against a real clock' },
 };
 
 export interface Playable {
   script: Script;
-  renderScene: (animation: string, clock?: number) => ReactNode;
+  renderScene: (animation: string) => ReactNode;
 }
 
 //scenarios that have been built so far, keyed by ScenarioInfo id
@@ -214,16 +204,16 @@ const PLAYABLE: Record<string, Playable> = {
   the_committee: { script: theCommittee, renderScene: (animation) => <Riso animation={animation} /> },
   the_night_class: { script: theNightClass, renderScene: (animation) => <Chalkboard animation={animation} /> },
   the_night_market: { script: theNightMarket, renderScene: (animation) => <Woodcut animation={animation} /> },
-  the_bad_day: { script: theBadDay, renderScene: (animation, clock) => <Funnies animation={animation} clock={clock} /> },
+  the_bad_day: { script: theBadDay, renderScene: (animation) => <Funnies animation={animation} /> },
   the_time_study: { script: theTimeStudy, renderScene: (animation) => <Notebook animation={animation} /> },
   the_stranger: { script: theStranger, renderScene: (animation) => <Stencil animation={animation} /> },
   the_feud: { script: theFeud, renderScene: (animation) => <Blueprint animation={animation} /> },
   the_free_weekend: { script: theFreeWeekend, renderScene: (animation) => <Sampler animation={animation} /> },
   the_houseguest: { script: theHouseguest, renderScene: (animation) => <Dollhouse animation={animation} /> },
   the_shoplifter: { script: theShoplifter, renderScene: (animation) => <Cctv animation={animation} /> },
-  the_emergency: { script: theEmergency, renderScene: (animation, clock) => <SafetyCard animation={animation} clock={clock} /> },
+  the_emergency: { script: theEmergency, renderScene: (animation) => <SafetyCard animation={animation} /> },
   the_promotion: { script: thePromotion, renderScene: (animation) => <PixelOffice animation={animation} /> },
-  the_cabin: { script: theCabin, renderScene: (animation, clock) => <PaperCabin animation={animation} clock={clock} /> },
+  the_cabin: { script: theCabin, renderScene: (animation) => <PaperCabin animation={animation} /> },
   the_portrait: { script: thePortrait, renderScene: (animation) => <Oils animation={animation} /> },
 };
 
@@ -368,11 +358,11 @@ function Dashboard() {
   }, [reviewing, traits]);
 
   //saves an answer as the player moves past a prompt
-  const answer = (scenario: string) => async (step: PromptFrame, given: Answer, context: string, clock?: AnswerClock) => {
+  const answer = (scenario: string) => async (step: PromptFrame, given: Answer, context: string) => {
     const question = questions[scenario]?.find((q) => q.key === step.id);
     if (!question) throw new Error("This question isn't hooked up on my end yet, so I can't save your answer. Not your fault.");
     const choice = step.choices && given.choice !== undefined ? step.choices[given.choice].label : undefined;
-    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets, clock);
+    await saveAnswer(question.id, choice ?? given.text, choice ? given.text : undefined, context, step.facets);
   };
 
   //a scenario asked for in the url opens with its start note, once their progress is in
@@ -735,7 +725,6 @@ function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioC
   const look = badges[status];
   const when = progress?.completedAt ?? progress?.startedAt;
   const thumb = THUMBS[scenario.id];
-  const kinds: (Kind | 'timed')[] = PLAYABLE[scenario.id]?.script.clock ? [...scenario.kinds, 'timed'] : scenario.kinds;
   const domains = DOMAINS.map((d) => ({ ...d, facets: scenario.facets.filter((f) => DOMAIN_TRAITS[d.key].includes(f)) })).filter((d) => d.facets.length);
 
   return (
@@ -763,7 +752,7 @@ function ScenarioCard({ index, scenario, progress, playable, onPlay }: ScenarioC
 
         <span style={dash.cardTitle}>{scenario.title}</span>
         <span style={dash.kinds}>
-          {kinds.map((kind) => (
+          {scenario.kinds.map((kind) => (
             <span key={kind} className="comic-chip" style={dash.kind} title={KIND_LOOK[kind].meaning}>
               {KIND_LOOK[kind].label}
             </span>
@@ -824,7 +813,7 @@ const following = (script: Script, position: Position, answer?: Answer): Positio
 };
 
 //walks an unfinished run's path through the script from its saved answers, stopping at the first prompt not yet
-//answered. A clock can't pick up part way, so a run that reached one resumes just before it starts
+//answered
 function resume(script: Script, saved: SavedAnswer[]) {
   const history: Position[] = [{ section: script.start, index: 0 }];
   const answers: Record<string, Answer> = {};
@@ -838,7 +827,7 @@ function resume(script: Script, saved: SavedAnswer[]) {
       answers[step.id] = choice === undefined ? { text: given.answer } : { choice, text: given.reasoning ?? '' };
     }
     const next = following(script, position, answers[isPrompt(step) ? step.id : '']);
-    if (!next || next.section === script.clock?.from) break;
+    if (!next) break;
     history.push(next);
   }
   //nothing to pick up, from a fresh run or answers the script no longer has, starts on the first step, not the first prompt
@@ -848,8 +837,8 @@ function resume(script: Script, saved: SavedAnswer[]) {
 
 interface ScriptPlayerProps {
   script: Script;
-  renderScene: (animation: string, clock?: number) => ReactNode; //the scenario's background, driven by the current step's animation and how much of the clock is left, 1 to 0
-  onAnswer: (step: PromptFrame, answer: Answer, context: string, clock?: AnswerClock) => Promise<void>; //saves an answer, with what the user saw before it and where the clock stood if it has started; the player waits for it before moving on
+  renderScene: (animation: string) => ReactNode; //the scenario's background, driven by the current step's animation
+  onAnswer: (step: PromptFrame, answer: Answer, context: string) => Promise<void>; //saves an answer, with what the user saw before it; the player waits for it before moving on
   onExit: () => void; //leave the scenario part way through
   onFinish: () => void; //called when the user moves past the final step
   saved: SavedAnswer[]; //the answers of an unfinished run to pick up from, empty to start fresh
@@ -862,13 +851,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
   const [answers, setAnswers] = useState<Record<string, Answer>>(resumed.answers);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
-  const { clock } = script;
-  const [deadline, setDeadline] = useState<number>(); //when the clock runs out, once it's started
-  const [stopped, setStopped] = useState<{ at: number; ranOut: boolean }>(); //when the clock stopped, and whether it was by running out
-  const [now, setNow] = useState(0);
   const [visible, setVisible] = useState(visibleArea); //the part of the screen the on-screen keyboard leaves showing
-  const running = clock && deadline !== undefined && !stopped;
-  const left = running ? Math.max(0, deadline - now) / 1000 : undefined;
 
   const position = history[history.length - 1];
   const section = script.sections[position.section];
@@ -890,27 +873,6 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
       viewport?.removeEventListener('scroll', update);
     };
   }, []);
-
-  //running out jumps straight to the clock's late Section, whatever the user is in the middle of
-  useEffect(() => {
-    if (!running || !clock || deadline === undefined) return;
-    const timer = setInterval(() => {
-      const t = Date.now();
-      setNow(t);
-      if (t < deadline) return;
-      setStopped({ at: deadline, ranOut: true });
-      setHistory((h) => [...h, { section: clock.late, index: 0 }]);
-      setShown(0);
-    }, 250);
-    return () => clearInterval(timer);
-  }, [running, deadline, clock, setShown]);
-
-  //where the clock stands for the scorer, once it has started. After it stops, that's where it stopped
-  const clockNow = (): AnswerClock | undefined => {
-    if (!clock || deadline === undefined) return undefined;
-    const at = stopped?.at ?? Date.now();
-    return { seconds: clock.seconds, left: Math.round(Math.max(0, deadline - at) / 1000), ran_out: !!stopped?.ranOut };
-  };
 
   //what the user saw since the last question along the path they took, and the choices offered, so the scorer
   //knows what they're answering
@@ -938,7 +900,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
       setSaving(true);
       setSaveError(undefined);
       try {
-        await onAnswer(step, answer, context(step), clockNow());
+        await onAnswer(step, answer, context(step));
       } catch (e) {
         setSaveError(e instanceof Error ? e.message : String(e));
         return;
@@ -951,14 +913,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
       onFinish();
       return;
     }
-    if (clock && next.section === clock.from && deadline === undefined) {
-      const t = Date.now();
-      setDeadline(t + clock.seconds * 1000);
-      setNow(t);
-    }
-    if (clock && next.section === clock.until && !stopped) setStopped({ at: Date.now(), ranOut: false });
-    //unless the clock ran out while the answer was saving
-    setHistory((h) => (h[h.length - 1] === position ? [...h, next] : h));
+    setHistory((h) => [...h, next]);
     setShown(0);
   };
 
@@ -1004,13 +959,7 @@ function ScriptPlayer({ script, renderScene, onAnswer, onExit, onFinish, saved }
 
   return (
     <div ref={stage} style={{ ...styles.stage, ...visible }}>
-      <Suspense fallback={null}>{renderScene(step.animation, left === undefined ? undefined : left / clock!.seconds)}</Suspense>
-
-      {left !== undefined && (
-        <div style={{ ...styles.clock, ...(left < 60 ? styles.clockLow : {}) }}>
-          {Math.floor(left / 60)}:{String(Math.floor(left % 60)).padStart(2, '0')}
-        </div>
-      )}
+      <Suspense fallback={null}>{renderScene(step.animation)}</Suspense>
 
       <button style={styles.exit} className="comic-lift" onClick={onExit}>
         ◀ Back to chapters
@@ -1251,27 +1200,6 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: comic,
     fontSize: 20,
     letterSpacing: 1,
-  },
-  //top center, clear of the exit button on the left and the app's Feedback and Log out buttons on the right
-  clock: {
-    position: 'absolute',
-    top: 16,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    zIndex: 20,
-    padding: '4px 14px',
-    background: ivory,
-    color: gunmetal,
-    border: `3px solid ${gunmetal}`,
-    borderRadius: '8px 14px 6px 12px / 12px 8px 14px 6px',
-    boxShadow: `3px 4px 0 ${gunmetal}`,
-    fontFamily: comic,
-    fontSize: 26,
-    letterSpacing: 2,
-    fontVariantNumeric: 'tabular-nums',
-  },
-  clockLow: {
-    color: '#c0392b',
   },
 };
 
