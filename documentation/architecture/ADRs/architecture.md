@@ -14,7 +14,7 @@ So if we were to attempt DDD we would almost certainly end up with the Big Ball 
 ### UI
 For our UI layer, we actually plan to have several UI's starting with a web application. In the futuer we will expand to offer native mobile apps and native desktop apps if needed.
 
-There are two web apps: atlas-of-us.com, where people map who they are, and business.atlas-of-us.com, which puts that map to work, starting with occupations (see `../occupations.md`). Both use the same API and accounts.
+There are three web apps: atlas-of-us.com, where people map who they are; business.atlas-of-us.com, which puts that map to work, starting with occupations (see `../occupations.md`); and soulmates.atlas-of-us.com, which matches each person with the one person who fits them (`application/ui/atlas-soulmates-ui`). All use the same API and accounts.
 
 The web UI will be hosted on AWS S3, fronted by cloudfront and WAF, with other web services liek Route53, Certificate Manager, and other used to host the app. The UI will be strictly a presentation layer with all business logic being handled in the backend since we intend to serve several different UI's in the future as well as potentially offering API access.
 

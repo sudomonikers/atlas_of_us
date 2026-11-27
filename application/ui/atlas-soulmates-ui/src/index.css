@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+/* warm and romantic: blush paper, plum ink, a sunset gradient */
+:root {
+  --ink: #23182a;
+  --ink-soft: #6e6274;
+  --paper: #fff6f2;
+  --card: #ffffff;
+  --line: #f0dfd9;
+  --rose: #ff3d7f;
+  --glow: linear-gradient(135deg, #ff7a59, #ff3d7f 50%, #9b3dd6);
+  --radius: 22px;
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  font-family: var(--sans);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f6eef3;
+    --ink-soft: #b3a6b8;
+    --paper: #16121b;
+    --card: #221b29;
+    --line: #362c3f;
+    --rose: #ff6b9b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--paper);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+em {
+  font-style: italic;
+  font-weight: 500;
+  background: var(--glow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+a {
+  color: var(--rose);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 2px;
+}
